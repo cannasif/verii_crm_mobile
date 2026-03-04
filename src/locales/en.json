@@ -141,7 +141,8 @@
     "subjectRequired": "Subject is required",
     "activityTypeRequired": "Activity type is required",
     "statusRequired": "Status is required",
-    "dateRequired": "Date is required"
+    "dateRequired": "Date is required",
+    "endDateRequired": "End date is required"
   },
   "language": {
     "title": "Language",
@@ -425,7 +426,14 @@
     "deleteConfirm": "Are you sure you want to delete this activity?",
     "deleteSuccess": "Activity deleted successfully",
     "createSuccess": "Activity created successfully",
-    "updateSuccess": "Activity updated successfully"
+    "updateSuccess": "Activity updated successfully",
+    "errors": {
+      "listLoad": "Failed to load activity list",
+      "notFound": "Activity not found",
+      "create": "Activity could not be created",
+      "update": "Activity could not be updated",
+      "delete": "Activity could not be deleted"
+    }
   },
   "activityType": {
     "title": "Activity Types",
@@ -436,7 +444,14 @@
     "description": "Description",
     "createSuccess": "Activity type created",
     "updateSuccess": "Activity type updated",
-    "deleteSuccess": "Activity type deleted"
+    "deleteSuccess": "Activity type deleted",
+    "errors": {
+      "listLoad": "Failed to load activity types",
+      "notFound": "Activity type not found",
+      "create": "Activity type could not be created",
+      "update": "Activity type could not be updated",
+      "delete": "Activity type could not be deleted"
+    }
   },
   "titleManagement": {
     "title": "Title Management",

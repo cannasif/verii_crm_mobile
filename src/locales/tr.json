@@ -129,6 +129,7 @@
     "activityTypeRequired": "Aktivite tipi seçilmelidir",
     "statusRequired": "Durum seçilmelidir",
     "dateRequired": "Tarih zorunludur",
+    "endDateRequired": "Bitiş tarihi zorunludur",
     "nameRequired": "İsim zorunludur",
     "invalidEmail": "Geçerli bir e-posta adresi girin"
   },
@@ -414,7 +415,14 @@
     "deleteConfirm": "Bu aktiviteyi silmek istediğinize emin misiniz?",
     "deleteSuccess": "Aktivite başarıyla silindi",
     "createSuccess": "Aktivite başarıyla oluşturuldu",
-    "updateSuccess": "Aktivite başarıyla güncellendi"
+    "updateSuccess": "Aktivite başarıyla güncellendi",
+    "errors": {
+      "listLoad": "Aktivite listesi alınamadı",
+      "notFound": "Aktivite bulunamadı",
+      "create": "Aktivite oluşturulamadı",
+      "update": "Aktivite güncellenemedi",
+      "delete": "Aktivite silinemedi"
+    }
   },
   "activityType": {
     "title": "Aktivite Tipleri",
@@ -425,7 +433,14 @@
     "description": "Açıklama",
     "createSuccess": "Aktivite tipi oluşturuldu",
     "updateSuccess": "Aktivite tipi güncellendi",
-    "deleteSuccess": "Aktivite tipi silindi"
+    "deleteSuccess": "Aktivite tipi silindi",
+    "errors": {
+      "listLoad": "Aktivite tipleri alınamadı",
+      "notFound": "Aktivite tipi bulunamadı",
+      "create": "Aktivite tipi oluşturulamadı",
+      "update": "Aktivite tipi güncellenemedi",
+      "delete": "Aktivite tipi silinemedi"
+    }
   },
   "titleManagement": {
     "title": "Ünvan Yönetimi",

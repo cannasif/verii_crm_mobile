@@ -1,4 +1,5 @@
 import { apiClient } from "../../../lib/axios";
+import i18n from "../../../locales";
 import type { ApiResponse } from "../../auth/types";
 import type {
   ActivityDto,
@@ -79,7 +80,7 @@ export const activityApi = {
 
     if (!response.data.success) {
       throw new Error(
-        response.data.message || response.data.exceptionMessage || "Aktivite listesi alınamadı"
+        response.data.message || response.data.exceptionMessage || i18n.t("activity.errors.listLoad")
       );
     }
 
@@ -91,7 +92,7 @@ export const activityApi = {
 
     if (!response.data.success) {
       throw new Error(
-        response.data.message || response.data.exceptionMessage || "Aktivite bulunamadı"
+        response.data.message || response.data.exceptionMessage || i18n.t("activity.errors.notFound")
       );
     }
 
@@ -103,7 +104,7 @@ export const activityApi = {
 
     if (!response.data.success) {
       throw new Error(
-        response.data.message || response.data.exceptionMessage || "Aktivite oluşturulamadı"
+        response.data.message || response.data.exceptionMessage || i18n.t("activity.errors.create")
       );
     }
 
@@ -115,7 +116,7 @@ export const activityApi = {
 
     if (!response.data.success) {
       throw new Error(
-        response.data.message || response.data.exceptionMessage || "Aktivite güncellenemedi"
+        response.data.message || response.data.exceptionMessage || i18n.t("activity.errors.update")
       );
     }
 
@@ -127,7 +128,7 @@ export const activityApi = {
 
     if (!response.data.success) {
       throw new Error(
-        response.data.message || response.data.exceptionMessage || "Aktivite silinemedi"
+        response.data.message || response.data.exceptionMessage || i18n.t("activity.errors.delete")
       );
     }
   },
@@ -149,7 +150,7 @@ export const activityTypeApi = {
 
     if (!response.data.success) {
       throw new Error(
-        response.data.message || response.data.exceptionMessage || "Aktivite tipleri alınamadı"
+        response.data.message || response.data.exceptionMessage || i18n.t("activityType.errors.listLoad")
       );
     }
 
@@ -161,7 +162,7 @@ export const activityTypeApi = {
 
     if (!response.data.success) {
       throw new Error(
-        response.data.message || response.data.exceptionMessage || "Aktivite tipi bulunamadı"
+        response.data.message || response.data.exceptionMessage || i18n.t("activityType.errors.notFound")
       );
     }
 
@@ -173,7 +174,7 @@ export const activityTypeApi = {
 
     if (!response.data.success) {
       throw new Error(
-        response.data.message || response.data.exceptionMessage || "Aktivite tipi oluşturulamadı"
+        response.data.message || response.data.exceptionMessage || i18n.t("activityType.errors.create")
       );
     }
 
@@ -185,7 +186,7 @@ export const activityTypeApi = {
 
     if (!response.data.success) {
       throw new Error(
-        response.data.message || response.data.exceptionMessage || "Aktivite tipi güncellenemedi"
+        response.data.message || response.data.exceptionMessage || i18n.t("activityType.errors.update")
       );
     }
 
@@ -197,7 +198,7 @@ export const activityTypeApi = {
 
     if (!response.data.success) {
       throw new Error(
-        response.data.message || response.data.exceptionMessage || "Aktivite tipi silinemedi"
+        response.data.message || response.data.exceptionMessage || i18n.t("activityType.errors.delete")
       );
     }
   },
