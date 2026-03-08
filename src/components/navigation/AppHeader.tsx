@@ -1,14 +1,16 @@
 import React, { useState } from "react";
-import { View, StyleSheet, TouchableOpacity } from "react-native";
+import { View, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useQuery } from "@tanstack/react-query";
 import { Menu01Icon, UserIcon } from "hugeicons-react-native";
 import { useUIStore } from "../../store/ui";
 import { useAuthStore } from "../../store/auth";
 import { GRADIENT } from "../../constants/theme";
 import ProfilePanel from "./ProfilePanel";
+import { profileApi } from "../../features/profile";
 
 export function AppHeader(): React.ReactElement {
   const { t } = useTranslation();
@@ -30,6 +32,14 @@ export function AppHeader(): React.ReactElement {
   };
 
   const [isProfileOpen, setProfileOpen] = useState(false);
+
+  const userId = user?.id;
+  const userDetailQuery = useQuery({
+    queryKey: ["profile", "detail", userId],
+    queryFn: () => profileApi.getUserDetailByUserId(userId as number),
+    enabled: typeof userId === "number" && userId > 0,
+  });
+  const profileImageUrl = userDetailQuery.data?.profilePictureUrl || undefined;
 
   const handleProfilePress = () => {
     setProfileOpen(true);
@@ -75,7 +85,11 @@ export function AppHeader(): React.ReactElement {
               style={styles.avatarBorder}
             >
               <View style={[styles.avatarInner, { backgroundColor: THEME.avatarInnerBg }]}>
-                <UserIcon size={20} color={THEME.iconColor} />
+                {profileImageUrl ? (
+                  <Image source={{ uri: profileImageUrl }} style={styles.avatarImage} resizeMode="cover" />
+                ) : (
+                  <UserIcon size={20} color={THEME.iconColor} />
+                )}
               </View>
             </LinearGradient>
           </TouchableOpacity>
@@ -88,6 +102,7 @@ export function AppHeader(): React.ReactElement {
         userName={user?.name || "Kullanıcı"}
         email={user?.email}
         branch={branch?.name}
+        profileImageUrl={profileImageUrl}
         onLogout={handleLogout}
       />
     </>
@@ -145,5 +160,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
   },
 });

@@ -10,6 +10,7 @@ import {
   Platform,
   Switch,
   Animated,
+  Image,
 } from "react-native";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -46,6 +47,7 @@ interface ProfilePanelProps {
   userName?: string;
   email?: string;
   branch?: string;
+  profileImageUrl?: string;
   onLogout?: () => void;
 }
 
@@ -55,6 +57,7 @@ const ProfilePanel = ({
   userName = "Misafir",
   email = "demo@v3rii.com",
   branch = "Merkez Şube",
+  profileImageUrl,
   onLogout,
 }: ProfilePanelProps) => {
   const insets = useSafeAreaInsets();
@@ -174,7 +177,11 @@ const ProfilePanel = ({
                 style={styles.avatarBorder}
               >
                 <View style={[styles.avatarInner, { backgroundColor: colors.background }]}>
-                  <UserIcon size={32} color={colors.text} />
+                  {profileImageUrl ? (
+                    <Image source={{ uri: profileImageUrl }} style={styles.avatarImage} resizeMode="cover" />
+                  ) : (
+                    <UserIcon size={32} color={colors.text} />
+                  )}
                 </View>
               </LinearGradient>
 
@@ -374,6 +381,11 @@ const styles = StyleSheet.create({
     borderRadius: 44,
     justifyContent: "center",
     alignItems: "center",
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
   },
   userName: {
     fontSize: 18,
