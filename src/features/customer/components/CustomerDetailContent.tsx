@@ -111,9 +111,10 @@ interface CustomerDetailContentProps {
   insets: { bottom: number };
   t: (key: string) => string;
   on360Press: () => void; 
+  onQuickQuotationPress: () => void;
 }
 
-export function CustomerDetailContent({ customer, insets, t, on360Press }: CustomerDetailContentProps): React.ReactElement {
+export function CustomerDetailContent({ customer, insets, t, on360Press, onQuickQuotationPress }: CustomerDetailContentProps): React.ReactElement {
   const { themeMode } = useUIStore();
   const isDark = themeMode === "dark";
 
@@ -178,6 +179,17 @@ export function CustomerDetailContent({ customer, insets, t, on360Press }: Custo
             >
               <AnalyticsUpIcon size={18} color={THEME.primary} variant="stroke" strokeWidth={2.5} />
               <Text style={[styles.text360, { color: THEME.primary }]}>360 Görünüm</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.btnQuickQuotation,
+                { backgroundColor: "#0ea5e9" + "12", borderColor: "#0ea5e9" + "40" },
+              ]}
+              onPress={onQuickQuotationPress}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.textQuickQuotation, { color: "#0ea5e9" }]}>Hızlı Teklif Oluştur</Text>
             </TouchableOpacity>
 
             <View style={styles.quickActionsRow}>
@@ -307,6 +319,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     letterSpacing: 0.5,
+  },
+  btnQuickQuotation: {
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    marginBottom: 16,
+  },
+  textQuickQuotation: {
+    fontSize: 13,
+    fontWeight: "800",
+    letterSpacing: 0.4,
   },
 
   codeTagTextLarge: { color: '#AAA', fontSize: 13, fontWeight: '700', letterSpacing: 1 },

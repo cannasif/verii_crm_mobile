@@ -155,6 +155,18 @@ function CustomerDetailPage(): React.ReactElement {
     }
   }, [router, customerId]);
 
+  const handleQuickQuotationPress = useCallback(() => {
+    if (!customer) return;
+    router.push({
+      pathname: "/(tabs)/sales/quotations/quick/create",
+      params: {
+        customerId: String(customer.id ?? ""),
+        customerName: customer.name ?? "",
+        customerCode: customer.customerCode ?? "",
+      },
+    });
+  }, [router, customer]);
+
   const handleDeletePress = useCallback(() => {
     Alert.alert(t("common.confirm"), t("customer.deleteConfirm"), [
       { text: t("common.cancel"), style: "cancel" },
@@ -305,6 +317,7 @@ function CustomerDetailPage(): React.ReactElement {
             insets={insets}
             t={t}
             on360Press={handleCustomer360Press} // 360 Görünüm fonksiyonunu yavru bileşene yolladık
+            onQuickQuotationPress={handleQuickQuotationPress}
           />
         );
     }
@@ -347,6 +360,20 @@ function CustomerDetailPage(): React.ReactElement {
                     {/* DÜZENLE BUTONU */}
                     <TouchableOpacity onPress={handleEditPress} style={styles.pillButton}>
                       <Edit02Icon size={18} color={THEME.text} variant="stroke" />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={handleQuickQuotationPress}
+                      style={[
+                        styles.pillButton,
+                        {
+                          backgroundColor: isDark ? "rgba(14, 165, 233, 0.2)" : "rgba(14, 165, 233, 0.12)",
+                          borderLeftWidth: 1,
+                          borderLeftColor: THEME.pillBorder,
+                        },
+                      ]}
+                    >
+                      <Add01Icon size={18} color="#0ea5e9" variant="stroke" />
                     </TouchableOpacity>
 
                     {/* SİL BUTONU */}
