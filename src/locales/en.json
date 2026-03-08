@@ -92,6 +92,18 @@
   "statsActivities": "Activities",
   "statsPending": "Pending"
   },
+"profile": {
+  "account": "Account",
+  "settings": "Profile Settings",
+  "preferences": "Preferences",
+  "support": "Support",
+  "help": "Help Center",
+  "contactUs": "Contact Us",
+  "contactMail": "Send Email",
+  "contactWhatsapp": "WhatsApp",
+  "contactPhone": "Call Us",
+  "cancel": "Cancel"
+},
   "quickActions": {
     "scanCard": "Scan Card",
     "addCustomer": "Add Client",
@@ -169,7 +181,8 @@
   },
   "settings": {
     "appearance": "Appearance",
-    "darkMode": "Dark Mode"
+    "darkMode": "Dark Mode",
+    "lightMode": "Light Mode"
   },
   "scan": {
     "alignBarcode": "Align barcode within the frame",

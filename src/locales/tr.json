@@ -92,6 +92,18 @@
     "statsActivities": "Aktiviteler",
     "statsPending": "Bekleyen"
   },
+  "profile": {
+  "account": "Hesap",
+  "settings": "Profil Ayarları",
+  "preferences": "Tercihler",
+  "support": "Destek",
+  "help": "Yardım Merkezi",
+  "contactUs": "Bize Ulaşın",
+  "contactMail": "E-Posta Gönder",
+  "contactWhatsapp": "WhatsApp'tan Yaz",
+  "contactPhone": "Telefonla Ara",
+  "cancel": "İptal"
+},
   "quickActions": {
     "scanCard": "Kartvizit Oku",
     "addCustomer": "Müşteri Ekle",
@@ -158,7 +170,8 @@
   },
   "settings": {
     "appearance": "Görünüm",
-    "darkMode": "Karanlık Mod"
+    "darkMode": "Karanlık Mod",
+    "lightMode": "Aydınlık Mod"
   },
   "scan": {
     "alignBarcode": "Barkodu çerçeve içine hizalayın",
