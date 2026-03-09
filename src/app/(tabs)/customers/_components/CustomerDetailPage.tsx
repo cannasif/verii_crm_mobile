@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import {
   View,
@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Alert,
+  Modal,
+  Image,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -32,11 +34,11 @@ import {
   ShippingAddressCard,
   type ShippingAddressDto,
 } from "../../../../features/shipping-address";
-import { 
-  Edit02Icon, 
-  Delete02Icon, 
-  Add01Icon 
-} from "hugeicons-react-native"; 
+import {
+  Edit02Icon,
+  Delete02Icon,
+  Add01Icon,
+} from "hugeicons-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 type TabType = "detail" | "contacts" | "addresses";
@@ -50,13 +52,13 @@ interface ThemeColors {
   glassBtn: string;
   danger: string;
   tabActiveBg: string;
-  pillBorder: string; 
+  pillBorder: string;
 }
 
 interface TabBarProps {
   activeTab: TabType;
   onTabPress: (tab: TabType) => void;
-  theme: ThemeColors; 
+  theme: ThemeColors;
   t: (key: string) => string;
   contactsCount: number;
   addressesCount: number;
@@ -92,9 +94,9 @@ function TabBar({
             <Text
               style={[
                 styles.tabText,
-                { 
-                  color: isActive ? theme.text : theme.textMute, 
-                  fontWeight: isActive ? "700" : "500" 
+                {
+                  color: isActive ? theme.text : theme.textMute,
+                  fontWeight: isActive ? "700" : "500",
                 },
               ]}
             >
@@ -121,8 +123,8 @@ function CustomerDetailPage(): React.ReactElement {
   const isDark = themeMode === "dark";
 
   const THEME: ThemeColors = {
-    bg: isDark ? "#1a0b2e" : colors.background, 
-    primary: "#db2777", 
+    bg: isDark ? "#1a0b2e" : colors.background,
+    primary: "#db2777",
     text: isDark ? "#FFFFFF" : colors.text,
     textMute: isDark ? "#94a3b8" : colors.textMuted,
     borderColor: isDark ? "rgba(255,255,255,0.08)" : colors.border,
@@ -132,12 +134,30 @@ function CustomerDetailPage(): React.ReactElement {
     pillBorder: isDark ? "rgba(239, 68, 68, 0.3)" : colors.border,
   };
 
+  const previewTheme = useMemo(
+    () => ({
+      overlay: "rgba(0,0,0,0.72)",
+      cardBg: isDark ? "#111827" : "#FFFFFF",
+      borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)",
+      title: isDark ? "#FFFFFF" : "#0F172A",
+      text: isDark ? "#cbd5e1" : "#475569",
+      cancelBg: isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.06)",
+      cancelText: isDark ? "#FFFFFF" : "#0F172A",
+      confirmBg: "#22c55e12",
+      confirmBorder: "#22c55e40",
+      confirmText: "#22c55e",
+    }),
+    [isDark]
+  );
+
   const [isDeleting, setIsDeleting] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("detail");
+  const [previewImageUri, setPreviewImageUri] = useState<string | null>(null);
+  const [isPreviewVisible, setIsPreviewVisible] = useState(false);
 
   const customerId = id ? Number(id) : undefined;
   const { data: customer, isLoading, isError, refetch } = useCustomer(customerId);
-  const { data: customerImages = [] } = useCustomerImages(customerId);
+  const { data: customerImages = [], refetch: refetchCustomerImages } = useCustomerImages(customerId);
   const deleteCustomer = useDeleteCustomer();
   const uploadCustomerImage = useUploadCustomerImage();
   const { data: contacts = [], isLoading: isLoadingContacts } = useCustomerContacts(customerId);
@@ -190,12 +210,12 @@ function CustomerDetailPage(): React.ReactElement {
   }, [t, customerId, deleteCustomer, router]);
 
   const handleContactPress = useCallback((contact: ContactDto) => {
-      router.push(`/customers/contacts/${contact.id}`);
-    }, [router]);
+    router.push(`/customers/contacts/${contact.id}`);
+  }, [router]);
 
   const handleAddressPress = useCallback((address: ShippingAddressDto) => {
-      router.push(`/(tabs)/customers/shipping/${address.id}`);
-    }, [router]);
+    router.push(`/(tabs)/customers/shipping/${address.id}`);
+  }, [router]);
 
   const handleAddContactPress = useCallback(() => {
     if (customerId != null) {
@@ -215,15 +235,7 @@ function CustomerDetailPage(): React.ReactElement {
     });
   }, [router, customerId]);
 
-  const handleAddImagePress = useCallback(async () => {
-    if (!customerId) return;
-
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert(t("common.error"), t("customer.imagePermissionError"));
-      return;
-    }
-
+  const openGalleryPicker = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: false,
@@ -235,23 +247,83 @@ function CustomerDetailPage(): React.ReactElement {
       return;
     }
 
+    setPreviewImageUri(result.assets[0].uri);
+    setIsPreviewVisible(true);
+  }, []);
+
+  const openCameraPicker = useCallback(async () => {
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: false,
+      quality: 0.85,
+    });
+
+    if (result.canceled || !result.assets?.[0]?.uri) {
+      return;
+    }
+
+    setPreviewImageUri(result.assets[0].uri);
+    setIsPreviewVisible(true);
+  }, []);
+
+  const handleAddImagePress = useCallback(() => {
+    if (!customerId) return;
+
+    Alert.alert(
+      t("customer.addImage") || "Resim Ekle",
+      t("customer.chooseImageSource") || "Bir kaynak seçin",
+      [
+        {
+          text: t("common.cancel") || "Vazgeç",
+          style: "cancel",
+        },
+        {
+          text: t("customer.fromGallery") || "Galeriden Seç",
+          onPress: () => {
+            void openGalleryPicker();
+          },
+        },
+        {
+          text: t("customer.fromCamera") || "Kamerayla Çek",
+          onPress: () => {
+            void openCameraPicker();
+          },
+        },
+      ]
+    );
+  }, [customerId, t, openGalleryPicker, openCameraPicker]);
+
+  const handleCancelPreview = useCallback(() => {
+    if (uploadCustomerImage.isPending) return;
+    setIsPreviewVisible(false);
+    setPreviewImageUri(null);
+  }, [uploadCustomerImage.isPending]);
+
+  const handleConfirmPreview = useCallback(async () => {
+    if (!customerId || !previewImageUri) return;
+
     try {
       await uploadCustomerImage.mutateAsync({
         customerId,
-        imageUri: result.assets[0].uri,
+        imageUri: previewImageUri,
         imageDescription: `${customer?.name ?? t("customer.detail")} ${t("customer.imageDefaultDescription")}`,
       });
+
+      setIsPreviewVisible(false);
+      setPreviewImageUri(null);
+      await refetchCustomerImages();
     } catch {
     }
-  }, [customerId, customer?.name, t, uploadCustomerImage]);
+  }, [customerId, previewImageUri, customer?.name, t, uploadCustomerImage, refetchCustomerImages]);
 
-  const renderContactItem = useCallback(({ item }: { item: ContactDto }) => (
-      <ContactCard contact={item} onPress={() => handleContactPress(item)} />
-    ), [handleContactPress]);
+  const renderContactItem = useCallback(
+    ({ item }: { item: ContactDto }) => <ContactCard contact={item} onPress={() => handleContactPress(item)} />,
+    [handleContactPress]
+  );
 
-  const renderAddressItem = useCallback(({ item }: { item: ShippingAddressDto }) => (
-      <ShippingAddressCard address={item} onPress={() => handleAddressPress(item)} />
-    ), [handleAddressPress]);
+  const renderAddressItem = useCallback(
+    ({ item }: { item: ShippingAddressDto }) => <ShippingAddressCard address={item} onPress={() => handleAddressPress(item)} />,
+    [handleAddressPress]
+  );
 
   const keyExtractorContact = useCallback((item: ContactDto) => String(item.id), []);
   const keyExtractorAddress = useCallback((item: ShippingAddressDto) => String(item.id), []);
@@ -280,14 +352,14 @@ function CustomerDetailPage(): React.ReactElement {
 
       <TouchableOpacity
         style={[
-          styles.fab, 
-          { 
+          styles.fab,
+          {
             backgroundColor: THEME.primary,
-            bottom: Math.max(insets.bottom, 20) + 80, 
-            shadowColor: THEME.primary 
-          }
+            bottom: Math.max(insets.bottom, 20) + 80,
+            shadowColor: THEME.primary,
+          },
         ]}
-        onPress={handleAddContactPress} 
+        onPress={handleAddContactPress}
       >
         <Add01Icon size={28} color="#FFFFFF" variant="stroke" />
       </TouchableOpacity>
@@ -317,14 +389,14 @@ function CustomerDetailPage(): React.ReactElement {
       )}
       <TouchableOpacity
         style={[
-          styles.fab, 
-          { 
+          styles.fab,
+          {
             backgroundColor: THEME.primary,
-            bottom: Math.max(insets.bottom, 20) + 80, 
-            shadowColor: THEME.primary 
-          }
+            bottom: Math.max(insets.bottom, 20) + 80,
+            shadowColor: THEME.primary,
+          },
         ]}
-        onPress={handleAddAddressPress} 
+        onPress={handleAddAddressPress}
       >
         <Add01Icon size={28} color="#FFFFFF" variant="stroke" />
       </TouchableOpacity>
@@ -345,7 +417,7 @@ function CustomerDetailPage(): React.ReactElement {
             isUploadingImage={uploadCustomerImage.isPending}
             insets={insets}
             t={t}
-            on360Press={handleCustomer360Press} 
+            on360Press={handleCustomer360Press}
             onQuickQuotationPress={handleQuickQuotationPress}
             onAddImagePress={handleAddImagePress}
           />
@@ -356,51 +428,50 @@ function CustomerDetailPage(): React.ReactElement {
   return (
     <>
       <StatusBar style={isDark ? "light" : "dark"} backgroundColor="transparent" translucent />
-      
+
       <View style={styles.container}>
         <View style={StyleSheet.absoluteFill}>
-          <LinearGradient 
-            colors={isDark 
-              ? ['rgba(236, 72, 153, 0.12)', 'transparent', 'rgba(249, 115, 22, 0.05)'] 
-              : ['rgba(255, 240, 225, 0.6)', '#FFFFFF', 'rgba(255, 240, 225, 0.6)']} 
-            start={{ x: 0, y: 0 }} 
-            end={{ x: 1, y: 1 }} 
-            style={StyleSheet.absoluteFill} 
+          <LinearGradient
+            colors={
+              isDark
+                ? ["rgba(236, 72, 153, 0.12)", "transparent", "rgba(249, 115, 22, 0.05)"]
+                : ["rgba(255, 240, 225, 0.6)", "#FFFFFF", "rgba(255, 240, 225, 0.6)"]
+            }
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
           />
         </View>
 
         <View style={{ flex: 1, zIndex: 10 }}>
-
           <View style={{ borderBottomWidth: 1, borderBottomColor: THEME.borderColor }}>
             <ScreenHeader
               title={t("customer.detail")}
               showBackButton
               rightElement={
                 customer ? (
-                  <View style={[
-                    styles.actionPill, 
-                    { 
-                      backgroundColor: THEME.glassBtn, 
-                      borderColor: THEME.pillBorder
-                    }
-                  ]}>
-  
+                  <View
+                    style={[
+                      styles.actionPill,
+                      {
+                        backgroundColor: THEME.glassBtn,
+                        borderColor: THEME.pillBorder,
+                      },
+                    ]}
+                  >
                     <TouchableOpacity onPress={handleEditPress} style={styles.pillButton}>
                       <Edit02Icon size={18} color={THEME.text} variant="stroke" />
                     </TouchableOpacity>
 
-                  
-
-
                     <TouchableOpacity
                       onPress={handleDeletePress}
                       style={[
-                        styles.pillButton, 
-                        { 
+                        styles.pillButton,
+                        {
                           backgroundColor: isDark ? "rgba(239, 68, 68, 0.15)" : "#FEE2E2",
-                          borderLeftWidth: 1, 
-                          borderLeftColor: THEME.pillBorder
-                        }
+                          borderLeftWidth: 1,
+                          borderLeftColor: THEME.pillBorder,
+                        },
                       ]}
                       disabled={isDeleting}
                     >
@@ -416,8 +487,7 @@ function CustomerDetailPage(): React.ReactElement {
             />
           </View>
 
-
-          <View style={[styles.content, { backgroundColor: 'transparent' }]}>
+          <View style={[styles.content, { backgroundColor: "transparent" }]}>
             {isLoading ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={THEME.primary} />
@@ -439,13 +509,77 @@ function CustomerDetailPage(): React.ReactElement {
                   contactsCount={contacts.length}
                   addressesCount={addresses.length}
                 />
- 
+
                 {renderTabContent()}
               </>
             ) : null}
           </View>
         </View>
       </View>
+
+      <Modal
+        visible={isPreviewVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCancelPreview}
+      >
+        <View style={styles.previewOverlay}>
+          <View
+            style={[
+              styles.previewCard,
+              {
+                backgroundColor: previewTheme.cardBg,
+                borderColor: previewTheme.borderColor,
+              },
+            ]}
+          >
+            <Text style={[styles.previewTitle, { color: previewTheme.title }]}>
+              {t("customer.imagePreview") || "Resim Önizleme"}
+            </Text>
+
+            <Text style={[styles.previewText, { color: previewTheme.text }]}>
+              {t("customer.confirmAddImage") || "Bu resmi yüklemek istiyor musunuz?"}
+            </Text>
+
+            {previewImageUri ? (
+              <Image source={{ uri: previewImageUri }} style={styles.previewImage} resizeMode="cover" />
+            ) : null}
+
+            <View style={styles.previewActions}>
+              <TouchableOpacity
+                style={[styles.previewButton, { backgroundColor: previewTheme.cancelBg }]}
+                onPress={handleCancelPreview}
+                disabled={uploadCustomerImage.isPending}
+              >
+                <Text style={[styles.previewButtonText, { color: previewTheme.cancelText }]}>
+                  {t("common.cancel") || "Vazgeç"}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.previewButton,
+                  {
+                    backgroundColor: previewTheme.confirmBg,
+                    borderColor: previewTheme.confirmBorder,
+                    borderWidth: 1,
+                  },
+                ]}
+                onPress={handleConfirmPreview}
+                disabled={uploadCustomerImage.isPending}
+              >
+                {uploadCustomerImage.isPending ? (
+                  <ActivityIndicator size="small" color={previewTheme.confirmText} />
+                ) : (
+                  <Text style={[styles.previewButtonText, { color: previewTheme.confirmText }]}>
+                    {t("common.upload") || "Yükle"}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }
@@ -527,55 +661,101 @@ const styles = StyleSheet.create({
     fontSize: 15,
     textAlign: "center",
   },
- fab: {
+  fab: {
     position: "absolute",
     right: 20,
     width: 56,
     height: 56,
-    borderRadius: 20, 
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    elevation: 0, 
+    elevation: 0,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.6,
     shadowRadius: 12,
   },
   headerActions: {
     flexDirection: "row",
-    gap: 8, 
-    marginRight:50, 
+    gap: 8,
+    marginRight: 50,
   },
   headerButton: {
-    width: 38, 
+    width: 38,
     height: 38,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
   headerButtonText: {
-    fontSize: 14, 
+    fontSize: 14,
     color: "#FFF",
-    fontWeight: "600"
+    fontWeight: "600",
   },
   actionPill: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1.5, 
-    borderRadius: 20, 
-    height: 38, 
-    marginRight: 50, 
-    overflow: "hidden", 
+    borderWidth: 1.5,
+    borderRadius: 20,
+    height: 38,
+    marginRight: 50,
+    overflow: "hidden",
   },
   pillButton: {
-    width: 45, 
+    width: 45,
     height: "100%",
     alignItems: "center",
     justifyContent: "center",
   },
   pillDivider: {
     width: 1,
-    height: 18, 
-    opacity: 0.5, 
+    height: 18,
+    opacity: 0.5,
+  },
+  previewOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    padding: 20,
+    backgroundColor: "rgba(0,0,0,0.72)",
+  },
+  previewCard: {
+    borderRadius: 24,
+    padding: 16,
+    borderWidth: 1,
+  },
+  previewTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  previewText: {
+    fontSize: 13,
+    lineHeight: 20,
+    textAlign: "center",
+    marginBottom: 14,
+  },
+  previewImage: {
+    width: "100%",
+    height: 320,
+    borderRadius: 18,
+    marginBottom: 14,
+    backgroundColor: "rgba(0,0,0,0.08)",
+  },
+  previewActions: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  previewButton: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 12,
+  },
+  previewButtonText: {
+    fontSize: 14,
+    fontWeight: "800",
   },
 });
 
