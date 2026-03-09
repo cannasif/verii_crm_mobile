@@ -10,7 +10,8 @@ import {
   Dimensions,
   Platform,
   ScrollView,
-  Modal, 
+  Modal,
+  TextInput
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -43,6 +44,38 @@ const GRID_WIDTH = (width - (PADDING * 2) - GAP) / 2;
 const BRAND_COLOR = "#db2777"; 
 const BRAND_COLOR_DARK = "#ec4899";
 const DEFAULT_COUNTRY_ID = 1;
+
+// --- YENİ: Türkçe Karakter ve Bulanık (Fuzzy) Arama Fonksiyonları ---
+const normalizeText = (text: string) => {
+  if (!text) return "";
+  return text
+    .toLocaleLowerCase('tr-TR')
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ş/g, 's')
+    .replace(/ı/g, 'i')
+    .replace(/ö/g, 'o')
+    .replace(/ç/g, 'c');
+};
+
+const fuzzyMatch = (query: string, text: string) => {
+  const normalizedQuery = normalizeText(query).replace(/\s+/g, '');
+  const normalizedText = normalizeText(text);
+
+  if (!normalizedQuery) return true;
+
+  let queryIndex = 0;
+  for (let i = 0; i < normalizedText.length; i++) {
+    if (normalizedText[i] === normalizedQuery[queryIndex]) {
+      queryIndex++;
+    }
+    if (queryIndex === normalizedQuery.length) {
+      return true; // Tüm harfler sırasıyla bulunduysa eşleşti demektir
+    }
+  }
+  return false;
+};
+// -------------------------------------------------------------
 
 export function CustomerListScreen() {
   const { t } = useTranslation();
@@ -77,19 +110,19 @@ export function CustomerListScreen() {
   
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
 
-  // ASIL FİLTRELER
   const [appliedFilter, setAppliedFilter] = useState<string>('all'); 
   const [appliedCityId, setAppliedCityId] = useState<number | null>(null); 
   const [appliedDistrictId, setAppliedDistrictId] = useState<number | null>(null); 
 
-  // GEÇİCİ FİLTRELER
   const [tempFilter, setTempFilter] = useState<string>('all'); 
   const [tempCityId, setTempCityId] = useState<number | null>(null); 
   const [tempDistrictId, setTempDistrictId] = useState<number | null>(null);
 
-  // YENİ: Custom Dropdown Açık/Kapalı Durumları
   const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
   const [isDistrictDropdownOpen, setIsDistrictDropdownOpen] = useState(false);
+
+  const [citySearchText, setCitySearchText] = useState("");
+  const [districtSearchText, setDistrictSearchText] = useState("");
 
   useEffect(() => {
     const handler = setTimeout(() => { setDebouncedQuery(searchText); }, 300);
@@ -100,8 +133,10 @@ export function CustomerListScreen() {
     setTempFilter(appliedFilter);
     setTempCityId(appliedCityId);
     setTempDistrictId(appliedDistrictId);
-    setIsCityDropdownOpen(false); // Modal açılırken kapalı başlasın
+    setIsCityDropdownOpen(false);
     setIsDistrictDropdownOpen(false);
+    setCitySearchText("");
+    setDistrictSearchText("");
     setIsFilterModalVisible(true);
   };
 
@@ -112,6 +147,9 @@ export function CustomerListScreen() {
     }
     if (appliedFilter === 'erp_yes') {
       filters.push({ column: "IsERPIntegrated", operator: "eq", value: "true" });
+    }
+    if (appliedFilter === 'erp_no') {
+      filters.push({ column: "IsERPIntegrated", operator: "eq", value: "false" });
     }
     if (appliedCityId) {
       filters.push({ column: "CityId", operator: "eq", value: String(appliedCityId) });
@@ -131,9 +169,22 @@ export function CustomerListScreen() {
     pageSize: 20
   }); 
 
-  // LOOKUP VERİLERİ
   const { data: cities } = useCities(DEFAULT_COUNTRY_ID);
   const { data: tempDistricts } = useDistricts(tempCityId || undefined); 
+
+  // --- YENİ: Bulanık (Fuzzy) Arama ile Listeyi Filtreleme ---
+  const filteredCities = useMemo(() => {
+    if (!cities) return [];
+    if (!citySearchText.trim()) return cities;
+    return cities.filter(c => fuzzyMatch(citySearchText, c.name));
+  }, [cities, citySearchText]);
+
+  const filteredDistricts = useMemo(() => {
+    if (!tempDistricts) return [];
+    if (!districtSearchText.trim()) return tempDistricts;
+    return tempDistricts.filter(d => fuzzyMatch(districtSearchText, d.name));
+  }, [tempDistricts, districtSearchText]);
+  // -------------------------------------------------------------
 
   const customers = useMemo(() => {
     return data?.pages?.flatMap(page => page.items ?? []) || [];
@@ -159,7 +210,6 @@ export function CustomerListScreen() {
 
   const isAnyFilterActive = appliedFilter !== 'all' || appliedCityId !== null || appliedDistrictId !== null;
   
-  // Dropdown'da gösterilecek seçili isimler
   const tempSelectedCityName = cities?.find(c => c.id === tempCityId)?.name || t("customer.allCities");
   const tempSelectedDistrictName = tempDistricts?.find(d => d.id === tempDistrictId)?.name || t("customer.allDistricts");
 
@@ -257,7 +307,7 @@ export function CustomerListScreen() {
                 <View style={styles.center}>
                   <Text style={{ fontSize: 40, opacity: 0.8 }}>📍</Text>
                   <Text style={{ color: theme.textMute, marginTop: 12, fontWeight: '500', letterSpacing: 0.5, textAlign: 'center' }}>
-                    Kriterlere uygun müşteri bulunamadı.{"\n"}Filtreleri temizlemeyi deneyin.
+                    {t("customer.emptyState")}
                   </Text>
                 </View>
               }
@@ -276,34 +326,49 @@ export function CustomerListScreen() {
           <View style={[styles.modalContent, { backgroundColor: theme.modalBg, paddingBottom: insets.bottom + 20 }]}>
             
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.primary }]}>Filtreler</Text>
+              <Text style={[styles.modalTitle, { color: theme.primary }]}>{t("customer.modal.title")}</Text>
               <TouchableOpacity onPress={() => setIsFilterModalVisible(false)} style={styles.closeBtn}>
                 <Cancel01Icon size={24} color={theme.textMute} variant="stroke" />
               </TouchableOpacity>
             </View>
 
-            {/* BÖLÜM 1: MÜŞTERİ DURUMU (Hap Tasarımı - Sadece 2 seçenek var diye burada kaldı) */}
-            <Text style={[styles.modalLabel, { color: theme.textMute }]}>Müşteri Durumu</Text>
-            <View style={styles.wrapContainer}>
+            <Text style={[styles.modalLabel, { color: theme.textMute }]}>{t("customer.modal.customerStatus")}</Text>
+            <View style={styles.statusContainer}>
               {[
-                { id: 'all', label: 'Tümü' },
-                { id: 'erp_yes', label: 'Sadece ERP Entegre Olanlar' }
-              ].map(filter => (
-                <TouchableOpacity
-                  key={filter.id}
-                  style={[styles.filterPill, { backgroundColor: theme.filterBg }, tempFilter === filter.id && { backgroundColor: theme.activeSwitchBg, borderColor: theme.borderColor, borderWidth: 1 }]}
-                  onPress={() => setTempFilter(filter.id)} 
-                >
-                  <Text style={[styles.filterPillText, { color: theme.filterText }, tempFilter === filter.id && { color: theme.primary }]}>{filter.label}</Text>
-                </TouchableOpacity>
-              ))}
+                { id: 'all', label: t("customer.status.all") },
+                { id: 'erp_yes', label: t("customer.status.erpYes") },
+                { id: 'erp_no', label: t("customer.status.erpNo") }
+              ].map(filter => {
+                const isActive = tempFilter === filter.id;
+                return (
+                  <TouchableOpacity
+                    key={filter.id}
+                    style={[
+                      styles.statusOption,
+                      { backgroundColor: theme.filterBg, borderColor: 'transparent' },
+                      isActive && { backgroundColor: theme.activeSwitchBg, borderColor: theme.primary }
+                    ]}
+                    activeOpacity={0.7}
+                    onPress={() => setTempFilter(filter.id)} 
+                  >
+                    <View style={[styles.radioCircle, { borderColor: isActive ? theme.primary : theme.iconColor }]}>
+                      {isActive && <View style={[styles.radioDot, { backgroundColor: theme.primary }]} />}
+                    </View>
+                    <Text style={[styles.statusOptionText, { color: isActive ? theme.primary : theme.filterText }]}>
+                      {filter.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
-            {/* BÖLÜM 2: YENİ NESİL İL SEÇİMİ (Zarif Dropdown) */}
-            <Text style={[styles.modalLabel, { color: theme.textMute, marginTop: 24 }]}>İl Seçimi</Text>
+            <Text style={[styles.modalLabel, { color: theme.textMute, marginTop: 24 }]}>{t("customer.modal.citySelection")}</Text>
             <TouchableOpacity 
               style={[styles.dropdownBtn, { backgroundColor: theme.filterBg, borderColor: isCityDropdownOpen ? theme.primary : 'transparent' }]}
-              onPress={() => setIsCityDropdownOpen(!isCityDropdownOpen)}
+              onPress={() => {
+                setIsCityDropdownOpen(!isCityDropdownOpen);
+                setCitySearchText("");
+              }}
               activeOpacity={0.7}
             >
               <Text style={[styles.dropdownBtnText, { color: tempCityId ? theme.primary : theme.filterText, fontWeight: tempCityId ? '700' : '500' }]}>
@@ -312,18 +377,26 @@ export function CustomerListScreen() {
               <ArrowDown01Icon size={20} color={tempCityId ? theme.primary : theme.textMute} style={{ transform: [{ rotate: isCityDropdownOpen ? '180deg' : '0deg' }] }} />
             </TouchableOpacity>
 
-            {/* İl Dropdown Listesi */}
             {isCityDropdownOpen && (
               <View style={[styles.dropdownListContainer, { backgroundColor: theme.surfaceBg, borderColor: theme.borderColor }]}>
-                <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled={true}>
+                <View style={[styles.searchInputContainer, { borderBottomColor: theme.borderColor }]}>
+                  <TextInput
+                    style={[styles.dropdownSearchInput, { color: theme.filterText, backgroundColor: theme.filterBg }]}
+                    placeholder={t("customer.searchCity") || "İl ara..."}
+                    placeholderTextColor={theme.textMute}
+                    value={citySearchText}
+                    onChangeText={setCitySearchText}
+                  />
+                </View>
+                <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled">
                   <TouchableOpacity 
                     style={[styles.dropdownItem, { borderBottomColor: theme.borderColor }]} 
                     onPress={() => { setTempCityId(null); setTempDistrictId(null); setIsCityDropdownOpen(false); }}
                   >
-                    <Text style={[styles.dropdownItemText, { color: !tempCityId ? theme.primary : theme.textMute, fontWeight: !tempCityId ? '700' : '500' }]}>Tüm İller</Text>
+                    <Text style={[styles.dropdownItemText, { color: !tempCityId ? theme.primary : theme.textMute, fontWeight: !tempCityId ? '700' : '500' }]}>{t("customer.allCities")}</Text>
                   </TouchableOpacity>
                   
-                  {cities?.map(city => (
+                  {filteredCities.map(city => (
                     <TouchableOpacity 
                       key={city.id} 
                       style={[styles.dropdownItem, { borderBottomColor: theme.borderColor }]} 
@@ -338,13 +411,15 @@ export function CustomerListScreen() {
               </View>
             )}
 
-            {/* BÖLÜM 3: YENİ NESİL İLÇE SEÇİMİ (Sadece İl Seçiliyse Açılır) */}
             {tempCityId && tempDistricts && tempDistricts.length > 0 && (
               <>
-                <Text style={[styles.modalLabel, { color: theme.textMute, marginTop: 16 }]}>İlçe Seçimi</Text>
+                <Text style={[styles.modalLabel, { color: theme.textMute, marginTop: 16 }]}>{t("customer.modal.districtSelection")}</Text>
                 <TouchableOpacity 
                   style={[styles.dropdownBtn, { backgroundColor: theme.filterBg, borderColor: isDistrictDropdownOpen ? theme.primary : 'transparent' }]}
-                  onPress={() => setIsDistrictDropdownOpen(!isDistrictDropdownOpen)}
+                  onPress={() => {
+                    setIsDistrictDropdownOpen(!isDistrictDropdownOpen);
+                    setDistrictSearchText("");
+                  }}
                   activeOpacity={0.7}
                 >
                   <Text style={[styles.dropdownBtnText, { color: tempDistrictId ? theme.primary : theme.filterText, fontWeight: tempDistrictId ? '700' : '500' }]}>
@@ -353,18 +428,26 @@ export function CustomerListScreen() {
                   <ArrowDown01Icon size={20} color={tempDistrictId ? theme.primary : theme.textMute} style={{ transform: [{ rotate: isDistrictDropdownOpen ? '180deg' : '0deg' }] }} />
                 </TouchableOpacity>
 
-                {/* İlçe Dropdown Listesi */}
                 {isDistrictDropdownOpen && (
                   <View style={[styles.dropdownListContainer, { backgroundColor: theme.surfaceBg, borderColor: theme.borderColor }]}>
-                    <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled={true}>
+                    <View style={[styles.searchInputContainer, { borderBottomColor: theme.borderColor }]}>
+                      <TextInput
+                        style={[styles.dropdownSearchInput, { color: theme.filterText, backgroundColor: theme.filterBg }]}
+                        placeholder={t("customer.searchDistrict") || "İlçe ara..."}
+                        placeholderTextColor={theme.textMute}
+                        value={districtSearchText}
+                        onChangeText={setDistrictSearchText}
+                      />
+                    </View>
+                    <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled">
                       <TouchableOpacity 
                         style={[styles.dropdownItem, { borderBottomColor: theme.borderColor }]} 
                         onPress={() => { setTempDistrictId(null); setIsDistrictDropdownOpen(false); }}
                       >
-                        <Text style={[styles.dropdownItemText, { color: !tempDistrictId ? theme.primary : theme.textMute, fontWeight: !tempDistrictId ? '700' : '500' }]}>Tüm İlçeler</Text>
+                        <Text style={[styles.dropdownItemText, { color: !tempDistrictId ? theme.primary : theme.textMute, fontWeight: !tempDistrictId ? '700' : '500' }]}>{t("customer.allDistricts")}</Text>
                       </TouchableOpacity>
 
-                      {tempDistricts.map(district => (
+                      {filteredDistricts.map(district => (
                         <TouchableOpacity 
                           key={district.id} 
                           style={[styles.dropdownItem, { borderBottomColor: theme.borderColor }]} 
@@ -390,9 +473,11 @@ export function CustomerListScreen() {
                   setTempDistrictId(null); 
                   setIsCityDropdownOpen(false);
                   setIsDistrictDropdownOpen(false);
+                  setCitySearchText("");
+                  setDistrictSearchText("");
                 }}
               >
-                <Text style={[styles.modalActionText, { color: theme.textMute }]}>Temizle</Text>
+                <Text style={[styles.modalActionText, { color: theme.textMute }]}>{t("common.clear")}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
@@ -404,7 +489,7 @@ export function CustomerListScreen() {
                   setIsFilterModalVisible(false);
                 }}
               >
-                <Text style={[styles.modalActionText, { color: '#FFF' }]}>Uygula</Text>
+                <Text style={[styles.modalActionText, { color: '#FFF' }]}>{t("common.apply")}</Text>
               </TouchableOpacity>
             </View>
 
@@ -439,11 +524,39 @@ const styles = StyleSheet.create({
   closeBtn: { padding: 4 },
   modalLabel: { fontSize: 13, fontWeight: '700', marginBottom: 10, marginLeft: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
   
-  wrapContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingBottom: 8 },
-  filterPill: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: 'transparent' },
-  filterPillText: { fontSize: 13, fontWeight: '600', letterSpacing: 0.3 },
+  statusContainer: {
+    flexDirection: 'column',
+    gap: 10,
+    paddingBottom: 8,
+  },
+  statusOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+  },
+  radioCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  radioDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  statusOptionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
 
-  // --- YENİ EKLENEN CUSTOM DROPDOWN STİLLERİ ---
   dropdownBtn: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -462,6 +575,16 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     overflow: 'hidden',
+  },
+  searchInputContainer: {
+    padding: 10,
+    borderBottomWidth: 1,
+  },
+  dropdownSearchInput: {
+    height: 40,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    fontSize: 14,
   },
   dropdownItem: {
     paddingHorizontal: 16,

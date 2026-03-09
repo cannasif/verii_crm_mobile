@@ -4,6 +4,8 @@
     "error": "Ein Fehler ist aufgetreten",
     "retry": "Erneut versuchen",
     "cancel": "Abbrechen",
+    "clear": "Zurücksetzen",
+    "apply": "Anwenden",
     "delete": "Löschen",
     "confirm": "Bestätigen",
     "user": "Benutzer",
@@ -168,7 +170,21 @@
     "systemStatus": "Systemstatus",
     "pendingApproval": "Genehmigung ausstehend",
     "systemUser": "System",
-    "createdAt": "Datum"
+    "createdAt": "Datum",
+    "emptyState": "Keine Kunden gefunden, die den Kriterien entsprechen.\nVersuchen Sie, die Filter zurückzusetzen.", 
+    "searchCity": "Stadt suchen...",
+    "searchDistrict": "Bezirk suchen...",
+    "modal": {
+      "title": "Filter",
+      "customerStatus": "Kundenstatus",
+      "citySelection": "Stadtauswahl",
+      "districtSelection": "Bezirksauswahl"
+    },
+    "status": {
+      "all": "Alle",
+      "erpYes": "Nur mit ERP-Integration",
+      "erpNo": "Nur ohne ERP-Integration"
+    }
   },
   "lookup": {
     "country": "Land"

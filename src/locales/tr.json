@@ -21,6 +21,8 @@
     "error": "Bir hata oluştu",
     "retry": "Tekrar Dene",
     "cancel": "İptal",
+    "clear": "Temizle",   
+    "apply": "Uygula",
     "save": "Kaydet",
     "delete": "Sil",
     "edit": "Düzenle",
@@ -352,7 +354,21 @@
     "systemStatus": "Sistem Durumu",
     "pendingApproval": "Onay Bekliyor",
     "systemUser": "Sistem",
-    "createdAt": "Tarih"
+    "createdAt": "Tarih",
+    "emptyState": "Kriterlere uygun müşteri bulunamadı.\nFiltreleri temizlemeyi deneyin.",
+    "searchCity": "İl Ara...",
+    "searchDistrict": "İlçe Ara...",
+    "modal": {
+      "title": "Filtreler",
+      "customerStatus": "Müşteri Durumu",
+      "citySelection": "İl Seçimi",
+      "districtSelection": "İlçe Seçimi"
+    },
+    "status": {
+      "all": "Tümü",
+      "erpYes": "Sadece ERP Entegre Olanlar",
+      "erpNo": "Sadece ERP Entegre Olmayanlar"
+    }
   },
   "erpCustomer": {
     "title": "ERP Müşteriler",

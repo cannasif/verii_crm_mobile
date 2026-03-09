@@ -21,6 +21,8 @@
     "error": "An error occurred",
     "retry": "Retry",
     "cancel": "Cancel",
+    "clear": "Clear",
+    "apply": "Apply",
     "save": "Save",
     "delete": "Delete",
     "edit": "Edit",
@@ -360,7 +362,21 @@
     "systemStatus": "System Status",
     "pendingApproval": "Pending Approval",
     "systemUser": "System",
-    "createdAt": "Date"
+    "createdAt": "Date",
+    "emptyState": "No customers found matching the criteria.\nTry clearing the filters.", 
+    "searchCity": "Search City...",
+    "searchDistrict": "Search District...",
+    "modal": {
+      "title": "Filters",
+      "customerStatus": "Customer Status",
+      "citySelection": "City Selection",
+      "districtSelection": "District Selection"
+    },
+    "status": {
+      "all": "All",
+      "erpYes": "ERP Integrated Only",
+      "erpNo": "Non-ERP Integrated Only"
+    }
   },
   "erpCustomer": {
     "title": "ERP Customers",
