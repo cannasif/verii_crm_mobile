@@ -103,7 +103,7 @@ export function LoginForm(): React.ReactElement {
 
 
   const handleForgotPass = () => {
-    Alert.alert(t("common.info", "Bilgi"), t("common.comingSoon", "Çok yakında sizlerle!"));
+    router.push("/(auth)/forgot-password");
   };
 
   const onSubmit = (data: LoginFormData) => {
@@ -294,7 +294,7 @@ export function LoginForm(): React.ReactElement {
               
               <Pressable onPress={handleForgotPass}>
                 <Text className="text-[13px] text-[#ec4899] font-medium opacity-90">
-                  {t("auth.login.forgotPassword", "Şifremi Unuttum?")}
+                  {t("auth.forgotPassword.title", "Şifremi Unuttum?")}
                 </Text>
               </Pressable>
             </View>

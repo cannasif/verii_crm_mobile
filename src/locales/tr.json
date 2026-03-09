@@ -152,9 +152,37 @@
     "password": "Şifre",
     "passwordPlaceholder": "••••••••",
     "rememberMe": "Beni Hatırla",
-    "forgotPassword": "Şifremi Unuttum",
     "login": {
       "slogan": "İşinizi tahminlerle değil, VERII CRM ile yönetin."
+    },
+    "forgotPassword": {
+      "title": "Şifremi Unuttum",
+      "description": "Şifrenizi sıfırlamak için e-posta adresinizi girin. Size bir sıfırlama bağlantısı göndereceğiz.",
+      "emailPlaceholder": "E-posta adresiniz",
+      "submitButton": "Sıfırlama Linki Gönder",
+      "backToLogin": "Girişe Dön",
+      "success": "Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.",
+      "error": "Şifre sıfırlama talebi gönderilemedi."
+    },
+    "resetPassword": {
+      "title": "Şifreyi Yenile",
+      "description": "Yeni şifrenizi belirleyerek hesabınıza tekrar erişin.",
+      "newPasswordPlaceholder": "Yeni şifre",
+      "confirmPasswordPlaceholder": "Yeni şifre (tekrar)",
+      "submitButton": "Şifreyi Yenile",
+      "invalidToken": "Geçersiz veya eksik sıfırlama bağlantısı.",
+      "success": "Şifreniz başarıyla yenilendi.",
+      "error": "Şifre yenilenemedi."
+    },
+    "changePassword": {
+      "title": "Şifre Değiştir",
+      "description": "Mevcut şifrenizi doğrulayın ve yeni bir şifre belirleyin.",
+      "currentPasswordPlaceholder": "Mevcut şifre",
+      "newPasswordPlaceholder": "Yeni şifre",
+      "confirmPasswordPlaceholder": "Yeni şifre (tekrar)",
+      "submitButton": "Şifreyi Güncelle",
+      "success": "Şifreniz başarıyla değiştirildi.",
+      "error": "Şifre değiştirilemedi."
     },
     "linkError": "Bağlantı açılamıyor.",
     "loggingIn": "Giriş yapılıyor...",
@@ -168,7 +196,17 @@
     "dateRequired": "Tarih zorunludur",
     "endDateRequired": "Bitiş tarihi zorunludur",
     "nameRequired": "İsim zorunludur",
-    "invalidEmail": "Geçerli bir e-posta adresi girin"
+    "invalidEmail": "Geçerli bir e-posta adresi girin",
+    "emailRequired": "E-posta adresi zorunludur",
+    "branchRequired": "Şube seçimi zorunludur",
+    "passwordRequired": "Şifre zorunludur",
+    "tokenRequired": "Sıfırlama anahtarı zorunludur",
+    "confirmPasswordRequired": "Şifre tekrar alanı zorunludur",
+    "currentPasswordRequired": "Mevcut şifre zorunludur",
+    "newPasswordMinLength": "Yeni şifre en az 6 karakter olmalıdır",
+    "newPasswordMaxLength": "Yeni şifre en fazla 100 karakter olabilir",
+    "passwordsMismatch": "Şifreler eşleşmiyor",
+    "newPasswordSameAsCurrent": "Yeni şifre mevcut şifre ile aynı olamaz"
   },
   "language": {
     "title": "Dil",
@@ -180,6 +218,7 @@
   "title": "Profil Ayarları",
   "uploadPhoto": "Profil Resmi Yükle",
   "changePassword": "Şifre Değiştir",
+  "changePasswordDescription": "Güvenliğiniz için şifrenizi ayrı ekrandan güncelleyebilirsiniz.",
   "currentPassword": "Mevcut Şifre",
   "newPassword": "Yeni Şifre",
   "confirmPassword": "Yeni Şifre (Tekrar)",

@@ -35,6 +35,20 @@ export interface LoginRequest {
   rememberMe: boolean;
 }
 
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
 export interface LoginResponseData {
   token: string;
   userId: number;
@@ -43,6 +57,9 @@ export interface LoginResponseData {
 }
 
 export type LoginResponse = ApiResponse<LoginResponseData>;
+export type ForgotPasswordResponse = ApiResponse<string>;
+export type ResetPasswordResponse = ApiResponse<boolean>;
+export type ChangePasswordResponse = ApiResponse<string>;
 
 export interface JWTPayload {
   "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier": string;

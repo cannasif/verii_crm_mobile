@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   Alert,
   Switch,
-  TextInput,
   ActivityIndicator,
   Image,
   ScrollView,
@@ -47,10 +46,6 @@ export default function SettingsScreen(): React.ReactElement {
   const authUser = useAuthStore((state) => state.user);
   const { themeMode, toggleTheme } = useUIStore();
   const [currentLang, setCurrentLang] = useState(getCurrentLanguage());
-
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
 
   const isDarkMode = themeMode === "dark";
 
@@ -101,25 +96,12 @@ export default function SettingsScreen(): React.ReactElement {
     },
   });
 
-  const changePasswordMutation = useMutation({
-    mutationFn: () =>
-      profileApi.changePassword({
-        currentPassword: currentPassword.trim(),
-        newPassword: newPassword.trim(),
-      }),
-    onSuccess: () => {
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-      showSuccess(t("settings.successPassword"));
-    },
-    onError: (error) => {
-      showError(error instanceof Error ? error.message : t("settings.errorPassword"));
-    },
-  });
-
   const handleBack = (): void => {
     router.back();
+  };
+
+  const handleOpenChangePassword = (): void => {
+    router.push("/(auth)/change-password");
   };
 
   const handleLanguageChange = async (lang: "tr" | "en" | "de"): Promise<void> => {
@@ -157,22 +139,6 @@ export default function SettingsScreen(): React.ReactElement {
 
     if (result.canceled || !result.assets?.length) return;
     uploadPictureMutation.mutate(result.assets[0].uri);
-  };
-
-  const handleChangePassword = (): void => {
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      showError(t("settings.errorEmptyFields"));
-      return;
-    }
-    if (newPassword.length < 6) {
-      showError(t("settings.errorShortPassword"));
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      showError(t("settings.errorMismatchPassword"));
-      return;
-    }
-    changePasswordMutation.mutate();
   };
 
   const fullName = useMemo(() => {
@@ -256,30 +222,9 @@ export default function SettingsScreen(): React.ReactElement {
           <Text style={[styles.groupTitle, { color: mutedColor }]}>{t("settings.changePassword")}</Text>
           <MenuGroup>
             <View style={styles.inputContainer}>
-              <TextInput
-                style={[styles.input, { backgroundColor: inputBg, color: textColor, borderColor }]}
-                placeholder={t("settings.currentPassword")}
-                placeholderTextColor={mutedColor}
-                secureTextEntry
-                value={currentPassword}
-                onChangeText={setCurrentPassword}
-              />
-              <TextInput
-                style={[styles.input, { backgroundColor: inputBg, color: textColor, borderColor }]}
-                placeholder={t("settings.newPassword")}
-                placeholderTextColor={mutedColor}
-                secureTextEntry
-                value={newPassword}
-                onChangeText={setNewPassword}
-              />
-              <TextInput
-                style={[styles.input, { backgroundColor: inputBg, color: textColor, borderColor }]}
-                placeholder={t("settings.confirmPassword")}
-                placeholderTextColor={mutedColor}
-                secureTextEntry
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-              />
+              <Text style={[styles.sectionDescription, { color: mutedColor }]}>
+                {t("settings.changePasswordDescription")}
+              </Text>
               <TouchableOpacity
                 style={[
                   styles.primaryButton, 
@@ -289,17 +234,12 @@ export default function SettingsScreen(): React.ReactElement {
                     borderWidth: 1
                   }
                 ]}
-                onPress={handleChangePassword}
-                disabled={changePasswordMutation.isPending}
+                onPress={handleOpenChangePassword}
               >
-                {changePasswordMutation.isPending ? (
-                  <ActivityIndicator color={brandColor} size="small" />
-                ) : (
-                  <>
-                    <LockPasswordIcon size={18} color={brandColor} variant="stroke" style={{ marginRight: 8 }} />
-                    <Text style={[styles.primaryButtonText, { color: brandColor }]}>{t("settings.updatePasswordBtn")}</Text>
-                  </>
-                )}
+                <>
+                  <LockPasswordIcon size={18} color={brandColor} variant="stroke" style={{ marginRight: 8 }} />
+                  <Text style={[styles.primaryButtonText, { color: brandColor }]}>{t("settings.updatePasswordBtn")}</Text>
+                </>
               </TouchableOpacity>
             </View>
           </MenuGroup>
@@ -335,7 +275,7 @@ export default function SettingsScreen(): React.ReactElement {
                 return (
                   <TouchableOpacity
                     key={lang.id}
-                    onPress={() => handleLanguageChange(lang.id as "tr" | "en")}
+                    onPress={() => handleLanguageChange(lang.id as "tr" | "en" | "de")}
                     style={[
                       styles.langPill, 
                       { 
@@ -481,12 +421,9 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 12,
   },
-  input: {
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 14,
+  sectionDescription: {
+    fontSize: 13,
+    lineHeight: 20,
   },
   primaryButton: {
     flexDirection: "row",
