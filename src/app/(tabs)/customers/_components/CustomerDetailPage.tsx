@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from "react";
+import * as ImagePicker from "expo-image-picker";
 import {
   View,
   StyleSheet,
@@ -17,6 +18,8 @@ import { useUIStore } from "../../../../store/ui";
 import {
   useCustomer,
   useDeleteCustomer,
+  useCustomerImages,
+  useUploadCustomerImage,
   CustomerDetailContent,
 } from "../../../../features/customer";
 import {
@@ -134,7 +137,9 @@ function CustomerDetailPage(): React.ReactElement {
 
   const customerId = id ? Number(id) : undefined;
   const { data: customer, isLoading, isError, refetch } = useCustomer(customerId);
+  const { data: customerImages = [] } = useCustomerImages(customerId);
   const deleteCustomer = useDeleteCustomer();
+  const uploadCustomerImage = useUploadCustomerImage();
   const { data: contacts = [], isLoading: isLoadingContacts } = useCustomerContacts(customerId);
   const { data: addresses = [], isLoading: isLoadingAddresses } = useCustomerShippingAddresses(customerId);
 
@@ -209,6 +214,36 @@ function CustomerDetailPage(): React.ReactElement {
       params: { customerId: customerId?.toString() },
     });
   }, [router, customerId]);
+
+  const handleAddImagePress = useCallback(async () => {
+    if (!customerId) return;
+
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(t("common.error"), t("customer.imagePermissionError"));
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: false,
+      quality: 0.85,
+      selectionLimit: 1,
+    });
+
+    if (result.canceled || !result.assets?.[0]?.uri) {
+      return;
+    }
+
+    try {
+      await uploadCustomerImage.mutateAsync({
+        customerId,
+        imageUri: result.assets[0].uri,
+        imageDescription: `${customer?.name ?? t("customer.detail")} ${t("customer.imageDefaultDescription")}`,
+      });
+    } catch {
+    }
+  }, [customerId, customer?.name, t, uploadCustomerImage]);
 
   const renderContactItem = useCallback(({ item }: { item: ContactDto }) => (
       <ContactCard contact={item} onPress={() => handleContactPress(item)} />
@@ -305,11 +340,14 @@ function CustomerDetailPage(): React.ReactElement {
       default:
         return (
           <CustomerDetailContent
-            customer={customer}
+            customer={customer!}
+            images={customerImages}
+            isUploadingImage={uploadCustomerImage.isPending}
             insets={insets}
             t={t}
             on360Press={handleCustomer360Press} 
             onQuickQuotationPress={handleQuickQuotationPress}
+            onAddImagePress={handleAddImagePress}
           />
         );
     }

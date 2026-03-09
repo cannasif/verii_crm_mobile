@@ -1,10 +1,11 @@
 import React from "react";
-import { View, StyleSheet, ScrollView, Platform, Linking, TouchableOpacity } from "react-native";
+import { View, StyleSheet, ScrollView, Platform, Linking, TouchableOpacity, Image, ActivityIndicator } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui"; 
-import type { CustomerDto } from "../types";
+import { API_BASE_URL } from "../../../constants/config";
+import type { CustomerDto, CustomerImageDto } from "../types";
 import { 
   Call02Icon, 
   Mail01Icon, 
@@ -21,7 +22,9 @@ import {
   Activity01Icon,
   MapsCircle01Icon,
   AnalyticsUpIcon,
-  Note01Icon // YENİ: Notlar için ikon eklendi
+  Note01Icon,
+  Image02Icon,
+  Add01Icon,
 } from "hugeicons-react-native";
 
 const getInitials = (name: string) => {
@@ -44,6 +47,13 @@ function formatDate(dateString?: string | null): string | null {
 function formatCurrency(value?: number | null): string | null {
   if (value === undefined || value === null) return null;
   return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(value);
+}
+
+function toAbsoluteImageUrl(path: string | null | undefined): string | undefined {
+  if (!path) return undefined;
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  return `${API_BASE_URL}${normalized}`;
 }
 
 interface ActionButtonProps {
@@ -107,14 +117,26 @@ function StatusBadge({ isActive, activeText, inactiveText }: StatusBadgeProps) {
 }
 
 interface CustomerDetailContentProps {
-  customer: any; 
+  customer: CustomerDto; 
+  images: CustomerImageDto[];
+  isUploadingImage: boolean;
   insets: { bottom: number };
   t: (key: string) => string;
   on360Press: () => void; 
   onQuickQuotationPress: () => void;
+  onAddImagePress: () => void;
 }
 
-export function CustomerDetailContent({ customer, insets, t, on360Press, onQuickQuotationPress }: CustomerDetailContentProps): React.ReactElement {
+export function CustomerDetailContent({
+  customer,
+  images,
+  isUploadingImage,
+  insets,
+  t,
+  on360Press,
+  onQuickQuotationPress,
+  onAddImagePress,
+}: CustomerDetailContentProps): React.ReactElement {
   const { themeMode } = useUIStore();
   const isDark = themeMode === "dark";
 
@@ -178,7 +200,7 @@ export function CustomerDetailContent({ customer, insets, t, on360Press, onQuick
               activeOpacity={0.7}
             >
               <AnalyticsUpIcon size={18} color={THEME.primary} variant="stroke" strokeWidth={2.5} />
-              <Text style={[styles.text360, { color: THEME.primary }]}>360 Görünüm</Text>
+              <Text style={[styles.text360, { color: THEME.primary }]}>{t("customer.view360")}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -189,7 +211,24 @@ export function CustomerDetailContent({ customer, insets, t, on360Press, onQuick
               onPress={onQuickQuotationPress}
               activeOpacity={0.7}
             >
-              <Text style={[styles.textQuickQuotation, { color: "#0ea5e9" }]}>Hızlı Teklif Oluştur</Text>
+              <Text style={[styles.textQuickQuotation, { color: "#0ea5e9" }]}>{t("customer.quickQuotation")}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.btnAddImage,
+                { backgroundColor: "#22c55e12", borderColor: "#22c55e40" },
+              ]}
+              onPress={onAddImagePress}
+              activeOpacity={0.7}
+              disabled={isUploadingImage}
+            >
+              {isUploadingImage ? (
+                <ActivityIndicator size="small" color="#22c55e" />
+              ) : (
+                <Add01Icon size={18} color="#22c55e" variant="stroke" />
+              )}
+              <Text style={[styles.textAddImage, { color: "#22c55e" }]}>{t("customer.addImage")}</Text>
             </TouchableOpacity>
 
             <View style={styles.quickActionsRow}>
@@ -202,31 +241,71 @@ export function CustomerDetailContent({ customer, insets, t, on360Press, onQuick
         </View>
 
         <View style={[styles.sectionCard, { backgroundColor: THEME.cardBg, borderColor: THEME.borderColor }]}>
+          <View style={[styles.sectionHeader, styles.sectionHeaderSpaced]}>
+            <View style={styles.sectionHeaderLeft}>
+              <Image02Icon size={18} color={THEME.primary} variant="stroke" />
+              <Text style={[styles.sectionTitle, { color: THEME.text }]}>{t("customer.images")}</Text>
+            </View>
+            <TouchableOpacity onPress={onAddImagePress} disabled={isUploadingImage} style={styles.inlineAction}>
+              <Text style={[styles.inlineActionText, { color: "#22c55e" }]}>
+                {isUploadingImage ? t("customer.uploadingImage") : t("customer.addImage")}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {images.length > 0 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.imageScrollContent}
+            >
+              {images.map((item) => {
+                const imageUri = toAbsoluteImageUrl(item.imageUrl);
+                if (!imageUri) return null;
+
+                return (
+                  <View key={item.id} style={[styles.imageCard, { borderColor: THEME.divider, backgroundColor: THEME.cardBg }]}>
+                    <Image source={{ uri: imageUri }} style={styles.customerImage} resizeMode="cover" />
+                    <Text style={[styles.imageCaption, { color: THEME.textMute }]}>
+                      {item.imageDescription?.trim() || t("customer.imageDefaultDescription")}
+                    </Text>
+                  </View>
+                );
+              })}
+            </ScrollView>
+          ) : (
+            <Text style={[styles.notesText, { color: THEME.textMute, fontStyle: "italic" }]}>
+              {t("customer.noImages")}
+            </Text>
+          )}
+        </View>
+
+        <View style={[styles.sectionCard, { backgroundColor: THEME.cardBg, borderColor: THEME.borderColor }]}>
           <View style={styles.sectionHeader}>
             <Contact01Icon size={18} color={THEME.primary} variant="stroke" />
-            <Text style={[styles.sectionTitle, { color: THEME.text }]}>İLETİŞİM BİLGİLERİ</Text>
+            <Text style={[styles.sectionTitle, { color: THEME.text }]}>{t("customer.contactInfo")}</Text>
           </View>
-          <DetailRow theme={THEME} label="Telefon" value={customer?.phone} icon={<Call02Icon size={14} color={THEME.textMute} />} />
-          <DetailRow theme={THEME} label="E-Posta" value={customer?.email} icon={<Mail01Icon size={14} color={THEME.textMute} />} />
-          <DetailRow theme={THEME} label="Web Sitesi" value={customer?.website} icon={<Globe02Icon size={14} color={THEME.textMute} />} isLast />
+          <DetailRow theme={THEME} label={t("customer.phone")} value={customer?.phone} icon={<Call02Icon size={14} color={THEME.textMute} />} />
+          <DetailRow theme={THEME} label={t("customer.email")} value={customer?.email} icon={<Mail01Icon size={14} color={THEME.textMute} />} />
+          <DetailRow theme={THEME} label={t("customer.website")} value={customer?.website} icon={<Globe02Icon size={14} color={THEME.textMute} />} isLast />
         </View>
 
         <View style={[styles.sectionCard, { backgroundColor: THEME.cardBg, borderColor: THEME.borderColor }]}>
           <View style={styles.sectionHeader}>
             <Location01Icon size={18} color={THEME.primary} variant="stroke" />
-            <Text style={[styles.sectionTitle, { color: THEME.text }]}>ADRES & KONUM</Text>
+            <Text style={[styles.sectionTitle, { color: THEME.text }]}>{t("customer.addressAndLocation")}</Text>
           </View>
           <Text style={[styles.addressText, { color: customer?.address ? THEME.text : THEME.textMute, fontStyle: customer?.address ? 'normal' : 'italic' }]}>
-            {customer?.address || 'Adres bilgisi belirtilmemiş.'}
+            {customer?.address || t("customer.addressNotSpecified")}
           </Text>
           <View style={styles.locationGrid}>
             <View style={styles.locItem}>
-              <Text style={[styles.gridLabel, { color: THEME.textMute }]}>Şehir / İlçe</Text>
+              <Text style={[styles.gridLabel, { color: THEME.textMute }]}>{t("customer.cityDistrict")}</Text>
               <Text style={[styles.gridValue, { color: THEME.text }]}>{(customer?.cityName || '---') + ' / ' + (customer?.districtName || '---')}</Text>
             </View>
             <View style={styles.locItem}>
-              <Text style={[styles.gridLabel, { color: THEME.textMute }]}>Ülke</Text>
-              <Text style={[styles.gridValue, { color: THEME.text }]}>{customer?.countryName || 'Belirtilmemiş'}</Text>
+              <Text style={[styles.gridLabel, { color: THEME.textMute }]}>{t("lookup.country")}</Text>
+              <Text style={[styles.gridValue, { color: THEME.text }]}>{customer?.countryName || t("customer.unspecified")}</Text>
             </View>
           </View>
         </View>
@@ -234,52 +313,55 @@ export function CustomerDetailContent({ customer, insets, t, on360Press, onQuick
         <View style={styles.gridRow}>
           <View style={[styles.gridCard, { backgroundColor: THEME.cardBg, borderColor: THEME.borderColor }]}>
              <Coins01Icon size={20} color="#10B981" style={{marginBottom: 8}} variant="stroke" />
-             <Text style={[styles.gridLabel, { color: THEME.textMute }]}>Kredi Limiti</Text>
+             <Text style={[styles.gridLabel, { color: THEME.textMute }]}>{t("customer.creditLimit")}</Text>
              <Text style={[styles.gridValue, { color: "#10B981", fontSize: 16 }]}>{formatCurrency(customer?.creditLimit) || '₺0,00'}</Text>
           </View>
           <View style={[styles.gridCard, { backgroundColor: THEME.cardBg, borderColor: THEME.borderColor }]}>
              <Invoice01Icon size={20} color={THEME.primary} style={{marginBottom: 8}} variant="stroke" />
-             <Text style={[styles.gridLabel, { color: THEME.textMute }]}>Vergi No</Text>
-             <Text style={[styles.gridValue, { color: THEME.text, fontSize: 16 }]}>{customer?.taxNumber || 'Belirtilmemiş'}</Text>
+             <Text style={[styles.gridLabel, { color: THEME.textMute }]}>{t("customer.taxNumber")}</Text>
+             <Text style={[styles.gridValue, { color: THEME.text, fontSize: 16 }]}>{customer?.taxNumber || t("customer.unspecified")}</Text>
           </View>
         </View>
 
-        {/* YENİ: MÜŞTERİ NOTLARI KARTI */}
         <View style={[styles.sectionCard, { backgroundColor: THEME.cardBg, borderColor: THEME.borderColor }]}>
           <View style={styles.sectionHeader}>
             <Note01Icon size={18} color="#F59E0B" variant="stroke" /> 
-            <Text style={[styles.sectionTitle, { color: THEME.text }]}>MÜŞTERİ NOTLARI</Text>
+            <Text style={[styles.sectionTitle, { color: THEME.text }]}>{t("customer.notesSection")}</Text>
           </View>
-          <Text style={[styles.notesText, { color: (customer?.notes || customer?.description) ? THEME.text : THEME.textMute, fontStyle: (customer?.notes || customer?.description) ? 'normal' : 'italic' }]}>
-            {customer?.notes || customer?.description || "Bu müşteri için henüz bir not eklenmemiş."}
+          <Text style={[styles.notesText, { color: customer?.notes ? THEME.text : THEME.textMute, fontStyle: customer?.notes ? 'normal' : 'italic' }]}>
+            {customer?.notes || t("customer.noNotes")}
           </Text>
         </View>
 
         <View style={[styles.sectionCard, { backgroundColor: THEME.cardBg, borderColor: THEME.borderColor }]}>
           <View style={styles.sectionHeader}>
             <Activity01Icon size={18} color={THEME.primary} variant="stroke" />
-            <Text style={[styles.sectionTitle, { color: THEME.text }]}>SİSTEM DURUMU</Text>
+            <Text style={[styles.sectionTitle, { color: THEME.text }]}>{t("customer.systemStatus")}</Text>
           </View>
           <View style={styles.statusContainer}>
-             <StatusBadge isActive={!!customer?.isCompleted} activeText="Tamamlandı" inactiveText="Beklemede" />
+             <StatusBadge
+               isActive={!!customer?.isCompleted}
+               activeText={t("customer.statusCompleted")}
+               inactiveText={t("customer.statusPending")}
+             />
              {customer?.isPendingApproval && (
-                <View style={styles.pendingBadge}><Text style={styles.pendingText}>Onay Bekliyor</Text></View>
+                <View style={styles.pendingBadge}><Text style={styles.pendingText}>{t("customer.pendingApproval")}</Text></View>
              )}
           </View>
-          <DetailRow theme={THEME} label="Onay Durumu" value={customer?.approvalStatus} icon={<Shield02Icon size={14} color={THEME.textMute} />} isLast />
+          <DetailRow theme={THEME} label={t("customer.approvalStatus")} value={customer?.approvalStatus} icon={<Shield02Icon size={14} color={THEME.textMute} />} isLast />
         </View>
 
         <View style={[styles.footerCard, { backgroundColor: THEME.cardBg, borderColor: THEME.borderColor }]}>
            <View style={styles.footerRow}>
              <UserIcon size={14} color={THEME.textMute} />
              <Text style={[styles.footerText, { color: THEME.textMute }]}>
-                Oluşturan: <Text style={{color: THEME.text, fontWeight: '700'}}>{customer?.createdByFullUser || 'Sistem'}</Text>
+                {t("customer.createdBy")}: <Text style={{color: THEME.text, fontWeight: '700'}}>{customer?.createdByFullUser || t("customer.systemUser")}</Text>
              </Text>
            </View>
            <View style={[styles.footerRow, { marginTop: 4 }]}>
              <Calendar03Icon size={14} color={THEME.textMute} />
              <Text style={[styles.footerText, { color: THEME.textMute }]}>
-                Tarih: <Text style={{color: THEME.text, fontWeight: '700'}}>{formatDate(customer?.createdDate)}</Text>
+                {t("customer.createdAt")}: <Text style={{color: THEME.text, fontWeight: '700'}}>{formatDate(customer?.createdDate)}</Text>
              </Text>
            </View>
         </View>
@@ -335,13 +417,34 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: 0.4,
   },
+  btnAddImage: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    marginBottom: 16,
+  },
+  textAddImage: {
+    fontSize: 13,
+    fontWeight: "800",
+    letterSpacing: 0.4,
+  },
 
   codeTagTextLarge: { color: '#AAA', fontSize: 13, fontWeight: '700', letterSpacing: 1 },
   quickActionsRow: { flexDirection: 'row', gap: 18, justifyContent: 'center', width: '100%' },
   actionCircle: { width: 48, height: 48, borderRadius: 24, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+  sectionHeaderSpaced: { justifyContent: "space-between" },
+  sectionHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
   sectionTitle: { fontSize: 13, fontWeight: '800', letterSpacing: 0.5 },
+  inlineAction: { paddingVertical: 4, paddingHorizontal: 2 },
+  inlineActionText: { fontSize: 12, fontWeight: "700" },
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12 },
   detailLabelRow: { flexDirection: 'row', alignItems: 'center' },
   miniIconWrapper: { marginRight: 8, opacity: 0.7 },
@@ -353,6 +456,10 @@ const styles = StyleSheet.create({
   gridRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
   gridLabel: { fontSize: 11, fontWeight: '600', marginBottom: 4 },
   gridValue: { fontWeight: '800' },
+  imageScrollContent: { gap: 12, paddingRight: 6 },
+  imageCard: { width: 190, borderRadius: 18, borderWidth: 1, overflow: "hidden" },
+  customerImage: { width: "100%", height: 150, backgroundColor: "rgba(0,0,0,0.08)" },
+  imageCaption: { fontSize: 12, lineHeight: 18, paddingHorizontal: 10, paddingVertical: 10 },
   
   notesText: { fontSize: 14, lineHeight: 24, opacity: 0.9 },
 

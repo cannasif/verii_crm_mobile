@@ -153,10 +153,13 @@ export function CustomerDetailScreen(): React.ReactElement {
           ) : customer ? (
             <CustomerDetailContent
               customer={customer}
+              images={[]}
+              isUploadingImage={false}
               insets={insets}
               t={t}
               on360Press={handleCustomer360Press}
-              onQuickQuotationPress={handleQuickQuotationPress} 
+              onQuickQuotationPress={handleQuickQuotationPress}
+              onAddImagePress={() => {}}
             />
           ) : null}
         </View>

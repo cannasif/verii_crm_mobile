@@ -8,6 +8,7 @@ import type {
   CreateCustomerFromMobileResultDto,
   UpdateCustomerDto,
   CustomerDto,
+  CustomerImageDto,
   PagedResponse
 } from "../types";
 
@@ -121,6 +122,29 @@ export function useDeleteCustomer() {
         queryClient.setQueryData(["customer", "list"], context.previousData);
       }
       showToast("error", error.message || t("common.unknownError"));
+    },
+  });
+}
+
+export function useUploadCustomerImage() {
+  const queryClient = useQueryClient();
+  const { t } = useTranslation();
+  const showToast = useToastStore((state) => state.showToast);
+
+  return useMutation<
+    CustomerImageDto[],
+    Error,
+    { customerId: number; imageUri: string; imageDescription?: string }
+  >({
+    mutationFn: ({ customerId, imageUri, imageDescription }) =>
+      customerApi.uploadCustomerImage(customerId, imageUri, imageDescription),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["customer", "images", variables.customerId] });
+      queryClient.invalidateQueries({ queryKey: ["customer", "detail", variables.customerId] });
+      showToast("success", t("customer.imageUploadSuccess"));
+    },
+    onError: (error) => {
+      showToast("error", error.message || t("customer.imageUploadError"));
     },
   });
 }

@@ -293,4 +293,19 @@ export const customerApi = {
 
     return response.data.data;
   },
+
+  getCustomerImages: async (customerId: number): Promise<CustomerImageDto[]> => {
+    const response = await apiClient.get<ApiResponse<CustomerImageDto[]>>(
+      `/api/CustomerImage/by-customer/${customerId}`
+    );
+
+    if (!response.data.success) {
+      const msg =
+        [response.data.message, response.data.exceptionMessage].filter(Boolean).join(" — ") ||
+        "Müşteri görselleri alınamadı";
+      throw new Error(msg);
+    }
+
+    return response.data.data ?? [];
+  },
 };
