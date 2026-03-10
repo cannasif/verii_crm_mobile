@@ -13,11 +13,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
-import { 
+import {
   Add01Icon, 
   Edit02Icon, 
   Delete02Icon, 
-  UserIcon, 
   Note01Icon, 
   Coins01Icon 
 } from "hugeicons-react-native";
@@ -38,6 +37,8 @@ import type {
 import { QuotationLineForm, ExchangeRateDialog, PickerModal } from "../../quotation/components";
 import type { QuotationLineFormState, QuotationExchangeRateFormState } from "../../quotation/types";
 import { useExchangeRate, useCurrencyOptions } from "../../quotation/hooks";
+import { CustomerPicker } from "../../customer/components";
+import type { CustomerDto } from "../../customer/types";
 
 function numberValue(value: string): number {
   const parsed = Number(value.replace(",", "."));
@@ -152,11 +153,18 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
   const editId = params.id ? Number(params.id) : undefined;
   const isEdit = !!editId;
   const preselectedCustomerId = params.customerId ? Number(params.customerId) : undefined;
-  const preselectedCustomerName = params.customerName ? String(params.customerName) : "";
-  const preselectedCustomerCode = params.customerCode ? String(params.customerCode) : "";
   const hasPreselectedCustomer = !!preselectedCustomerId;
 
-  const [customerId, setCustomerId] = useState(hasPreselectedCustomer ? String(preselectedCustomerId) : "");
+  const [customerId, setCustomerId] = useState<number | undefined>(preselectedCustomerId);
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerDto | undefined>(
+    hasPreselectedCustomer
+      ? {
+          id: preselectedCustomerId as number,
+          name: params.customerName ? String(params.customerName) : "",
+          customerCode: params.customerCode ? String(params.customerCode) : undefined,
+        }
+      : undefined
+  );
   const [currencyCode, setCurrencyCode] = useState("TRY");
   const [exchangeRate, setExchangeRate] = useState("1.00");
   const [description, setDescription] = useState("");
@@ -194,7 +202,14 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
 
   useEffect(() => {
     if (!detailQuery.data) return;
-    setCustomerId(String(detailQuery.data.customerId ?? ""));
+    const detailCustomerId = detailQuery.data.customerId ?? undefined;
+    setCustomerId(detailCustomerId);
+    if (detailCustomerId) {
+      setSelectedCustomer({
+        id: detailCustomerId,
+        name: detailQuery.data.customerName || "",
+      } as CustomerDto);
+    }
     setCurrencyCode(detailQuery.data.currencyCode || "TRY");
     setExchangeRate(String(detailQuery.data.exchangeRate ?? 1));
     setDescription(detailQuery.data.description || "");
@@ -202,10 +217,15 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
 
   useEffect(() => {
     if (!isEdit && hasPreselectedCustomer) {
-      setCustomerId(String(preselectedCustomerId));
+      setCustomerId(preselectedCustomerId);
       setExchangeRate("1.00");
     }
   }, [isEdit, hasPreselectedCustomer, preselectedCustomerId]);
+
+  const handleCustomerChange = useCallback((customer: CustomerDto | undefined) => {
+    setSelectedCustomer(customer);
+    setCustomerId(customer?.id);
+  }, []);
 
   useEffect(() => {
     if (isEdit) return;
@@ -421,7 +441,7 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
       numberValue(exchangeRate);
 
     const payload: TempQuotattionCreateDto = {
-      customerId: hasPreselectedCustomer ? (preselectedCustomerId as number) : numberValue(customerId),
+      customerId: customerId ?? 0,
       currencyCode: currencyCode.trim().toUpperCase() || "TRY",
       exchangeRate: resolvedExchangeRate,
       discountRate1: 0,
@@ -431,7 +451,7 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
     };
 
     if (!payload.customerId) {
-      showError("CustomerId zorunlu");
+      showError("Müşteri seçimi zorunlu");
       return;
     }
 
@@ -483,35 +503,14 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            {hasPreselectedCustomer ? (
-              <View style={[styles.customerInfoCard, { borderColor, backgroundColor: cardBg }]}>
-                <View style={styles.customerHeaderRow}>
-                  <UserIcon size={20} color={brandColor} variant="stroke" />
-                  <Text style={[styles.customerInfoTitle, { color: textColor }]}>Cari Bilgisi</Text>
-                </View>
-                <Text style={[styles.customerInfoLine, { color: mutedColor }]}>
-                  ID: <Text style={{ color: textColor, fontWeight: "600" }}>{preselectedCustomerId}</Text>
-                </Text>
-                <Text style={[styles.customerInfoLine, { color: mutedColor }]}>
-                  Ad: <Text style={{ color: textColor, fontWeight: "600" }}>{preselectedCustomerName || "-"}</Text>
-                </Text>
-                <Text style={[styles.customerInfoLine, { color: mutedColor }]}>
-                  Kod: <Text style={{ color: textColor, fontWeight: "600" }}>{preselectedCustomerCode || "-"}</Text>
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.field}>
-                <Text style={[styles.label, { color: mutedColor }]}>Customer ID</Text>
-                <TextInput
-                  style={[styles.input, { borderColor, backgroundColor: inputBg, color: textColor }]}
-                  value={customerId}
-                  onChangeText={setCustomerId}
-                  placeholder="Örn: 12"
-                  placeholderTextColor={mutedColor}
-                  keyboardType="numeric"
-                />
-              </View>
-            )}
+            <View style={styles.field}>
+              <Text style={[styles.label, { color: mutedColor }]}>Müşteri</Text>
+              <CustomerPicker
+                value={customerId}
+                customerName={selectedCustomer?.name}
+                onChange={handleCustomerChange}
+              />
+            </View>
 
             <View style={styles.field}>
               <Text style={[styles.label, { color: mutedColor }]}>Para Birimi</Text>

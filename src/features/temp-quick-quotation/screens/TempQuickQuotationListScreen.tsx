@@ -34,6 +34,13 @@ function formatDate(value?: string | null): string {
   return date.toLocaleDateString("tr-TR");
 }
 
+function getCustomerDisplayName(item: TempQuotattionGetDto): string {
+  const customerName = item.customerName?.trim();
+  return customerName && customerName.length > 0
+    ? customerName
+    : `Cari ID: ${item.customerId}`;
+}
+
 export function TempQuickQuotationListScreen(): React.ReactElement {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -141,9 +148,16 @@ export function TempQuickQuotationListScreen(): React.ReactElement {
           <View style={styles.infoRow}>
             <UserIcon size={16} color={mutedColor} variant="stroke" />
             <Text style={[styles.infoText, { color: textColor }]}>
-              Cari ID: {item.customerId}
+              {getCustomerDisplayName(item)}
             </Text>
           </View>
+          {!!item.customerName && (
+            <View style={styles.infoRow}>
+              <Text style={[styles.infoHintText, { color: mutedColor }]}>
+                Cari ID: {item.customerId}
+              </Text>
+            </View>
+          )}
           <View style={styles.infoRow}>
             <Coins01Icon size={16} color={mutedColor} variant="stroke" />
             <Text style={[styles.infoText, { color: textColor }]}>
@@ -371,6 +385,11 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 14,
     fontWeight: "500",
+  },
+  infoHintText: {
+    fontSize: 12,
+    fontWeight: "500",
+    marginLeft: 26,
   },
   actionsRow: {
     flexDirection: "row",

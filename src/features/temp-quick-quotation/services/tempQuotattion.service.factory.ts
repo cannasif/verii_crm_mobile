@@ -31,6 +31,59 @@ export interface TempQuickQuotationHttpClient {
 
 const TEMP_QUOTATTION_ENDPOINT = "/api/TempQuotattion";
 
+function toNumber(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+
+  return undefined;
+}
+
+function getString(value: unknown): string {
+  return typeof value === "string" ? value : String(value ?? "").trim();
+}
+
+function getOptionalString(value: unknown): string | undefined {
+  const text = getString(value);
+  return text.length > 0 ? text : undefined;
+}
+
+function normalizeTempQuotation(raw: unknown): TempQuotattionGetDto | null {
+  if (!raw || typeof raw !== "object") return null;
+
+  const item = raw as Record<string, unknown>;
+  const id = toNumber(item.id ?? item.Id);
+  const customerId = toNumber(item.customerId ?? item.CustomerId);
+
+  if (id == null || customerId == null) {
+    return null;
+  }
+
+  return {
+    id,
+    customerId,
+    customerName: getOptionalString(item.customerName ?? item.CustomerName) ?? null,
+    offerDate: getString(item.offerDate ?? item.OfferDate),
+    currencyCode: getString(item.currencyCode ?? item.CurrencyCode),
+    exchangeRate: toNumber(item.exchangeRate ?? item.ExchangeRate) ?? 0,
+    discountRate1: toNumber(item.discountRate1 ?? item.DiscountRate1) ?? 0,
+    discountRate2: toNumber(item.discountRate2 ?? item.DiscountRate2) ?? 0,
+    discountRate3: toNumber(item.discountRate3 ?? item.DiscountRate3) ?? 0,
+    isApproved: Boolean(item.isApproved ?? item.IsApproved ?? false),
+    approvedDate: getOptionalString(item.approvedDate ?? item.ApprovedDate) ?? null,
+    description: getString(item.description ?? item.Description),
+    createdDate: getString(item.createdDate ?? item.CreatedDate),
+    updatedDate: getOptionalString(item.updatedDate ?? item.UpdatedDate) ?? null,
+    deletedDate: getOptionalString(item.deletedDate ?? item.DeletedDate) ?? null,
+    isDeleted: Boolean(item.isDeleted ?? item.IsDeleted ?? false),
+    createdByFullUser: getOptionalString(item.createdByFullUser ?? item.CreatedByFullUser) ?? null,
+    updatedByFullUser: getOptionalString(item.updatedByFullUser ?? item.UpdatedByFullUser) ?? null,
+    deletedByFullUser: getOptionalString(item.deletedByFullUser ?? item.DeletedByFullUser) ?? null,
+  };
+}
+
 function buildQueryParams(params: TempQuickQuotationPagedParams): Record<string, string | number> {
   const queryParams: Record<string, string | number> = {};
 
@@ -68,28 +121,63 @@ export function createTempQuotattionService(httpClient: TempQuickQuotationHttpCl
         params: buildQueryParams(params),
       });
 
-      const data = unwrap(response.data, "Hızlı teklif listesi alınamadı");
-      return ensureData(data, "Hızlı teklif listesi alınamadı");
+      const data = ensureData(unwrap(response.data, "Hızlı teklif listesi alınamadı"), "Hızlı teklif listesi alınamadı");
+      const rawItems: unknown[] = Array.isArray((data as { items?: unknown[] }).items)
+        ? ((data as { items?: unknown[] }).items ?? [])
+        : Array.isArray((data as { Items?: unknown[] }).Items)
+          ? ((data as { Items?: unknown[] }).Items ?? [])
+          : [];
+
+      const items = rawItems
+        .map(normalizeTempQuotation)
+        .filter((item): item is TempQuotattionGetDto => item != null);
+
+      return {
+        ...data,
+        items,
+        totalCount: (data as { totalCount?: number; TotalCount?: number }).totalCount
+          ?? (data as { totalCount?: number; TotalCount?: number }).TotalCount
+          ?? items.length,
+        pageNumber: (data as { pageNumber?: number; PageNumber?: number }).pageNumber
+          ?? (data as { pageNumber?: number; PageNumber?: number }).PageNumber
+          ?? (params.pageNumber ?? 1),
+        pageSize: (data as { pageSize?: number; PageSize?: number }).pageSize
+          ?? (data as { pageSize?: number; PageSize?: number }).PageSize
+          ?? (params.pageSize ?? 20),
+        totalPages: (data as { totalPages?: number; TotalPages?: number }).totalPages
+          ?? (data as { totalPages?: number; TotalPages?: number }).TotalPages
+          ?? 1,
+        hasPreviousPage: (data as { hasPreviousPage?: boolean; HasPreviousPage?: boolean }).hasPreviousPage
+          ?? (data as { hasPreviousPage?: boolean; HasPreviousPage?: boolean }).HasPreviousPage
+          ?? false,
+        hasNextPage: (data as { hasNextPage?: boolean; HasNextPage?: boolean }).hasNextPage
+          ?? (data as { hasNextPage?: boolean; HasNextPage?: boolean }).HasNextPage
+          ?? false,
+      };
     },
 
     async getById(id: number): Promise<TempQuotattionGetDto> {
       const response = await httpClient.get<TempQuotattionResponse>(`${TEMP_QUOTATTION_ENDPOINT}/${id}`);
-      return ensureData(unwrap(response.data, "Hızlı teklif detayı alınamadı"), "Hızlı teklif detayı alınamadı");
+      const data = ensureData(unwrap(response.data, "Hızlı teklif detayı alınamadı"), "Hızlı teklif detayı alınamadı");
+      return ensureData(normalizeTempQuotation(data), "Hızlı teklif detayı alınamadı");
     },
 
     async create(payload: TempQuotattionCreateDto): Promise<TempQuotattionGetDto> {
       const response = await httpClient.post<TempQuotattionResponse>(TEMP_QUOTATTION_ENDPOINT, payload);
-      return ensureData(unwrap(response.data, "Hızlı teklif oluşturulamadı"), "Hızlı teklif oluşturulamadı");
+      const data = ensureData(unwrap(response.data, "Hızlı teklif oluşturulamadı"), "Hızlı teklif oluşturulamadı");
+      return ensureData(normalizeTempQuotation(data), "Hızlı teklif oluşturulamadı");
     },
 
     async update(id: number, payload: TempQuotattionUpdateDto): Promise<TempQuotattionGetDto> {
       const response = await httpClient.put<TempQuotattionResponse>(`${TEMP_QUOTATTION_ENDPOINT}/${id}`, payload);
-      return ensureData(unwrap(response.data, "Hızlı teklif güncellenemedi"), "Hızlı teklif güncellenemedi");
+      const data = ensureData(unwrap(response.data, "Hızlı teklif güncellenemedi"), "Hızlı teklif güncellenemedi");
+      return ensureData(normalizeTempQuotation(data), "Hızlı teklif güncellenemedi");
     },
 
     async setApproved(id: number): Promise<TempQuotattionGetDto> {
       const response = await httpClient.post<TempQuotattionResponse>(`${TEMP_QUOTATTION_ENDPOINT}/${id}/set-approved`);
-      return ensureData(unwrap(response.data, "Hızlı teklif onaylanamadı"), "Hızlı teklif onaylanamadı");
+      const data = ensureData(unwrap(response.data, "Hızlı teklif onaylanamadı"), "Hızlı teklif onaylanamadı");
+      return ensureData(normalizeTempQuotation(data), "Hızlı teklif onaylanamadı");
     },
 
     async remove(id: number): Promise<void> {
