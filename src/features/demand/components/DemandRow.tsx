@@ -1,14 +1,17 @@
 import React, { memo } from "react";
-import { View, TouchableOpacity, StyleSheet } from "react-native";
+import { View, TouchableOpacity, StyleSheet, type GestureResponderEvent } from "react-native";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useTranslation } from "react-i18next";
+import { Mail01Icon } from "hugeicons-react-native";
 import type { DemandGetDto } from "../types";
 
 interface DemandRowProps {
   demand: DemandGetDto;
   onPress: (id: number) => void;
-  onRevision: (e: React.SyntheticEvent, id: number) => void;
+  onRevision: (e: GestureResponderEvent, id: number) => void;
+  onGoogleMail: (e: GestureResponderEvent, demand: DemandGetDto) => void;
+  onOutlookMail: (e: GestureResponderEvent, demand: DemandGetDto) => void;
   isPending: boolean;
 }
 
@@ -42,6 +45,8 @@ function DemandRowComponent({
   demand,
   onPress,
   onRevision,
+  onGoogleMail,
+  onOutlookMail,
   isPending,
 }: DemandRowProps): React.ReactElement {
   const { colors, themeMode } = useUIStore();
@@ -51,9 +56,19 @@ function DemandRowComponent({
     onPress(demand.id);
   };
 
-  const handleRevisionPress = (e: React.SyntheticEvent): void => {
+  const handleRevisionPress = (e: GestureResponderEvent): void => {
     e.stopPropagation();
     onRevision(e, demand.id);
+  };
+
+  const handleGoogleMailPress = (e: GestureResponderEvent): void => {
+    e.stopPropagation();
+    onGoogleMail(e, demand);
+  };
+
+  const handleOutlookMailPress = (e: GestureResponderEvent): void => {
+    e.stopPropagation();
+    onOutlookMail(e, demand);
   };
 
   const cardBackground = themeMode === "dark" ? "rgba(20, 10, 30, 0.7)" : colors.card;
@@ -116,6 +131,26 @@ function DemandRowComponent({
               {formatCurrency(demand.grandTotal, demand.currency, i18n.language)}
             </Text>
           </View>
+        </View>
+
+        <View style={styles.actionRow}>
+          <TouchableOpacity
+            style={[styles.actionButton, { borderColor: "#4285F4", backgroundColor: "rgba(66,133,244,0.12)" }]}
+            onPress={handleGoogleMailPress}
+            activeOpacity={0.7}
+          >
+            <Mail01Icon size={14} color="#4285F4" variant="stroke" />
+            <Text style={[styles.actionButtonText, { color: "#4285F4" }]}>Google</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionButton, { borderColor: "#0078D4", backgroundColor: "rgba(0,120,212,0.12)" }]}
+            onPress={handleOutlookMailPress}
+            activeOpacity={0.7}
+          >
+            <Mail01Icon size={14} color="#0078D4" variant="stroke" />
+            <Text style={[styles.actionButtonText, { color: "#0078D4" }]}>Outlook</Text>
+          </TouchableOpacity>
         </View>
 
         <TouchableOpacity
@@ -204,5 +239,23 @@ const styles = StyleSheet.create({
   revisionButtonText: {
     fontSize: 14,
     fontWeight: "600",
+  },
+  actionRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  actionButton: {
+    flex: 1,
+    minHeight: 34,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 6,
+  },
+  actionButtonText: {
+    fontSize: 12,
+    fontWeight: "700",
   },
 });

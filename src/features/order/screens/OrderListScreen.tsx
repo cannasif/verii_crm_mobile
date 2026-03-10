@@ -18,6 +18,7 @@ import { useUIStore } from "../../../store/ui";
 import { useOrderList, useCreateRevisionOfOrder } from "../hooks";
 import { OrderRow } from "../components";
 import { SearchInput } from "../../customer/components";
+import { CustomerMailComposerModal } from "../../integration";
 import type { OrderGetDto, PagedFilter } from "../types";
 // Tasarım bütünlüğü için ikon
 import { Add01Icon } from "hugeicons-react-native";
@@ -49,6 +50,8 @@ export function OrderListScreen(): React.ReactElement {
 
   const [sortBy, setSortBy] = useState<string>("Id");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [selectedOrder, setSelectedOrder] = useState<OrderGetDto | null>(null);
+  const [mailProvider, setMailProvider] = useState<"google" | "outlook" | null>(null);
   
   const [searchTerm, setSearchTerm] = useState<string>("");
   // Performans için debounce
@@ -114,6 +117,23 @@ export function OrderListScreen(): React.ReactElement {
     router.push("/(tabs)/sales/orders/create");
   }, [router]);
 
+  const handleGoogleMail = useCallback((e: any, order: OrderGetDto) => {
+    e.stopPropagation();
+    setSelectedOrder(order);
+    setMailProvider("google");
+  }, []);
+
+  const handleOutlookMail = useCallback((e: any, order: OrderGetDto) => {
+    e.stopPropagation();
+    setSelectedOrder(order);
+    setMailProvider("outlook");
+  }, []);
+
+  const handleCloseMailModal = useCallback(() => {
+    setMailProvider(null);
+    setSelectedOrder(null);
+  }, []);
+
   const handleEndReached = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
@@ -146,12 +166,14 @@ export function OrderListScreen(): React.ReactElement {
               order={item}
               onPress={handleRowClick}
               onRevision={handleRevision}
+              onGoogleMail={handleGoogleMail}
+              onOutlookMail={handleOutlookMail}
               isPending={createRevisionMutation.isPending}
             />
         </View>
       );
     },
-    [handleRowClick, handleRevision, createRevisionMutation.isPending, theme]
+    [handleRowClick, handleRevision, createRevisionMutation.isPending, handleGoogleMail, handleOutlookMail, theme]
   );
 
   const renderEmpty = useCallback(() => {
@@ -250,6 +272,17 @@ export function OrderListScreen(): React.ReactElement {
           />
         )}
       </View>
+
+      <CustomerMailComposerModal
+        visible={mailProvider !== null}
+        onClose={handleCloseMailModal}
+        provider={mailProvider ?? "google"}
+        moduleKey="order"
+        recordId={selectedOrder?.id ?? 0}
+        customerId={selectedOrder?.potentialCustomerId}
+        contactId={selectedOrder?.contactId}
+        customerName={selectedOrder?.potentialCustomerName}
+      />
     </View>
   );
 }

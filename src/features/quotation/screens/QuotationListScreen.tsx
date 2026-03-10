@@ -20,6 +20,7 @@ import { useUIStore } from "../../../store/ui";
 import { useQuotationList, useCreateRevisionOfQuotation } from "../hooks";
 import { QuotationRow } from "../components/QuotationRow";
 import { SearchInput } from "../../customer/components";
+import { CustomerMailComposerModal } from "../../integration";
 import type { QuotationGetDto, PagedFilter } from "../types";
 
 const { width } = Dimensions.get("window");
@@ -52,6 +53,8 @@ export function QuotationListScreen(): React.ReactElement {
 
   const [sortBy, setSortBy] = useState<string>("Id");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [selectedQuotation, setSelectedQuotation] = useState<QuotationGetDto | null>(null);
+  const [mailProvider, setMailProvider] = useState<"google" | "outlook" | null>(null);
 
   const [searchText, setSearchText] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -130,6 +133,23 @@ export function QuotationListScreen(): React.ReactElement {
     router.push("/(tabs)/sales/quotations/quick/create");
   }, [router]);
 
+  const handleGoogleMail = useCallback((e: any, quotation: QuotationGetDto) => {
+    e.stopPropagation();
+    setSelectedQuotation(quotation);
+    setMailProvider("google");
+  }, []);
+
+  const handleOutlookMail = useCallback((e: any, quotation: QuotationGetDto) => {
+    e.stopPropagation();
+    setSelectedQuotation(quotation);
+    setMailProvider("outlook");
+  }, []);
+
+  const handleCloseMailModal = useCallback(() => {
+    setMailProvider(null);
+    setSelectedQuotation(null);
+  }, []);
+
   const handleEndReached = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
@@ -161,12 +181,14 @@ export function QuotationListScreen(): React.ReactElement {
             quotation={item}
             onPress={handleRowClick}
             onRevision={handleRevision}
+            onGoogleMail={handleGoogleMail}
+            onOutlookMail={handleOutlookMail}
             isPending={createRevisionMutation.isPending}
           />
         </View>
       );
     },
-    [handleRowClick, handleRevision, createRevisionMutation.isPending, cardBg, borderColor]
+    [handleRowClick, handleRevision, createRevisionMutation.isPending, handleGoogleMail, handleOutlookMail, cardBg, borderColor]
   );
 
   const renderEmpty = useCallback(() => {
@@ -322,6 +344,17 @@ export function QuotationListScreen(): React.ReactElement {
           />
         )}
       </View>
+
+      <CustomerMailComposerModal
+        visible={mailProvider !== null}
+        onClose={handleCloseMailModal}
+        provider={mailProvider ?? "google"}
+        moduleKey="quotation"
+        recordId={selectedQuotation?.id ?? 0}
+        customerId={selectedQuotation?.potentialCustomerId}
+        contactId={selectedQuotation?.contactId}
+        customerName={selectedQuotation?.potentialCustomerName}
+      />
     </View>
   );
 }

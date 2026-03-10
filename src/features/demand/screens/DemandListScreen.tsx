@@ -19,6 +19,7 @@ import { useDemandList, useCreateRevisionOfDemand } from "../hooks";
 import { DemandRow } from "../components/DemandRow";
 import { SearchInput } from "../../customer/components";
 import type { DemandGetDto, PagedFilter } from "../types";
+import { CustomerMailComposerModal } from "../../integration";
 // Tasarım bütünlüğü için ikon
 import { Add01Icon } from "hugeicons-react-native";
 
@@ -49,6 +50,8 @@ export function DemandListScreen(): React.ReactElement {
 
   const [sortBy, setSortBy] = useState<string>("Id");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [selectedDemand, setSelectedDemand] = useState<DemandGetDto | null>(null);
+  const [mailProvider, setMailProvider] = useState<"google" | "outlook" | null>(null);
   
   const [searchTerm, setSearchTerm] = useState<string>("");
   // Performans için debounce (Diğer ekranlardaki gibi)
@@ -114,6 +117,23 @@ export function DemandListScreen(): React.ReactElement {
     router.push("/(tabs)/sales/demands/create");
   }, [router]);
 
+  const handleGoogleMail = useCallback((e: any, demand: DemandGetDto) => {
+    e.stopPropagation();
+    setSelectedDemand(demand);
+    setMailProvider("google");
+  }, []);
+
+  const handleOutlookMail = useCallback((e: any, demand: DemandGetDto) => {
+    e.stopPropagation();
+    setSelectedDemand(demand);
+    setMailProvider("outlook");
+  }, []);
+
+  const handleCloseMailModal = useCallback(() => {
+    setMailProvider(null);
+    setSelectedDemand(null);
+  }, []);
+
   const handleEndReached = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
@@ -146,12 +166,14 @@ export function DemandListScreen(): React.ReactElement {
               demand={item}
               onPress={handleRowClick}
               onRevision={handleRevision}
+              onGoogleMail={handleGoogleMail}
+              onOutlookMail={handleOutlookMail}
               isPending={createRevisionMutation.isPending}
             />
         </View>
       );
     },
-    [handleRowClick, handleRevision, createRevisionMutation.isPending, theme]
+    [handleRowClick, handleRevision, createRevisionMutation.isPending, handleGoogleMail, handleOutlookMail, theme]
   );
 
   const renderEmpty = useCallback(() => {
@@ -256,6 +278,17 @@ export function DemandListScreen(): React.ReactElement {
           />
         )}
       </View>
+
+      <CustomerMailComposerModal
+        visible={mailProvider !== null}
+        onClose={handleCloseMailModal}
+        provider={mailProvider ?? "google"}
+        moduleKey="demand"
+        recordId={selectedDemand?.id ?? 0}
+        customerId={selectedDemand?.potentialCustomerId}
+        contactId={selectedDemand?.contactId}
+        customerName={selectedDemand?.potentialCustomerName}
+      />
     </View>
   );
 }
