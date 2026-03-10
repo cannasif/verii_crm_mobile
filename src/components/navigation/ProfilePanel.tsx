@@ -200,6 +200,14 @@ export default function ProfilePanel({
                 <Text style={[styles.menuText, { color: colors.text }]}>{t("profile.settings")}</Text>
                 <ArrowRight01Icon size={18} color={colors.textMuted} />
               </TouchableOpacity>
+              <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+              <TouchableOpacity style={styles.menuRow} onPress={() => handleMenuItemPress("/integrations-settings")}>
+                <View style={[styles.iconBox, { backgroundColor: "rgba(16, 185, 129, 0.1)" }]}>
+                  <Mail01Icon size={20} color="#10B981" variant="stroke" />
+                </View>
+                <Text style={[styles.menuText, { color: colors.text }]}>{t("profile.integrationSettings")}</Text>
+                <ArrowRight01Icon size={18} color={colors.textMuted} />
+              </TouchableOpacity>
             </MenuGroup>
 
             <Text style={[styles.groupTitle, { color: colors.textMuted }]}>{t("profile.preferences")}</Text>

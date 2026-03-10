@@ -19,13 +19,15 @@ import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   ArrowLeft01Icon,
+  ArrowRight01Icon,
   UserIcon,
   Camera01Icon,
   Moon02Icon,
   Sun01Icon,
   Logout01Icon,
   LockPasswordIcon,
-  Tick01Icon
+  Tick01Icon,
+  Mail01Icon,
 } from "hugeicons-react-native";
 
 import { Text } from "../../components/ui/text";
@@ -102,6 +104,10 @@ export default function SettingsScreen(): React.ReactElement {
 
   const handleOpenChangePassword = (): void => {
     router.push("/(auth)/change-password");
+  };
+
+  const handleOpenIntegrationSettings = (): void => {
+    router.push("/integrations-settings");
   };
 
   const handleLanguageChange = async (lang: "tr" | "en" | "de"): Promise<void> => {
@@ -301,6 +307,22 @@ export default function SettingsScreen(): React.ReactElement {
                 );
               })}
             </ScrollView>
+          </MenuGroup>
+
+          <Text style={[styles.groupTitle, { color: mutedColor }]}>{t("settings.integrationSettings")}</Text>
+          <MenuGroup>
+            <TouchableOpacity style={styles.menuRow} onPress={handleOpenIntegrationSettings}>
+              <View style={[styles.iconBox, { backgroundColor: "rgba(16, 185, 129, 0.1)" }]}>
+                <Mail01Icon size={18} color="#10B981" variant="stroke" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.menuText, { color: textColor }]}>{t("settings.integrationSettings")}</Text>
+                <Text style={[styles.sectionDescription, { color: mutedColor, marginTop: -2 }]}>
+                  {t("settings.integrationSettingsDescription")}
+                </Text>
+              </View>
+              <ArrowRight01Icon size={18} color={mutedColor} />
+            </TouchableOpacity>
           </MenuGroup>
 
           <TouchableOpacity 
