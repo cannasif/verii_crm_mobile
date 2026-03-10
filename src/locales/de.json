@@ -1170,7 +1170,18 @@
     "button": "Kunden-360",
     "tabs": {
       "overview": "Übersicht",
-      "analytics": "Analyse"
+      "analytics": "Analyse",
+      "mailLogs": "Mail-Verlauf"
+    },
+    "mail": {
+      "providers": {
+        "google": "Google",
+        "outlook": "Outlook"
+      },
+      "status": {
+        "success": "Erfolgreich",
+        "failed": "Fehlgeschlagen"
+      }
     },
     "kpi": {
       "totalDemands": "Anfragen Gesamt",

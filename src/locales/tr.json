@@ -1163,7 +1163,18 @@
     "button": "Customer 360",
     "tabs": {
       "overview": "Genel Bakış",
-      "analytics": "Analitik"
+      "analytics": "Analitik",
+      "mailLogs": "Mail Geçmişi"
+    },
+    "mail": {
+      "providers": {
+        "google": "Google",
+        "outlook": "Outlook"
+      },
+      "status": {
+        "success": "Başarılı",
+        "failed": "Başarısız"
+      }
     },
     "kpi": {
       "totalDemands": "Toplam Talep",
