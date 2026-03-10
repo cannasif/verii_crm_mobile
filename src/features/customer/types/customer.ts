@@ -6,6 +6,8 @@ export interface CustomerGetDto {
   taxOffice?: string;
   tcknNumber?: string;
   address?: string;
+  latitude?: number;
+  longitude?: number;
   phone?: string;
   phone2?: string;
   email?: string;
@@ -55,6 +57,8 @@ export interface CreateCustomerDto {
   taxOffice?: string;
   tcknNumber?: string;
   address?: string;
+  latitude?: number;
+  longitude?: number;
   phone?: string;
   phone2?: string;
   email?: string;
@@ -117,6 +121,8 @@ export interface UpdateCustomerDto {
   taxOffice?: string;
   tcknNumber?: string;
   address?: string;
+  latitude?: number;
+  longitude?: number;
   phone?: string;
   phone2?: string;
   email?: string;

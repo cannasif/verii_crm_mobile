@@ -261,31 +261,35 @@ function StatusBadge({ isCompleted, completedText, pendingText }: StatusBadgePro
 interface CustomerDetailContentProps {
   customer: CustomerDto;
   images: CustomerImageDto[];
-  quotations: QuotationGetDto[];
-  isQuotationLoading: boolean;
+  quotations?: QuotationGetDto[];
+  isQuotationLoading?: boolean;
   isUploadingImage: boolean;
+  isUpdatingLocation?: boolean;
   insets: { bottom: number };
   t: (key: string) => string;
   on360Press: () => void;
   onQuickQuotationPress: () => void;
   onAddImagePress: () => void;
-  onQuotationPress: (quotationId: number) => void;
-  onViewAllQuotationsPress: () => void;
+  onUpdateLocationPress?: () => void;
+  onQuotationPress?: (quotationId: number) => void;
+  onViewAllQuotationsPress?: () => void;
 }
 
 export function CustomerDetailContent({
   customer,
   images,
-  quotations,
-  isQuotationLoading,
+  quotations = [],
+  isQuotationLoading = false,
   isUploadingImage,
+  isUpdatingLocation = false,
   insets,
   t,
   on360Press,
   onQuickQuotationPress,
   onAddImagePress,
-  onQuotationPress,
-  onViewAllQuotationsPress,
+  onUpdateLocationPress = () => {},
+  onQuotationPress = () => {},
+  onViewAllQuotationsPress = () => {},
 }: CustomerDetailContentProps): React.ReactElement {
   const { themeMode } = useUIStore();
   const isDark = themeMode === "dark";
@@ -404,6 +408,22 @@ export function CustomerDetailContent({
                 <Add01Icon size={18} color="#22c55e" variant="stroke" />
               )}
               <Text style={[styles.textAddImage, { color: "#22c55e" }]}>{t("customer.addImage")}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.btnUpdateLocation, { backgroundColor: "#f59e0b12", borderColor: "#f59e0b40" }]}
+              onPress={onUpdateLocationPress}
+              activeOpacity={0.7}
+              disabled={isUpdatingLocation}
+            >
+              {isUpdatingLocation ? (
+                <ActivityIndicator size="small" color="#f59e0b" />
+              ) : (
+                <Location01Icon size={18} color="#f59e0b" variant="stroke" />
+              )}
+              <Text style={[styles.textUpdateLocation, { color: "#f59e0b" }]}>
+                Konumu Al ve Kaydet
+              </Text>
             </TouchableOpacity>
 
             <View style={styles.quickActionsRow}>
@@ -751,6 +771,23 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   textAddImage: {
+    fontSize: 13,
+    fontWeight: "800",
+    letterSpacing: 0.4,
+  },
+  btnUpdateLocation: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    marginBottom: 16,
+  },
+  textUpdateLocation: {
     fontSize: 13,
     fontWeight: "800",
     letterSpacing: 0.4,

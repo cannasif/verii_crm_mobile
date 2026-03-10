@@ -14,6 +14,7 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
 
 import { ScreenHeader } from "../../../components/navigation";
 import { Text } from "../../../components/ui/text";
@@ -23,6 +24,7 @@ import {
   useDeleteCustomer,
   useCustomerImages,
   useUploadCustomerImage,
+  useUpdateCustomer,
 } from "../hooks";
 import { CustomerDetailContent } from "../components/CustomerDetailContent";
 import {
@@ -31,6 +33,7 @@ import {
   AlertCircleIcon,
   RefreshIcon,
 } from "hugeicons-react-native";
+import { useToastStore } from "../../../store/toast";
 
 export function CustomerDetailScreen(): React.ReactElement {
   const { t } = useTranslation();
@@ -42,6 +45,7 @@ export function CustomerDetailScreen(): React.ReactElement {
   const [isDeleting, setIsDeleting] = useState(false);
   const [previewImageUri, setPreviewImageUri] = useState<string | null>(null);
   const [isPreviewVisible, setIsPreviewVisible] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
 
   const PRIMARY_COLOR = "#db2777";
   const ERROR_COLOR = "#ef4444";
@@ -96,8 +100,11 @@ export function CustomerDetailScreen(): React.ReactElement {
 
   const deleteCustomer = useDeleteCustomer();
   const uploadCustomerImage = useUploadCustomerImage();
+  const updateCustomer = useUpdateCustomer();
+  const showToast = useToastStore((state) => state.showToast);
 
   const isUploadingImage = uploadCustomerImage.isPending;
+  const isUpdatingLocation = updateCustomer.isPending || isLocating;
 
   const handleEditPress = useCallback(() => {
     if (customer) {
@@ -208,6 +215,63 @@ export function CustomerDetailScreen(): React.ReactElement {
     } catch {}
   }, [customerId, previewImageUri, uploadCustomerImage, refetchImages]);
 
+  const handleUpdateCustomerLocation = useCallback(async () => {
+    if (!customerId || !customer) return;
+
+    setIsLocating(true);
+    showToast("info", "Konum alınıyor...");
+
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (permission.status !== "granted") {
+        showToast("error", "Konum izni verilmedi. Lütfen ayarlardan konum iznini açın.");
+        return;
+      }
+
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+
+      const latitude = Number(position.coords.latitude.toFixed(7));
+      const longitude = Number(position.coords.longitude.toFixed(7));
+
+      await updateCustomer.mutateAsync({
+        id: customerId,
+        data: {
+          customerCode: customer.customerCode,
+          name: customer.name,
+          taxNumber: customer.taxNumber,
+          taxOffice: customer.taxOffice,
+          tcknNumber: customer.tcknNumber,
+          address: customer.address,
+          latitude,
+          longitude,
+          phone: customer.phone,
+          phone2: customer.phone2,
+          email: customer.email,
+          website: customer.website,
+          notes: customer.notes,
+          countryId: customer.countryId,
+          cityId: customer.cityId,
+          districtId: customer.districtId,
+          customerTypeId: customer.customerTypeId,
+          salesRepCode: customer.salesRepCode,
+          groupCode: customer.groupCode,
+          creditLimit: customer.creditLimit,
+          defaultShippingAddressId: customer.defaultShippingAddressId,
+          branchCode: customer.branchCode ?? 0,
+          businessUnitCode: customer.businessUnitCode ?? 0,
+          isCompleted: customer.isCompleted ?? false,
+        },
+      });
+      showToast("success", "Konum alındı ve müşteri kaydı güncellendi.");
+    } catch {
+      showToast("error", "Konum alınamadı veya müşteri konumu güncellenemedi.");
+    } finally {
+      setIsLocating(false);
+    }
+  }, [customerId, customer, updateCustomer, showToast]);
+
   return (
     <View style={[styles.container, { backgroundColor: mainBg }]}>
       <StatusBar style={isDark ? "light" : "dark"} />
@@ -281,6 +345,8 @@ export function CustomerDetailScreen(): React.ReactElement {
               on360Press={handleCustomer360Press}
               onQuickQuotationPress={handleQuickQuotationPress}
               onAddImagePress={handleAddImagePress}
+              onUpdateLocationPress={handleUpdateCustomerLocation}
+              isUpdatingLocation={isUpdatingLocation}
             />
           ) : null}
         </View>
