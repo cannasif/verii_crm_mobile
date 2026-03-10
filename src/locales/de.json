@@ -265,6 +265,56 @@
     "integrationGoogleDisconnectConfirm": "Möchten Sie die Google-Verbindung trennen?",
     "integrationOutlookDisconnectConfirm": "Möchten Sie die Outlook-Verbindung trennen?"
   },
+  "mailComposer": {
+    "googleTitle": "Mail über Google senden",
+    "outlookTitle": "Mail über Outlook senden",
+    "description": "E-Mail für {{module}} #{{id}} senden",
+    "connected": "Integration verbunden. Senden ist bereit.",
+    "missingCustomer": "Für diesen Datensatz wurde kein Kunde gefunden. E-Mail kann nicht gesendet werden.",
+    "googleNotConnected": "Google-Konto ist nicht verbunden. Bitte zuerst in den Integrationseinstellungen verbinden.",
+    "outlookNotConnected": "Outlook-Konto ist nicht verbunden. Bitte zuerst in den Integrationseinstellungen verbinden.",
+    "subjectBodyRequired": "Betreff und Inhalt sind erforderlich.",
+    "googleSendSuccess": "E-Mail erfolgreich über Google gesendet.",
+    "outlookSendSuccess": "E-Mail erfolgreich über Outlook gesendet.",
+    "googleSendError": "E-Mail konnte nicht über Google gesendet werden.",
+    "outlookSendError": "E-Mail konnte nicht über Outlook gesendet werden.",
+    "template": "Vorlage",
+    "to": "An",
+    "cc": "Cc",
+    "bcc": "Bcc",
+    "subject": "Betreff",
+    "body": "Inhalt",
+    "isHtml": "HTML-Inhalt",
+    "autoRecipientHint": "Wenn leer, wird die Kunden-E-Mail verwendet",
+    "recipientPlaceholder": "Mehrere E-Mails mit Komma trennen",
+    "send": "Senden",
+    "cancel": "Abbrechen",
+    "modules": {
+      "demand": "Anfrage",
+      "quotation": "Angebot",
+      "order": "Bestellung",
+      "activity": "Aktivität"
+    },
+    "templates": {
+      "genericInfo": "Allgemeine Info",
+      "followUp": "Nachverfolgung",
+      "reminder": "Erinnerung"
+    },
+    "templateBody": {
+      "generic": {
+        "subject": "{{module}} #{{id}} Information",
+        "body": "Hallo,\n\nInformationen zu Ihrem {{module}}-Datensatz (#{{id}}) wurden geteilt.\nKunde: {{customer}}\n\nViele Grüße."
+      },
+      "followUp": {
+        "subject": "{{module}} #{{id}} Nachverfolgungsinformation",
+        "body": "Hallo,\n\nEine Nachverfolgung wurde für Ihren {{module}}-Datensatz (#{{id}}) erstellt.\nKunde: {{customer}}\nKontakt: {{contact}}\n\nViele Grüße."
+      },
+      "reminder": {
+        "subject": "{{module}} #{{id}} Erinnerung",
+        "body": "Hallo,\n\nFür Ihren {{module}}-Datensatz (#{{id}}) wurde eine Erinnerung erstellt.\nKunde: {{customer}}\n\nViele Grüße."
+      }
+    }
+  },
   "scan": {
     "alignBarcode": "Barcode im Rahmen ausrichten",
     "flash": "Blitz",

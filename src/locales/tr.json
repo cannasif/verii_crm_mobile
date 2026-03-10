@@ -258,6 +258,56 @@
   "integrationGoogleDisconnectConfirm": "Google bağlantısını kaldırmak istiyor musunuz?",
   "integrationOutlookDisconnectConfirm": "Outlook bağlantısını kaldırmak istiyor musunuz?"
 },
+  "mailComposer": {
+    "googleTitle": "Google ile Mail Gönder",
+    "outlookTitle": "Outlook ile Mail Gönder",
+    "description": "{{module}} #{{id}} için e-posta gönderin",
+    "connected": "Entegrasyon bağlı. Gönderime hazır.",
+    "missingCustomer": "Bu kayıt için müşteri bulunamadı. Mail gönderilemez.",
+    "googleNotConnected": "Google hesabı bağlı değil. Önce Entegrasyon Ayarları'ndan bağlayın.",
+    "outlookNotConnected": "Outlook hesabı bağlı değil. Önce Entegrasyon Ayarları'ndan bağlayın.",
+    "subjectBodyRequired": "Konu ve içerik zorunludur.",
+    "googleSendSuccess": "Google ile mail başarıyla gönderildi.",
+    "outlookSendSuccess": "Outlook ile mail başarıyla gönderildi.",
+    "googleSendError": "Google ile mail gönderilemedi.",
+    "outlookSendError": "Outlook ile mail gönderilemedi.",
+    "template": "Şablon",
+    "to": "Kime",
+    "cc": "Cc",
+    "bcc": "Bcc",
+    "subject": "Konu",
+    "body": "İçerik",
+    "isHtml": "HTML içerik",
+    "autoRecipientHint": "Boş bırakılırsa müşteri maili kullanılır",
+    "recipientPlaceholder": "Virgülle birden fazla e-posta girin",
+    "send": "Gönder",
+    "cancel": "İptal",
+    "modules": {
+      "demand": "Talep",
+      "quotation": "Teklif",
+      "order": "Sipariş",
+      "activity": "Aktivite"
+    },
+    "templates": {
+      "genericInfo": "Genel Bilgi",
+      "followUp": "Takip",
+      "reminder": "Hatırlatma"
+    },
+    "templateBody": {
+      "generic": {
+        "subject": "{{module}} #{{id}} bilgilendirmesi",
+        "body": "Merhaba,\n\n{{module}} kaydınız (#{{id}}) için bilgilendirme paylaşılmıştır.\nMüşteri: {{customer}}\n\nİyi çalışmalar."
+      },
+      "followUp": {
+        "subject": "{{module}} #{{id}} takip bilgisi",
+        "body": "Merhaba,\n\n{{module}} kaydınız (#{{id}}) için takip bilgilendirmesi yapılmıştır.\nMüşteri: {{customer}}\nİlgili Kişi: {{contact}}\n\nİyi çalışmalar."
+      },
+      "reminder": {
+        "subject": "{{module}} #{{id}} hatırlatma",
+        "body": "Merhaba,\n\n{{module}} kaydınız (#{{id}}) için hatırlatma kaydı oluşturulmuştur.\nMüşteri: {{customer}}\n\nİyi çalışmalar."
+      }
+    }
+  },
   "scan": {
     "alignBarcode": "Barkodu çerçeve içine hizalayın",
     "flash": "Flaş",

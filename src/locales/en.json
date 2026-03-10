@@ -265,6 +265,56 @@
   "integrationGoogleDisconnectConfirm": "Do you want to remove Google connection?",
   "integrationOutlookDisconnectConfirm": "Do you want to remove Outlook connection?"
 },
+  "mailComposer": {
+    "googleTitle": "Send Mail via Google",
+    "outlookTitle": "Send Mail via Outlook",
+    "description": "Send email for {{module}} #{{id}}",
+    "connected": "Integration connected. Ready to send.",
+    "missingCustomer": "No related customer found for this record. Email cannot be sent.",
+    "googleNotConnected": "Google account is not connected. Connect it from Integration Settings first.",
+    "outlookNotConnected": "Outlook account is not connected. Connect it from Integration Settings first.",
+    "subjectBodyRequired": "Subject and body are required.",
+    "googleSendSuccess": "Email sent successfully via Google.",
+    "outlookSendSuccess": "Email sent successfully via Outlook.",
+    "googleSendError": "Email could not be sent via Google.",
+    "outlookSendError": "Email could not be sent via Outlook.",
+    "template": "Template",
+    "to": "To",
+    "cc": "Cc",
+    "bcc": "Bcc",
+    "subject": "Subject",
+    "body": "Body",
+    "isHtml": "HTML content",
+    "autoRecipientHint": "If empty, customer email will be used",
+    "recipientPlaceholder": "Enter multiple emails separated by comma",
+    "send": "Send",
+    "cancel": "Cancel",
+    "modules": {
+      "demand": "Demand",
+      "quotation": "Quotation",
+      "order": "Order",
+      "activity": "Activity"
+    },
+    "templates": {
+      "genericInfo": "General Info",
+      "followUp": "Follow-up",
+      "reminder": "Reminder"
+    },
+    "templateBody": {
+      "generic": {
+        "subject": "{{module}} #{{id}} information",
+        "body": "Hello,\n\nInformation has been shared for your {{module}} record (#{{id}}).\nCustomer: {{customer}}\n\nBest regards."
+      },
+      "followUp": {
+        "subject": "{{module}} #{{id}} follow-up information",
+        "body": "Hello,\n\nA follow-up note has been created for your {{module}} record (#{{id}}).\nCustomer: {{customer}}\nContact: {{contact}}\n\nBest regards."
+      },
+      "reminder": {
+        "subject": "{{module}} #{{id}} reminder",
+        "body": "Hello,\n\nA reminder has been created for your {{module}} record (#{{id}}).\nCustomer: {{customer}}\n\nBest regards."
+      }
+    }
+  },
   "scan": {
     "alignBarcode": "Align barcode within the frame",
     "flash": "Flash",
