@@ -14,9 +14,11 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useQuery } from "@tanstack/react-query";
 import { ScreenHeader } from "../../../../components/navigation";
 import { Text } from "../../../../components/ui/text";
 import { useUIStore } from "../../../../store/ui";
+import { apiClient } from "../../../../lib/axios";
 import {
   useCustomer,
   useDeleteCustomer,
@@ -40,6 +42,8 @@ import {
   Add01Icon,
 } from "hugeicons-react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useQuotationList } from "../../../../features/quotation/hooks";
+import type { PagedFilter, QuotationGetDto } from "../../../../features/quotation/types";
 
 type TabType = "detail" | "contacts" | "addresses";
 
@@ -162,6 +166,55 @@ function CustomerDetailPage(): React.ReactElement {
   const uploadCustomerImage = useUploadCustomerImage();
   const { data: contacts = [], isLoading: isLoadingContacts } = useCustomerContacts(customerId);
   const { data: addresses = [], isLoading: isLoadingAddresses } = useCustomerShippingAddresses(customerId);
+
+  const {
+    data: crmQuotations = [],
+    isLoading: isCrmQuotationLoading,
+  } = useQuery<QuotationGetDto[], Error>({
+    queryKey: ["quotation", "potentialCustomer", customerId],
+    queryFn: async () => {
+      const res = await apiClient.get(`/api/Quotation/by-potential-customer/${customerId}`);
+      return res.data?.data ?? [];
+    },
+    enabled: !!customerId,
+    staleTime: 30 * 1000,
+  });
+
+  const erpQuotationFilters: PagedFilter[] | undefined = customer?.customerCode
+    ? [
+        {
+          column: "ErpCustomerCode",
+          operator: "eq",
+          value: String(customer.customerCode),
+        },
+      ]
+    : undefined;
+
+  const {
+    data: erpQuotationPages,
+    isLoading: isErpQuotationLoading,
+  } = useQuotationList({
+    filters: erpQuotationFilters,
+    sortBy: "Id",
+    sortDirection: "desc",
+    pageSize: 5,
+  });
+
+  const customerQuotations = useMemo<QuotationGetDto[]>(() => {
+  if (customer?.customerCode) {
+    const erpItems = erpQuotationPages?.pages?.[0]?.items ?? [];
+    return [...erpItems]
+      .sort((a, b) => b.id - a.id)
+      .slice(0, 5);
+  }
+
+  const crmItems = crmQuotations ?? [];
+  return [...crmItems]
+    .sort((a, b) => b.id - a.id)
+    .slice(0, 5);
+}, [customer?.customerCode, crmQuotations, erpQuotationPages]);
+
+  const isQuotationLoading = isCrmQuotationLoading || isErpQuotationLoading;
 
   const handleEditPress = useCallback(() => {
     if (customer) {
@@ -315,6 +368,14 @@ function CustomerDetailPage(): React.ReactElement {
     }
   }, [customerId, previewImageUri, customer?.name, t, uploadCustomerImage, refetchCustomerImages]);
 
+  const handleQuotationPress = useCallback((quotationId: number) => {
+    router.push(`/(tabs)/sales/quotations/${quotationId}`);
+  }, [router]);
+
+  const handleViewAllQuotationsPress = useCallback(() => {
+    router.push("/(tabs)/sales/quotations");
+  }, [router]);
+
   const renderContactItem = useCallback(
     ({ item }: { item: ContactDto }) => <ContactCard contact={item} onPress={() => handleContactPress(item)} />,
     [handleContactPress]
@@ -414,12 +475,16 @@ function CustomerDetailPage(): React.ReactElement {
           <CustomerDetailContent
             customer={customer!}
             images={customerImages}
+            quotations={customerQuotations}
+            isQuotationLoading={isQuotationLoading}
             isUploadingImage={uploadCustomerImage.isPending}
             insets={insets}
             t={t}
             on360Press={handleCustomer360Press}
             onQuickQuotationPress={handleQuickQuotationPress}
             onAddImagePress={handleAddImagePress}
+            onQuotationPress={handleQuotationPress}
+            onViewAllQuotationsPress={handleViewAllQuotationsPress}
           />
         );
     }

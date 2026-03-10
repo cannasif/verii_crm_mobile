@@ -7,6 +7,7 @@ import { useUIStore } from "../../../store/ui";
 import { API_BASE_URL } from "../../../constants/config";
 import i18n from "../../../locales";
 import type { CustomerDto, CustomerImageDto } from "../types";
+import type { QuotationGetDto } from "../../../features/quotation/types";
 import {
   Call02Icon,
   Mail01Icon,
@@ -25,6 +26,7 @@ import {
   Note01Icon,
   Image02Icon,
   Add01Icon,
+  ArrowRight01Icon,
 } from "hugeicons-react-native";
 
 interface CustomerTheme {
@@ -90,6 +92,46 @@ function formatDate(dateString?: string | null): string | null {
 function formatCurrency(value?: number | null): string | null {
   if (value === undefined || value === null) return null;
   return new Intl.NumberFormat(getLocale(), { style: "currency", currency: "TRY" }).format(value);
+}
+
+function formatQuotationDate(dateString: string | null | undefined): string {
+  if (!dateString) return "-";
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleDateString(getLocale(), {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
+function formatQuotationCurrency(amount: number, currencyCode: string): string {
+  try {
+    return new Intl.NumberFormat(getLocale(), {
+      style: "currency",
+      currency: currencyCode,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    return `${new Intl.NumberFormat(getLocale(), {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount)} ${currencyCode}`;
+  }
+}
+
+function getQuotationStatusMeta(status?: number | null) {
+  switch (status) {
+    case 1:
+      return { label: "Beklemede", color: "#F59E0B", bg: "rgba(245, 158, 11, 0.12)", border: "rgba(245, 158, 11, 0.24)" };
+    case 2:
+      return { label: "Onaylandı", color: "#10B981", bg: "rgba(16, 185, 129, 0.12)", border: "rgba(16, 185, 129, 0.24)" };
+    case 3:
+      return { label: "Reddedildi", color: "#EF4444", bg: "rgba(239, 68, 68, 0.12)", border: "rgba(239, 68, 68, 0.24)" };
+    default:
+      return { label: "Başlamadı", color: "#94A3B8", bg: "rgba(148, 163, 184, 0.12)", border: "rgba(148, 163, 184, 0.24)" };
+  }
 }
 
 function toAbsoluteImageUrl(path: string | null | undefined): string | undefined {
@@ -219,23 +261,31 @@ function StatusBadge({ isCompleted, completedText, pendingText }: StatusBadgePro
 interface CustomerDetailContentProps {
   customer: CustomerDto;
   images: CustomerImageDto[];
+  quotations: QuotationGetDto[];
+  isQuotationLoading: boolean;
   isUploadingImage: boolean;
   insets: { bottom: number };
   t: (key: string) => string;
   on360Press: () => void;
   onQuickQuotationPress: () => void;
   onAddImagePress: () => void;
+  onQuotationPress: (quotationId: number) => void;
+  onViewAllQuotationsPress: () => void;
 }
 
 export function CustomerDetailContent({
   customer,
   images,
+  quotations,
+  isQuotationLoading,
   isUploadingImage,
   insets,
   t,
   on360Press,
   onQuickQuotationPress,
   onAddImagePress,
+  onQuotationPress,
+  onViewAllQuotationsPress,
 }: CustomerDetailContentProps): React.ReactElement {
   const { themeMode } = useUIStore();
   const isDark = themeMode === "dark";
@@ -474,51 +524,132 @@ export function CustomerDetailContent({
           </View>
         </View>
 
-  <View style={[styles.sectionCard, { backgroundColor: theme.cardBg, borderColor: theme.borderColor }]}>
-  <View style={styles.sectionHeader}>
-    <Note01Icon size={18} color="#F59E0B" variant="stroke" />
-    <Text style={[styles.sectionTitle, { color: theme.text }]}>
-      {t("customer.notesSection")}
-    </Text>
-  </View>
+        <View style={[styles.sectionCard, { backgroundColor: theme.cardBg, borderColor: theme.borderColor }]}>
+          <View style={[styles.sectionHeader, styles.sectionHeaderSpaced]}>
+            <View style={styles.sectionHeaderLeft}>
+              <Invoice01Icon size={18} color={theme.primary} variant="stroke" />
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Son Teklifler</Text>
+            </View>
 
-  <View style={[styles.notePaper, { borderColor: theme.divider }]}>
-    <Text style={[styles.noteQuoteMark, { color: theme.textMute }]}>{`“`}</Text>
+            <TouchableOpacity onPress={onViewAllQuotationsPress} style={styles.inlineAction}>
+              <View style={styles.inlineActionRow}>
+                <Text style={[styles.inlineActionText, { color: theme.primary }]}>Tümü</Text>
+                <ArrowRight01Icon size={14} color={theme.primary} variant="stroke" />
+              </View>
+            </TouchableOpacity>
+          </View>
 
-    <Text
-      style={[
-        styles.notesText,
-        styles.notePaperText,
-        {
-          color: customer?.notes ? theme.text : theme.textMute,
-          fontStyle: customer?.notes ? "normal" : "italic",
-        },
-      ]}
-    >
-      {customer?.notes || t("customer.noNotes")}
-    </Text>
+          {isQuotationLoading ? (
+            <View style={styles.quotationLoadingWrap}>
+              <ActivityIndicator size="small" color={theme.primary} />
+            </View>
+          ) : quotations.length > 0 ? (
+            <ScrollView
+              style={styles.quotationScrollArea}
+              contentContainerStyle={styles.quotationScrollContent}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+            >
+              {quotations.map((quotation) => {
+                const statusMeta = getQuotationStatusMeta(quotation.status);
 
-    {customer?.notes ? (
-      <View style={[styles.noteMetaLine, { borderTopColor: theme.divider }]}>
-        <View style={styles.noteMetaItem}>
-          <UserIcon size={12} color={theme.textMute} />
-          <Text style={[styles.noteMetaText, { color: theme.textMute }]}>
-            {getNoteAuthor(customer, t)}
-          </Text>
+                return (
+                  <TouchableOpacity
+                    key={quotation.id}
+                    activeOpacity={0.72}
+                    onPress={() => onQuotationPress(quotation.id)}
+                    style={[styles.quotationMiniCard, { borderColor: theme.divider, backgroundColor: theme.cardBg }]}
+                  >
+                    <View style={styles.quotationMiniTopRow}>
+                      <View style={styles.quotationMiniLeft}>
+                        <Text style={[styles.quotationMiniOfferNo, { color: theme.text }]}>
+                          {quotation.offerNo || `#${quotation.id}`}
+                        </Text>
+                        <Text style={[styles.quotationMiniDate, { color: theme.textMute }]}>
+                          {formatQuotationDate(quotation.offerDate)}
+                        </Text>
+                      </View>
+
+                      <View
+                        style={[
+                          styles.quotationStatusBadge,
+                          {
+                            backgroundColor: statusMeta.bg,
+                            borderColor: statusMeta.border,
+                          },
+                        ]}
+                      >
+                        <Text style={[styles.quotationStatusText, { color: statusMeta.color }]}>
+                          {statusMeta.label}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.quotationMiniBottomRow}>
+                      <Text style={[styles.quotationMiniCurrency, { color: theme.textMute }]}>
+                        {quotation.currency}
+                      </Text>
+                      <Text style={[styles.quotationMiniTotal, { color: theme.text }]}>
+                        {formatQuotationCurrency(quotation.grandTotal, quotation.currency)}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          ) : (
+            <Text style={[styles.notesText, { color: theme.textMute, fontStyle: "italic" }]}>
+              Bu müşteriye ait teklif bulunmuyor.
+            </Text>
+          )}
         </View>
 
-        {noteDate ? (
-          <View style={styles.noteMetaItem}>
-            <Calendar03Icon size={12} color={theme.textMute} />
-            <Text style={[styles.noteMetaText, { color: theme.textMute }]}>
-              {formatDate(noteDate)}
+        <View style={[styles.sectionCard, { backgroundColor: theme.cardBg, borderColor: theme.borderColor }]}>
+          <View style={styles.sectionHeader}>
+            <Note01Icon size={18} color="#F59E0B" variant="stroke" />
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              {t("customer.notesSection")}
             </Text>
           </View>
-        ) : null}
-      </View>
-    ) : null}
-  </View>
-</View>
+
+          <View style={[styles.notePaper, { borderColor: theme.divider }]}>
+            <Text style={[styles.noteQuoteMark, { color: theme.textMute }]}>{`“`}</Text>
+
+            <Text
+              style={[
+                styles.notesText,
+                styles.notePaperText,
+                {
+                  color: customer?.notes ? theme.text : theme.textMute,
+                  fontStyle: customer?.notes ? "normal" : "italic",
+                },
+              ]}
+            >
+              {customer?.notes || t("customer.noNotes")}
+            </Text>
+
+            {customer?.notes ? (
+              <View style={[styles.noteMetaLine, { borderTopColor: theme.divider }]}>
+                <View style={styles.noteMetaItem}>
+                  <UserIcon size={12} color={theme.textMute} />
+                  <Text style={[styles.noteMetaText, { color: theme.textMute }]}>
+                    {getNoteAuthor(customer, t)}
+                  </Text>
+                </View>
+
+                {noteDate ? (
+                  <View style={styles.noteMetaItem}>
+                    <Calendar03Icon size={12} color={theme.textMute} />
+                    <Text style={[styles.noteMetaText, { color: theme.textMute }]}>
+                      {formatDate(noteDate)}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
+          </View>
+        </View>
+
         <View style={[styles.sectionCard, { backgroundColor: theme.cardBg, borderColor: theme.borderColor }]}>
           <View style={styles.sectionHeader}>
             <Activity01Icon size={18} color={theme.primary} variant="stroke" />
@@ -633,6 +764,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 13, fontWeight: "800", letterSpacing: 0.5 },
   inlineAction: { paddingVertical: 4, paddingHorizontal: 2 },
   inlineActionText: { fontSize: 12, fontWeight: "700" },
+  inlineActionRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   detailRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 12 },
   detailLabelRow: { flexDirection: "row", alignItems: "center" },
   miniIconWrapper: { marginRight: 8, opacity: 0.7 },
@@ -649,7 +781,110 @@ const styles = StyleSheet.create({
   customerImage: { width: "100%", height: 150, backgroundColor: "rgba(0,0,0,0.08)" },
   imageCaption: { fontSize: 12, lineHeight: 18, paddingHorizontal: 10, paddingVertical: 10 },
   notesText: { fontSize: 14, lineHeight: 24, opacity: 0.9 },
-  noteMetaWrap: { marginTop: 10, gap: 6 },
+  notePaper: {
+    position: "relative",
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingTop: 18,
+    paddingHorizontal: 14,
+    paddingBottom: 12,
+    overflow: "hidden",
+    backgroundColor: "rgba(255,255,255,0.02)",
+  },
+  noteQuoteMark: {
+    position: "absolute",
+    top: 6,
+    left: 12,
+    fontSize: 26,
+    lineHeight: 26,
+    fontWeight: "700",
+    opacity: 0.22,
+  },
+  notePaperText: {
+    paddingLeft: 8,
+    paddingRight: 4,
+    paddingTop: 6,
+    paddingBottom: 2,
+    lineHeight: 26,
+    letterSpacing: 0.1,
+  },
+  noteMetaLine: {
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  noteMetaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  noteMetaText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  quotationLoadingWrap: {
+    minHeight: 72,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  quotationScrollArea: {
+    maxHeight: 320,
+  },
+  quotationScrollContent: {
+    gap: 10,
+    paddingRight: 4,
+  },
+  quotationMiniCard: {
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 12,
+  },
+  quotationMiniTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 10,
+  },
+  quotationMiniLeft: {
+    flex: 1,
+  },
+  quotationMiniOfferNo: {
+    fontSize: 13,
+    fontWeight: "800",
+    marginBottom: 4,
+  },
+  quotationMiniDate: {
+    fontSize: 11,
+    fontWeight: "500",
+  },
+  quotationStatusBadge: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    alignSelf: "flex-start",
+  },
+  quotationStatusText: {
+    fontSize: 10,
+    fontWeight: "800",
+  },
+  quotationMiniBottomRow: {
+    marginTop: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  quotationMiniCurrency: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  quotationMiniTotal: {
+    fontSize: 14,
+    fontWeight: "800",
+  },
   statusContainer: { flexDirection: "row", gap: 8, marginBottom: 12 },
   statusBadge: { flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1, gap: 6 },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
@@ -658,12 +893,4 @@ const styles = StyleSheet.create({
   pendingText: { color: "#F59E0B", fontSize: 11, fontWeight: "700" },
   footerRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   footerText: { fontSize: 12, fontWeight: "500" },
-  noteMetaRow: { flexDirection: "row", alignItems: "center",gap: 6},
-  noteContentBox: { borderRadius: 14,  padding: 12, borderWidth: 1},
-  notePaper: { position: "relative", borderRadius: 16,borderWidth: 1,paddingTop: 18,paddingHorizontal: 14,paddingBottom: 12,overflow: "hidden",backgroundColor: "rgba(255,255,255,0.02)"},
-  noteQuoteMark: { position: "absolute", top: 6, left: 12, fontSize: 26, lineHeight: 26, fontWeight: "700", opacity: 0.22},
-  notePaperText: {paddingLeft: 8,paddingRight: 4,paddingTop: 6,paddingBottom: 2,lineHeight: 26,letterSpacing: 0.1},
-  noteMetaLine: {marginTop: 10,paddingTop: 8,borderTopWidth: 1,flexDirection: "row",justifyContent: "space-between",alignItems: "center"},
-  noteMetaItem: {flexDirection: "row",alignItems: "center",gap: 6},
-  noteMetaText: {fontSize: 11,fontWeight: "600"},
 });
