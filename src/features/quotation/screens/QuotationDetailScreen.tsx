@@ -371,6 +371,8 @@ const gradientColors = isDark
     setLineFormVisible(true);
   }, [watchedCustomerId, watchedErpCustomerCode, watchedRepresentativeId, watchedCurrency, showToast]);
 
+  const canAddLine = Boolean((watchedCustomerId || watchedErpCustomerCode) && watchedRepresentativeId && watchedCurrency);
+
   const handleEditLine = useCallback((line: QuotationLineFormState) => {
     setEditingLine(line);
     setLineFormVisible(true);
@@ -1072,8 +1074,13 @@ const gradientColors = isDark
               <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("quotation.lines")}</Text>
               {!isReadonly && (
                 <TouchableOpacity
-                  style={[styles.addButton, { backgroundColor: colors.accent }]}
+                  style={[
+                    styles.addButton,
+                    { backgroundColor: colors.accent },
+                    !canAddLine && styles.submitBtnDisabled,
+                  ]}
                   onPress={handleAddLine}
+                  disabled={!canAddLine}
                 >
                   <Text style={styles.addButtonText}>+ Satır Ekle</Text>
                 </TouchableOpacity>
