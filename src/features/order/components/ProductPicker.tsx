@@ -40,6 +40,28 @@ interface ProductPickerProps {
   relatedStocksSelection?: RelatedStocksSelectionProps | null;
 }
 
+function formatStockBalance(item: StockGetDto): string | null {
+  if (item.balanceText?.trim()) return item.balanceText.trim();
+  if (typeof item.balance === "number" && Number.isFinite(item.balance)) {
+    return new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 2 }).format(item.balance);
+  }
+  return null;
+}
+
+function getStockMetaRows(item: StockGetDto, t: (key: string) => string): Array<{ label: string; value: string }> {
+  return [
+    item.grupKodu || item.grupAdi
+      ? { label: t("stockPicker.group"), value: [item.grupKodu, item.grupAdi].filter(Boolean).join(" · ") }
+      : null,
+    item.kod1 || item.kod1Adi
+      ? { label: t("stockPicker.code1"), value: [item.kod1, item.kod1Adi].filter(Boolean).join(" · ") }
+      : null,
+    item.kod2 || item.kod2Adi
+      ? { label: t("stockPicker.code2"), value: [item.kod2, item.kod2Adi].filter(Boolean).join(" · ") }
+      : null,
+  ].filter((row): row is { label: string; value: string } => Boolean(row));
+}
+
 function StockListItem({
   item,
   isSelected,
@@ -56,6 +78,8 @@ function StockListItem({
   modalOpen: boolean;
 }): React.ReactElement {
   const { t } = useTranslation();
+  const metaRows = useMemo(() => getStockMetaRows(item, t), [item, t]);
+  const balance = formatStockBalance(item);
   const { data: stockDetail } = useStock(modalOpen ? item.id : undefined);
   const { data: relationsData } = useStockRelations({
     stockId: modalOpen ? item.id : undefined,
@@ -94,9 +118,14 @@ function StockListItem({
           <Text style={[styles.stockCode, { color: colors.textSecondary }]} numberOfLines={1}>
             {item.erpStockCode}
           </Text>
-          {(item.grupKodu || item.grupAdi) ? (
-            <Text style={[styles.stockMeta, { color: colors.textMuted }]} numberOfLines={1}>
-              {[item.grupKodu, item.grupAdi].filter(Boolean).join(" · ")}
+          {metaRows.map((row) => (
+            <Text key={row.label} style={[styles.stockMeta, { color: colors.textMuted }]} numberOfLines={1}>
+              {row.label}: {row.value}
+            </Text>
+          ))}
+          {balance ? (
+            <Text style={[styles.stockMeta, { color: colors.accent }]} numberOfLines={1}>
+              {t("stockPicker.balance")}: {balance}
             </Text>
           ) : null}
         </View>
@@ -291,7 +320,7 @@ function ProductPickerInner(
               ]}
               numberOfLines={1}
             >
-              {productName || "Ürün seçmek için dokunun"}
+              {productName || t("stockPicker.tapToSelectProduct")}
             </Text>
             {productName ? (
               <TouchableOpacity
@@ -483,7 +512,7 @@ function ProductPickerInner(
                       <Text style={[styles.modalTitle, { color: colors.text }]}>
                         {label || "Ürün"}
                       </Text>
-                      <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>
+                  <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>
                         {t("order.selectProduct")}
                       </Text>
                     </View>
@@ -496,7 +525,7 @@ function ProductPickerInner(
                 <View style={[styles.searchRow, { backgroundColor: colors.backgroundSecondary }]}>
                   <TextInput
                     style={[styles.searchInput, { color: colors.text }]}
-                    placeholder="Stok kodu, stok adı, grup kodu ile ara..."
+                    placeholder={t("stockPicker.searchPlaceholder")}
                     placeholderTextColor={colors.textMuted}
                     value={searchText}
                     onChangeText={setSearchText}
@@ -513,8 +542,8 @@ function ProductPickerInner(
                   <View style={styles.emptyContainer}>
                     <Text style={[styles.emptyText, { color: colors.textMuted }]}>
                       {searchText.trim().length >= 2
-                        ? "Sonuç bulunamadı"
-                        : "Arama yapmak için en az 2 karakter giriniz"}
+                        ? t("stockPicker.noSearchResults")
+                        : t("stockPicker.minSearchChars")}
                     </Text>
                   </View>
                 ) : (
