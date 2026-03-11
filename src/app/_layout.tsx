@@ -14,6 +14,7 @@ import { useUIStore } from "../store/ui";
 import { Sidebar } from "../components/navigation/Sidebar";
 import { AppHeader } from "../components/navigation/AppHeader";
 import i18n, { initLanguage } from "../locales";
+import { initializeApiClient } from "../lib/axios";
 import "../../global.css";
 
 function RootStack({
@@ -57,6 +58,9 @@ export default function RootLayout(): React.ReactElement {
   useEffect(() => {
     hydrate();
     initLanguage();
+    initializeApiClient().catch((error) => {
+      console.warn("API base URL initialize failed", error);
+    });
   }, [hydrate]);
 
   const isAuthScreen = pathname.includes("/(auth)") || pathname === "/login";
