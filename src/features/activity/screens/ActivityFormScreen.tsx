@@ -383,6 +383,13 @@ export function ActivityFormScreen(): React.ReactElement {
     ]
   );
 
+  const onInvalidSubmit = useCallback(() => {
+    Alert.alert(
+      t("common.warning"),
+      t("validation.fillRequiredFields", "Lütfen zorunlu alanları doldurun")
+    );
+  }, [t]);
+
   const renderTypeItem = useCallback(
     ({ item }: { item: ActivityTypeDto }) => {
       const isSelected = watchActivityType === item.name;
@@ -676,7 +683,7 @@ export function ActivityFormScreen(): React.ReactElement {
 
           <TouchableOpacity
             style={[styles.submitButton, { backgroundColor: colors.accent }]}
-            onPress={handleSubmit(onSubmit)}
+            onPress={handleSubmit(onSubmit, onInvalidSubmit)}
             disabled={isSubmitting}
           >
             {isSubmitting ? (
