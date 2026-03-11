@@ -809,6 +809,17 @@
     "quickQuotationList": "Hızlı Teklif Listesi",
     "quickQuotationListDesc": "Oluşturduğunuz hızlı teklifleri yönetin"
   },
+  "stockPicker": {
+    "searchPlaceholder": "Stok kodu, stok adı, Kod-1, Kod-2 ve grup ile ara...",
+    "tapToSelectProduct": "Ürün seçmek için dokunun",
+    "stock": "Stok",
+    "group": "Grup",
+    "code1": "Kod-1",
+    "code2": "Kod-2",
+    "balance": "Bakiye",
+    "noSearchResults": "Sonuç bulunamadı",
+    "minSearchChars": "Arama yapmak için en az 2 karakter giriniz"
+  },
   "quotation": {
     "list": "Teklif Listesi",
     "listDescription": "Tüm teklifleri görüntüleyin ve yönetin",
@@ -828,7 +839,7 @@
     "rejectError": "Red işlemi gerçekleştirilemedi",
     "product": "Ürün",
     "tapToSelectProduct": "Ürün seçmek için dokunun",
-    "searchStockPlaceholder": "Stok kodu, stok adı, grup kodu ile ara...",
+    "searchStockPlaceholder": "Stok kodu, stok adı, Kod-1, Kod-2 ve grup ile ara...",
     "noSearchResults": "Sonuç bulunamadı",
     "minSearchChars": "Arama yapmak için en az 2 karakter giriniz",
     "noRelatedStocks": "Bu ürünün bağlı stoğu bulunmuyor",

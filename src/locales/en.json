@@ -783,6 +783,17 @@
     "quickQuotationList": "Quick Quotation List",
     "quickQuotationListDesc": "Manage your quick quotations easily"
   },
+  "stockPicker": {
+    "searchPlaceholder": "Search by stock code, stock name, Code-1, Code-2 or group...",
+    "tapToSelectProduct": "Tap to select product",
+    "stock": "Stock",
+    "group": "Group",
+    "code1": "Code-1",
+    "code2": "Code-2",
+    "balance": "Balance",
+    "noSearchResults": "No stocks found",
+    "minSearchChars": "Search for at least 2 characters"
+  },
   "quotation": {
     "list": "Quotation List",
     "listDescription": "View and manage all quotations",
@@ -801,7 +812,7 @@
     "rejectSuccess": "Rejection completed successfully",
     "rejectError": "Rejection failed",
     "tapToSelectProduct": "Tap to select product",
-    "searchStockPlaceholder": "Search stock by code or name...",
+    "searchStockPlaceholder": "Search by stock code, stock name, Code-1, Code-2 or group...",
     "noSearchResults": "No stocks found",
     "minSearchChars": "Search for at least 2 characters",
     "noRelatedStocks": "No related stocks found",
