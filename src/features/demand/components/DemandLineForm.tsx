@@ -505,10 +505,9 @@ export function DemandLineForm({
                 style={[
                   styles.input,
                   { backgroundColor: colors.backgroundSecondary, borderColor: colors.border, color: colors.text },
-                  styles.inputReadOnly,
                 ]}
                 value={unitPrice}
-                editable={false}
+                onChangeText={setUnitPrice}
                 placeholder="Birim fiyat"
                 keyboardType="numeric"
               />
