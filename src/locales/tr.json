@@ -34,6 +34,7 @@
     "create": "Oluştur",
     "update": "Güncelle",
     "confirm": "Onayla",
+    "warning": "Uyarı",
     "yes": "Evet",
     "no": "Hayır",
     "back": "Geri",
@@ -97,7 +98,14 @@
     "pendingTasks": "Bekleyen İşlemler",
     "statsCustomers": "Müşteriler",
     "statsActivities": "Aktiviteler",
-    "statsPending": "Bekleyen"
+    "statsPending": "Bekleyen",
+    "error": "Ana sayfa verileri yüklenemedi"
+  },
+  "api": {
+    "errors": {
+      "branchListFailed": "Şube listesi alınamadı",
+      "serverConnection": "Sunucu ile bağlantı kurulamadı."
+    }
   },
   "profile": {
   "account": "Hesap",
@@ -144,6 +152,9 @@
     "sales": "Satış",
     "stock": "Stok"
   },
+  "sidebar": {
+    "reports": "Raporlar"
+  },
   "auth": {
     "welcome": "Hoş Geldiniz",
     "welcomeSubtitle": "Devam etmek için hesabınıza giriş yapın",
@@ -157,7 +168,14 @@
     "passwordPlaceholder": "••••••••",
     "rememberMe": "Beni Hatırla",
     "login": {
-      "slogan": "İşinizi tahminlerle değil, VERII CRM ile yönetin."
+      "slogan": "İşinizi tahminlerle değil, VERII CRM ile yönetin.",
+      "subtitle": "Devam etmek için hesabınıza giriş yapın",
+      "branchSelect": "Şube Seçin",
+      "emailPlaceholder": "ornek@email.com",
+      "passwordPlaceholder": "••••••••",
+      "rememberMe": "Beni Hatırla",
+      "submitButton": "Giriş Yap",
+      "errorMessage": "Giriş bilgilerinizi kontrol edip tekrar deneyin."
     },
     "forgotPassword": {
       "title": "Şifremi Unuttum",
@@ -191,6 +209,10 @@
     "linkError": "Bağlantı açılamıyor.",
     "loggingIn": "Giriş yapılıyor...",
     "loginError": "Giriş başarısız. Lütfen bilgilerinizi kontrol edin.",
+    "invalidCredentials": "E-posta veya şifre hatalı. Lütfen bilgilerinizi kontrol edip tekrar deneyin.",
+    "loginFailed": "Giriş Başarısız",
+    "loginFailedMessage": "Giriş başarısız. Lütfen bilgilerinizi kontrol edin.",
+    "selectBranchWarning": "Lütfen giriş yapmak için bir şube seçiniz.",
     "logout": "Çıkış Yap"
   },
   "validation": {
@@ -210,7 +232,12 @@
     "newPasswordMinLength": "Yeni şifre en az 6 karakter olmalıdır",
     "newPasswordMaxLength": "Yeni şifre en fazla 100 karakter olabilir",
     "passwordsMismatch": "Şifreler eşleşmiyor",
-    "newPasswordSameAsCurrent": "Yeni şifre mevcut şifre ile aynı olamaz"
+    "newPasswordSameAsCurrent": "Yeni şifre mevcut şifre ile aynı olamaz",
+    "customerRequired": "Müşteri seçimi zorunludur",
+    "fullNameRequired": "Ad soyad zorunludur",
+    "addressRequired": "Adres alanı zorunludur",
+    "required": "Bu alan zorunludur",
+    "maxLength": "Bu alan en fazla {{count}} karakter olabilir"
   },
   "language": {
     "title": "Dil",
@@ -414,6 +441,9 @@
     "imageUploadSuccess": "Müşteri görseli yüklendi",
     "imageUploadError": "Müşteri görseli yüklenemedi",
     "imagePermissionError": "Galeri izni gerekli",
+    "imagePermissionRequired": "Galeri izni verilmeden resim seçilemez.",
+    "invalidImage": "Geçersiz görsel seçildi.",
+    "unnamedCustomer": "İsimsiz Müşteri",
     "cameraPermissionError": "Kamera izni gerekli",
     "chooseImageSource": "Görsel kaynağı seçin",
     "fromGallery": "Galeriden Seç",
@@ -697,6 +727,8 @@
     "title": "Stok",
     "list": "Stok Hareketleri",
     "detail": "Stok Detayı",
+    "description": "Açıklama",
+    "technicalSpecs": "Teknik Özellikler",
     "stockCode": "Stok Kodu",
     "stockName": "Stok Adı",
     "unit": "Birim",
