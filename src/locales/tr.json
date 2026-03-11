@@ -284,7 +284,18 @@
   "integrationOutlookDisconnected": "Outlook bağlantısı kaldırıldı.",
   "integrationDisconnectTitle": "Bağlantıyı kaldır",
   "integrationGoogleDisconnectConfirm": "Google bağlantısını kaldırmak istiyor musunuz?",
-  "integrationOutlookDisconnectConfirm": "Outlook bağlantısını kaldırmak istiyor musunuz?"
+  "integrationOutlookDisconnectConfirm": "Outlook bağlantısını kaldırmak istiyor musunuz?",
+  "apiUrlTitle": "API URL",
+  "apiUrlDescription": "Mobil uygulamanın bağlanacağı API adresini buradan test edip kaydedin.",
+  "apiUrlCurrent": "Aktif URL",
+  "apiUrlTestButton": "Test Et",
+  "apiUrlSaveButton": "Kaydet",
+  "apiUrlResetButton": "Varsayılana dön",
+  "apiUrlTestSuccess": "API bağlantı testi başarılı.",
+  "apiUrlTestError": "API bağlantı testi başarısız oldu.",
+  "apiUrlSaveSuccess": "API URL kaydedildi.",
+  "apiUrlSaveError": "API URL kaydedilemedi.",
+  "apiUrlResetInfo": "Varsayılan API URL alana getirildi. Kaydetmeden aktif olmaz."
 },
   "mailComposer": {
     "googleTitle": "Google ile Mail Gönder",

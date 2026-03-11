@@ -263,7 +263,18 @@
   "integrationOutlookDisconnected": "Outlook connection removed.",
   "integrationDisconnectTitle": "Remove connection",
   "integrationGoogleDisconnectConfirm": "Do you want to remove Google connection?",
-  "integrationOutlookDisconnectConfirm": "Do you want to remove Outlook connection?"
+  "integrationOutlookDisconnectConfirm": "Do you want to remove Outlook connection?",
+  "apiUrlTitle": "API URL",
+  "apiUrlDescription": "Test and save the API address used by the mobile app here.",
+  "apiUrlCurrent": "Active URL",
+  "apiUrlTestButton": "Test",
+  "apiUrlSaveButton": "Save",
+  "apiUrlResetButton": "Reset to default",
+  "apiUrlTestSuccess": "API connection test succeeded.",
+  "apiUrlTestError": "API connection test failed.",
+  "apiUrlSaveSuccess": "API URL saved.",
+  "apiUrlSaveError": "API URL could not be saved.",
+  "apiUrlResetInfo": "Default API URL was filled into the field. It will not be active until you save it."
 },
   "mailComposer": {
     "googleTitle": "Send Mail via Google",

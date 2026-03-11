@@ -263,7 +263,18 @@
     "integrationOutlookDisconnected": "Outlook-Verbindung wurde getrennt.",
     "integrationDisconnectTitle": "Verbindung trennen",
     "integrationGoogleDisconnectConfirm": "Möchten Sie die Google-Verbindung trennen?",
-    "integrationOutlookDisconnectConfirm": "Möchten Sie die Outlook-Verbindung trennen?"
+    "integrationOutlookDisconnectConfirm": "Möchten Sie die Outlook-Verbindung trennen?",
+    "apiUrlTitle": "API-URL",
+    "apiUrlDescription": "Testen und speichern Sie hier die API-Adresse der mobilen Anwendung.",
+    "apiUrlCurrent": "Aktive URL",
+    "apiUrlTestButton": "Testen",
+    "apiUrlSaveButton": "Speichern",
+    "apiUrlResetButton": "Auf Standard zurücksetzen",
+    "apiUrlTestSuccess": "API-Verbindungstest erfolgreich.",
+    "apiUrlTestError": "API-Verbindungstest fehlgeschlagen.",
+    "apiUrlSaveSuccess": "API-URL gespeichert.",
+    "apiUrlSaveError": "API-URL konnte nicht gespeichert werden.",
+    "apiUrlResetInfo": "Die Standard-API-URL wurde eingefügt. Sie wird erst nach dem Speichern aktiv."
   },
   "mailComposer": {
     "googleTitle": "Mail über Google senden",
