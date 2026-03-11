@@ -566,6 +566,10 @@ export function DemandCreateScreen(): React.ReactElement {
     [lines, exchangeRates, createDemand, setError]
   );
 
+  const onInvalidSubmit = useCallback(() => {
+    showToast("error", t("validation.fillRequiredFields", "Lütfen zorunlu alanları doldurun"));
+  }, [showToast, t]);
+
   return (
     <>
       <StatusBar style="light" />
@@ -1171,7 +1175,7 @@ export function DemandCreateScreen(): React.ReactElement {
                 { backgroundColor: colors.accent },
                 (isSubmitting || createDemand.isPending) && styles.submitButtonDisabled,
               ]}
-              onPress={handleSubmit(onSubmit)}
+              onPress={handleSubmit(onSubmit, onInvalidSubmit)}
               disabled={isSubmitting || createDemand.isPending}
             >
               {isSubmitting || createDemand.isPending ? (
