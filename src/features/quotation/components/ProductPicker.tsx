@@ -295,29 +295,44 @@ function scoreStock(stock: StockGetDto, query: string): number {
   const code = stock.erpStockCode || "";
   const groupCode = stock.grupKodu || "";
   const groupName = stock.grupAdi || "";
+  const code1 = [stock.kod1, stock.kod1Adi].filter(Boolean).join(" ");
+  const code2 = [stock.kod2, stock.kod2Adi].filter(Boolean).join(" ");
+  const manufacturerCode = stock.ureticiKodu || "";
 
   const wholeName = scoreWholeQueryAgainstField(normalizedQuery, name) + 35;
   const wholeCode = scoreWholeQueryAgainstField(normalizedQuery, code) + 20;
   const wholeGroupCode = scoreWholeQueryAgainstField(normalizedQuery, groupCode) + 12;
   const wholeGroupName = scoreWholeQueryAgainstField(normalizedQuery, groupName) + 10;
+  const wholeCode1 = scoreWholeQueryAgainstField(normalizedQuery, code1) + 16;
+  const wholeCode2 = scoreWholeQueryAgainstField(normalizedQuery, code2) + 16;
+  const wholeManufacturerCode = scoreWholeQueryAgainstField(normalizedQuery, manufacturerCode) + 8;
 
   const tokenName = scoreFieldWithTokens(name, normalizedQuery) + 25;
   const tokenCode = scoreFieldWithTokens(code, normalizedQuery) + 15;
   const tokenGroupCode = scoreFieldWithTokens(groupCode, normalizedQuery) + 10;
   const tokenGroupName = scoreFieldWithTokens(groupName, normalizedQuery) + 8;
+  const tokenCode1 = scoreFieldWithTokens(code1, normalizedQuery) + 12;
+  const tokenCode2 = scoreFieldWithTokens(code2, normalizedQuery) + 12;
+  const tokenManufacturerCode = scoreFieldWithTokens(manufacturerCode, normalizedQuery) + 6;
 
   let score = Math.max(
     wholeName,
     wholeCode,
     wholeGroupCode,
     wholeGroupName,
+    wholeCode1,
+    wholeCode2,
+    wholeManufacturerCode,
     tokenName,
     tokenCode,
     tokenGroupCode,
-    tokenGroupName
+    tokenGroupName,
+    tokenCode1,
+    tokenCode2,
+    tokenManufacturerCode
   );
 
-  const combinedField = [name, code, groupCode, groupName].filter(Boolean).join(" ");
+  const combinedField = [name, code, groupCode, groupName, code1, code2, manufacturerCode].filter(Boolean).join(" ");
   const combinedWhole = scoreWholeQueryAgainstField(normalizedQuery, combinedField);
   const combinedToken = scoreFieldWithTokens(combinedField, normalizedQuery);
   score = Math.max(score, combinedWhole + 18, combinedToken + 12);
@@ -369,6 +384,28 @@ function getRelationDisplayName(relation: StockRelationDto, currentStockId?: num
   return `#${relation.relatedStockId}`;
 }
 
+function formatStockBalance(item: StockGetDto): string | null {
+  if (item.balanceText?.trim()) return item.balanceText.trim();
+  if (typeof item.balance === "number" && Number.isFinite(item.balance)) {
+    return new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 2 }).format(item.balance);
+  }
+  return null;
+}
+
+function getStockMetaRows(item: StockGetDto, t: (key: string) => string): Array<{ label: string; value: string }> {
+  return [
+    item.grupKodu || item.grupAdi
+      ? { label: t("stockPicker.group"), value: [item.grupKodu, item.grupAdi].filter(Boolean).join(" · ") }
+      : null,
+    item.kod1 || item.kod1Adi
+      ? { label: t("stockPicker.code1"), value: [item.kod1, item.kod1Adi].filter(Boolean).join(" · ") }
+      : null,
+    item.kod2 || item.kod2Adi
+      ? { label: t("stockPicker.code2"), value: [item.kod2, item.kod2Adi].filter(Boolean).join(" · ") }
+      : null,
+  ].filter((row): row is { label: string; value: string } => Boolean(row));
+}
+
 function StockListItem({
   item,
   isSelected,
@@ -389,6 +426,8 @@ function StockListItem({
   const borderColor = isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)";
   const textColor = isDark ? "#F8FAFC" : "#0F172A";
   const mutedColor = isDark ? "#94A3B8" : "#64748B";
+  const metaRows = useMemo(() => getStockMetaRows(item, t), [item, t]);
+  const balance = formatStockBalance(item);
 
   const { data: stockDetail } = useStock(modalOpen ? item.id : undefined);
   const { data: relationsData } = useStockRelations({
@@ -442,9 +481,14 @@ function StockListItem({
             <Text style={[styles.stockCode, { color: mutedColor }]} numberOfLines={1}>
               {item.erpStockCode}
             </Text>
-            {(item.grupKodu || item.grupAdi) ? (
-              <Text style={[styles.stockMeta, { color: mutedColor }]} numberOfLines={1}>
-                {[item.grupKodu, item.grupAdi].filter(Boolean).join(" · ")}
+            {metaRows.map((row) => (
+              <Text key={row.label} style={[styles.stockMeta, { color: mutedColor }]} numberOfLines={1}>
+                {row.label}: {row.value}
+              </Text>
+            ))}
+            {balance ? (
+              <Text style={[styles.stockMeta, { color: brandColor }]} numberOfLines={1}>
+                {t("stockPicker.balance")}: {balance}
               </Text>
             ) : null}
           </View>
@@ -978,7 +1022,7 @@ function ProductPickerInner(
                     <Ionicons name="search" size={18} color={mutedColor} />
                     <TextInput
                       style={[styles.searchInput, { color: textColor }]}
-                      placeholder={t("quotation.searchStockPlaceholder")}
+                      placeholder={t("stockPicker.searchPlaceholder")}
                       placeholderTextColor={mutedColor}
                       value={searchText}
                       onChangeText={setSearchText}
@@ -1005,8 +1049,8 @@ function ProductPickerInner(
                   <View style={styles.emptyContainer}>
                     <Text style={[styles.emptyText, { color: mutedColor }]}>
                       {searchText.trim().length >= 2
-                        ? t("quotation.noSearchResults")
-                        : t("quotation.minSearchChars")}
+                        ? t("stockPicker.noSearchResults")
+                        : t("stockPicker.minSearchChars")}
                     </Text>
                   </View>
                 ) : (
