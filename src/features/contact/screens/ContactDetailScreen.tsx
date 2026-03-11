@@ -74,6 +74,26 @@ export function ContactDetailScreen(): React.ReactElement {
     ]);
   }, [t, contactId, deleteContact, router]);
 
+  const handleQuickActivityPress = useCallback(() => {
+    if (!contact) return;
+
+    const start = new Date();
+    start.setSeconds(0, 0);
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
+
+    router.push({
+      pathname: "/(tabs)/activities/create",
+      params: {
+        customerId: String(contact.customerId ?? ""),
+        customerName: contact.customerName ?? "",
+        contactId: String(contact.id ?? ""),
+        contactName: contact.fullName ?? "",
+        initialStartDateTime: start.toISOString(),
+        initialEndDateTime: end.toISOString(),
+      },
+    });
+  }, [contact, router]);
+
   return (
     <View style={[styles.container, { backgroundColor: mainBg }]}>
       <StatusBar style={isDark ? "light" : "dark"} />
@@ -123,6 +143,7 @@ export function ContactDetailScreen(): React.ReactElement {
                isDark={isDark}
                isDeleting={isDeleting}
                onDeletePress={handleDeletePress}
+               onQuickActivityPress={handleQuickActivityPress}
                primaryColor={PRIMARY_COLOR}
                errorColor={ERROR_COLOR}
             />

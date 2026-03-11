@@ -44,6 +44,7 @@ interface ContactDetailContentProps {
   isDark: boolean;
   isDeleting: boolean;
   onDeletePress: () => void;
+  onQuickActivityPress: () => void;
   primaryColor: string;
   errorColor: string;
 }
@@ -55,6 +56,7 @@ export function ContactDetailContent({
   isDark,
   isDeleting,
   onDeletePress,
+  onQuickActivityPress,
   primaryColor,
   errorColor
 }: ContactDetailContentProps): React.ReactElement {
@@ -102,6 +104,13 @@ export function ContactDetailContent({
             )}
           </View>
         </View>
+        <TouchableOpacity
+          onPress={onQuickActivityPress}
+          style={[styles.quickActivityButton, { backgroundColor: isDark ? "rgba(139, 92, 246, 0.14)" : "#f5f3ff", borderColor: isDark ? "rgba(139, 92, 246, 0.35)" : "#ddd6fe" }]}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.quickActivityText, { color: "#8b5cf6" }]}>{t("contact.quickActivity")}</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Şirket Kartı */}
@@ -205,6 +214,8 @@ const styles = StyleSheet.create({
   nameContainer: { flex: 1, justifyContent: 'center' },
   contactName: { fontSize: 17, fontWeight: "700", letterSpacing: -0.2, marginBottom: 2 }, // 20'den 17'ye düştü
   titleName: { fontSize: 13, fontWeight: "500", opacity: 0.9 }, // 14'ten 13'e düştü
+  quickActivityButton: { marginTop: 14, borderRadius: 12, borderWidth: 1, paddingVertical: 10, alignItems: "center", justifyContent: "center" },
+  quickActivityText: { fontSize: 14, fontWeight: "700" },
   sectionTitle: { fontSize: 13, fontWeight: "800", marginBottom: 10, letterSpacing: 0.5, textTransform: 'uppercase', opacity: 0.9 }, // 14'ten 13'e, margin 14'ten 10'a düştü
   customerBadge: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10 }, // Paddingler ufaldı
   customerIcon: { marginRight: 8 },
