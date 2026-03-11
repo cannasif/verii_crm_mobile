@@ -20,6 +20,11 @@ const toNumber = (value: unknown): number | undefined => {
   return undefined;
 };
 
+const toNullableNumber = (value: unknown): number | null | undefined => {
+  if (value == null) return null;
+  return toNumber(value);
+};
+
 const normalizeStock = (raw: unknown): StockGetDto | null => {
   if (!raw || typeof raw !== "object") return null;
   const item = raw as Record<string, unknown>;
@@ -34,6 +39,8 @@ const normalizeStock = (raw: unknown): StockGetDto | null => {
     erpStockCode,
     stockName,
     unit: (item.unit ?? item.Unit ?? undefined) as string | undefined,
+    balance: toNullableNumber(item.balance ?? item.Balance ?? item.bakiye ?? item.Bakiye ?? item.stockBalance ?? item.StockBalance),
+    balanceText: (item.balanceText ?? item.BalanceText ?? item.bakiyeText ?? item.BakiyeText ?? undefined) as string | undefined,
     ureticiKodu: (item.ureticiKodu ?? item.UreticiKodu ?? undefined) as string | undefined,
     branchCode,
     stockImages: (item.stockImages ?? item.StockImages ?? []) as StockGetDto["stockImages"],
