@@ -8,6 +8,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from "react-native";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { useTranslation } from "react-i18next";
@@ -110,6 +111,13 @@ export function TitleFormModal({
       onClose();
     }
   }, [isSubmitting, reset, onClose]);
+
+  const onInvalidSubmit = useCallback(() => {
+    Alert.alert(
+      t("common.warning"),
+      t("validation.fillRequiredFields", "Lütfen zorunlu alanları doldurun")
+    );
+  }, [t]);
 
   return (
     <Modal
@@ -234,7 +242,7 @@ export function TitleFormModal({
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={handleSubmit(onSubmit)}
+                onPress={handleSubmit(onSubmit, onInvalidSubmit)}
                 disabled={isSubmitting}
                 style={styles.submitBtnContainer}
               >
