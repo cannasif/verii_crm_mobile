@@ -75,6 +75,10 @@ export default function ResetPasswordScreen(): React.ReactElement {
     );
   };
 
+  const onInvalidSubmit = () => {
+    showError(t("validation.fillRequiredFields", "Lütfen zorunlu alanları doldurun"));
+  };
+
   const renderPasswordField = (
     name: "newPassword" | "confirmPassword",
     placeholder: string,
@@ -126,7 +130,7 @@ export default function ResetPasswordScreen(): React.ReactElement {
           {renderPasswordField("confirmPassword", t("auth.resetPassword.confirmPasswordPlaceholder"), showConfirmPassword, () => setShowConfirmPassword((prev) => !prev))}
 
           <TouchableOpacity
-            onPress={handleSubmit(onSubmit)}
+            onPress={handleSubmit(onSubmit, onInvalidSubmit)}
             disabled={resetPasswordMutation.isPending || typeof token !== "string" || token.length === 0}
             activeOpacity={0.85}
             style={styles.submitWrap}

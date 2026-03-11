@@ -97,6 +97,10 @@ export default function ForgotPasswordScreen(): React.ReactElement {
     );
   };
 
+  const onInvalidSubmit = () => {
+    showError(t("validation.fillRequiredFields", "Lütfen zorunlu alanları doldurun"));
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: mainBg }]}>
       <StatusBar style={isDark ? "light" : "dark"} />
@@ -231,7 +235,7 @@ export default function ForgotPasswordScreen(): React.ReactElement {
                           onChangeText={onChange}
                           value={value}
                           returnKeyType="done"
-                          onSubmitEditing={handleSubmit(onSubmit)}
+                          onSubmitEditing={handleSubmit(onSubmit, onInvalidSubmit)}
                           selectionColor={COLORS.accent}
                         />
                       </View>
@@ -246,7 +250,7 @@ export default function ForgotPasswordScreen(): React.ReactElement {
                 />
 
                 <TouchableOpacity
-                  onPress={handleSubmit(onSubmit)}
+                  onPress={handleSubmit(onSubmit, onInvalidSubmit)}
                   disabled={forgotPasswordMutation.isPending}
                   activeOpacity={0.88}
                   style={[

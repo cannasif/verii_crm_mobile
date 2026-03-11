@@ -131,6 +131,13 @@ export function LoginForm(): React.ReactElement {
     );
   };
 
+  const onInvalidSubmit = () => {
+    Alert.alert(
+      t("common.warning", "Uyarı"),
+      t("validation.fillRequiredFields", "Lütfen zorunlu alanları doldurun")
+    );
+  };
+
   const handleBranchSelect = (branch: Branch) => {
     setSelectedBranch(branch);
     setValue("branchId", branch.id, { shouldValidate: true });
@@ -312,7 +319,7 @@ export function LoginForm(): React.ReactElement {
       )}
 
       <TouchableOpacity
-        onPress={handleSubmit(onSubmit)}
+        onPress={handleSubmit(onSubmit, onInvalidSubmit)}
         disabled={isLoading || isBranchesLoading}
         activeOpacity={0.8}
         className="mt-4 rounded-xl overflow-hidden shadow-lg shadow-pink-500/20" 

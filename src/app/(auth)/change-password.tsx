@@ -120,6 +120,10 @@ export default function ChangePasswordScreen(): React.ReactElement {
     );
   };
 
+  const onInvalidSubmit = () => {
+    showError(t("validation.fillRequiredFields", "Lütfen zorunlu alanları doldurun"));
+  };
+
   const toggleVisibility = (name: keyof typeof visibility) => {
     setVisibility((prev) => ({ ...prev, [name]: !prev[name] }));
   };
@@ -328,13 +332,13 @@ export default function ChangePasswordScreen(): React.ReactElement {
                   {
                     inputRef: confirmPasswordRef,
                     returnKeyType: "done",
-                    onSubmitEditing: handleSubmit(onSubmit),
+                    onSubmitEditing: handleSubmit(onSubmit, onInvalidSubmit),
                     textContentType: "newPassword",
                   }
                 )}
 
                 <TouchableOpacity
-                  onPress={handleSubmit(onSubmit)}
+                  onPress={handleSubmit(onSubmit, onInvalidSubmit)}
                   disabled={changePasswordMutation.isPending}
                   activeOpacity={0.88}
                   style={[
