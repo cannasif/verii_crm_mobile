@@ -1,5 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
-import { API_BASE_URL, API_TIMEOUT } from "../constants/config";
+import { API_TIMEOUT, getApiBaseUrl, initializeApiBaseUrl } from "../constants/config";
 import { ACCESS_TOKEN_KEY, BRANCH_STORAGE_KEY, LANGUAGE_STORAGE_KEY } from "../constants/storage";
 import { storage } from "./storage";
 import type { ApiResponse, Branch } from "../features/auth/types";
@@ -8,7 +8,7 @@ import { router } from "expo-router";
 import i18n from "../locales";
 
 export const apiClient = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: getApiBaseUrl(),
   timeout: API_TIMEOUT,
   headers: {
     "Content-Type": "application/json",
@@ -16,8 +16,14 @@ export const apiClient = axios.create({
   },
 });
 
+export async function initializeApiClient(): Promise<void> {
+  const baseUrl = await initializeApiBaseUrl();
+  apiClient.defaults.baseURL = baseUrl;
+}
+
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
+    config.baseURL = getApiBaseUrl();
     const token = await storage.get<string>(ACCESS_TOKEN_KEY);
     const branch = await storage.get<Branch>(BRANCH_STORAGE_KEY);
     const language = await storage.get<string>(LANGUAGE_STORAGE_KEY);
