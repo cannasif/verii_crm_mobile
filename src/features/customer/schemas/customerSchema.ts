@@ -5,7 +5,7 @@ export const createCustomerSchema = () =>
   z.object({
     customerCode: z.string().max(100).optional(),
     name: z.string().min(1, i18n.t("validation.nameRequired")).max(250),
-    taxNumber: z.string().max(15).optional(),
+    taxNumber: z.string().max(10).optional(),
     taxOffice: z.string().max(100).optional(),
     tcknNumber: z.string().max(11).optional(),
     address: z.string().max(500).optional(),
