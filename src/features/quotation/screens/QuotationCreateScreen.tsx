@@ -765,6 +765,7 @@ export function QuotationCreateScreen(): React.ReactElement {
                   "potentialCustomerId",
                   "paymentTypeId",
                   "deliveryDate",
+                  "documentSerialTypeId",
                   "offerType",
                   "currency",
                 ].forEach((key) => {
