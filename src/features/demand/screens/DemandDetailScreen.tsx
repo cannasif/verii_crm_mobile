@@ -334,6 +334,8 @@ export function DemandDetailScreen(): React.ReactElement {
     setLineFormVisible(true);
   }, [watchedCustomerId, watchedErpCustomerCode, watchedRepresentativeId, watchedCurrency, showToast]);
 
+  const canAddLine = Boolean((watchedCustomerId || watchedErpCustomerCode) && watchedRepresentativeId && watchedCurrency);
+
   const handleEditLine = useCallback((line: DemandLineFormState) => {
     setEditingLine(line);
     setLineFormVisible(true);
@@ -1003,8 +1005,13 @@ export function DemandDetailScreen(): React.ReactElement {
               <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("demand.lines")}</Text>
               {!isReadonly && (
                 <TouchableOpacity
-                  style={[styles.addButton, { backgroundColor: colors.accent }]}
+                  style={[
+                    styles.addButton,
+                    { backgroundColor: colors.accent },
+                    !canAddLine && styles.submitBtnDisabled,
+                  ]}
                   onPress={handleAddLine}
+                  disabled={!canAddLine}
                 >
                   <Text style={styles.addButtonText}>+ Satır Ekle</Text>
                 </TouchableOpacity>
