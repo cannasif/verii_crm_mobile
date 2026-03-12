@@ -72,6 +72,27 @@ const getAvatarColor = (name: string) => {
   return colors[Math.abs(hash) % colors.length];
 };
 
+function toTitleCase(value?: string | null): string | null {
+  if (!value?.trim()) return null;
+
+  return value
+    .trim()
+    .toLocaleLowerCase(getLocale())
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => {
+      const firstChar = word.charAt(0).toLocaleUpperCase(getLocale());
+      const rest = word.slice(1);
+      return `${firstChar}${rest}`;
+    })
+    .join(" ");
+}
+
+function formatSalesRep(value?: string | null): string | null {
+  if (!value?.trim()) return null;
+  return toTitleCase(value);
+}
+
 function formatDate(dateString?: string | null): string | null {
   if (!dateString) return null;
 
@@ -121,16 +142,36 @@ function formatQuotationCurrency(amount: number, currencyCode: string): string {
   }
 }
 
-function getQuotationStatusMeta(status?: number | null) {
+function getQuotationStatusMeta(status?: number | null, t?: (key: string) => string) {
   switch (status) {
     case 1:
-      return { label: "Beklemede", color: "#F59E0B", bg: "rgba(245, 158, 11, 0.12)", border: "rgba(245, 158, 11, 0.24)" };
+      return {
+        label: t ? t("quotation.status.pending") : "Beklemede",
+        color: "#F59E0B",
+        bg: "rgba(245, 158, 11, 0.12)",
+        border: "rgba(245, 158, 11, 0.24)",
+      };
     case 2:
-      return { label: "Onaylandı", color: "#10B981", bg: "rgba(16, 185, 129, 0.12)", border: "rgba(16, 185, 129, 0.24)" };
+      return {
+        label: t ? t("quotation.status.approved") : "Onaylandı",
+        color: "#10B981",
+        bg: "rgba(16, 185, 129, 0.12)",
+        border: "rgba(16, 185, 129, 0.24)",
+      };
     case 3:
-      return { label: "Reddedildi", color: "#EF4444", bg: "rgba(239, 68, 68, 0.12)", border: "rgba(239, 68, 68, 0.24)" };
+      return {
+        label: t ? t("quotation.status.rejected") : "Reddedildi",
+        color: "#EF4444",
+        bg: "rgba(239, 68, 68, 0.12)",
+        border: "rgba(239, 68, 68, 0.24)",
+      };
     default:
-      return { label: "Başlamadı", color: "#94A3B8", bg: "rgba(148, 163, 184, 0.12)", border: "rgba(148, 163, 184, 0.24)" };
+      return {
+        label: t ? t("quotation.status.notStarted") : "Başlamadı",
+        color: "#94A3B8",
+        bg: "rgba(148, 163, 184, 0.12)",
+        border: "rgba(148, 163, 184, 0.24)",
+      };
   }
 }
 
@@ -156,6 +197,7 @@ function normalizePhoneForWhatsApp(phone?: string | null): string | null {
   if (!digits) return null;
   if (digits.startsWith("90")) return digits;
   if (digits.startsWith("0")) return `9${digits}`;
+  if (digits.length === 10) return `90${digits}`;
   return digits;
 }
 
@@ -299,6 +341,7 @@ export function CustomerDetailContent({
   const safeCustomerName = customer?.name?.trim() || t("customer.unnamedCustomer");
   const initials = getInitials(safeCustomerName);
   const avatarColor = getAvatarColor(safeCustomerName);
+  const salesRepValue = formatSalesRep(customer?.salesRepCode) || t("customer.unspecified");
 
   const mainBg = isDark ? "#0c0516" : "#FFFFFF";
   const gradientColors = (isDark
@@ -432,7 +475,7 @@ export function CustomerDetailContent({
                 <Location01Icon size={18} color="#f59e0b" variant="stroke" />
               )}
               <Text style={[styles.textUpdateLocation, { color: "#f59e0b" }]}>
-                Konumu Al ve Kaydet
+                {t("customer.updateLocation")}
               </Text>
             </TouchableOpacity>
 
@@ -558,12 +601,12 @@ export function CustomerDetailContent({
           <View style={[styles.sectionHeader, styles.sectionHeaderSpaced]}>
             <View style={styles.sectionHeaderLeft}>
               <Invoice01Icon size={18} color={theme.primary} variant="stroke" />
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Son Teklifler</Text>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("customer.latestQuotations")}</Text>
             </View>
 
             <TouchableOpacity onPress={onViewAllQuotationsPress} style={styles.inlineAction}>
               <View style={styles.inlineActionRow}>
-                <Text style={[styles.inlineActionText, { color: theme.primary }]}>Tümü</Text>
+                <Text style={[styles.inlineActionText, { color: theme.primary }]}>{t("common.all")}</Text>
                 <ArrowRight01Icon size={14} color={theme.primary} variant="stroke" />
               </View>
             </TouchableOpacity>
@@ -581,7 +624,7 @@ export function CustomerDetailContent({
               nestedScrollEnabled
             >
               {quotations.map((quotation) => {
-                const statusMeta = getQuotationStatusMeta(quotation.status);
+                const statusMeta = getQuotationStatusMeta(quotation.status, t);
 
                 return (
                   <TouchableOpacity
@@ -629,7 +672,7 @@ export function CustomerDetailContent({
             </ScrollView>
           ) : (
             <Text style={[styles.notesText, { color: theme.textMute, fontStyle: "italic" }]}>
-              Bu müşteriye ait teklif bulunmuyor.
+              {t("customer.noQuotations")}
             </Text>
           )}
         </View>
@@ -637,9 +680,7 @@ export function CustomerDetailContent({
         <View style={[styles.sectionCard, { backgroundColor: theme.cardBg, borderColor: theme.borderColor }]}>
           <View style={styles.sectionHeader}>
             <Note01Icon size={18} color="#F59E0B" variant="stroke" />
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>
-              {t("customer.notesSection")}
-            </Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("customer.notesSection")}</Text>
           </View>
 
           <View style={[styles.notePaper, { borderColor: theme.divider }]}>
@@ -711,6 +752,12 @@ export function CustomerDetailContent({
             <UserIcon size={14} color={theme.textMute} />
             <Text style={[styles.footerText, { color: theme.textMute }]}>
               {t("customer.createdBy")}: <Text style={{ color: theme.text, fontWeight: "700" }}>{customer?.createdByFullUser || t("customer.systemUser")}</Text>
+            </Text>
+          </View>
+          <View style={[styles.footerRow, { marginTop: 4 }]}>
+            <Contact01Icon size={14} color={theme.textMute} />
+            <Text style={[styles.footerText, { color: theme.textMute }]}>
+              {t("customer.salesRepresentative")}: <Text style={{ color: theme.text, fontWeight: "700" }}>{salesRepValue}</Text>
             </Text>
           </View>
           <View style={[styles.footerRow, { marginTop: 4 }]}>
