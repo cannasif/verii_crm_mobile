@@ -10,7 +10,6 @@ import {
   ScrollView,
   TextInput,
 } from "react-native";
-import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -27,7 +26,6 @@ import {
   Sun01Icon,
   Logout01Icon,
   LockPasswordIcon,
-  Tick01Icon,
   Mail01Icon,
 } from "hugeicons-react-native";
 
@@ -37,8 +35,29 @@ import { useUIStore } from "../../store/ui";
 import { setLanguage, getCurrentLanguage } from "../../locales";
 import { profileApi } from "../../features/profile";
 import { useToast } from "../../hooks/useToast";
-import { DEFAULT_API_BASE_URL, getApiBaseUrl, saveApiBaseUrl, testApiBaseUrl } from "../../constants/config";
+import {
+  DEFAULT_API_BASE_URL,
+  getApiBaseUrl,
+  saveApiBaseUrl,
+  testApiBaseUrl,
+} from "../../constants/config";
 import { apiClient } from "../../lib/axios";
+
+function MenuGroup({
+  children,
+  cardBg,
+  borderColor,
+}: {
+  children: React.ReactNode;
+  cardBg: string;
+  borderColor: string;
+}): React.ReactElement {
+  return (
+    <View style={[styles.menuGroup, { backgroundColor: cardBg, borderColor }]}>
+      {children}
+    </View>
+  );
+}
 
 export default function SettingsScreen(): React.ReactElement {
   const { t } = useTranslation();
@@ -50,6 +69,7 @@ export default function SettingsScreen(): React.ReactElement {
   const clearAuth = useAuthStore((state) => state.clearAuth);
   const authUser = useAuthStore((state) => state.user);
   const { themeMode, toggleTheme } = useUIStore();
+
   const [currentLang, setCurrentLang] = useState(getCurrentLanguage());
   const [apiUrlInput, setApiUrlInput] = useState(getApiBaseUrl());
   const [lastSuccessfulApiUrl, setLastSuccessfulApiUrl] = useState(getApiBaseUrl());
@@ -59,23 +79,24 @@ export default function SettingsScreen(): React.ReactElement {
   const isDarkMode = themeMode === "dark";
 
   const mainBg = isDarkMode ? "#0c0516" : "#FAFAFA";
-  const gradientColors = (isDarkMode
-    ? ['rgba(236, 72, 153, 0.12)', 'transparent', 'rgba(249, 115, 22, 0.12)']
-    : ['rgba(255, 235, 240, 0.6)', '#FFFFFF', 'rgba(255, 240, 225, 0.6)']) as [string, string, ...string[]];
+  const gradientColors = (
+    isDarkMode
+      ? ["rgba(236, 72, 153, 0.12)", "transparent", "rgba(249, 115, 22, 0.12)"]
+      : ["rgba(255, 235, 240, 0.6)", "#FFFFFF", "rgba(255, 240, 225, 0.6)"]
+  ) as [string, string, ...string[]];
 
   const cardBg = isDarkMode ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.85)";
   const inputBg = isDarkMode ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.6)";
   const borderColor = isDarkMode ? "rgba(255,255,255,0.06)" : "rgba(236, 72, 153, 0.25)";
-  const dividerColor = isDarkMode ? "rgba(255,255,255,0.04)" : "rgba(236, 72, 153, 0.12)";
   const textColor = isDarkMode ? "#F8FAFC" : "#1E293B";
   const mutedColor = isDarkMode ? "#94A3B8" : "#64748B";
   const brandColor = isDarkMode ? "#EC4899" : "#DB2777";
   const errorColor = "#EF4444";
 
   const SUPPORTED_LANGUAGES = [
-    { id: 'tr', label: t('language.turkish', 'Türkçe'), flag: '🇹🇷' },
-    { id: 'en', label: t('language.english', 'English'), flag: '🇬🇧' },
-    { id: 'de', label: t('language.german', 'Deutsch'), flag: '🇩🇪' },
+    { id: "tr", label: t("language.turkish", "Türkçe"), flag: "🇹🇷" },
+    { id: "en", label: t("language.english", "English"), flag: "🇬🇧" },
+    { id: "de", label: t("language.german", "Deutsch"), flag: "🇩🇪" },
   ];
 
   const myProfileQuery = useQuery({
@@ -120,8 +141,8 @@ export default function SettingsScreen(): React.ReactElement {
   const handleTestApiUrl = async (): Promise<void> => {
     setIsTestingApiUrl(true);
     try {
-      await testApiBaseUrl(apiUrlInput);
       const normalized = apiUrlInput.trim();
+      await testApiBaseUrl(normalized);
       setLastSuccessfulApiUrl(normalized);
       showSuccess(t("settings.apiUrlTestSuccess"));
     } catch (error) {
@@ -134,7 +155,7 @@ export default function SettingsScreen(): React.ReactElement {
   const handleSaveApiUrl = async (): Promise<void> => {
     setIsSavingApiUrl(true);
     try {
-      const normalized = await saveApiBaseUrl(lastSuccessfulApiUrl);
+      const normalized = await saveApiBaseUrl(lastSuccessfulApiUrl.trim());
       apiClient.defaults.baseURL = normalized;
       await queryClient.invalidateQueries();
       setApiUrlInput(normalized);
@@ -199,16 +220,15 @@ export default function SettingsScreen(): React.ReactElement {
   const email = myProfileQuery.data?.email || authUser?.email || "-";
   const profileImageUrl = userDetailQuery.data?.profilePictureUrl || undefined;
 
-  const MenuGroup = ({ children }: { children: React.ReactNode }) => (
-    <View style={[styles.menuGroup, { backgroundColor: cardBg, borderColor }]}>
-      {children}
-    </View>
-  );
+  const canSaveApiUrl =
+    !!lastSuccessfulApiUrl &&
+    !isSavingApiUrl &&
+    lastSuccessfulApiUrl.trim() === apiUrlInput.trim();
 
   return (
     <View style={[styles.container, { backgroundColor: mainBg }]}>
       <StatusBar style={isDarkMode ? "light" : "dark"} />
-      
+
       <View style={StyleSheet.absoluteFill}>
         <LinearGradient
           colors={gradientColors}
@@ -220,17 +240,24 @@ export default function SettingsScreen(): React.ReactElement {
 
       <View style={{ flex: 1, paddingTop: insets.top }}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={handleBack} style={[styles.backButton, { backgroundColor: cardBg, borderColor }]}>
+          <TouchableOpacity
+            onPress={handleBack}
+            style={[styles.backButton, { backgroundColor: cardBg, borderColor }]}
+          >
             <ArrowLeft01Icon size={20} color={textColor} variant="stroke" />
           </TouchableOpacity>
+
           <Text style={[styles.headerTitle, { color: textColor }]}>{t("settings.title")}</Text>
+
           <View style={styles.backButtonPlaceholder} />
         </View>
 
-        <FlatListScrollView
+        <ScrollView
           style={styles.content}
           contentContainerStyle={[styles.contentContainer, { paddingBottom: insets.bottom + 40 }]}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="none"
         >
           <View style={styles.profileSection}>
             <View style={[styles.avatarBorder, { borderColor }]}>
@@ -242,17 +269,18 @@ export default function SettingsScreen(): React.ReactElement {
                 )}
               </View>
             </View>
+
             <Text style={[styles.profileName, { color: textColor }]}>{fullName}</Text>
             <Text style={[styles.profileMail, { color: mutedColor }]}>{email}</Text>
 
             <TouchableOpacity
               style={[
-                styles.uploadButton, 
-                { 
+                styles.uploadButton,
+                {
                   backgroundColor: isDarkMode ? "rgba(236, 72, 153, 0.08)" : "rgba(219, 39, 119, 0.08)",
                   borderColor: isDarkMode ? "rgba(236, 72, 153, 0.2)" : "rgba(219, 39, 119, 0.3)",
-                  borderWidth: 1
-                }
+                  borderWidth: 1,
+                },
               ]}
               onPress={handlePickProfileImage}
               disabled={uploadPictureMutation.isPending}
@@ -262,46 +290,57 @@ export default function SettingsScreen(): React.ReactElement {
               ) : (
                 <>
                   <Camera01Icon size={16} color={brandColor} variant="stroke" style={{ marginRight: 8 }} />
-                  <Text style={[styles.uploadButtonText, { color: brandColor }]}>{t("settings.uploadPhoto")}</Text>
+                  <Text style={[styles.uploadButtonText, { color: brandColor }]}>
+                    {t("settings.uploadPhoto")}
+                  </Text>
                 </>
               )}
             </TouchableOpacity>
           </View>
 
           <Text style={[styles.groupTitle, { color: mutedColor }]}>{t("settings.changePassword")}</Text>
-          <MenuGroup>
+          <MenuGroup cardBg={cardBg} borderColor={borderColor}>
             <View style={styles.inputContainer}>
               <Text style={[styles.sectionDescription, { color: mutedColor }]}>
                 {t("settings.changePasswordDescription")}
               </Text>
+
               <TouchableOpacity
                 style={[
-                  styles.primaryButton, 
-                  { 
+                  styles.primaryButton,
+                  {
                     backgroundColor: isDarkMode ? "rgba(236, 72, 153, 0.1)" : "rgba(219, 39, 119, 0.1)",
                     borderColor: isDarkMode ? "rgba(236, 72, 153, 0.3)" : "rgba(219, 39, 119, 0.3)",
-                    borderWidth: 1
-                  }
+                    borderWidth: 1,
+                  },
                 ]}
                 onPress={handleOpenChangePassword}
               >
                 <>
                   <LockPasswordIcon size={18} color={brandColor} variant="stroke" style={{ marginRight: 8 }} />
-                  <Text style={[styles.primaryButtonText, { color: brandColor }]}>{t("settings.updatePasswordBtn")}</Text>
+                  <Text style={[styles.primaryButtonText, { color: brandColor }]}>
+                    {t("settings.updatePasswordBtn")}
+                  </Text>
                 </>
               </TouchableOpacity>
             </View>
           </MenuGroup>
 
           <Text style={[styles.groupTitle, { color: mutedColor }]}>{t("settings.appearance")}</Text>
-          <MenuGroup>
+          <MenuGroup cardBg={cardBg} borderColor={borderColor}>
             <View style={styles.menuRow}>
               <View style={[styles.iconBox, { backgroundColor: "rgba(245, 158, 11, 0.1)" }]}>
-                {isDarkMode ? <Sun01Icon size={18} color="#F59E0B" variant="stroke" /> : <Moon02Icon size={18} color="#F59E0B" variant="stroke" />}
+                {isDarkMode ? (
+                  <Sun01Icon size={18} color="#F59E0B" variant="stroke" />
+                ) : (
+                  <Moon02Icon size={18} color="#F59E0B" variant="stroke" />
+                )}
               </View>
+
               <Text style={[styles.menuText, { color: textColor }]}>
                 {isDarkMode ? t("settings.lightMode") : t("settings.darkMode")}
               </Text>
+
               <Switch
                 value={isDarkMode}
                 onValueChange={toggleTheme}
@@ -313,37 +352,45 @@ export default function SettingsScreen(): React.ReactElement {
           </MenuGroup>
 
           <Text style={[styles.groupTitle, { color: mutedColor }]}>{t("language.title")}</Text>
-          <MenuGroup>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false} 
+          <MenuGroup cardBg={cardBg} borderColor={borderColor}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.langScrollContainer}
+              keyboardShouldPersistTaps="handled"
             >
               {SUPPORTED_LANGUAGES.map((lang) => {
                 const isActive = currentLang === lang.id;
+
                 return (
                   <TouchableOpacity
                     key={lang.id}
                     onPress={() => handleLanguageChange(lang.id as "tr" | "en" | "de")}
                     style={[
-                      styles.langPill, 
-                      { 
-                        backgroundColor: isActive 
-                          ? (isDarkMode ? "rgba(236, 72, 153, 0.1)" : "rgba(219, 39, 119, 0.1)") 
+                      styles.langPill,
+                      {
+                        backgroundColor: isActive
+                          ? isDarkMode
+                            ? "rgba(236, 72, 153, 0.1)"
+                            : "rgba(219, 39, 119, 0.1)"
                           : inputBg,
-                        borderColor: isActive 
-                          ? (isDarkMode ? "rgba(236, 72, 153, 0.3)" : "rgba(219, 39, 119, 0.3)") 
+                        borderColor: isActive
+                          ? isDarkMode
+                            ? "rgba(236, 72, 153, 0.3)"
+                            : "rgba(219, 39, 119, 0.3)"
                           : borderColor,
-                        borderWidth: 1
-                      }
+                        borderWidth: 1,
+                      },
                     ]}
                   >
                     <Text style={{ fontSize: 16, marginRight: 6 }}>{lang.flag}</Text>
-                    <Text style={{ 
-                      color: isActive ? brandColor : mutedColor, 
-                      fontWeight: isActive ? "600" : "500", 
-                      fontSize: 13 
-                    }}>
+                    <Text
+                      style={{
+                        color: isActive ? brandColor : mutedColor,
+                        fontWeight: isActive ? "600" : "500",
+                        fontSize: 13,
+                      }}
+                    >
                       {lang.label}
                     </Text>
                   </TouchableOpacity>
@@ -353,25 +400,30 @@ export default function SettingsScreen(): React.ReactElement {
           </MenuGroup>
 
           <Text style={[styles.groupTitle, { color: mutedColor }]}>{t("settings.integrationSettings")}</Text>
-          <MenuGroup>
+          <MenuGroup cardBg={cardBg} borderColor={borderColor}>
             <TouchableOpacity style={styles.menuRow} onPress={handleOpenIntegrationSettings}>
               <View style={[styles.iconBox, { backgroundColor: "rgba(16, 185, 129, 0.1)" }]}>
                 <Mail01Icon size={18} color="#10B981" variant="stroke" />
               </View>
+
               <View style={{ flex: 1 }}>
                 <Text style={[styles.menuText, { color: textColor }]}>{t("settings.integrationSettings")}</Text>
                 <Text style={[styles.sectionDescription, { color: mutedColor, marginTop: -2 }]}>
                   {t("settings.integrationSettingsDescription")}
                 </Text>
               </View>
+
               <ArrowRight01Icon size={18} color={mutedColor} />
             </TouchableOpacity>
           </MenuGroup>
 
           <Text style={[styles.groupTitle, { color: mutedColor }]}>{t("settings.apiUrlTitle")}</Text>
-          <MenuGroup>
+          <MenuGroup cardBg={cardBg} borderColor={borderColor}>
             <View style={styles.inputContainer}>
-              <Text style={[styles.menuText, { color: textColor, flex: 0 }]}>{t("settings.apiUrlTitle")}</Text>
+              <Text style={[styles.menuText, { color: textColor, flex: 0 }]}>
+                {t("settings.apiUrlTitle")}
+              </Text>
+
               <Text style={[styles.sectionDescription, { color: mutedColor }]}>
                 {t("settings.apiUrlDescription")}
               </Text>
@@ -392,6 +444,8 @@ export default function SettingsScreen(): React.ReactElement {
                     color: textColor,
                   },
                 ]}
+                returnKeyType="done"
+                blurOnSubmit={false}
               />
 
               <Text style={[styles.sectionDescription, { color: mutedColor }]}>
@@ -425,20 +479,11 @@ export default function SettingsScreen(): React.ReactElement {
                     styles.apiPrimaryButton,
                     {
                       backgroundColor: brandColor,
-                      opacity:
-                        !lastSuccessfulApiUrl ||
-                        isSavingApiUrl ||
-                        lastSuccessfulApiUrl.trim() !== apiUrlInput.trim()
-                          ? 0.45
-                          : 1,
+                      opacity: canSaveApiUrl ? 1 : 0.45,
                     },
                   ]}
                   onPress={handleSaveApiUrl}
-                  disabled={
-                    !lastSuccessfulApiUrl ||
-                    isSavingApiUrl ||
-                    lastSuccessfulApiUrl.trim() !== apiUrlInput.trim()
-                  }
+                  disabled={!canSaveApiUrl}
                 >
                   {isSavingApiUrl ? (
                     <ActivityIndicator size="small" color="#FFFFFF" />
@@ -456,22 +501,21 @@ export default function SettingsScreen(): React.ReactElement {
             </View>
           </MenuGroup>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[
-              styles.logoutButton, 
-              { 
+              styles.logoutButton,
+              {
                 backgroundColor: isDarkMode ? "rgba(239, 68, 68, 0.05)" : "rgba(239, 68, 68, 0.08)",
                 borderColor: isDarkMode ? "rgba(239, 68, 68, 0.15)" : "rgba(239, 68, 68, 0.25)",
-                borderWidth: 1
-              }
-            ]} 
+                borderWidth: 1,
+              },
+            ]}
             onPress={handleLogout}
           >
             <Logout01Icon size={18} color={errorColor} variant="stroke" style={{ marginRight: 8 }} />
             <Text style={[styles.logoutText, { color: errorColor }]}>{t("common.logout")}</Text>
           </TouchableOpacity>
-
-        </FlatListScrollView>
+        </ScrollView>
       </View>
     </View>
   );
@@ -641,10 +685,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 12,
     paddingHorizontal: 16,
-  },
-  rowDivider: {
-    height: 1,
-    marginLeft: 52,
   },
   iconBox: {
     width: 32,
