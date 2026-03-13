@@ -1233,7 +1233,18 @@
       "overview": "Genel Bakış",
       "analytics": "Analitik",
       "quickQuotations": "Hızlı Teklifler",
+      "erpMovements": "ERP Hareket",
       "mailLogs": "Mail Geçmişi"
+    },
+    "erpMovements": {
+      "title": "ERP Hareket",
+      "error": "ERP hareket verileri yüklenemedi",
+      "summary": {
+        "totalDebit": "Toplam Borç",
+        "totalCredit": "Toplam Alacak",
+        "balance": "Bakiye",
+        "closed": "Kapalı"
+      }
     },
     "quickQuotations": {
       "empty": "Bu cariye ait hızlı teklif bulunamadı",
