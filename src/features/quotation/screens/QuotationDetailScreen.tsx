@@ -824,7 +824,13 @@ const gradientColors = isDark
         {activeTab === "approval" && quotationId != null ? (
           <QuotationApprovalFlowTab quotationId={quotationId} />
         ) : activeTab === "report" && quotationId != null ? (
-          <QuotationReportTab quotationId={quotationId} />
+          <QuotationReportTab
+            quotationId={quotationId}
+            offerNo={header?.offerNo ?? null}
+            customerName={header?.potentialCustomerName ?? null}
+            currency={header?.currency ?? "TRY"}
+            lines={lines}
+          />
         ) : (
         <FlatListScrollView
           style={[styles.content, { backgroundColor: 'transparent' }]}

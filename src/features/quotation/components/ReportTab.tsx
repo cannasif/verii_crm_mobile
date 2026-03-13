@@ -26,23 +26,34 @@ function arrayBufferToBase64(ab: ArrayBuffer): string {
 interface ReportTabProps {
   entityId: number;
   ruleType: DocumentRuleTypeValue;
+  builtInTemplates?: {
+    id: string;
+    title: string;
+    isDefault?: boolean;
+    generate: () => Promise<string>;
+  }[];
 }
 
-export function ReportTab({ entityId, ruleType }: ReportTabProps): React.ReactElement {
+export function ReportTab({
+  entityId,
+  ruleType,
+  builtInTemplates = [],
+}: ReportTabProps): React.ReactElement {
   const { t } = useTranslation();
   const { colors } = useUIStore();
   const showToast = useToastStore((s) => s.showToast);
   const { height: windowHeight } = useWindowDimensions();
   const { data: templates, isLoading: templatesLoading, isError: templatesError, error: templatesErrorObj, refetch } = useReportTemplateList(ruleType);
   const generatePdf = useGenerateReportPdf();
-  const [selectedTemplateId, setSelectedTemplateId] = useState<number | undefined>(undefined);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<number | string | undefined>(undefined);
   const [templatePickerVisible, setTemplatePickerVisible] = useState(false);
   const [pdfFileUri, setPdfFileUri] = useState<string | null>(null);
 
-  const defaultTemplate = useMemo(
-    () => templates.find((tpl) => tpl.default === true) ?? templates[0],
-    [templates]
-  );
+  const defaultTemplate = useMemo(() => {
+    const builtInDefault = builtInTemplates.find((tpl) => tpl.isDefault === true);
+    if (builtInDefault) return builtInDefault;
+    return templates.find((tpl) => tpl.default === true) ?? templates[0];
+  }, [builtInTemplates, templates]);
 
   useEffect(() => {
     if (defaultTemplate != null && selectedTemplateId == null) {
@@ -51,8 +62,10 @@ export function ReportTab({ entityId, ruleType }: ReportTabProps): React.ReactEl
   }, [defaultTemplate, selectedTemplateId]);
 
   const selectedTemplate = useMemo(
-    () => templates.find((tpl) => tpl.id === selectedTemplateId),
-    [templates, selectedTemplateId]
+    () =>
+      builtInTemplates.find((tpl) => tpl.id === selectedTemplateId) ??
+      templates.find((tpl) => tpl.id === selectedTemplateId),
+    [builtInTemplates, templates, selectedTemplateId]
   );
 
   const handleGeneratePdf = useCallback(() => {
@@ -60,8 +73,23 @@ export function ReportTab({ entityId, ruleType }: ReportTabProps): React.ReactEl
       showToast("error", t("report.selectTemplateFirst"));
       return;
     }
+    const builtInTemplate = builtInTemplates.find((tpl) => tpl.id === selectedTemplateId);
+    if (builtInTemplate) {
+      generatePdf.reset();
+      void builtInTemplate
+        .generate()
+        .then((fileUri) => {
+          setPdfFileUri(fileUri);
+          showToast("success", t("report.generated"));
+        })
+        .catch((err) => {
+          const message = err instanceof Error ? err.message : t("report.generateError");
+          showToast("error", message);
+        });
+      return;
+    }
     generatePdf.mutate(
-      { templateId: selectedTemplateId, entityId },
+      { templateId: selectedTemplateId as number, entityId },
       {
         onSuccess: async (arrayBuffer: ArrayBuffer) => {
           try {
@@ -92,7 +120,7 @@ export function ReportTab({ entityId, ruleType }: ReportTabProps): React.ReactEl
         },
       }
     );
-  }, [selectedTemplateId, entityId, ruleType, generatePdf, showToast, t]);
+  }, [selectedTemplateId, entityId, ruleType, generatePdf, showToast, t, builtInTemplates]);
 
   const handleSharePdf = useCallback(async () => {
     if (pdfFileUri == null) return;
@@ -117,11 +145,17 @@ export function ReportTab({ entityId, ruleType }: ReportTabProps): React.ReactEl
 
   const pickerOptions = useMemo(
     () =>
-      templates.map((tpl) => ({
-        id: tpl.id,
-        name: tpl.title,
-      })),
-    [templates]
+      [
+        ...builtInTemplates.map((tpl) => ({
+          id: tpl.id,
+          name: tpl.title,
+        })),
+        ...templates.map((tpl) => ({
+          id: tpl.id,
+          name: tpl.title,
+        })),
+      ],
+    [builtInTemplates, templates]
   );
 
   if (templatesLoading) {
@@ -148,7 +182,7 @@ export function ReportTab({ entityId, ruleType }: ReportTabProps): React.ReactEl
     );
   }
 
-  if (templates.length === 0) {
+  if (templates.length === 0 && builtInTemplates.length === 0) {
     return (
       <View style={[styles.centered, styles.emptyBox, { backgroundColor: colors.background }]}>
         <Text style={[styles.emptyText, { color: colors.textMuted }]}>
@@ -221,7 +255,7 @@ export function ReportTab({ entityId, ruleType }: ReportTabProps): React.ReactEl
         options={pickerOptions}
         selectedValue={selectedTemplateId}
         onSelect={(o) => {
-          setSelectedTemplateId(o.id as number);
+          setSelectedTemplateId(o.id);
           setTemplatePickerVisible(false);
         }}
         onClose={() => setTemplatePickerVisible(false)}
