@@ -80,7 +80,10 @@
     "quotationCreateFailedGeneric": "Teklif oluşturulurken bir hata oluştu.",
     "lineDeleteFailed": "Satır silinemedi",
     "voiceSearchSupportInfo": "Sesli arama: Web'de tarayıcı destekliyorsa çalışır. Mobil için: npx expo install expo-speech-recognition",
-    "all": "Tümü"
+    "all": "Tümü",
+    "filter": "Filtrele",
+    "newest": "En Yeniler", 
+    "oldest": "En Eskiler"
   },
   "home": {
     "greeting": "Merhaba",
@@ -788,7 +791,10 @@
     "tabImages": "Resimler",
     "tabRelations": "Bağlı Stoklar",
     "noImages": "Henüz resim bulunmuyor",
-    "noRelations": "Henüz bağlı stok bulunmuyor"
+    "noRelations": "Henüz bağlı stok bulunmuyor",
+    "foundCount": "{{count}} adet stok bulundu",
+    "group": "Grup",  
+    "allGroups": "Tüm Gruplar"
   },
   "sales": {
     "createQuotation": "Teklif Oluştur",
@@ -1277,7 +1283,9 @@
       "totalQuotations": "Toplam Teklif",
       "totalOrders": "Toplam Sipariş",
       "openQuotations": "Açık Teklifler",
-      "openOrders": "Açık Siparişler"
+      "openOrders": "Açık Siparişler",
+      "closedOrders": "Kapanış Siparişleri",
+      "lastActivityDate": "Son Aktivite Tarihi"
     },
     "currencyFilter": {
       "label": "Para birimi",

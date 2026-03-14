@@ -1,5 +1,14 @@
 import React, { useMemo, useCallback } from "react";
-import { View, StyleSheet, ScrollView, Platform, Linking, TouchableOpacity, Image, ActivityIndicator } from "react-native";
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  Platform,
+  Linking,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { Text } from "../../../components/ui/text";
@@ -31,12 +40,16 @@ import {
 
 interface CustomerTheme {
   cardBg: string;
+  cardBgSoft: string;
   borderColor: string;
   divider: string;
   text: string;
+  textSoft: string;
   textMute: string;
   primary: string;
   idTagBg: string;
+  sectionIconBg: string;
+  addressBg: string;
 }
 
 const getLocale = () => {
@@ -96,7 +109,9 @@ function formatSalesRep(value?: string | null): string | null {
 function formatDate(dateString?: string | null): string | null {
   if (!dateString) return null;
 
-  const isoLike = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(dateString) || /^\d{4}-\d{2}-\d{2}$/.test(dateString);
+  const isoLike =
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(dateString) ||
+    /^\d{4}-\d{2}-\d{2}$/.test(dateString);
   const date = isoLike ? new Date(dateString) : new Date(Date.parse(dateString));
 
   if (Number.isNaN(date.getTime())) return null;
@@ -149,28 +164,28 @@ function getQuotationStatusMeta(status?: number | null, t?: (key: string) => str
         label: t ? t("quotation.status.pending") : "Beklemede",
         color: "#F59E0B",
         bg: "rgba(245, 158, 11, 0.12)",
-        border: "rgba(245, 158, 11, 0.24)",
+        border: "rgba(245, 158, 11, 0.22)",
       };
     case 2:
       return {
         label: t ? t("quotation.status.approved") : "Onaylandı",
         color: "#10B981",
         bg: "rgba(16, 185, 129, 0.12)",
-        border: "rgba(16, 185, 129, 0.24)",
+        border: "rgba(16, 185, 129, 0.22)",
       };
     case 3:
       return {
         label: t ? t("quotation.status.rejected") : "Reddedildi",
         color: "#EF4444",
         bg: "rgba(239, 68, 68, 0.12)",
-        border: "rgba(239, 68, 68, 0.24)",
+        border: "rgba(239, 68, 68, 0.22)",
       };
     default:
       return {
         label: t ? t("quotation.status.notStarted") : "Başlamadı",
         color: "#94A3B8",
         bg: "rgba(148, 163, 184, 0.12)",
-        border: "rgba(148, 163, 184, 0.24)",
+        border: "rgba(148, 163, 184, 0.22)",
       };
   }
 }
@@ -224,6 +239,27 @@ function getNoteDate(customer: CustomerDto): string | null {
   return customer.updatedDate || customer.createdDate || null;
 }
 
+interface SectionHeaderProps {
+  icon: React.ReactNode;
+  title: string;
+  theme: CustomerTheme;
+  rightElement?: React.ReactNode;
+}
+
+function SectionHeader({ icon, title, theme, rightElement }: SectionHeaderProps) {
+  return (
+    <View style={[styles.sectionHeader, rightElement ? styles.sectionHeaderSpaced : null]}>
+      <View style={styles.sectionHeaderLeft}>
+        <View style={[styles.sectionIconWrapper, { backgroundColor: theme.sectionIconBg }]}>
+          {icon}
+        </View>
+        <Text style={[styles.sectionTitle, { color: theme.textSoft }]}>{title}</Text>
+      </View>
+      {rightElement}
+    </View>
+  );
+}
+
 interface ActionButtonProps {
   icon: React.ReactNode;
   onPress: () => void;
@@ -240,13 +276,64 @@ function ActionButton({ icon, onPress, color, disabled }: ActionButtonProps) {
       style={[
         styles.actionCircle,
         {
-          backgroundColor: color + "12",
-          borderColor: color + "30",
+          backgroundColor: color + "10",
+          borderColor: color + "24",
           opacity: disabled ? 0.45 : 1,
         },
       ]}
     >
       {icon}
+    </TouchableOpacity>
+  );
+}
+
+interface QuickMiniActionProps {
+  icon: React.ReactNode;
+  label: string;
+  onPress: () => void;
+  color: string;
+  disabled?: boolean;
+}
+
+function QuickMiniAction({ icon, label, onPress, color, disabled }: QuickMiniActionProps) {
+  const { themeMode } = useUIStore();
+  const isDark = themeMode === "dark";
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.72}
+      onPress={onPress}
+      disabled={disabled}
+      style={[
+        styles.quickMiniAction,
+        {
+          opacity: disabled ? 0.45 : 1,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.quickMiniSquare,
+          {
+            backgroundColor: `${color}10`,
+            borderColor: `${color}22`,
+          },
+        ]}
+      >
+        {icon}
+      </View>
+
+      <Text
+        unstyled
+        disableThemeColor
+        style={[
+          styles.quickMiniLabel,
+          { color: isDark ? "rgba(203,213,225,0.80)" : "rgba(100,116,139,0.84)" },
+        ]}
+        numberOfLines={2}
+      >
+        {label}
+      </Text>
     </TouchableOpacity>
   );
 }
@@ -264,7 +351,12 @@ function DetailRow({ label, value, icon, theme, isLast }: DetailRowProps) {
   const displayValue = hasValue ? String(value) : i18n.t("customer.unspecified");
 
   return (
-    <View style={[styles.detailRow, !isLast && { borderBottomColor: theme.divider, borderBottomWidth: 1 }]}>
+    <View
+      style={[
+        styles.detailRow,
+        !isLast && { borderBottomColor: theme.divider, borderBottomWidth: 1 },
+      ]}
+    >
       <View style={styles.detailLabelRow}>
         {icon && <View style={styles.miniIconWrapper}>{icon}</View>}
         <Text style={[styles.detailLabel, { color: theme.textMute }]}>{label}</Text>
@@ -277,6 +369,7 @@ function DetailRow({ label, value, icon, theme, isLast }: DetailRowProps) {
             fontStyle: hasValue ? "normal" : "italic",
           },
         ]}
+        numberOfLines={2}
       >
         {displayValue}
       </Text>
@@ -293,9 +386,26 @@ interface StatusBadgeProps {
 function StatusBadge({ isCompleted, completedText, pendingText }: StatusBadgeProps) {
   const color = isCompleted ? "#10B981" : "#EF4444";
   return (
-    <View style={[styles.statusBadge, { backgroundColor: color + "15", borderColor: color + "30" }]}>
+    <View style={[styles.statusBadge, { backgroundColor: color + "12", borderColor: color + "22" }]}>
       <View style={[styles.statusDot, { backgroundColor: color }]} />
       <Text style={[styles.statusText, { color }]}>{isCompleted ? completedText : pendingText}</Text>
+    </View>
+  );
+}
+
+interface EmptyStateProps {
+  icon: React.ReactNode;
+  title: string;
+  subtitle?: string;
+  theme: CustomerTheme;
+}
+
+function EmptyState({ icon, title, subtitle, theme }: EmptyStateProps) {
+  return (
+    <View style={[styles.emptyState, { borderColor: theme.divider, backgroundColor: theme.cardBgSoft }]}>
+      <View style={[styles.emptyStateIconWrap, { backgroundColor: theme.sectionIconBg }]}>{icon}</View>
+      <Text style={[styles.emptyStateTitle, { color: theme.textSoft }]}>{title}</Text>
+      {subtitle ? <Text style={[styles.emptyStateSubtitle, { color: theme.textMute }]}>{subtitle}</Text> : null}
     </View>
   );
 }
@@ -344,19 +454,25 @@ export function CustomerDetailContent({
   const salesRepValue = formatSalesRep(customer?.salesRepCode) || t("customer.unspecified");
 
   const mainBg = isDark ? "#0c0516" : "#FFFFFF";
-  const gradientColors = (isDark
-    ? ["rgba(236, 72, 153, 0.12)", "transparent", "rgba(249, 115, 22, 0.12)"]
-    : ["rgba(255, 240, 225, 0.6)", "#FFFFFF", "rgba(255, 240, 225, 0.6)"]) as [string, string, ...string[]];
+  const gradientColors = (
+    isDark
+      ? ["rgba(236, 72, 153, 0.12)", "transparent", "rgba(249, 115, 22, 0.12)"]
+      : ["rgba(255, 240, 225, 0.6)", "#FFFFFF", "rgba(255, 240, 225, 0.6)"]
+  ) as [string, string, ...string[]];
 
   const theme = useMemo<CustomerTheme>(
     () => ({
-      cardBg: isDark ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.95)",
-      borderColor: isDark ? "rgba(219, 39, 119, 0.2)" : "rgba(219, 39, 119, 0.3)",
-      divider: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.04)",
-      text: isDark ? "#FFFFFF" : "#0F172A",
-      textMute: isDark ? "rgba(255, 255, 255, 0.5)" : "#64748B",
+      cardBg: isDark ? "rgba(255, 255, 255, 0.045)" : "rgba(255, 255, 255, 0.96)",
+      cardBgSoft: isDark ? "rgba(255,255,255,0.028)" : "rgba(15,23,42,0.024)",
+      borderColor: isDark ? "rgba(219, 39, 119, 0.15)" : "rgba(219, 39, 119, 0.16)",
+      divider: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(148,163,184,0.10)",
+      text: isDark ? "#CBD5E1" : "#64748B",
+      textSoft: isDark ? "#E2E8F0" : "#475569",
+      textMute: isDark ? "rgba(148,163,184,0.76)" : "#94A3B8",
       primary: "#db2777",
-      idTagBg: isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.06)",
+      idTagBg: isDark ? "rgba(255,255,255,0.06)" : "rgba(148,163,184,0.08)",
+      sectionIconBg: isDark ? "rgba(219,39,119,0.10)" : "rgba(219,39,119,0.07)",
+      addressBg: isDark ? "rgba(255,255,255,0.025)" : "rgba(15,23,42,0.022)",
     }),
     [isDark]
   );
@@ -402,7 +518,12 @@ export function CustomerDetailContent({
     <View style={[styles.container, { backgroundColor: mainBg }]}>
       <StatusBar style={isDark ? "light" : "dark"} />
       <View style={StyleSheet.absoluteFill}>
-        <LinearGradient colors={gradientColors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+        <LinearGradient
+          colors={gradientColors}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
       </View>
 
       <ScrollView
@@ -410,74 +531,88 @@ export function CustomerDetailContent({
         contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 100 }}
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.profileCard, { backgroundColor: theme.cardBg, borderColor: theme.borderColor }]}>
-          <View style={[styles.avatarWrapper, { borderColor: `${avatarColor}40` }]}>
-            <LinearGradient colors={[`${avatarColor}40`, `${avatarColor}10`]} style={styles.avatarInner}>
+        <View
+          style={[
+            styles.profileCard,
+            {
+              backgroundColor: theme.cardBg,
+              borderColor: theme.borderColor,
+            },
+          ]}
+        >
+          <View style={[styles.avatarWrapper, { borderColor: `${avatarColor}30` }]}>
+            <LinearGradient colors={[`${avatarColor}30`, `${avatarColor}0A`]} style={styles.avatarInner}>
               <Text style={[styles.avatarText, { color: avatarColor }]}>{initials}</Text>
             </LinearGradient>
           </View>
 
           <View style={styles.kunyeInfo}>
-            <Text style={[styles.customerNameLarge, { color: theme.text }]}>{safeCustomerName}</Text>
+            <Text style={[styles.customerNameLarge, { color: theme.textSoft }]}>{safeCustomerName}</Text>
 
             <View style={[styles.idTagCentered, { backgroundColor: theme.idTagBg }]}>
-              <Text style={styles.codeTagTextLarge}>#{customer?.customerCode || "---"}</Text>
+              <Text style={[styles.codeTagTextLarge, { color: theme.textMute }]}>
+                #{customer?.customerCode || "---"}
+              </Text>
             </View>
 
             <TouchableOpacity
-              style={[styles.btn360, { backgroundColor: theme.primary + "12", borderColor: theme.primary + "30" }]}
+              style={[
+                styles.btn360,
+                {
+                  backgroundColor: theme.primary + "10",
+                  borderColor: theme.primary + "20",
+                },
+              ]}
               onPress={on360Press}
               activeOpacity={0.7}
             >
-              <AnalyticsUpIcon size={18} color={theme.primary} variant="stroke" strokeWidth={2.5} />
+              <AnalyticsUpIcon size={18} color={theme.primary} variant="stroke" strokeWidth={2.1} />
               <Text style={[styles.text360, { color: theme.primary }]}>{t("customer.view360")}</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.btnQuickQuotation, { backgroundColor: "#0ea5e912", borderColor: "#0ea5e940" }]}
-              onPress={onQuickQuotationPress}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.textQuickQuotation, { color: "#0ea5e9" }]}>{t("customer.quickQuotation")}</Text>
-            </TouchableOpacity>
+            <View style={styles.quickMiniActionsRow}>
+              <QuickMiniAction
+                color="#0ea5e9"
+                icon={<Invoice01Icon size={22} color="#0ea5e9" variant="stroke" />}
+                label={t("customer.quickQuotation")}
+                onPress={onQuickQuotationPress}
+              />
 
-            <TouchableOpacity
-              style={[styles.btnQuickQuotation, { backgroundColor: "#8b5cf612", borderColor: "#8b5cf640" }]}
-              onPress={onQuickActivityPress}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.textQuickQuotation, { color: "#8b5cf6" }]}>{t("customer.quickActivity")}</Text>
-            </TouchableOpacity>
+              <QuickMiniAction
+                color="#8b5cf6"
+                icon={<Activity01Icon size={22} color="#8b5cf6" variant="stroke" />}
+                label={t("customer.quickActivity")}
+                onPress={onQuickActivityPress}
+              />
 
-            <TouchableOpacity
-              style={[styles.btnAddImage, { backgroundColor: "#22c55e12", borderColor: "#22c55e40" }]}
-              onPress={onAddImagePress}
-              activeOpacity={0.7}
-              disabled={isUploadingImage}
-            >
-              {isUploadingImage ? (
-                <ActivityIndicator size="small" color="#22c55e" />
-              ) : (
-                <Add01Icon size={18} color="#22c55e" variant="stroke" />
-              )}
-              <Text style={[styles.textAddImage, { color: "#22c55e" }]}>{t("customer.addImage")}</Text>
-            </TouchableOpacity>
+              <QuickMiniAction
+                color="#22c55e"
+                icon={
+                  isUploadingImage ? (
+                    <ActivityIndicator size="small" color="#22c55e" />
+                  ) : (
+                    <Add01Icon size={22} color="#22c55e" variant="stroke" />
+                  )
+                }
+                label={t("customer.addImage")}
+                onPress={onAddImagePress}
+                disabled={isUploadingImage}
+              />
 
-            <TouchableOpacity
-              style={[styles.btnUpdateLocation, { backgroundColor: "#f59e0b12", borderColor: "#f59e0b40" }]}
-              onPress={onUpdateLocationPress}
-              activeOpacity={0.7}
-              disabled={isUpdatingLocation}
-            >
-              {isUpdatingLocation ? (
-                <ActivityIndicator size="small" color="#f59e0b" />
-              ) : (
-                <Location01Icon size={18} color="#f59e0b" variant="stroke" />
-              )}
-              <Text style={[styles.textUpdateLocation, { color: "#f59e0b" }]}>
-                {t("customer.updateLocation")}
-              </Text>
-            </TouchableOpacity>
+              <QuickMiniAction
+                color="#f59e0b"
+                icon={
+                  isUpdatingLocation ? (
+                    <ActivityIndicator size="small" color="#f59e0b" />
+                  ) : (
+                    <Location01Icon size={22} color="#f59e0b" variant="stroke" />
+                  )
+                }
+                label={t("customer.updateLocation")}
+                onPress={onUpdateLocationPress}
+                disabled={isUpdatingLocation}
+              />
+            </View>
 
             <View style={styles.quickActionsRow}>
               <ActionButton
@@ -509,17 +644,18 @@ export function CustomerDetailContent({
         </View>
 
         <View style={[styles.sectionCard, { backgroundColor: theme.cardBg, borderColor: theme.borderColor }]}>
-          <View style={[styles.sectionHeader, styles.sectionHeaderSpaced]}>
-            <View style={styles.sectionHeaderLeft}>
-              <Image02Icon size={18} color={theme.primary} variant="stroke" />
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("customer.images")}</Text>
-            </View>
-            <TouchableOpacity onPress={onAddImagePress} disabled={isUploadingImage} style={styles.inlineAction}>
-              <Text style={[styles.inlineActionText, { color: "#22c55e" }]}>
-                {isUploadingImage ? t("customer.uploadingImage") : t("customer.addImage")}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <SectionHeader
+            icon={<Image02Icon size={16} color={theme.primary} variant="stroke" />}
+            title={t("customer.images")}
+            theme={theme}
+            rightElement={
+              <TouchableOpacity onPress={onAddImagePress} disabled={isUploadingImage} style={styles.inlineAction}>
+                <Text style={[styles.inlineActionText, { color: "#22c55e" }]}>
+                  {isUploadingImage ? t("customer.uploadingImage") : t("customer.addImage")}
+                </Text>
+              </TouchableOpacity>
+            }
+          />
 
           {visibleImages.length > 0 ? (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.imageScrollContent}>
@@ -528,9 +664,15 @@ export function CustomerDetailContent({
                 if (!imageUri) return null;
 
                 return (
-                  <View key={item.id} style={[styles.imageCard, { borderColor: theme.divider, backgroundColor: theme.cardBg }]}>
+                  <View
+                    key={item.id}
+                    style={[
+                      styles.imageCard,
+                      { borderColor: theme.divider, backgroundColor: theme.cardBgSoft },
+                    ]}
+                  >
                     <Image source={{ uri: imageUri }} style={styles.customerImage} resizeMode="cover" />
-                    <Text style={[styles.imageCaption, { color: theme.textMute }]}>
+                    <Text style={[styles.imageCaption, { color: theme.text }]}>
                       {item.imageDescription?.trim() || t("customer.imageDefaultDescription")}
                     </Text>
                   </View>
@@ -538,79 +680,115 @@ export function CustomerDetailContent({
               })}
             </ScrollView>
           ) : (
-            <Text style={[styles.notesText, { color: theme.textMute, fontStyle: "italic" }]}>{t("customer.noImages")}</Text>
+            <EmptyState
+              theme={theme}
+              icon={<Image02Icon size={18} color={theme.primary} variant="stroke" />}
+              title={t("customer.noImages")}
+              subtitle={t("customer.addImage")}
+            />
           )}
         </View>
 
         <View style={[styles.sectionCard, { backgroundColor: theme.cardBg, borderColor: theme.borderColor }]}>
-          <View style={styles.sectionHeader}>
-            <Contact01Icon size={18} color={theme.primary} variant="stroke" />
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("customer.contactInfo")}</Text>
-          </View>
-          <DetailRow theme={theme} label={t("customer.phone")} value={customer?.phone} icon={<Call02Icon size={14} color={theme.textMute} />} />
-          <DetailRow theme={theme} label={t("customer.email")} value={customer?.email} icon={<Mail01Icon size={14} color={theme.textMute} />} />
-          <DetailRow theme={theme} label={t("customer.website")} value={customer?.website} icon={<Globe02Icon size={14} color={theme.textMute} />} isLast />
+          <SectionHeader
+            icon={<Contact01Icon size={16} color={theme.primary} variant="stroke" />}
+            title={t("customer.contactInfo")}
+            theme={theme}
+          />
+          <DetailRow
+            theme={theme}
+            label={t("customer.phone")}
+            value={customer?.phone}
+            icon={<Call02Icon size={14} color={theme.textMute} />}
+          />
+          <DetailRow
+            theme={theme}
+            label={t("customer.email")}
+            value={customer?.email}
+            icon={<Mail01Icon size={14} color={theme.textMute} />}
+          />
+          <DetailRow
+            theme={theme}
+            label={t("customer.website")}
+            value={customer?.website}
+            icon={<Globe02Icon size={14} color={theme.textMute} />}
+            isLast
+          />
         </View>
 
         <View style={[styles.sectionCard, { backgroundColor: theme.cardBg, borderColor: theme.borderColor }]}>
-          <View style={styles.sectionHeader}>
-            <Location01Icon size={18} color={theme.primary} variant="stroke" />
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("customer.addressAndLocation")}</Text>
-          </View>
+          <SectionHeader
+            icon={<Location01Icon size={16} color={theme.primary} variant="stroke" />}
+            title={t("customer.addressAndLocation")}
+            theme={theme}
+          />
+
           <Text
             style={[
               styles.addressText,
               {
                 color: customer?.address?.trim() ? theme.text : theme.textMute,
                 fontStyle: customer?.address?.trim() ? "normal" : "italic",
+                backgroundColor: theme.addressBg,
               },
             ]}
           >
             {customer?.address?.trim() || t("customer.addressNotSpecified")}
           </Text>
+
           <View style={[styles.locationGrid, { borderTopColor: theme.divider }]}>
-            <View style={styles.locItem}>
+            <View style={[styles.locItemBox, { backgroundColor: theme.cardBgSoft, borderColor: theme.divider }]}>
               <Text style={[styles.gridLabel, { color: theme.textMute }]}>{t("customer.cityDistrict")}</Text>
-              <Text style={[styles.gridValue, { color: theme.text }]}>
+              <Text style={[styles.gridValue, { color: theme.textSoft }]}>
                 {(customer?.cityName || "---") + " / " + (customer?.districtName || "---")}
               </Text>
             </View>
-            <View style={styles.locItem}>
+            <View style={[styles.locItemBox, { backgroundColor: theme.cardBgSoft, borderColor: theme.divider }]}>
               <Text style={[styles.gridLabel, { color: theme.textMute }]}>{t("lookup.country")}</Text>
-              <Text style={[styles.gridValue, { color: theme.text }]}>{customer?.countryName || t("customer.unspecified")}</Text>
+              <Text style={[styles.gridValue, { color: theme.textSoft }]}>
+                {customer?.countryName || t("customer.unspecified")}
+              </Text>
             </View>
           </View>
         </View>
 
         <View style={styles.gridRow}>
           <View style={[styles.gridCard, { backgroundColor: theme.cardBg, borderColor: theme.borderColor }]}>
-            <Coins01Icon size={20} color="#10B981" style={{ marginBottom: 8 }} variant="stroke" />
+            <Coins01Icon size={22} color="#10B981" style={{ marginBottom: 10 }} variant="stroke" />
             <Text style={[styles.gridLabel, { color: theme.textMute }]}>{t("customer.creditLimit")}</Text>
-            <Text style={[styles.gridValue, { color: customer?.creditLimit != null ? "#10B981" : theme.textMute, fontSize: 16 }]}>
+            <Text
+              style={[
+                styles.creditValue,
+                { color: customer?.creditLimit != null ? "#10B981" : theme.textMute },
+              ]}
+            >
               {customer?.creditLimit != null ? formatCurrency(customer.creditLimit) : t("customer.unspecified")}
             </Text>
           </View>
+
           <View style={[styles.gridCard, { backgroundColor: theme.cardBg, borderColor: theme.borderColor }]}>
-            <Invoice01Icon size={20} color={theme.primary} style={{ marginBottom: 8 }} variant="stroke" />
+            <Invoice01Icon size={22} color={theme.primary} style={{ marginBottom: 10 }} variant="stroke" />
             <Text style={[styles.gridLabel, { color: theme.textMute }]}>{t("customer.taxNumber")}</Text>
-            <Text style={[styles.gridValue, { color: theme.text, fontSize: 16 }]}>{customer?.taxNumber || t("customer.unspecified")}</Text>
+            <Text style={[styles.gridValueLarge, { color: theme.textSoft }]}>
+              {customer?.taxNumber || t("customer.unspecified")}
+            </Text>
           </View>
         </View>
 
         <View style={[styles.sectionCard, { backgroundColor: theme.cardBg, borderColor: theme.borderColor }]}>
-          <View style={[styles.sectionHeader, styles.sectionHeaderSpaced]}>
-            <View style={styles.sectionHeaderLeft}>
-              <Invoice01Icon size={18} color={theme.primary} variant="stroke" />
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("customer.latestQuotations")}</Text>
-            </View>
-
-            <TouchableOpacity onPress={onViewAllQuotationsPress} style={styles.inlineAction}>
-              <View style={styles.inlineActionRow}>
-                <Text style={[styles.inlineActionText, { color: theme.primary }]}>{t("common.all")}</Text>
-                <ArrowRight01Icon size={14} color={theme.primary} variant="stroke" />
-              </View>
-            </TouchableOpacity>
-          </View>
+          <SectionHeader
+            icon={<Invoice01Icon size={16} color={theme.primary} variant="stroke" />}
+            title={t("customer.latestQuotations")}
+            theme={theme}
+            rightElement={
+              <TouchableOpacity onPress={onViewAllQuotationsPress} style={styles.inlineAction}>
+                <View style={styles.inlineActionRow}>
+                  <Text style={[styles.inlineActionText, { color: theme.primary }]}>{t("common.all")}</Text>
+                  <ArrowRight01Icon size={14} color={theme.primary} variant="stroke" />
+                </View>
+              </TouchableOpacity>
+            }
+          />
 
           {isQuotationLoading ? (
             <View style={styles.quotationLoadingWrap}>
@@ -631,11 +809,14 @@ export function CustomerDetailContent({
                     key={quotation.id}
                     activeOpacity={0.72}
                     onPress={() => onQuotationPress(quotation.id)}
-                    style={[styles.quotationMiniCard, { borderColor: theme.divider, backgroundColor: theme.cardBg }]}
+                    style={[
+                      styles.quotationMiniCard,
+                      { borderColor: theme.divider, backgroundColor: theme.cardBgSoft },
+                    ]}
                   >
                     <View style={styles.quotationMiniTopRow}>
                       <View style={styles.quotationMiniLeft}>
-                        <Text style={[styles.quotationMiniOfferNo, { color: theme.text }]}>
+                        <Text style={[styles.quotationMiniOfferNo, { color: theme.textSoft }]}>
                           {quotation.offerNo || `#${quotation.id}`}
                         </Text>
                         <Text style={[styles.quotationMiniDate, { color: theme.textMute }]}>
@@ -662,7 +843,7 @@ export function CustomerDetailContent({
                       <Text style={[styles.quotationMiniCurrency, { color: theme.textMute }]}>
                         {quotation.currency}
                       </Text>
-                      <Text style={[styles.quotationMiniTotal, { color: theme.text }]}>
+                      <Text style={[styles.quotationMiniTotal, { color: theme.textSoft }]}>
                         {formatQuotationCurrency(quotation.grandTotal, quotation.currency)}
                       </Text>
                     </View>
@@ -671,20 +852,39 @@ export function CustomerDetailContent({
               })}
             </ScrollView>
           ) : (
-            <Text style={[styles.notesText, { color: theme.textMute, fontStyle: "italic" }]}>
-              {t("customer.noQuotations")}
-            </Text>
+            <EmptyState
+              theme={theme}
+              icon={<Invoice01Icon size={18} color={theme.primary} variant="stroke" />}
+              title={t("customer.noQuotations")}
+              subtitle={t("common.all")}
+            />
           )}
         </View>
 
         <View style={[styles.sectionCard, { backgroundColor: theme.cardBg, borderColor: theme.borderColor }]}>
-          <View style={styles.sectionHeader}>
-            <Note01Icon size={18} color="#F59E0B" variant="stroke" />
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("customer.notesSection")}</Text>
-          </View>
+          <SectionHeader
+            icon={<Note01Icon size={16} color="#F59E0B" variant="stroke" />}
+            title={t("customer.notesSection")}
+            theme={theme}
+          />
 
-          <View style={[styles.notePaper, { borderColor: theme.divider }]}>
-            <Text style={[styles.noteQuoteMark, { color: theme.textMute }]}>{`“`}</Text>
+          <View
+            style={[
+              styles.notePaper,
+              {
+                borderColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(226, 191, 105, 0.32)",
+                backgroundColor: isDark ? "rgba(250, 204, 21, 0.06)" : "rgba(255, 249, 219, 0.92)",
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.noteQuoteMark,
+                { color: isDark ? "rgba(253,224,71,0.18)" : "rgba(202,138,4,0.16)" },
+              ]}
+            >
+              {`“`}
+            </Text>
 
             <Text
               style={[
@@ -703,29 +903,30 @@ export function CustomerDetailContent({
               <View style={[styles.noteMetaLine, { borderTopColor: theme.divider }]}>
                 <View style={styles.noteMetaItem}>
                   <UserIcon size={12} color={theme.textMute} />
-                  <Text style={[styles.noteMetaText, { color: theme.textMute }]}>
-                    {getNoteAuthor(customer, t)}
-                  </Text>
+                  <Text style={[styles.noteMetaText, { color: theme.textMute }]}>{getNoteAuthor(customer, t)}</Text>
                 </View>
 
                 {noteDate ? (
                   <View style={styles.noteMetaItem}>
                     <Calendar03Icon size={12} color={theme.textMute} />
-                    <Text style={[styles.noteMetaText, { color: theme.textMute }]}>
-                      {formatDate(noteDate)}
-                    </Text>
+                    <Text style={[styles.noteMetaText, { color: theme.textMute }]}>{formatDate(noteDate)}</Text>
                   </View>
                 ) : null}
               </View>
-            ) : null}
+            ) : (
+              <View style={[styles.emptyStateInline, { borderTopColor: theme.divider }]}>
+                <Text style={[styles.emptyStateInlineText, { color: theme.textMute }]}>{t("customer.noNotes")}</Text>
+              </View>
+            )}
           </View>
         </View>
 
         <View style={[styles.sectionCard, { backgroundColor: theme.cardBg, borderColor: theme.borderColor }]}>
-          <View style={styles.sectionHeader}>
-            <Activity01Icon size={18} color={theme.primary} variant="stroke" />
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("customer.systemStatus")}</Text>
-          </View>
+          <SectionHeader
+            icon={<Activity01Icon size={16} color={theme.primary} variant="stroke" />}
+            title={t("customer.systemStatus")}
+            theme={theme}
+          />
           <View style={styles.statusContainer}>
             <StatusBadge
               isCompleted={!!customer?.isCompleted}
@@ -748,22 +949,39 @@ export function CustomerDetailContent({
         </View>
 
         <View style={[styles.footerCard, { backgroundColor: theme.cardBg, borderColor: theme.borderColor }]}>
+          <Text style={[styles.footerTitle, { color: theme.textSoft }]}>Kayıt Bilgileri</Text>
+
           <View style={styles.footerRow}>
-            <UserIcon size={14} color={theme.textMute} />
+            <View style={[styles.footerIconWrap, { backgroundColor: theme.cardBgSoft }]}>
+              <UserIcon size={14} color={theme.textMute} />
+            </View>
             <Text style={[styles.footerText, { color: theme.textMute }]}>
-              {t("customer.createdBy")}: <Text style={{ color: theme.text, fontWeight: "700" }}>{customer?.createdByFullUser || t("customer.systemUser")}</Text>
+              {t("customer.createdBy")}:{" "}
+              <Text style={{ color: theme.textSoft, fontWeight: "600" }}>
+                {customer?.createdByFullUser || t("customer.systemUser")}
+              </Text>
             </Text>
           </View>
-          <View style={[styles.footerRow, { marginTop: 4 }]}>
-            <Contact01Icon size={14} color={theme.textMute} />
+
+          <View style={[styles.footerRow, { marginTop: 8 }]}>
+            <View style={[styles.footerIconWrap, { backgroundColor: theme.cardBgSoft }]}>
+              <Contact01Icon size={14} color={theme.textMute} />
+            </View>
             <Text style={[styles.footerText, { color: theme.textMute }]}>
-              {t("customer.salesRepresentative")}: <Text style={{ color: theme.text, fontWeight: "700" }}>{salesRepValue}</Text>
+              {t("customer.salesRepresentative")}:{" "}
+              <Text style={{ color: theme.textSoft, fontWeight: "600" }}>{salesRepValue}</Text>
             </Text>
           </View>
-          <View style={[styles.footerRow, { marginTop: 4 }]}>
-            <Calendar03Icon size={14} color={theme.textMute} />
+
+          <View style={[styles.footerRow, { marginTop: 8 }]}>
+            <View style={[styles.footerIconWrap, { backgroundColor: theme.cardBgSoft }]}>
+              <Calendar03Icon size={14} color={theme.textMute} />
+            </View>
             <Text style={[styles.footerText, { color: theme.textMute }]}>
-              {t("customer.createdAt")}: <Text style={{ color: theme.text, fontWeight: "700" }}>{formatDate(customer?.createdDate) || t("customer.unspecified")}</Text>
+              {t("customer.createdAt")}:{" "}
+              <Text style={{ color: theme.textSoft, fontWeight: "600" }}>
+                {formatDate(customer?.createdDate) || t("customer.unspecified")}
+              </Text>
             </Text>
           </View>
         </View>
@@ -775,185 +993,407 @@ export function CustomerDetailContent({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1, backgroundColor: "transparent" },
-  profileCard: { padding: 24, borderRadius: 32, borderWidth: 1.5, alignItems: "center", marginBottom: 16 },
-  sectionCard: { padding: 16, borderRadius: 24, borderWidth: 1.5, marginBottom: 12 },
-  gridCard: { flex: 1, padding: 16, borderRadius: 24, borderWidth: 1.5 },
-  footerCard: { padding: 16, borderRadius: 24, borderWidth: 1.5, marginTop: 12 },
-  avatarWrapper: { width: 90, height: 90, borderRadius: 32, borderWidth: 1.5, overflow: "hidden", marginBottom: 16 },
-  avatarInner: { flex: 1, alignItems: "center", justifyContent: "center" },
-  avatarText: { fontSize: 32, fontWeight: "800" },
-  kunyeInfo: { alignItems: "center", width: "100%" },
-  customerNameLarge: { fontSize: 22, fontWeight: "800", textAlign: "center", marginBottom: 6, letterSpacing: -0.5 },
-  idTagCentered: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 10, marginBottom: 14 },
+
+  profileCard: {
+    paddingHorizontal: 24,
+    paddingTop: 26,
+    paddingBottom: 22,
+    borderRadius: 32,
+    borderWidth: 1.5,
+    alignItems: "center",
+    marginBottom: 18,
+  },
+
+  sectionCard: {
+    padding: 18,
+    borderRadius: 26,
+    borderWidth: 1.5,
+    marginBottom: 16,
+  },
+
+  gridCard: {
+    flex: 1,
+    padding: 18,
+    borderRadius: 24,
+    borderWidth: 1.5,
+  },
+
+  footerCard: {
+    padding: 18,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    marginTop: 4,
+  },
+
+  avatarWrapper: {
+    width: 96,
+    height: 96,
+    borderRadius: 32,
+    borderWidth: 2,
+    overflow: "hidden",
+    marginBottom: 18,
+  },
+
+  avatarInner: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  avatarText: {
+    fontSize: 30,
+    fontWeight: "700",
+  },
+
+  kunyeInfo: {
+    alignItems: "center",
+    width: "100%",
+  },
+
+  customerNameLarge: {
+    fontSize: 23,
+    fontWeight: "600",
+    textAlign: "center",
+    marginBottom: 8,
+    letterSpacing: -0.25,
+  },
+
+  idTagCentered: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    marginBottom: 16,
+  },
+
+  codeTagTextLarge: {
+    fontSize: 11,
+    fontWeight: "500",
+    letterSpacing: 0.4,
+    opacity: 0.88,
+  },
+
   btn360: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 18,
+    paddingVertical: 11,
     borderRadius: 20,
-    borderWidth: 1.5,
-    marginBottom: 20,
+    borderWidth: 1.2,
+    marginBottom: 22,
   },
+
   text360: {
     fontSize: 14,
-    fontWeight: "800",
-    letterSpacing: 0.5,
+    fontWeight: "600",
+    letterSpacing: 0.2,
   },
-  btnQuickQuotation: {
-    width: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    marginBottom: 16,
-  },
-  textQuickQuotation: {
-    fontSize: 13,
-    fontWeight: "800",
-    letterSpacing: 0.4,
-  },
-  btnAddImage: {
+
+  quickMiniActionsRow: {
     width: "100%",
     flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 22,
+  },
+
+  quickMiniAction: {
+    width: 72,
+    alignItems: "center",
+  },
+
+  quickMiniSquare: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    borderWidth: 1.2,
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    marginBottom: 16,
+    marginBottom: 6,
   },
-  textAddImage: {
-    fontSize: 13,
-    fontWeight: "800",
-    letterSpacing: 0.4,
+
+  quickMiniLabel: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: "600",
+    textAlign: "center",
+    letterSpacing: 0,
   },
-  btnUpdateLocation: {
+
+  quickActionsRow: {
+    flexDirection: "row",
+    gap: 18,
+    justifyContent: "center",
     width: "100%",
+  },
+
+  actionCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1.2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 14,
-    borderWidth: 1.5,
+    gap: 10,
     marginBottom: 16,
   },
-  textUpdateLocation: {
-    fontSize: 13,
-    fontWeight: "800",
-    letterSpacing: 0.4,
+
+  sectionHeaderSpaced: {
+    justifyContent: "space-between",
   },
-  codeTagTextLarge: { color: "#AAA", fontSize: 13, fontWeight: "700", letterSpacing: 1 },
-  quickActionsRow: { flexDirection: "row", gap: 18, justifyContent: "center", width: "100%" },
-  actionCircle: { width: 48, height: 48, borderRadius: 24, borderWidth: 1.5, alignItems: "center", justifyContent: "center" },
-  sectionHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14 },
-  sectionHeaderSpaced: { justifyContent: "space-between" },
-  sectionHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
-  sectionTitle: { fontSize: 13, fontWeight: "800", letterSpacing: 0.5 },
-  inlineAction: { paddingVertical: 4, paddingHorizontal: 2 },
-  inlineActionText: { fontSize: 12, fontWeight: "700" },
-  inlineActionRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  detailRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 12 },
-  detailLabelRow: { flexDirection: "row", alignItems: "center" },
-  miniIconWrapper: { marginRight: 8, opacity: 0.7 },
-  detailLabel: { fontSize: 13, fontWeight: "500" },
-  detailValue: { fontSize: 13, fontWeight: "700", maxWidth: "60%", textAlign: "right" },
-  addressText: { fontSize: 14, lineHeight: 22, marginBottom: 12, opacity: 0.9 },
-  locationGrid: { flexDirection: "row", gap: 12, paddingTop: 10, borderTopWidth: 1 },
-  locItem: { flex: 1 },
-  gridRow: { flexDirection: "row", gap: 12, marginBottom: 12 },
-  gridLabel: { fontSize: 11, fontWeight: "600", marginBottom: 4 },
-  gridValue: { fontWeight: "800" },
-  imageScrollContent: { gap: 12, paddingRight: 6 },
-  imageCard: { width: 190, borderRadius: 18, borderWidth: 1, overflow: "hidden" },
-  customerImage: { width: "100%", height: 150, backgroundColor: "rgba(0,0,0,0.08)" },
-  imageCaption: { fontSize: 12, lineHeight: 18, paddingHorizontal: 10, paddingVertical: 10 },
-  notesText: { fontSize: 14, lineHeight: 24, opacity: 0.9 },
+
+  sectionHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flexShrink: 1,
+  },
+
+  sectionIconWrapper: {
+    width: 28,
+    height: 28,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    letterSpacing: 0.15,
+  },
+
+  inlineAction: {
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+  },
+
+  inlineActionText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+
+  inlineActionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+
+  detailRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 14,
+  },
+
+  detailLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexShrink: 1,
+    paddingRight: 12,
+    flex: 1,
+  },
+
+  miniIconWrapper: {
+    marginRight: 8,
+    opacity: 0.75,
+  },
+
+  detailLabel: {
+    fontSize: 13,
+    fontWeight: "500",
+  },
+
+  detailValue: {
+    fontSize: 13,
+    fontWeight: "500",
+    maxWidth: "62%",
+    textAlign: "right",
+    lineHeight: 18,
+  },
+
+  addressText: {
+    fontSize: 14,
+    lineHeight: 22,
+    marginBottom: 14,
+    padding: 12,
+    borderRadius: 14,
+    opacity: 0.96,
+    fontWeight: "400",
+  },
+
+  locationGrid: {
+    flexDirection: "row",
+    gap: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+  },
+
+  locItemBox: {
+    flex: 1,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 12,
+  },
+
+  gridRow: {
+    flexDirection: "row",
+    gap: 14,
+    marginBottom: 16,
+  },
+
+  gridLabel: {
+    fontSize: 11,
+    fontWeight: "500",
+    marginBottom: 5,
+  },
+
+  gridValue: {
+    fontWeight: "500",
+    fontSize: 15,
+    lineHeight: 20,
+  },
+
+  gridValueLarge: {
+    fontWeight: "600",
+    fontSize: 16,
+    lineHeight: 22,
+  },
+
+  creditValue: {
+    fontSize: 18,
+    fontWeight: "600",
+  },
+
+  imageScrollContent: {
+    gap: 12,
+    paddingRight: 6,
+  },
+
+  imageCard: {
+    width: 200,
+    borderRadius: 20,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+
+  customerImage: {
+    width: "100%",
+    height: 156,
+    backgroundColor: "rgba(0,0,0,0.08)",
+  },
+
+  imageCaption: {
+    fontSize: 12,
+    lineHeight: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontWeight: "400",
+  },
+
+  notesText: {
+    fontSize: 14,
+    lineHeight: 25,
+    opacity: 0.96,
+  },
+
   notePaper: {
     position: "relative",
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
     paddingTop: 18,
     paddingHorizontal: 14,
     paddingBottom: 12,
     overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.02)",
   },
+
   noteQuoteMark: {
     position: "absolute",
     top: 6,
     left: 12,
-    fontSize: 26,
-    lineHeight: 26,
-    fontWeight: "700",
-    opacity: 0.22,
+    fontSize: 28,
+    lineHeight: 28,
+    fontWeight: "500",
   },
+
   notePaperText: {
-    paddingLeft: 8,
-    paddingRight: 4,
-    paddingTop: 6,
-    paddingBottom: 2,
+    paddingLeft: 10,
+    paddingRight: 6,
+    paddingTop: 10,
+    paddingBottom: 8,
     lineHeight: 26,
-    letterSpacing: 0.1,
+    fontWeight: "400",
   },
+
   noteMetaLine: {
     marginTop: 10,
-    paddingTop: 8,
+    paddingTop: 10,
     borderTopWidth: 1,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
   },
+
   noteMetaItem: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
   },
+
   noteMetaText: {
     fontSize: 11,
-    fontWeight: "600",
+    fontWeight: "500",
   },
+
   quotationLoadingWrap: {
-    minHeight: 72,
+    minHeight: 88,
     alignItems: "center",
     justifyContent: "center",
   },
+
   quotationScrollArea: {
-    maxHeight: 320,
+    maxHeight: 340,
   },
+
   quotationScrollContent: {
-    gap: 10,
+    gap: 12,
     paddingRight: 4,
   },
+
   quotationMiniCard: {
     borderWidth: 1,
-    borderRadius: 16,
-    padding: 12,
+    borderRadius: 18,
+    padding: 14,
   },
+
   quotationMiniTopRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
     gap: 10,
   },
+
   quotationMiniLeft: {
     flex: 1,
   },
+
   quotationMiniOfferNo: {
-    fontSize: 13,
-    fontWeight: "800",
+    fontSize: 14,
+    fontWeight: "600",
     marginBottom: 4,
   },
+
   quotationMiniDate: {
     fontSize: 11,
-    fontWeight: "500",
+    fontWeight: "400",
   },
+
   quotationStatusBadge: {
     borderWidth: 1,
     borderRadius: 999,
@@ -961,30 +1401,137 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     alignSelf: "flex-start",
   },
+
   quotationStatusText: {
     fontSize: 10,
-    fontWeight: "800",
+    fontWeight: "600",
   },
+
   quotationMiniBottomRow: {
-    marginTop: 10,
+    marginTop: 12,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
+
   quotationMiniCurrency: {
+    fontSize: 11,
+    fontWeight: "500",
+  },
+
+  quotationMiniTotal: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
+  statusContainer: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 12,
+    flexWrap: "wrap",
+  },
+
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 6,
+  },
+
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+
+  statusText: {
     fontSize: 11,
     fontWeight: "600",
   },
-  quotationMiniTotal: {
-    fontSize: 14,
-    fontWeight: "800",
+
+  pendingBadge: {
+    backgroundColor: "rgba(245, 158, 11, 0.10)",
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 12,
   },
-  statusContainer: { flexDirection: "row", gap: 8, marginBottom: 12 },
-  statusBadge: { flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1, gap: 6 },
-  statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusText: { fontSize: 11, fontWeight: "700" },
-  pendingBadge: { backgroundColor: "rgba(245, 158, 11, 0.1)", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12 },
-  pendingText: { color: "#F59E0B", fontSize: 11, fontWeight: "700" },
-  footerRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  footerText: { fontSize: 12, fontWeight: "500" },
+
+  pendingText: {
+    color: "#F59E0B",
+    fontSize: 11,
+    fontWeight: "600",
+  },
+
+  footerTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 12,
+    letterSpacing: 0.1,
+  },
+
+  footerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+
+  footerIconWrap: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  footerText: {
+    fontSize: 12,
+    fontWeight: "400",
+    flex: 1,
+    lineHeight: 18,
+  },
+
+  emptyState: {
+    borderWidth: 1,
+    borderRadius: 18,
+    paddingVertical: 18,
+    paddingHorizontal: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  emptyStateIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+  },
+
+  emptyStateTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    textAlign: "center",
+    marginBottom: 4,
+  },
+
+  emptyStateSubtitle: {
+    fontSize: 12,
+    fontWeight: "400",
+    textAlign: "center",
+  },
+
+  emptyStateInline: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+  },
+
+  emptyStateInlineText: {
+    fontSize: 12,
+    fontWeight: "400",
+  },
 });

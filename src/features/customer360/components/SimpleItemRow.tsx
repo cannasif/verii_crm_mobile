@@ -5,7 +5,8 @@ import { useUIStore } from "../../../store/ui";
 import {
   Calendar03Icon,
   Tag01Icon,
-  BotIcon,
+  Activity02Icon,
+  Invoice01Icon,
 } from "hugeicons-react-native";
 import type { Customer360SimpleItemDto } from "../types";
 
@@ -13,6 +14,7 @@ interface SimpleItemRowProps {
   item: Customer360SimpleItemDto;
   colors: Record<string, string>;
   formatDate: (date: string | null | undefined) => string;
+  onPress?: (item: Customer360SimpleItemDto) => void;
 }
 
 function getStatusMeta(status: string, isDark: boolean) {
@@ -62,26 +64,45 @@ function getStatusMeta(status: string, isDark: boolean) {
   };
 }
 
+function isActivityItem(item: Customer360SimpleItemDto) {
+  const raw = `${item.title ?? ""} ${item.subtitle ?? ""} ${item.status ?? ""}`.toLocaleLowerCase("tr-TR");
+  return raw.includes("aktivite") || raw.includes("activity");
+}
+
 export function SimpleItemRow({
   item,
   colors,
   formatDate,
+  onPress,
 }: SimpleItemRowProps): React.ReactElement {
   const { themeMode } = useUIStore();
   const isDark = themeMode === "dark";
 
-  const titleText = isDark ? "#F8FAFC" : "#1F2937";
-  const mutedText = isDark ? "rgba(255,255,255,0.56)" : "#6B7280";
-  const softText = isDark ? "rgba(255,255,255,0.42)" : "#94A3B8";
-  const accent = isDark ? "#EC4899" : "#DB2777";
+  const titleText = isDark ? "#F8FAFC" : "#334155";
+  const mutedText = isDark ? "rgba(255,255,255,0.62)" : "#64748B";
+  const softText = isDark ? "rgba(255,255,255,0.44)" : "#94A3B8";
+
+  const defaultAccent = isDark ? "#EC4899" : "#DB2777";
+  const activityAccent = "#14B8A6";
+
+  const iconBg = isDark ? "rgba(255,255,255,0.04)" : "rgba(219,39,119,0.06)";
+  const iconBorder = isDark ? "rgba(255,255,255,0.07)" : "rgba(219,39,119,0.10)";
+  const activityBg = isDark ? "rgba(20,184,166,0.12)" : "rgba(20,184,166,0.08)";
+  const activityBorder = isDark ? "rgba(20,184,166,0.20)" : "rgba(20,184,166,0.14)";
 
   const dateStr = item.date ? formatDate(item.date) : null;
   const hasSubtitle = !!item.subtitle?.trim();
   const hasStatus = item.status != null && item.status !== "";
+  const activityItem = isActivityItem(item);
+
   const statusMeta = useMemo(
     () => (hasStatus ? getStatusMeta(String(item.status), isDark) : null),
     [item.status, isDark, hasStatus]
   );
+
+  const titleIconColor = activityItem ? activityAccent : defaultAccent;
+  const titleIconBg = activityItem ? activityBg : iconBg;
+  const titleIconBorder = activityItem ? activityBorder : iconBorder;
 
   return (
     <View style={styles.row}>
@@ -89,14 +110,18 @@ export function SimpleItemRow({
         <View style={styles.titleWrap}>
           <View
             style={[
-              styles.dotWrap,
+              styles.iconWrap,
               {
-                backgroundColor: `${accent}10`,
-                borderColor: `${accent}18`,
+                backgroundColor: titleIconBg,
+                borderColor: titleIconBorder,
               },
             ]}
           >
-            <BotIcon size={12} color={accent} variant="stroke" />
+            {activityItem ? (
+              <Activity02Icon size={12} color={titleIconColor} variant="stroke" />
+            ) : (
+              <Invoice01Icon size={12} color={titleIconColor} variant="stroke" />
+            )}
           </View>
 
           <Text style={[styles.title, { color: titleText }]} numberOfLines={2}>
@@ -127,7 +152,7 @@ export function SimpleItemRow({
       {hasSubtitle ? (
         <View style={styles.metaRow}>
           <Tag01Icon size={11} color={softText} variant="stroke" />
-          <Text style={[styles.subtitle, { color: mutedText }]} numberOfLines={3}>
+          <Text style={[styles.subtitle, { color: mutedText }]} numberOfLines={2}>
             {item.subtitle}
           </Text>
         </View>
@@ -161,44 +186,48 @@ const styles = StyleSheet.create({
     minWidth: 0,
     flexDirection: "row",
     alignItems: "flex-start",
+    paddingRight: 8,
   },
-  dotWrap: {
-    width: 20,
-    height: 20,
-    borderRadius: 7,
+  iconWrap: {
+    width: 22,
+    height: 22,
+    borderRadius: 8,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 7,
+    marginRight: 8,
     marginTop: 1,
+    flexShrink: 0,
   },
   title: {
     flex: 1,
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: "500",
-    lineHeight: 15,
+    lineHeight: 16,
     letterSpacing: -0.1,
+    paddingTop: 1,
   },
   metaRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 5,
-    marginTop: 6,
-    paddingLeft: 27,
+    gap: 6,
+    marginTop: 7,
+    paddingLeft: 30,
+    paddingRight: 4,
   },
   subtitle: {
     flex: 1,
-    fontSize: 9.5,
+    fontSize: 10,
+    fontWeight: "400",
+    lineHeight: 14,
+  },
+  date: {
+    fontSize: 10,
     fontWeight: "400",
     lineHeight: 13,
   },
-  date: {
-    fontSize: 9.5,
-    fontWeight: "400",
-    lineHeight: 12,
-  },
   statusBadge: {
-    maxWidth: "42%",
+    maxWidth: "40%",
     minHeight: 22,
     borderRadius: 999,
     borderWidth: 1,
@@ -206,10 +235,12 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     alignItems: "center",
     justifyContent: "center",
+    alignSelf: "flex-start",
   },
   status: {
     fontSize: 8.5,
     fontWeight: "500",
     lineHeight: 10,
+    textAlign: "center",
   },
 });

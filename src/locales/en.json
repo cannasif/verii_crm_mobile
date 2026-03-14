@@ -79,7 +79,10 @@
     "quotationCreateFailedGeneric": "An error occurred while creating the quote.",
     "lineDeleteFailed": "Row could not be deleted",
     "voiceSearchSupportInfo": "Voice search: Works if the web browser supports it. For mobile: npx expo install expo-speech-recognition",
-    "all": "All"
+    "all": "All",
+    "filter": "Filter",
+    "newest": "Newest",
+    "oldest": "Oldest"
   },
   "home": {
     "greeting": "Hello",
@@ -762,7 +765,8 @@
     "tabImages": "Images",
     "tabRelations": "Related Stocks",
     "noImages": "No images yet",
-    "noRelations": "No related stocks yet"
+    "noRelations": "No related stocks yet",
+    "foundCount": "{{count}} related stock found"
   },
   "sales": {
     "createQuotation": "Create Quotation",
@@ -1234,7 +1238,9 @@
       "totalQuotations": "Total Quotations",
       "totalOrders": "Total Orders",
       "openQuotations": "Open Quotations",
-      "openOrders": "Open Orders"
+      "openOrders": "Open Orders",
+      "closedOrders": "Closed Orders",
+      "lastActivityDate": "Last Activity Date"
     },
     "currencyFilter": {
       "label": "Currency",

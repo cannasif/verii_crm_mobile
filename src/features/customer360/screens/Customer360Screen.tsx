@@ -4,6 +4,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -110,15 +111,18 @@ export function Customer360Screen(): React.ReactElement {
   const rawCode = profile?.customerCode?.trim() || "";
   const displayCode = rawCode && rawCode !== rawName ? rawCode : "";
 
-  const titleText = isDark ? "#FFFFFF" : "#1F2937";
-  const mutedText = isDark ? "rgba(255,255,255,0.58)" : "#6B7280";
+  const titleText = isDark ? "#E2E8F0" : "#475569";
+  const strongText = isDark ? "#F8FAFC" : "#334155";
+  const mutedText = isDark ? "rgba(203,213,225,0.68)" : "#94A3B8";
   const accent = isDark ? "#EC4899" : "#DB2777";
-  const cardBg = isDark ? "rgba(19,11,27,0.72)" : "rgba(255,245,248,0.84)";
-  const cardBgAlt = isDark ? "rgba(18,8,25,0.78)" : "rgba(255,250,252,0.86)";
-  const cardBorder = isDark ? "rgba(255,255,255,0.07)" : "rgba(219,39,119,0.08)";
-  const tabShellBg = isDark ? "rgba(17,10,24,0.72)" : "rgba(255,248,251,0.86)";
-  const tabActiveBg = isDark ? "rgba(236,72,153,0.10)" : "rgba(219,39,119,0.08)";
-  const tabActiveBorder = isDark ? "rgba(236,72,153,0.24)" : "rgba(219,39,119,0.18)";
+  const cardBg = isDark ? "rgba(19,11,27,0.70)" : "rgba(255,250,252,0.88)";
+  const cardBgAlt = isDark ? "rgba(18,8,25,0.76)" : "rgba(255,252,253,0.92)";
+  const cardBorder = isDark ? "rgba(236,72,153,0.16)" : "rgba(219,39,119,0.12)";
+  const customerCardBorder = isDark ? "rgba(236,72,153,0.18)" : "rgba(219,39,119,0.14)";
+  const tabShellBg = isDark ? "rgba(17,10,24,0.72)" : "rgba(255,248,251,0.88)";
+  const tabActiveBg = isDark ? "rgba(236,72,153,0.10)" : "rgba(219,39,119,0.07)";
+  const tabActiveBorder = isDark ? "rgba(236,72,153,0.20)" : "rgba(219,39,119,0.15)";
+  const tabInactiveBorder = isDark ? "rgba(255,255,255,0.04)" : "rgba(148,163,184,0.08)";
   const errorColor = colors.error;
 
   const tabs = [
@@ -151,7 +155,7 @@ export function Customer360Screen(): React.ReactElement {
         >
           <Alert02Icon size={20} color={errorColor} variant="stroke" />
         </View>
-        <Text style={[styles.stateTitle, { color: titleText }]}>{message}</Text>
+        <Text style={[styles.stateTitle, { color: strongText }]}>{message}</Text>
         {onRetry ? (
           <TouchableOpacity
             onPress={onRetry}
@@ -203,7 +207,7 @@ export function Customer360Screen(): React.ReactElement {
                 >
                   <Alert02Icon size={20} color={accent} variant="stroke" />
                 </View>
-                <Text style={[styles.stateTitle, { color: titleText }]}>
+                <Text style={[styles.stateTitle, { color: strongText }]}>
                   {t("customer360.notFound")}
                 </Text>
               </View>
@@ -235,7 +239,7 @@ export function Customer360Screen(): React.ReactElement {
               styles.customerMiniCard,
               {
                 backgroundColor: cardBg,
-                borderColor: cardBorder,
+                borderColor: customerCardBorder,
               },
             ]}
           >
@@ -244,7 +248,7 @@ export function Customer360Screen(): React.ReactElement {
                 styles.customerIconWrap,
                 {
                   backgroundColor: `${accent}10`,
-                  borderColor: `${accent}22`,
+                  borderColor: `${accent}20`,
                 },
               ]}
             >
@@ -252,12 +256,15 @@ export function Customer360Screen(): React.ReactElement {
             </View>
 
             <View style={styles.customerTextWrap}>
-              <Text style={[styles.customerName, { color: titleText }]} numberOfLines={1}>
+              <Text style={[styles.customerLabel, { color: mutedText }]}>
+                {t("customer.title")}
+              </Text>
+              <Text style={[styles.customerName, { color: strongText }]} numberOfLines={1}>
                 {rawName}
               </Text>
               {displayCode ? (
                 <Text style={[styles.customerCode, { color: mutedText }]} numberOfLines={1}>
-                  {displayCode}
+                  #{displayCode}
                 </Text>
               ) : null}
             </View>
@@ -272,48 +279,53 @@ export function Customer360Screen(): React.ReactElement {
               },
             ]}
           >
-            
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.key;
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.tabBarContent}
+            >
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.key;
 
-              return (
-                <TouchableOpacity
-                  key={tab.key}
-                  style={[
-                    styles.tab,
-                    {
-                      backgroundColor: isActive ? tabActiveBg : "transparent",
-                      borderColor: isActive ? tabActiveBorder : "transparent",
-                    },
-                  ]}
-                  onPress={() => setActiveTab(tab.key)}
-                  activeOpacity={0.82}
-                >
-                  <View
+                return (
+                  <TouchableOpacity
+                    key={tab.key}
                     style={[
-                      styles.tabIconWrap,
+                      styles.tab,
                       {
-                        backgroundColor: isActive ? `${accent}10` : "transparent",
-                        borderColor: isActive ? `${accent}18` : "transparent",
+                        backgroundColor: isActive ? tabActiveBg : "transparent",
+                        borderColor: isActive ? tabActiveBorder : tabInactiveBorder,
                       },
                     ]}
+                    onPress={() => setActiveTab(tab.key)}
+                    activeOpacity={0.82}
                   >
-                    <Icon size={14} color={isActive ? accent : mutedText} variant="stroke" />
-                  </View>
+                    <View
+                      style={[
+                        styles.tabIconWrap,
+                        {
+                          backgroundColor: isActive ? `${accent}10` : "transparent",
+                          borderColor: isActive ? `${accent}16` : "transparent",
+                        },
+                      ]}
+                    >
+                      <Icon size={14} color={isActive ? accent : mutedText} variant="stroke" />
+                    </View>
 
-                  <Text
-                    style={[
-                      styles.tabText,
-                      { color: isActive ? titleText : mutedText },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {tab.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+                    <Text
+                      style={[
+                        styles.tabText,
+                        { color: isActive ? titleText : mutedText },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {tab.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
           </View>
 
           <View
@@ -427,55 +439,65 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
   },
   customerMiniCard: {
-    minHeight: 50,
-    borderRadius: 16,
+    minHeight: 58,
+    borderRadius: 18,
     borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 10,
   },
   customerIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 11,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 9,
+    marginRight: 10,
   },
   customerTextWrap: {
     flex: 1,
     minWidth: 0,
   },
-  customerName: {
-    fontSize: 12,
+  customerLabel: {
+    fontSize: 10,
     fontWeight: "500",
-    lineHeight: 15,
+    lineHeight: 12,
+    marginBottom: 2,
+    letterSpacing: 0.2,
+  },
+  customerName: {
+    fontSize: 13,
+    fontWeight: "600",
+    lineHeight: 17,
   },
   customerCode: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: "400",
-    marginTop: 1,
-    lineHeight: 11,
+    marginTop: 2,
+    lineHeight: 12,
+    letterSpacing: 0.2,
   },
   tabBar: {
-    flexDirection: "row",
     borderRadius: 18,
     borderWidth: 1,
     padding: 4,
-    gap: 4,
     marginBottom: 8,
   },
+  tabBarContent: {
+    paddingRight: 4,
+    gap: 6,
+  },
   tab: {
-    flex: 1,
     minHeight: 54,
+    minWidth: 108,
     borderRadius: 13,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 2,
+    paddingHorizontal: 12,
     paddingVertical: 6,
     gap: 4,
   },
@@ -488,20 +510,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   tabText: {
-    fontSize: 9,
-    fontWeight: "400",
+    fontSize: 10,
+    fontWeight: "500",
     textAlign: "center",
-    lineHeight: 11,
-    paddingHorizontal: 1,
+    lineHeight: 12,
   },
   filterShell: {
-  borderRadius: 12,
-  borderWidth: 1,
-  paddingHorizontal: 8,
-  paddingTop: 5,
-  paddingBottom: 5,
-  marginBottom: 8,
-},
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingTop: 5,
+    paddingBottom: 5,
+    marginBottom: 8,
+  },
   tabContentWrap: {
     flex: 1,
     minHeight: 0,

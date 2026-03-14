@@ -2,12 +2,15 @@ import React, { useCallback } from "react";
 import { View, StyleSheet } from "react-native";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { useTranslation } from "react-i18next";
+import { Text } from "../../../components/ui/text";
+import { useUIStore } from "../../../store/ui";
 import {
   KpiCard,
   SectionCard,
   TimelineSection,
 } from "../components";
 import type { Customer360OverviewDto } from "../types";
+import { Calendar03Icon } from "hugeicons-react-native";
 
 interface Customer360OverviewTabProps {
   data: Customer360OverviewDto | undefined;
@@ -50,6 +53,9 @@ export function Customer360OverviewTab({
   colors,
 }: Customer360OverviewTabProps): React.ReactElement {
   const { t, i18n } = useTranslation();
+  const { themeMode } = useUIStore();
+
+  const isDark = themeMode === "dark";
   const locale =
     i18n.language === "tr" ? "tr-TR" : i18n.language === "de" ? "de-DE" : "en-US";
 
@@ -96,6 +102,14 @@ export function Customer360OverviewTab({
   );
 
   const noDataKey = t("common.noData");
+  const lastActivityText = formatDateCb(kpis.lastActivityDate);
+
+  const surfaceBg = isDark ? "rgba(255,255,255,0.03)" : "rgba(255,250,252,0.90)";
+  const surfaceBorder = isDark ? "rgba(236,72,153,0.16)" : "rgba(219,39,119,0.12)";
+  const divider = isDark ? "rgba(236,72,153,0.22)" : "rgba(219,39,119,0.18)";
+  const mutedText = isDark ? "rgba(203,213,225,0.72)" : "#94A3B8";
+  const softText = isDark ? "#E2E8F0" : "#64748B";
+  const accent = isDark ? "#EC4899" : "#DB2777";
 
   return (
     <FlatListScrollView
@@ -103,37 +117,76 @@ export function Customer360OverviewTab({
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.kpiGroup}>
-        <View style={styles.kpiRow}>
-          <KpiCard
-            label={t("customer360.kpi.totalDemands")}
-            value={kpis.totalDemands}
-            colors={colors}
-          />
-          <KpiCard
-            label={t("customer360.kpi.totalQuotations")}
-            value={kpis.totalQuotations}
-            colors={colors}
-          />
-          <KpiCard
-            label={t("customer360.kpi.totalOrders")}
-            value={kpis.totalOrders}
-            colors={colors}
-          />
+      <View style={styles.kpiBlock}>
+        <View style={styles.kpiGroup}>
+          <View style={styles.kpiRow}>
+            <KpiCard
+              label={t("customer360.kpi.totalQuotations")}
+              value={kpis.totalQuotations}
+              colors={colors}
+            />
+            <KpiCard
+              label={t("customer360.kpi.totalOrders")}
+              value={kpis.totalOrders}
+              colors={colors}
+            />
+            <KpiCard
+              label={t("customer360.kpi.totalDemands")}
+              value={kpis.totalDemands}
+              colors={colors}
+            />
+          </View>
+
+          <View style={styles.kpiRowTwo}>
+            <View style={styles.kpiHalf}>
+              <KpiCard
+                label={t("customer360.kpi.openQuotations")}
+                value={kpis.openQuotations}
+                colors={colors}
+              />
+            </View>
+            <View style={styles.kpiHalf}>
+              <KpiCard
+                label={t("customer360.kpi.openOrders")}
+                value={kpis.openOrders}
+                colors={colors}
+              />
+            </View>
+          </View>
         </View>
 
-        <View style={styles.kpiRow}>
-          <KpiCard
-            label={t("customer360.kpi.openQuotations")}
-            value={kpis.openQuotations}
-            colors={colors}
-          />
-          <KpiCard
-            label={t("customer360.kpi.openOrders")}
-            value={kpis.openOrders}
-            colors={colors}
-          />
-        </View>
+        {lastActivityText ? (
+          <View
+            style={[
+              styles.lastActivityCard,
+              {
+                backgroundColor: surfaceBg,
+                borderColor: surfaceBorder,
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.lastActivityIconWrap,
+                {
+                  backgroundColor: `${accent}10`,
+                  borderColor: `${accent}22`,
+                },
+              ]}
+            >
+              <Calendar03Icon size={14} color={accent} variant="stroke" />
+            </View>
+
+            <View style={styles.lastActivityTextWrap}>
+              <Text style={[styles.lastActivityLabel, { color: mutedText }]}>
+                {t("customer360.kpi.lastActivityDate")}
+              </Text>
+              <Text style={[styles.lastActivityValue, { color: softText }]}>
+                {lastActivityText}
+              </Text>
+            </View>
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.sectionGroup}>
@@ -145,6 +198,8 @@ export function Customer360OverviewTab({
           formatDate={formatDateCb}
         />
 
+        <View style={[styles.sectionDivider, { backgroundColor: divider }]} />
+
         <SectionCard
           title={t("customer360.sections.shippingAddresses")}
           items={shippingAddresses}
@@ -153,13 +208,7 @@ export function Customer360OverviewTab({
           formatDate={formatDateCb}
         />
 
-        <SectionCard
-          title={t("customer360.sections.recentDemands")}
-          items={recentDemands}
-          colors={colors}
-          noDataKey={noDataKey}
-          formatDate={formatDateCb}
-        />
+        <View style={[styles.sectionDivider, { backgroundColor: divider }]} />
 
         <SectionCard
           title={t("customer360.sections.recentQuotations")}
@@ -169,6 +218,8 @@ export function Customer360OverviewTab({
           formatDate={formatDateCb}
         />
 
+        <View style={[styles.sectionDivider, { backgroundColor: divider }]} />
+
         <SectionCard
           title={t("customer360.sections.recentOrders")}
           items={recentOrders}
@@ -176,6 +227,18 @@ export function Customer360OverviewTab({
           noDataKey={noDataKey}
           formatDate={formatDateCb}
         />
+
+        <View style={[styles.sectionDivider, { backgroundColor: divider }]} />
+
+        <SectionCard
+          title={t("customer360.sections.recentDemands")}
+          items={recentDemands}
+          colors={colors}
+          noDataKey={noDataKey}
+          formatDate={formatDateCb}
+        />
+
+        <View style={[styles.sectionDivider, { backgroundColor: divider }]} />
 
         <SectionCard
           title={t("customer360.sections.recentActivities")}
@@ -207,22 +270,71 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   scrollContent: {
-    paddingTop: 6,
-    paddingBottom: 120,
+    paddingTop: 10,
+    paddingBottom: 128,
+  },
+  kpiBlock: {
+    marginBottom: 24,
   },
   kpiGroup: {
     gap: 14,
-    marginBottom: 20,
   },
   kpiRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
   },
+  kpiRowTwo: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  kpiHalf: {
+    flex: 1,
+  },
+  lastActivityCard: {
+    marginTop: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  lastActivityIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 11,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
+  lastActivityTextWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  lastActivityLabel: {
+    fontSize: 10,
+    fontWeight: "500",
+    lineHeight: 12,
+    marginBottom: 2,
+    letterSpacing: 0.2,
+  },
+  lastActivityValue: {
+    fontSize: 12,
+    fontWeight: "500",
+    lineHeight: 16,
+  },
   sectionGroup: {
-    gap: 16,
+    gap: 12,
+  },
+  sectionDivider: {
+    height: 1.5,
+    marginHorizontal: 6,
+    borderRadius: 999,
+    opacity: 1,
   },
   timelineWrap: {
-    marginTop: 20,
+    marginTop: 24,
   },
 });
