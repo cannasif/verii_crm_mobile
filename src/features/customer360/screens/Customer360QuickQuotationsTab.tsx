@@ -64,9 +64,10 @@ export function Customer360QuickQuotationsTab({
   const softText = isDark ? "rgba(255,255,255,0.42)" : "#94A3B8";
   const accent = isDark ? "#EC4899" : "#DB2777";
   const accentSecondary = isDark ? "#F97316" : "#F59E0B";
-  const cardBg = isDark ? "rgba(19,11,27,0.72)" : "rgba(255,245,248,0.84)";
-  const cardBgAlt = isDark ? "rgba(18,8,25,0.78)" : "rgba(255,250,252,0.86)";
-  const cardBorder = isDark ? "rgba(255,255,255,0.07)" : "rgba(219,39,119,0.08)";
+  const cardBg = isDark ? "rgba(19,11,27,0.74)" : "rgba(255,245,248,0.88)";
+  const cardBgAlt = isDark ? "rgba(18,8,25,0.80)" : "rgba(255,250,252,0.92)";
+  const cardBorder = isDark ? "rgba(255,255,255,0.08)" : "rgba(219,39,119,0.10)";
+  const innerBorder = isDark ? "rgba(255,255,255,0.06)" : "rgba(148,163,184,0.12)";
   const positiveBg = isDark ? "rgba(16,185,129,0.12)" : "rgba(16,185,129,0.10)";
   const positiveText = "#10B981";
   const warningBg = isDark ? "rgba(245,158,11,0.12)" : "rgba(245,158,11,0.10)";
@@ -235,12 +236,20 @@ export function Customer360QuickQuotationsTab({
                 styles.gridShell,
                 {
                   backgroundColor: cardBgAlt,
-                  borderColor: cardBorder,
+                  borderColor: innerBorder,
                 },
               ]}
             >
               <View style={styles.gridRow}>
-                <View style={styles.metricCard}>
+                <View
+                  style={[
+                    styles.metricCard,
+                    {
+                      backgroundColor: isDark ? "rgba(255,255,255,0.025)" : "rgba(255,255,255,0.70)",
+                      borderColor: innerBorder,
+                    },
+                  ]}
+                >
                   <Text style={[styles.label, { color: softText }]}>
                     {t("customer360.quickQuotations.currency")}
                   </Text>
@@ -252,7 +261,15 @@ export function Customer360QuickQuotationsTab({
                   </View>
                 </View>
 
-                <View style={styles.metricCard}>
+                <View
+                  style={[
+                    styles.metricCard,
+                    {
+                      backgroundColor: isDark ? "rgba(255,255,255,0.025)" : "rgba(255,255,255,0.70)",
+                      borderColor: innerBorder,
+                    },
+                  ]}
+                >
                   <Text style={[styles.label, { color: softText }]}>
                     {t("customer360.quickQuotations.total")}
                   </Text>
@@ -263,7 +280,15 @@ export function Customer360QuickQuotationsTab({
               </View>
 
               <View style={styles.gridRow}>
-                <View style={styles.metricCard}>
+                <View
+                  style={[
+                    styles.metricCard,
+                    {
+                      backgroundColor: isDark ? "rgba(255,255,255,0.025)" : "rgba(255,255,255,0.70)",
+                      borderColor: innerBorder,
+                    },
+                  ]}
+                >
                   <Text style={[styles.label, { color: softText }]}>
                     {t("customer360.quickQuotations.quotationStatus")}
                   </Text>
@@ -272,7 +297,15 @@ export function Customer360QuickQuotationsTab({
                   </Text>
                 </View>
 
-                <View style={styles.metricCard}>
+                <View
+                  style={[
+                    styles.metricCard,
+                    {
+                      backgroundColor: isDark ? "rgba(255,255,255,0.025)" : "rgba(255,255,255,0.70)",
+                      borderColor: innerBorder,
+                    },
+                  ]}
+                >
                   <Text style={[styles.label, { color: softText }]}>
                     {t("customer360.quickQuotations.approvalStep")}
                   </Text>
@@ -292,8 +325,8 @@ export function Customer360QuickQuotationsTab({
                 style={[
                   styles.descriptionWrap,
                   {
-                    backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.55)",
-                    borderColor: cardBorder,
+                    backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.62)",
+                    borderColor: innerBorder,
                   },
                 ]}
               >
@@ -303,7 +336,14 @@ export function Customer360QuickQuotationsTab({
               </View>
             ) : null}
 
-            <View style={styles.footer}>
+            <View
+              style={[
+                styles.footer,
+                {
+                  borderTopColor: innerBorder,
+                },
+              ]}
+            >
               <Text style={[styles.footerText, { color: mutedText }]}>
                 {item.approvedDate
                   ? t("customer360.quickQuotations.convertedAt", {
@@ -344,9 +384,9 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   content: {
-    paddingTop: 2,
-    paddingBottom: 110,
-    gap: 10,
+    paddingTop: 4,
+    paddingBottom: 118,
+    gap: 14,
   },
   emptyContainer: {
     flex: 1,
@@ -386,9 +426,10 @@ const styles = StyleSheet.create({
   },
   card: {
     borderWidth: 1,
-    borderRadius: 20,
-    padding: 12,
+    borderRadius: 22,
+    padding: 14,
     gap: 10,
+    marginBottom: 16,
   },
   topRow: {
     flexDirection: "row",
@@ -403,37 +444,38 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   iconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 11,
+    width: 36,
+    height: 36,
+    borderRadius: 12,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 9,
+    marginRight: 10,
   },
   headerTextWrap: {
     flex: 1,
     minWidth: 0,
   },
   title: {
-    fontSize: 13,
-    fontWeight: "500",
+    fontSize: 13.5,
+    fontWeight: "600",
     letterSpacing: -0.1,
+    lineHeight: 18,
   },
   metaRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    marginTop: 3,
+    marginTop: 4,
   },
   meta: {
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: "400",
   },
   openButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 11,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
@@ -441,7 +483,7 @@ const styles = StyleSheet.create({
   badges: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 6,
+    gap: 7,
   },
   badge: {
     maxWidth: "100%",
@@ -449,7 +491,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 5,
     borderRadius: 999,
-    paddingHorizontal: 9,
+    paddingHorizontal: 10,
     paddingVertical: 6,
   },
   badgeText: {
@@ -460,25 +502,27 @@ const styles = StyleSheet.create({
   },
   gridShell: {
     borderWidth: 1,
-    borderRadius: 16,
-    padding: 9,
-    gap: 8,
+    borderRadius: 18,
+    padding: 10,
+    gap: 9,
   },
   gridRow: {
     flexDirection: "row",
-    gap: 8,
+    gap: 4,
   },
   metricCard: {
     flex: 1,
-    minHeight: 56,
-    borderRadius: 12,
+    minHeight: 62,
+    borderRadius: 14,
+    borderWidth: 1,
     justifyContent: "center",
-    paddingHorizontal: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
   },
   label: {
-    fontSize: 9,
+    fontSize: 9.5,
     fontWeight: "400",
-    marginBottom: 4,
+    marginBottom: 5,
   },
   metricInline: {
     flexDirection: "row",
@@ -487,7 +531,7 @@ const styles = StyleSheet.create({
   },
   value: {
     fontSize: 12,
-    fontWeight: "500",
+    fontWeight: "600",
   },
   valueSmall: {
     fontSize: 11,
@@ -496,9 +540,9 @@ const styles = StyleSheet.create({
   },
   descriptionWrap: {
     borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 10,
-    paddingVertical: 9,
+    borderRadius: 15,
+    paddingHorizontal: 11,
+    paddingVertical: 10,
   },
   description: {
     fontSize: 11,
@@ -506,7 +550,10 @@ const styles = StyleSheet.create({
     fontWeight: "400",
   },
   footer: {
-    gap: 8,
+    gap: 5,
+    borderTopWidth: 1,
+    paddingTop: 10,
+    marginTop: 2,
   },
   footerText: {
     fontSize: 10,

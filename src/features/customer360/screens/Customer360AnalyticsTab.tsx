@@ -65,6 +65,7 @@ interface MetricCardProps {
   mutedText: string;
   cardBg: string;
   cardBorder: string;
+  iconBg: string;
 }
 
 function MetricCard({
@@ -75,6 +76,7 @@ function MetricCard({
   mutedText,
   cardBg,
   cardBorder,
+  iconBg,
 }: MetricCardProps): React.ReactElement {
   return (
     <View
@@ -87,16 +89,86 @@ function MetricCard({
       ]}
     >
       <View style={styles.metricTopRow}>
-        <View style={styles.metricIconWrap}>{icon}</View>
+        <View style={[styles.metricIconWrap, { backgroundColor: iconBg }]}>{icon}</View>
         <Text style={[styles.metricLabel, { color: mutedText }]} numberOfLines={2}>
           {label}
         </Text>
       </View>
+
       <Text style={[styles.metricValue, { color: titleText }]} numberOfLines={2}>
         {String(value)}
       </Text>
     </View>
   );
+}
+
+interface SectionShellProps {
+  title: string;
+  subtitle?: string;
+  titleColor: string;
+  subtitleColor: string;
+  backgroundColor: string;
+  borderColor: string;
+  children: React.ReactNode;
+}
+
+function SectionShell({
+  title,
+  subtitle,
+  titleColor,
+  subtitleColor,
+  backgroundColor,
+  borderColor,
+  children,
+}: SectionShellProps): React.ReactElement {
+  return (
+    <View
+      style={[
+        styles.sectionWrap,
+        {
+          backgroundColor,
+          borderColor,
+        },
+      ]}
+    >
+      <View style={styles.sectionHeader}>
+        <Text style={[styles.sectionTitle, { color: titleColor }]}>{title}</Text>
+        {subtitle ? (
+          <Text style={[styles.sectionSubTitle, { color: subtitleColor }]}>{subtitle}</Text>
+        ) : null}
+      </View>
+
+      <View style={styles.sectionBody}>{children}</View>
+    </View>
+  );
+}
+
+function ContentCard({
+  children,
+  backgroundColor,
+  borderColor,
+}: {
+  children: React.ReactNode;
+  backgroundColor: string;
+  borderColor: string;
+}): React.ReactElement {
+  return (
+    <View
+      style={[
+        styles.contentCard,
+        {
+          backgroundColor,
+          borderColor,
+        },
+      ]}
+    >
+      {children}
+    </View>
+  );
+}
+
+function Separator({ color }: { color: string }): React.ReactElement {
+  return <View style={[styles.separator, { backgroundColor: color }]} />;
 }
 
 export function Customer360AnalyticsTab({
@@ -125,14 +197,18 @@ export function Customer360AnalyticsTab({
   const amountComparisonByCurrency =
     charts?.amountComparisonByCurrency ?? [];
 
-  const titleText = isDark ? "#FFFFFF" : "#1F2937";
-  const mutedText = isDark ? "rgba(255,255,255,0.58)" : "#6B7280";
-  const softText = isDark ? "rgba(255,255,255,0.42)" : "#94A3B8";
+  const strongText = isDark ? "#F8FAFC" : "#334155";
+  const mutedText = isDark ? "rgba(203,213,225,0.70)" : "#64748B";
+  const softText = isDark ? "rgba(148,163,184,0.82)" : "#94A3B8";
   const accent = isDark ? "#EC4899" : "#DB2777";
   const accentSecondary = isDark ? "#F97316" : "#F59E0B";
+  const accentTeal = "#14B8A6";
   const cardBg = isDark ? "rgba(19,11,27,0.72)" : "rgba(255,245,248,0.84)";
-  const cardBgAlt = isDark ? "rgba(18,8,25,0.78)" : "rgba(255,250,252,0.86)";
+  const cardBgAlt = isDark ? "rgba(18,8,25,0.78)" : "rgba(255,250,252,0.90)";
   const cardBorder = isDark ? "rgba(255,255,255,0.07)" : "rgba(219,39,119,0.08)";
+  const innerCardBg = isDark ? "rgba(255,255,255,0.025)" : "rgba(255,255,255,0.96)";
+  const innerCardBorder = isDark ? "rgba(255,255,255,0.05)" : "rgba(148,163,184,0.10)";
+  const separatorColor = isDark ? "rgba(255,255,255,0.08)" : "rgba(148,163,184,0.14)";
   const sectionTitleColor = isDark ? "#F8FAFC" : "#334155";
   const errorColor = colors.error;
 
@@ -174,107 +250,104 @@ export function Customer360AnalyticsTab({
       showsVerticalScrollIndicator={false}
     >
       {isSingleCurrency ? (
-        <>
-          <View style={styles.metricsGrid}>
-            <MetricCard
-              icon={<AnalyticsUpIcon size={14} color={accent} variant="stroke" />}
-              label={t("customer360.analytics.last12MonthsOrderAmount")}
-              value={formatAmountCb(summary?.last12MonthsOrderAmount ?? 0)}
-              titleText={titleText}
-              mutedText={mutedText}
-              cardBg={cardBg}
-              cardBorder={cardBorder}
-            />
-            <MetricCard
-              icon={<Invoice03Icon size={14} color={accentSecondary} variant="stroke" />}
-              label={t("customer360.analytics.openQuotationAmount")}
-              value={formatAmountCb(summary?.openQuotationAmount ?? 0)}
-              titleText={titleText}
-              mutedText={mutedText}
-              cardBg={cardBg}
-              cardBorder={cardBorder}
-            />
-            <MetricCard
-              icon={<ShoppingBag03Icon size={14} color={accent} variant="stroke" />}
-              label={t("customer360.analytics.openOrderAmount")}
-              value={formatAmountCb(summary?.openOrderAmount ?? 0)}
-              titleText={titleText}
-              mutedText={mutedText}
-              cardBg={cardBg}
-              cardBorder={cardBorder}
-            />
-            <MetricCard
-              icon={<Activity01Icon size={14} color={accentSecondary} variant="stroke" />}
-              label={t("customer360.analytics.activityCount")}
-              value={summary?.activityCount ?? 0}
-              titleText={titleText}
-              mutedText={mutedText}
-              cardBg={cardBg}
-              cardBorder={cardBorder}
-            />
-            <MetricCard
-              icon={<Calendar03Icon size={14} color={accent} variant="stroke" />}
-              label={t("customer360.analytics.lastActivityDate")}
-              value={formatDateOnly(summary?.lastActivityDate, locale)}
-              titleText={titleText}
-              mutedText={mutedText}
-              cardBg={cardBg}
-              cardBorder={cardBorder}
-            />
-          </View>
-        </>
-      ) : totalsByCurrency.length > 0 ? (
-        <View
-          style={[
-            styles.sectionWrap,
-            {
-              backgroundColor: cardBgAlt,
-              borderColor: cardBorder,
-            },
-          ]}
-        >
-          <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>
-            {t("customer360.currencyTotals.title")}
-          </Text>
-          <CurrencyTotalsTable
-            items={totalsByCurrency}
-            colors={colors}
-            formatAmount={formatAmountCb}
-            title={t("customer360.currencyTotals.title")}
-            currencyLabel={t("customer360.currencyTotals.currency")}
-            demandAmountLabel={t("customer360.currencyTotals.demandAmount")}
-            quotationAmountLabel={t("customer360.currencyTotals.quotationAmount")}
-            orderAmountLabel={t("customer360.currencyTotals.orderAmount")}
-            noDataKey={noDataKey}
+        <View style={styles.metricsGrid}>
+          <MetricCard
+            icon={<AnalyticsUpIcon size={14} color={accent} variant="stroke" />}
+            label={t("customer360.analytics.last12MonthsOrderAmount")}
+            value={formatAmountCb(summary?.last12MonthsOrderAmount ?? 0)}
+            titleText={strongText}
+            mutedText={mutedText}
+            cardBg={cardBg}
+            cardBorder={cardBorder}
+            iconBg={isDark ? "rgba(236,72,153,0.10)" : "rgba(236,72,153,0.08)"}
+          />
+          <MetricCard
+            icon={<Invoice03Icon size={14} color={accentSecondary} variant="stroke" />}
+            label={t("customer360.analytics.openQuotationAmount")}
+            value={formatAmountCb(summary?.openQuotationAmount ?? 0)}
+            titleText={strongText}
+            mutedText={mutedText}
+            cardBg={cardBg}
+            cardBorder={cardBorder}
+            iconBg={isDark ? "rgba(249,115,22,0.10)" : "rgba(249,115,22,0.08)"}
+          />
+          <MetricCard
+            icon={<ShoppingBag03Icon size={14} color={accent} variant="stroke" />}
+            label={t("customer360.analytics.openOrderAmount")}
+            value={formatAmountCb(summary?.openOrderAmount ?? 0)}
+            titleText={strongText}
+            mutedText={mutedText}
+            cardBg={cardBg}
+            cardBorder={cardBorder}
+            iconBg={isDark ? "rgba(236,72,153,0.10)" : "rgba(236,72,153,0.08)"}
+          />
+          <MetricCard
+            icon={<Activity01Icon size={14} color={accentTeal} variant="stroke" />}
+            label={t("customer360.analytics.activityCount")}
+            value={summary?.activityCount ?? 0}
+            titleText={strongText}
+            mutedText={mutedText}
+            cardBg={cardBg}
+            cardBorder={cardBorder}
+            iconBg={isDark ? "rgba(20,184,166,0.10)" : "rgba(20,184,166,0.08)"}
+          />
+          <MetricCard
+            icon={<Calendar03Icon size={14} color={accentSecondary} variant="stroke" />}
+            label={t("customer360.analytics.lastActivityDate")}
+            value={formatDateOnly(summary?.lastActivityDate, locale)}
+            titleText={strongText}
+            mutedText={mutedText}
+            cardBg={cardBg}
+            cardBorder={cardBorder}
+            iconBg={isDark ? "rgba(249,115,22,0.10)" : "rgba(249,115,22,0.08)"}
           />
         </View>
+      ) : totalsByCurrency.length > 0 ? (
+        <SectionShell
+          title={t("customer360.currencyTotals.title")}
+          titleColor={sectionTitleColor}
+          subtitleColor={softText}
+          backgroundColor={cardBgAlt}
+          borderColor={cardBorder}
+        >
+          <ContentCard backgroundColor={innerCardBg} borderColor={innerCardBorder}>
+            <CurrencyTotalsTable
+              items={totalsByCurrency}
+              colors={colors}
+              formatAmount={formatAmountCb}
+              title={t("customer360.currencyTotals.title")}
+              currencyLabel={t("customer360.currencyTotals.currency")}
+              demandAmountLabel={t("customer360.currencyTotals.demandAmount")}
+              quotationAmountLabel={t("customer360.currencyTotals.quotationAmount")}
+              orderAmountLabel={t("customer360.currencyTotals.orderAmount")}
+              noDataKey={noDataKey}
+            />
+          </ContentCard>
+        </SectionShell>
       ) : null}
 
       {amountComparisonByCurrency.length > 0 ? (
-        <View
-          style={[
-            styles.sectionWrap,
-            {
-              backgroundColor: cardBgAlt,
-              borderColor: cardBorder,
-            },
-          ]}
+        <SectionShell
+          title={t("customer360.analyticsCharts.amountComparisonTitle")}
+          titleColor={sectionTitleColor}
+          subtitleColor={softText}
+          backgroundColor={cardBgAlt}
+          borderColor={cardBorder}
         >
-          <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>
-            {t("customer360.analyticsCharts.amountComparisonTitle")}
-          </Text>
-          <AmountComparisonTable
-            items={amountComparisonByCurrency}
-            colors={colors}
-            formatAmount={formatAmountCb}
-            title={t("customer360.analyticsCharts.amountComparisonTitle")}
-            currencyLabel={t("customer360.currencyTotals.currency")}
-            last12Label={t("customer360.analyticsCharts.last12MonthsOrderAmount")}
-            openQuotationLabel={t("customer360.analyticsCharts.openQuotationAmount")}
-            openOrderLabel={t("customer360.analyticsCharts.openOrderAmount")}
-            noDataKey={noDataKey}
-          />
-        </View>
+          <ContentCard backgroundColor={innerCardBg} borderColor={innerCardBorder}>
+            <AmountComparisonTable
+              items={amountComparisonByCurrency}
+              colors={colors}
+              formatAmount={formatAmountCb}
+              title={t("customer360.analyticsCharts.amountComparisonTitle")}
+              currencyLabel={t("customer360.currencyTotals.currency")}
+              last12Label={t("customer360.analyticsCharts.last12MonthsOrderAmount")}
+              openQuotationLabel={t("customer360.analyticsCharts.openQuotationAmount")}
+              openOrderLabel={t("customer360.analyticsCharts.openOrderAmount")}
+              noDataKey={noDataKey}
+            />
+          </ContentCard>
+        </SectionShell>
       ) : null}
 
       {chartsError ? (
@@ -306,94 +379,87 @@ export function Customer360AnalyticsTab({
         </View>
       ) : (
         <>
-          <View
-            style={[
-              styles.sectionWrap,
-              {
-                backgroundColor: cardBgAlt,
-                borderColor: cardBorder,
-              },
-            ]}
+          <SectionShell
+            title={t("customer360.analyticsCharts.distributionTitle")}
+            subtitle={`${t("customer360.analyticsCharts.demand")} · ${t("customer360.analyticsCharts.quotation")} · ${t("customer360.analyticsCharts.order")}`}
+            titleColor={sectionTitleColor}
+            subtitleColor={softText}
+            backgroundColor={cardBgAlt}
+            borderColor={cardBorder}
           >
-            <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>
-              {t("customer360.analyticsCharts.distributionTitle")}
-            </Text>
-            <Text style={[styles.sectionSubTitle, { color: softText }]}>
-              {t("customer360.analyticsCharts.demand")} · {t("customer360.analyticsCharts.quotation")} · {t("customer360.analyticsCharts.order")}
-            </Text>
-            <DistributionPieChart
-              data={
-                charts?.distribution ?? {
-                  demandCount: 0,
-                  quotationCount: 0,
-                  orderCount: 0,
-                }
-              }
-              colors={colors}
-              noDataKey={noDataKey}
-              demandLabel={t("customer360.analyticsCharts.demand")}
-              quotationLabel={t("customer360.analyticsCharts.quotation")}
-              orderLabel={t("customer360.analyticsCharts.order")}
-            />
-          </View>
-
-          <View
-            style={[
-              styles.sectionWrap,
-              {
-                backgroundColor: cardBgAlt,
-                borderColor: cardBorder,
-              },
-            ]}
-          >
-            <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>
-              {t("customer360.analyticsCharts.monthlyTrendTitle")}
-            </Text>
-            <Text style={[styles.sectionSubTitle, { color: softText }]}>
-              {t("customer360.analyticsCharts.demand")} · {t("customer360.analyticsCharts.quotation")} · {t("customer360.analyticsCharts.order")}
-            </Text>
-            <MonthlyTrendLineChart
-              data={charts?.monthlyTrend ?? []}
-              colors={colors}
-              noDataKey={noDataKey}
-              demandLabel={t("customer360.analyticsCharts.demand")}
-              quotationLabel={t("customer360.analyticsCharts.quotation")}
-              orderLabel={t("customer360.analyticsCharts.order")}
-            />
-          </View>
-
-          {isSingleCurrency ? (
-            <View
-              style={[
-                styles.sectionWrap,
-                {
-                  backgroundColor: cardBgAlt,
-                  borderColor: cardBorder,
-                },
-              ]}
-            >
-              <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>
-                {t("customer360.analyticsCharts.amountComparisonTitle")}
-              </Text>
-              <Text style={[styles.sectionSubTitle, { color: softText }]}>
-                {t("customer360.analyticsCharts.last12MonthsOrderAmount")} · {t("customer360.analyticsCharts.openQuotationAmount")} · {t("customer360.analyticsCharts.openOrderAmount")}
-              </Text>
-              <AmountComparisonBarChart
+            <ContentCard backgroundColor={innerCardBg} borderColor={innerCardBorder}>
+              <DistributionPieChart
                 data={
-                  charts?.amountComparison ?? {
-                    last12MonthsOrderAmount: 0,
-                    openQuotationAmount: 0,
-                    openOrderAmount: 0,
+                  charts?.distribution ?? {
+                    demandCount: 0,
+                    quotationCount: 0,
+                    orderCount: 0,
                   }
                 }
                 colors={colors}
                 noDataKey={noDataKey}
-                last12Label={t("customer360.analyticsCharts.last12MonthsOrderAmount")}
-                openQuotationLabel={t("customer360.analyticsCharts.openQuotationAmount")}
-                openOrderLabel={t("customer360.analyticsCharts.openOrderAmount")}
-                formatAmount={formatAmountCb}
+                demandLabel={t("customer360.analyticsCharts.demand")}
+                quotationLabel={t("customer360.analyticsCharts.quotation")}
+                orderLabel={t("customer360.analyticsCharts.order")}
               />
-            </View>
+            </ContentCard>
+
+            <Separator color={separatorColor} />
+
+            <ContentCard backgroundColor={innerCardBg} borderColor={innerCardBorder}>
+              <Text style={[styles.innerCaption, { color: mutedText }]}>
+                {t("customer360.analyticsCharts.distributionTitle")}
+              </Text>
+            </ContentCard>
+          </SectionShell>
+
+          <SectionShell
+            title={t("customer360.analyticsCharts.monthlyTrendTitle")}
+            subtitle={`${t("customer360.analyticsCharts.demand")} · ${t("customer360.analyticsCharts.quotation")} · ${t("customer360.analyticsCharts.order")}`}
+            titleColor={sectionTitleColor}
+            subtitleColor={softText}
+            backgroundColor={cardBgAlt}
+            borderColor={cardBorder}
+          >
+            <ContentCard backgroundColor={innerCardBg} borderColor={innerCardBorder}>
+              <MonthlyTrendLineChart
+                data={charts?.monthlyTrend ?? []}
+                colors={colors}
+                noDataKey={noDataKey}
+                demandLabel={t("customer360.analyticsCharts.demand")}
+                quotationLabel={t("customer360.analyticsCharts.quotation")}
+                orderLabel={t("customer360.analyticsCharts.order")}
+              />
+            </ContentCard>
+          </SectionShell>
+
+          {isSingleCurrency ? (
+            <SectionShell
+              title={t("customer360.analyticsCharts.amountComparisonTitle")}
+              subtitle={`${t("customer360.analyticsCharts.last12MonthsOrderAmount")} · ${t("customer360.analyticsCharts.openQuotationAmount")} · ${t("customer360.analyticsCharts.openOrderAmount")}`}
+              titleColor={sectionTitleColor}
+              subtitleColor={softText}
+              backgroundColor={cardBgAlt}
+              borderColor={cardBorder}
+            >
+              <ContentCard backgroundColor={innerCardBg} borderColor={innerCardBorder}>
+                <AmountComparisonBarChart
+                  data={
+                    charts?.amountComparison ?? {
+                      last12MonthsOrderAmount: 0,
+                      openQuotationAmount: 0,
+                      openOrderAmount: 0,
+                    }
+                  }
+                  colors={colors}
+                  noDataKey={noDataKey}
+                  last12Label={t("customer360.analyticsCharts.last12MonthsOrderAmount")}
+                  openQuotationLabel={t("customer360.analyticsCharts.openQuotationAmount")}
+                  openOrderLabel={t("customer360.analyticsCharts.openOrderAmount")}
+                  formatAmount={formatAmountCb}
+                />
+              </ContentCard>
+            </SectionShell>
           ) : null}
         </>
       )}
@@ -407,9 +473,9 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   scrollContent: {
-    paddingTop: 2,
-    paddingBottom: 110,
-    gap: 10,
+    paddingTop: 6,
+    paddingBottom: 124,
+    gap: 16,
   },
   centered: {
     flex: 1,
@@ -420,65 +486,86 @@ const styles = StyleSheet.create({
   metricsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
+    gap: 12,
     marginBottom: 2,
   },
   metricCard: {
     width: "48%",
-    minHeight: 94,
-    borderRadius: 18,
+    minHeight: 102,
+    borderRadius: 20,
     borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
+    paddingHorizontal: 13,
+    paddingVertical: 12,
     justifyContent: "space-between",
   },
   metricTopRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 8,
+    gap: 9,
   },
   metricIconWrap: {
-    width: 28,
-    height: 28,
+    width: 30,
+    height: 30,
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
+    marginTop: 1,
   },
   metricLabel: {
     flex: 1,
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: "400",
-    lineHeight: 13,
+    lineHeight: 14,
     marginTop: 1,
   },
   metricValue: {
-    fontSize: 14,
-    fontWeight: "500",
-    lineHeight: 18,
-    marginTop: 10,
+    fontSize: 14.5,
+    fontWeight: "600",
+    lineHeight: 19,
+    marginTop: 12,
   },
   sectionWrap: {
     borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingTop: 12,
-    paddingBottom: 10,
-    gap: 8,
+    borderRadius: 22,
+    paddingHorizontal: 14,
+    paddingTop: 14,
+    paddingBottom: 14,
   },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: "500",
-    lineHeight: 16,
+  sectionHeader: {
+    marginBottom: 12,
   },
-  sectionSubTitle: {
-    fontSize: 10,
+  sectionBody: {
+    gap: 12,
+  },
+  contentCard: {
+    borderWidth: 1,
+    borderRadius: 18,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+  },
+  separator: {
+    height: 1,
+    marginHorizontal: 4,
+    borderRadius: 999,
+  },
+  innerCaption: {
+    fontSize: 10.5,
     fontWeight: "400",
     lineHeight: 14,
-    marginTop: -2,
-    marginBottom: 2,
+  },
+  sectionTitle: {
+    fontSize: 12.5,
+    fontWeight: "600",
+    lineHeight: 17,
+  },
+  sectionSubTitle: {
+    fontSize: 10.5,
+    fontWeight: "400",
+    lineHeight: 14,
+    marginTop: 4,
   },
   chartError: {
-    paddingVertical: 4,
+    paddingVertical: 2,
   },
   stateCard: {
     width: "100%",

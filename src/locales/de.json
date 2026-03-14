@@ -1235,7 +1235,9 @@
       "totalQuotations": "Angebote Gesamt",
       "totalOrders": "Bestellungen Gesamt",
       "openQuotations": "Offene Angebote",
-      "openOrders": "Offene Bestellungen"
+      "openOrders": "Offene Bestellungen",  
+      "closedOrders": "Geschlossene Bestellungen",
+      "lastActivityDate": "Letztes Aktivitätsdatum"
     },
     "currencyFilter": {
       "label": "Währung",

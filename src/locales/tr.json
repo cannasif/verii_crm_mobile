@@ -1277,7 +1277,9 @@
       "totalQuotations": "Toplam Teklif",
       "totalOrders": "Toplam Sipariş",
       "openQuotations": "Açık Teklifler",
-      "openOrders": "Açık Siparişler"
+      "openOrders": "Açık Siparişler",
+      "closedOrders": "Kapanış Siparişleri",
+      "lastActivityDate": "Son Aktivite Tarihi"
     },
     "currencyFilter": {
       "label": "Para birimi",

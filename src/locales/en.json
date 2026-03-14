@@ -1234,7 +1234,9 @@
       "totalQuotations": "Total Quotations",
       "totalOrders": "Total Orders",
       "openQuotations": "Open Quotations",
-      "openOrders": "Open Orders"
+      "openOrders": "Open Orders",
+      "closedOrders": "Closed Orders",
+      "lastActivityDate": "Last Activity Date"
     },
     "currencyFilter": {
       "label": "Currency",
