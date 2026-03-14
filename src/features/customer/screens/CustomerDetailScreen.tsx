@@ -49,36 +49,41 @@ export function CustomerDetailScreen(): React.ReactElement {
 
   const PRIMARY_COLOR = "#db2777";
   const ERROR_COLOR = "#ef4444";
-  const MUTED_COLOR = themeMode === "dark" ? "#94a3b8" : "#64748B";
+  const MUTED_COLOR = themeMode === "dark" ? "#94a3b8" : "#94A3B8";
 
   const isDark = themeMode === "dark";
 
   const mainBg = isDark ? "#0c0516" : "#FFFFFF";
-  const gradientColors = (isDark
-    ? ["rgba(236, 72, 153, 0.12)", "transparent", "rgba(249, 115, 22, 0.12)"]
-    : ["rgba(255, 240, 225, 0.6)", "#FFFFFF", "rgba(255, 240, 225, 0.6)"]) as [
-    string,
-    string,
-    ...string[]
-  ];
+  const gradientColors = (
+    isDark
+      ? ["rgba(236, 72, 153, 0.12)", "transparent", "rgba(249, 115, 22, 0.12)"]
+      : ["rgba(255, 240, 225, 0.6)", "#FFFFFF", "rgba(255, 240, 225, 0.6)"]
+  ) as [string, string, ...string[]];
 
-  const headerBtnStyle = {
-    bg: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.05)",
-    text: isDark ? "#FFFFFF" : "#111827",
-  };
-
-  const previewTheme = useMemo(
+  const uiTheme = useMemo(
     () => ({
-      overlay: "rgba(0,0,0,0.72)",
-      cardBg: isDark ? "#111827" : "#FFFFFF",
-      borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)",
-      title: isDark ? "#FFFFFF" : "#0F172A",
-      text: isDark ? "#cbd5e1" : "#475569",
-      cancelBg: isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.06)",
-      cancelText: isDark ? "#FFFFFF" : "#0F172A",
-      confirmBg: "#22c55e12",
-      confirmBorder: "#22c55e40",
-      confirmText: "#22c55e",
+      headerBtnBg: isDark ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.04)",
+      headerBtnBorder: isDark ? "rgba(255,255,255,0.07)" : "rgba(148,163,184,0.14)",
+      headerBtnText: isDark ? "#E2E8F0" : "#475569",
+      deleteBg: isDark ? "rgba(239,68,68,0.10)" : "rgba(254,242,242,0.95)",
+      deleteBorder: isDark ? "rgba(239,68,68,0.18)" : "rgba(252,165,165,0.28)",
+      loadingCardBg: isDark ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.96)",
+      loadingCardBorder: isDark ? "rgba(255,255,255,0.06)" : "rgba(219,39,119,0.10)",
+      errorCardBg: isDark ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.96)",
+      errorCardBorder: isDark ? "rgba(255,255,255,0.07)" : "rgba(148,163,184,0.14)",
+      errorIconBg: isDark ? "rgba(255,255,255,0.05)" : "rgba(15,23,42,0.04)",
+      errorText: isDark ? "#CBD5E1" : "#64748B",
+      previewOverlay: "rgba(0,0,0,0.72)",
+      previewCardBg: isDark ? "#121826" : "#FFFFFF",
+      previewCardBorder: isDark ? "rgba(255,255,255,0.07)" : "rgba(148,163,184,0.14)",
+      previewTitle: isDark ? "#E2E8F0" : "#334155",
+      previewText: isDark ? "#94A3B8" : "#64748B",
+      previewCancelBg: isDark ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.04)",
+      previewCancelText: isDark ? "#E2E8F0" : "#475569",
+      previewConfirmBg: "rgba(34,197,94,0.10)",
+      previewConfirmBorder: "rgba(34,197,94,0.22)",
+      previewConfirmText: "#16a34a",
+      previewAccent: "#22c55e",
     }),
     [isDark]
   );
@@ -305,7 +310,7 @@ export function CustomerDetailScreen(): React.ReactElement {
       </View>
 
       <View style={{ flex: 1 }}>
-        <View style={{ zIndex: 10 }}>
+        <View style={styles.headerWrap}>
           <ScreenHeader
             title={t("customer.detail")}
             showBackButton
@@ -314,16 +319,25 @@ export function CustomerDetailScreen(): React.ReactElement {
                 <View style={styles.headerActions}>
                   <TouchableOpacity
                     onPress={handleEditPress}
-                    style={[styles.headerButton, { backgroundColor: headerBtnStyle.bg }]}
+                    style={[
+                      styles.headerButton,
+                      {
+                        backgroundColor: uiTheme.headerBtnBg,
+                        borderColor: uiTheme.headerBtnBorder,
+                      },
+                    ]}
                   >
-                    <Edit02Icon size={20} color={headerBtnStyle.text} variant="stroke" />
+                    <Edit02Icon size={20} color={uiTheme.headerBtnText} variant="stroke" />
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     onPress={handleDeletePress}
                     style={[
                       styles.headerButton,
-                      { backgroundColor: isDark ? "rgba(239, 68, 68, 0.15)" : "#FEE2E2" },
+                      {
+                        backgroundColor: uiTheme.deleteBg,
+                        borderColor: uiTheme.deleteBorder,
+                      },
                     ]}
                     disabled={isDeleting}
                   >
@@ -342,17 +356,58 @@ export function CustomerDetailScreen(): React.ReactElement {
         <View style={styles.content}>
           {isLoading ? (
             <View style={styles.centerContainer}>
-              <ActivityIndicator size="large" color={PRIMARY_COLOR} />
+              <View
+                style={[
+                  styles.loadingCard,
+                  {
+                    backgroundColor: uiTheme.loadingCardBg,
+                    borderColor: uiTheme.loadingCardBorder,
+                  },
+                ]}
+              >
+                <ActivityIndicator size="large" color={PRIMARY_COLOR} />
+              </View>
             </View>
           ) : isError ? (
             <View style={styles.centerContainer}>
-              <AlertCircleIcon size={48} color={MUTED_COLOR} variant="stroke" />
-              <TouchableOpacity
-                onPress={() => refetch()}
-                style={[styles.retryButton, { backgroundColor: headerBtnStyle.bg }]}
+              <View
+                style={[
+                  styles.errorCard,
+                  {
+                    backgroundColor: uiTheme.errorCardBg,
+                    borderColor: uiTheme.errorCardBorder,
+                  },
+                ]}
               >
-                <RefreshIcon size={16} color={headerBtnStyle.text} variant="stroke" />
-              </TouchableOpacity>
+                <View
+                  style={[
+                    styles.errorIconWrap,
+                    { backgroundColor: uiTheme.errorIconBg },
+                  ]}
+                >
+                  <AlertCircleIcon size={44} color={MUTED_COLOR} variant="stroke" />
+                </View>
+
+                <Text style={[styles.errorText, { color: uiTheme.errorText }]}>
+                  {t("common.error")}
+                </Text>
+
+                <TouchableOpacity
+                  onPress={() => refetch()}
+                  style={[
+                    styles.retryButton,
+                    {
+                      backgroundColor: uiTheme.headerBtnBg,
+                      borderColor: uiTheme.headerBtnBorder,
+                    },
+                  ]}
+                >
+                  <RefreshIcon size={16} color={uiTheme.headerBtnText} variant="stroke" />
+                  <Text style={[styles.retryText, { color: uiTheme.headerBtnText }]}>
+                    {t("common.retry") || "Tekrar Dene"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           ) : customer ? (
             <CustomerDetailContent
@@ -378,21 +433,23 @@ export function CustomerDetailScreen(): React.ReactElement {
         animationType="fade"
         onRequestClose={handleCancelPreview}
       >
-        <View style={[styles.previewOverlay, { backgroundColor: previewTheme.overlay }]}>
+        <View style={[styles.previewOverlay, { backgroundColor: uiTheme.previewOverlay }]}>
           <View
             style={[
               styles.previewCard,
               {
-                backgroundColor: previewTheme.cardBg,
-                borderColor: previewTheme.borderColor,
+                backgroundColor: uiTheme.previewCardBg,
+                borderColor: uiTheme.previewCardBorder,
               },
             ]}
           >
-            <Text style={[styles.previewTitle, { color: previewTheme.title }]}>
+            <View style={[styles.previewTopAccent, { backgroundColor: uiTheme.previewAccent }]} />
+
+            <Text style={[styles.previewTitle, { color: uiTheme.previewTitle }]}>
               {t("customer.imagePreview") || "Resim Önizleme"}
             </Text>
 
-            <Text style={[styles.previewText, { color: previewTheme.text }]}>
+            <Text style={[styles.previewText, { color: uiTheme.previewText }]}>
               {t("customer.confirmAddImage") || "Bu resmi yüklemek istiyor musunuz?"}
             </Text>
 
@@ -402,11 +459,14 @@ export function CustomerDetailScreen(): React.ReactElement {
 
             <View style={styles.previewActions}>
               <TouchableOpacity
-                style={[styles.previewButton, { backgroundColor: previewTheme.cancelBg }]}
+                style={[
+                  styles.previewButton,
+                  { backgroundColor: uiTheme.previewCancelBg },
+                ]}
                 onPress={handleCancelPreview}
                 disabled={isUploadingImage}
               >
-                <Text style={[styles.previewButtonText, { color: previewTheme.cancelText }]}>
+                <Text style={[styles.previewButtonText, { color: uiTheme.previewCancelText }]}>
                   {t("common.cancel") || "Vazgeç"}
                 </Text>
               </TouchableOpacity>
@@ -415,8 +475,8 @@ export function CustomerDetailScreen(): React.ReactElement {
                 style={[
                   styles.previewButton,
                   {
-                    backgroundColor: previewTheme.confirmBg,
-                    borderColor: previewTheme.confirmBorder,
+                    backgroundColor: uiTheme.previewConfirmBg,
+                    borderColor: uiTheme.previewConfirmBorder,
                     borderWidth: 1,
                   },
                 ]}
@@ -424,9 +484,9 @@ export function CustomerDetailScreen(): React.ReactElement {
                 disabled={isUploadingImage}
               >
                 {isUploadingImage ? (
-                  <ActivityIndicator size="small" color={previewTheme.confirmText} />
+                  <ActivityIndicator size="small" color={uiTheme.previewConfirmText} />
                 ) : (
-                  <Text style={[styles.previewButtonText, { color: previewTheme.confirmText }]}>
+                  <Text style={[styles.previewButtonText, { color: uiTheme.previewConfirmText }]}>
                     {t("common.upload") || "Yükle"}
                   </Text>
                 )}
@@ -443,80 +503,148 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+
+  headerWrap: {
+    zIndex: 10,
+  },
+
   content: {
     flex: 1,
     backgroundColor: "transparent",
   },
+
   centerContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 16,
     padding: 20,
   },
+
+  loadingCard: {
+    width: 92,
+    height: 92,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+  },
+
+  errorCard: {
+    width: "100%",
+    maxWidth: 320,
+    borderRadius: 24,
+    borderWidth: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    alignItems: "center",
+  },
+
+  errorIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 14,
+  },
+
+  errorText: {
+    fontSize: 15,
+    fontWeight: "700",
+    marginBottom: 14,
+  },
+
   retryButton: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingVertical: 11,
+    borderRadius: 14,
+    borderWidth: 1,
   },
+
+  retryText: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+
   headerActions: {
     flexDirection: "row",
     gap: 12,
     alignItems: "center",
   },
+
   headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
   },
+
   previewOverlay: {
     flex: 1,
     justifyContent: "center",
     padding: 20,
   },
+
   previewCard: {
-    borderRadius: 24,
+    borderRadius: 26,
     padding: 16,
     borderWidth: 1,
+    overflow: "hidden",
   },
+
+  previewTopAccent: {
+    height: 4,
+    width: 56,
+    borderRadius: 999,
+    alignSelf: "center",
+    marginBottom: 14,
+    opacity: 0.9,
+  },
+
   previewTitle: {
     fontSize: 18,
-    fontWeight: "800",
+    fontWeight: "700",
     marginBottom: 8,
     textAlign: "center",
   },
+
   previewText: {
     fontSize: 13,
     lineHeight: 20,
     textAlign: "center",
-    marginBottom: 14,
+    marginBottom: 16,
+    fontWeight: "500",
   },
+
   previewImage: {
     width: "100%",
-    height: 320,
-    borderRadius: 18,
-    marginBottom: 14,
+    height: 340,
+    borderRadius: 20,
+    marginBottom: 16,
     backgroundColor: "rgba(0,0,0,0.08)",
   },
+
   previewActions: {
     flexDirection: "row",
     gap: 12,
   },
+
   previewButton: {
     flex: 1,
-    minHeight: 48,
-    borderRadius: 14,
+    minHeight: 50,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 12,
   },
+
   previewButtonText: {
     fontSize: 14,
-    fontWeight: "800",
+    fontWeight: "700",
   },
 });
