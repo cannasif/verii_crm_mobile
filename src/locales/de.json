@@ -79,7 +79,10 @@
     "quotationCreateFailedGeneric": "Beim Erstellen des Angebots ist ein Fehler aufgetreten.",
     "lineDeleteFailed": "Zeile konnte nicht gelöscht werden",
     "voiceSearchSupportInfo": "Sprachsuche: Funktioniert, wenn der Webbrowser dies unterstützt. Für Mobilgeräte: npx expo install expo-speech-recognition",
-    "all": "Alle"
+    "all": "Alle",  
+    "filter": "Filtern",
+    "newest": "Neueste",
+    "oldest": "Älteste"
   },
   "home": {
     "greeting": "Hallo",
@@ -762,7 +765,8 @@
     "tabImages": "Bilder",
     "tabRelations": "Zugehörige Artikel",
     "noImages": "Noch keine Bilder",
-    "noRelations": "Noch keine zugehörigen Artikel"
+    "noRelations": "Noch keine zugehörigen Artikel",  
+    "foundCount": "{{count}} zugehöriger Artikel gefunden"
   },
   "sales": {
     "createQuotation": "Angebot erstellen",

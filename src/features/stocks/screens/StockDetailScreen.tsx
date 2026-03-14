@@ -15,7 +15,11 @@ import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useStock, useStockRelations } from "../hooks";
 import { StockDetailContent } from "../components";
-import { Alert02Icon, RefreshIcon } from "hugeicons-react-native";
+import {
+  Alert02Icon,
+  RefreshIcon,
+  PackageIcon,
+} from "hugeicons-react-native";
 
 export function StockDetailScreen(): React.ReactElement {
   const { t } = useTranslation();
@@ -27,16 +31,29 @@ export function StockDetailScreen(): React.ReactElement {
   const mainBg = isDark ? "#0c0516" : "#FFFFFF";
   const accentColor = colors.accent || "#db2777";
 
-  const gradientColors = (isDark
-    ? ['rgba(236, 72, 153, 0.12)', 'transparent', 'rgba(249, 115, 22, 0.12)']
-    : ['rgba(255, 235, 240, 0.6)', '#FFFFFF', 'rgba(255, 240, 225, 0.6)']) as [string, string, ...string[]];
+  const gradientColors = (
+    isDark
+      ? ["rgba(236, 72, 153, 0.12)", "transparent", "rgba(249, 115, 22, 0.12)"]
+      : ["rgba(255, 235, 240, 0.6)", "#FFFFFF", "rgba(255, 240, 225, 0.6)"]
+  ) as [string, string, ...string[]];
+
+  const surfaceBg = isDark ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.94)";
+  const surfaceSoft = isDark ? "rgba(255,255,255,0.03)" : "rgba(248,250,252,0.88)";
+  const borderColor = isDark ? "rgba(236,72,153,0.14)" : "rgba(219,39,119,0.12)";
+  const softBorder = isDark ? "rgba(255,255,255,0.08)" : "rgba(148,163,184,0.12)";
+  const titleText = isDark ? "#F8FAFC" : "#1F2937";
+  const mutedText = isDark ? "#94A3B8" : "#64748B";
 
   const stockId = id ? Number(id) : undefined;
   const { data: stock, isLoading, isError, refetch } = useStock(stockId);
   const { data: relationsData } = useStockRelations({ stockId });
 
   const relations = useMemo(() => {
-    if (stock?.parentRelations && Array.isArray(stock.parentRelations) && stock.parentRelations.length > 0) {
+    if (
+      stock?.parentRelations &&
+      Array.isArray(stock.parentRelations) &&
+      stock.parentRelations.length > 0
+    ) {
       return stock.parentRelations;
     }
     if (!relationsData?.pages) return [];
@@ -52,12 +69,12 @@ export function StockDetailScreen(): React.ReactElement {
       <StatusBar style={isDark ? "light" : "dark"} />
 
       <View style={StyleSheet.absoluteFill}>
-          <LinearGradient
-              colors={gradientColors}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={StyleSheet.absoluteFill}
-          />
+        <LinearGradient
+          colors={gradientColors}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
       </View>
 
       <View style={styles.contentLayer}>
@@ -66,39 +83,146 @@ export function StockDetailScreen(): React.ReactElement {
         <View style={styles.body}>
           {isLoading ? (
             <View style={styles.centerState}>
-              <ActivityIndicator size="large" color={accentColor} />
+              <View
+                style={[
+                  styles.stateCard,
+                  {
+                    backgroundColor: surfaceBg,
+                    borderColor,
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.stateIconWrap,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(219,39,119,0.12)"
+                        : "rgba(219,39,119,0.08)",
+                      borderColor: isDark
+                        ? "rgba(236,72,153,0.20)"
+                        : "rgba(219,39,119,0.16)",
+                    },
+                  ]}
+                >
+                  <PackageIcon size={20} color={accentColor} variant="stroke" />
+                </View>
+
+                <ActivityIndicator size="small" color={accentColor} style={{ marginBottom: 12 }} />
+
+                <Text style={[styles.stateTitle, { color: titleText }]}>
+                  {t("common.loading")}
+                </Text>
+                <Text style={[styles.stateDesc, { color: mutedText }]}>
+                  {t("stock.detail")}
+                </Text>
+              </View>
             </View>
           ) : isError ? (
             <View style={styles.centerState}>
-              <View style={[styles.errorIconBox, { borderColor: colors.border }]}>
-                 <Alert02Icon size={32} color={colors.error || "#ef4444"} variant="stroke" />
-              </View>
-              <Text style={[styles.errorTitle, { color: colors.text }]}>
-                {t("common.error")}
-              </Text>
-              <Text style={[styles.errorDesc, { color: colors.textMuted }]}>
-                Veri yüklenirken bir sorun oluştu.
-              </Text>
-              
-              <TouchableOpacity 
-                onPress={() => refetch()} 
-                style={[styles.retryBtn, { borderColor: colors.border }]}
+              <View
+                style={[
+                  styles.stateCard,
+                  {
+                    backgroundColor: surfaceBg,
+                    borderColor,
+                  },
+                ]}
               >
-                <RefreshIcon size={16} color={colors.text} />
-                <Text style={[styles.retryText, { color: colors.text }]}>
-                  {t("common.retry")}
+                <View
+                  style={[
+                    styles.stateIconWrap,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(239,68,68,0.12)"
+                        : "rgba(239,68,68,0.08)",
+                      borderColor: isDark
+                        ? "rgba(239,68,68,0.20)"
+                        : "rgba(239,68,68,0.16)",
+                    },
+                  ]}
+                >
+                  <Alert02Icon size={20} color={colors.error || "#ef4444"} variant="stroke" />
+                </View>
+
+                <Text style={[styles.stateTitle, { color: titleText }]}>
+                  {t("common.error")}
                 </Text>
-              </TouchableOpacity>
+
+                <Text style={[styles.stateDesc, { color: mutedText }]}>
+                  Veri yüklenirken bir sorun oluştu.
+                </Text>
+
+                <TouchableOpacity
+                  onPress={() => refetch()}
+                  activeOpacity={0.78}
+                  style={[
+                    styles.retryBtn,
+                    {
+                      backgroundColor: surfaceSoft,
+                      borderColor: softBorder,
+                    },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.retryIconWrap,
+                      {
+                        backgroundColor: isDark
+                          ? "rgba(255,255,255,0.04)"
+                          : "rgba(255,255,255,0.82)",
+                        borderColor: softBorder,
+                      },
+                    ]}
+                  >
+                    <RefreshIcon size={15} color={accentColor} variant="stroke" />
+                  </View>
+
+                  <Text style={[styles.retryText, { color: titleText }]}>
+                    {t("common.retry")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           ) : stock ? (
             <StockDetailContent
               stock={stock}
               relations={relations}
-              colors={{...colors, background: 'transparent'}}
+              colors={{ ...colors, background: "transparent" }}
               insets={insets}
               t={t}
             />
-          ) : null}
+          ) : (
+            <View style={styles.centerState}>
+              <View
+                style={[
+                  styles.stateCard,
+                  {
+                    backgroundColor: surfaceBg,
+                    borderColor,
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.stateIconWrap,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(148,163,184,0.10)"
+                        : "rgba(148,163,184,0.08)",
+                      borderColor: softBorder,
+                    },
+                  ]}
+                >
+                  <PackageIcon size={20} color={mutedText} variant="stroke" />
+                </View>
+
+                <Text style={[styles.stateTitle, { color: titleText }]}>
+                  {t("common.noData")}
+                </Text>
+              </View>
+            </View>
+          )}
         </View>
       </View>
     </View>
@@ -115,44 +239,66 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   centerState: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: 22,
+    paddingBottom: 36,
   },
-  errorIconBox: {
-    width: 60,
-    height: 60,
-    borderRadius: 12,
+  stateCard: {
+    width: "100%",
+    maxWidth: 360,
+    borderRadius: 26,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 16,
+    paddingHorizontal: 22,
+    paddingVertical: 28,
   },
-  errorTitle: {
-    fontSize: 17,
+  stateIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 14,
+  },
+  stateTitle: {
+    fontSize: 16,
     fontWeight: "600",
     marginBottom: 6,
-  },
-  errorDesc: {
-    fontSize: 14,
     textAlign: "center",
-    marginBottom: 24,
+    letterSpacing: -0.1,
+  },
+  stateDesc: {
+    fontSize: 13,
+    textAlign: "center",
+    lineHeight: 19,
+    marginBottom: 18,
   },
   retryBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
     paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+    paddingHorizontal: 14,
+    borderRadius: 16,
     borderWidth: 1,
+  },
+  retryIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 9,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
   retryText: {
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "600",
   },
 });
