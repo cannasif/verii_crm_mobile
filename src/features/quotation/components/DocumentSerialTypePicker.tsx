@@ -48,7 +48,7 @@ export function DocumentSerialTypePicker({
     );
   }, [availableDocumentSerialTypes]);
 
-  const isDisabled = disabled || customerTypeId === undefined || !representativeId;
+  const isDisabled = disabled || !representativeId;
 
   return (
     <Controller

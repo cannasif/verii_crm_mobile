@@ -12,15 +12,11 @@ export function useAvailableDocumentSerialTypes(
     queryKey: ["documentSerialType", "available", customerTypeId, salesRepId, ruleType],
     queryFn: () =>
       demandApi.getDocumentSerialTypes({
-        customerTypeId: customerTypeId ?? undefined,
+        customerTypeId: customerTypeId ?? 0,
         salesRepId,
         ruleType,
       }),
-    enabled:
-      customerTypeId !== null &&
-      customerTypeId !== undefined &&
-      !!salesRepId &&
-      salesRepId > 0,
+    enabled: !!salesRepId && salesRepId > 0,
     staleTime: 30 * 1000,
   });
 }

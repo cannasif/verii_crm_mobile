@@ -11,6 +11,7 @@ import {
   Platform,
 } from "react-native";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
+import { resolveDocumentSerialCustomerTypeId } from "@/lib/resolve-document-serial-customer-type-id";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { StatusBar } from "expo-status-bar";
@@ -192,9 +193,12 @@ export function DemandDetailScreen(): React.ReactElement {
   const { data: relatedUsers = [] } = useRelatedUsers(user?.id);
 
   const customerTypeId = useMemo(() => {
-    if (watchedErpCustomerCode) return 0;
-    return customer?.customerTypeId ?? undefined;
-  }, [watchedErpCustomerCode, customer?.customerTypeId]);
+    return resolveDocumentSerialCustomerTypeId({
+      erpCustomerCode: watchedErpCustomerCode,
+      selectedCustomerId: watchedCustomerId,
+      customerTypeId: customer?.customerTypeId,
+    });
+  }, [watchedErpCustomerCode, watchedCustomerId, customer?.customerTypeId]);
 
   const customerCode = useMemo(() => {
     if (customer?.customerCode) return customer.customerCode;
@@ -986,7 +990,7 @@ export function DemandDetailScreen(): React.ReactElement {
               control={control}
               customerTypeId={customerTypeId}
               representativeId={watchedRepresentativeId ?? undefined}
-              disabled={isReadonly || customerTypeId === undefined || !watchedRepresentativeId}
+              disabled={isReadonly || !watchedRepresentativeId}
             />
             <FormField
               label={t("demand.description")}

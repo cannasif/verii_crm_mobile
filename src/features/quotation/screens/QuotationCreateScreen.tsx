@@ -12,6 +12,7 @@ import {
   TextInput,
 } from "react-native";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
+import { resolveDocumentSerialCustomerTypeId } from "@/lib/resolve-document-serial-customer-type-id";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { StatusBar } from "expo-status-bar";
@@ -231,9 +232,12 @@ export function QuotationCreateScreen(): React.ReactElement {
   }, [customer, watchedErpCustomerCode]);
 
   const customerTypeId = useMemo(() => {
-    if (watchedErpCustomerCode) return 0;
-    return customer?.customerTypeId ?? undefined;
-  }, [watchedErpCustomerCode, customer?.customerTypeId]);
+    return resolveDocumentSerialCustomerTypeId({
+      erpCustomerCode: watchedErpCustomerCode,
+      selectedCustomerId: watchedCustomerId,
+      customerTypeId: customer?.customerTypeId,
+    });
+  }, [watchedErpCustomerCode, watchedCustomerId, customer?.customerTypeId]);
 
   const { data: pricingRules } = usePriceRuleOfQuotation({
     customerCode,
@@ -1084,7 +1088,7 @@ export function QuotationCreateScreen(): React.ReactElement {
                 control={control}
                 customerTypeId={customerTypeId}
                 representativeId={watchedRepresentativeId || undefined}
-                disabled={customerTypeId === undefined || !watchedRepresentativeId}
+                disabled={!watchedRepresentativeId}
               />
 
               {watchedOfferType && (
