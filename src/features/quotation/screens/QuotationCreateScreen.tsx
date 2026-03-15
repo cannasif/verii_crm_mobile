@@ -1389,6 +1389,46 @@ export function QuotationCreateScreen(): React.ReactElement {
                               </Text>
                             ) : null}
 
+                            {(line.description1 ||
+                              line.description2 ||
+                              line.description3) && (
+                              <View style={styles.lineExtraBlock}>
+                                {line.description1 ? (
+                                  <Text
+                                    style={[
+                                      styles.lineExtraText,
+                                      { color: colors.textMuted },
+                                    ]}
+                                    numberOfLines={1}
+                                  >
+                                    Profile: {line.description1}
+                                  </Text>
+                                ) : null}
+                                {line.description2 ? (
+                                  <Text
+                                    style={[
+                                      styles.lineExtraText,
+                                      { color: colors.textMuted },
+                                    ]}
+                                    numberOfLines={1}
+                                  >
+                                    Demir: {line.description2}
+                                  </Text>
+                                ) : null}
+                                {line.description3 ? (
+                                  <Text
+                                    style={[
+                                      styles.lineExtraText,
+                                      { color: colors.textMuted },
+                                    ]}
+                                    numberOfLines={1}
+                                  >
+                                    Vida: {line.description3}
+                                  </Text>
+                                ) : null}
+                              </View>
+                            )}
+
                             <View style={styles.lineDetailRows}>
                               <View style={styles.lineDetailRow}>
                                 <Text
@@ -1698,6 +1738,46 @@ export function QuotationCreateScreen(): React.ReactElement {
                                     {relatedLine.productCode}
                                   </Text>
                                 ) : null}
+
+                                {(relatedLine.description1 ||
+                                  relatedLine.description2 ||
+                                  relatedLine.description3) && (
+                                  <View style={styles.lineExtraBlock}>
+                                    {relatedLine.description1 ? (
+                                      <Text
+                                        style={[
+                                          styles.lineExtraText,
+                                          { color: colors.textMuted },
+                                        ]}
+                                        numberOfLines={1}
+                                      >
+                                        Profile: {relatedLine.description1}
+                                      </Text>
+                                    ) : null}
+                                    {relatedLine.description2 ? (
+                                      <Text
+                                        style={[
+                                          styles.lineExtraText,
+                                          { color: colors.textMuted },
+                                        ]}
+                                        numberOfLines={1}
+                                      >
+                                        Demir: {relatedLine.description2}
+                                      </Text>
+                                    ) : null}
+                                    {relatedLine.description3 ? (
+                                      <Text
+                                        style={[
+                                          styles.lineExtraText,
+                                          { color: colors.textMuted },
+                                        ]}
+                                        numberOfLines={1}
+                                      >
+                                        Vida: {relatedLine.description3}
+                                      </Text>
+                                    ) : null}
+                                  </View>
+                                )}
 
                                 <View style={styles.relatedLineDetailRows}>
                                   <View style={styles.lineDetailRow}>
@@ -2483,6 +2563,13 @@ const styles = StyleSheet.create({
   lineProductCode: {
     fontSize: 12,
     marginBottom: 8,
+  },
+  lineExtraBlock: {
+    marginBottom: 8,
+    gap: 2,
+  },
+  lineExtraText: {
+    fontSize: 12,
   },
   lineDetailRows: {
     marginBottom: 4,
