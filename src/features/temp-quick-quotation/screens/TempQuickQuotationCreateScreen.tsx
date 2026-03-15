@@ -34,7 +34,7 @@ import type {
   TempQuotattionExchangeLineUpdateDto,
   TempQuotattionUpdateDto,
 } from "../models/tempQuotattion.model";
-import { QuotationLineForm, ExchangeRateDialog, PickerModal } from "../../quotation/components";
+import { QuotationLineForm, PickerModal } from "../../quotation/components";
 import type { QuotationLineFormState, QuotationExchangeRateFormState } from "../../quotation/types";
 import { useExchangeRate, useCurrencyOptions } from "../../quotation/hooks";
 import { CustomerPicker } from "../../customer/components";
@@ -42,7 +42,9 @@ import type { CustomerDto } from "../../customer/types";
 import {
   buildEffectiveExchangeRates,
   findCurrencyOptionByValue,
+  resolveExchangeRateByCurrency,
 } from "../../../lib/resolve-exchange-rate";
+import { calculateLineTotals } from "../../quotation/utils";
 
 function numberValue(value: string): number {
   const parsed = Number(value.replace(",", "."));
@@ -179,7 +181,6 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
   const [lineFormVisible, setLineFormVisible] = useState(false);
 
   const [exchangeRates, setExchangeRates] = useState<QuotationExchangeRateFormState[]>([]);
-  const [exchangeDialogVisible, setExchangeDialogVisible] = useState(false);
 
   const offerDate = useMemo(() => new Date().toISOString().split("T")[0], []);
   const exchangeRateParams = useMemo(() => ({ tarih: offerDate, fiyatTipi: 1 as const }), [offerDate]);
@@ -218,6 +219,15 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
     setExchangeRate(String(detailQuery.data.exchangeRate ?? 1));
     setDescription(detailQuery.data.description || "");
   }, [detailQuery.data]);
+
+  useEffect(() => {
+    if (!detailQuery.data || !currencyOptions.length) return;
+    const normalizedCode =
+      findCurrencyOptionByValue(detailQuery.data.currencyCode, currencyOptions)?.code ??
+      detailQuery.data.currencyCode ??
+      "TRY";
+    setCurrencyCode(String(normalizedCode).toUpperCase());
+  }, [detailQuery.data, currencyOptions]);
 
   useEffect(() => {
     if (!isEdit && hasPreselectedCustomer) {
@@ -335,6 +345,70 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
       },
     ];
   }, [currencyCode, exchangeRate, exchangeRates, erpExchangeRates, currencyOptions, offerDate]);
+
+  const effectiveLineExchangeRates = useMemo(
+    () =>
+      effectiveExchangeRates
+        .map((rate) => {
+          const dovizTipi =
+            rate.dovizTipi ??
+            findCurrencyOptionByValue(rate.currency, currencyOptions)?.dovizTipi ??
+            Number(rate.currency);
+
+          if (!Number.isFinite(dovizTipi) || !(rate.exchangeRate > 0)) {
+            return null;
+          }
+
+          return {
+            dovizTipi,
+            kurDegeri: rate.exchangeRate,
+          };
+        })
+        .filter((rate): rate is { dovizTipi: number; kurDegeri: number } => rate !== null),
+    [effectiveExchangeRates, currencyOptions]
+  );
+
+  const applyCurrencyChange = useCallback(
+    (newCurrency: string) => {
+      const normalizedNewCurrency = newCurrency.trim().toUpperCase();
+      const oldCurrency = currencyCode || "";
+
+      if (!oldCurrency || oldCurrency === normalizedNewCurrency) {
+        setCurrencyCode(normalizedNewCurrency);
+        return;
+      }
+
+      const oldRate = resolveExchangeRateByCurrency(
+        oldCurrency,
+        effectiveExchangeRates,
+        erpExchangeRates,
+        currencyOptions
+      );
+      const newRate = resolveExchangeRateByCurrency(
+        normalizedNewCurrency,
+        effectiveExchangeRates,
+        erpExchangeRates,
+        currencyOptions
+      );
+
+      if (oldRate == null || newRate == null || newRate <= 0) {
+        setCurrencyCode(normalizedNewCurrency);
+        return;
+      }
+
+      const conversionRatio = oldRate / newRate;
+      setLines((prev) =>
+        prev.map((line) =>
+          calculateLineTotals({
+            ...line,
+            unitPrice: line.unitPrice * conversionRatio,
+          })
+        )
+      );
+      setCurrencyCode(normalizedNewCurrency);
+    },
+    [currencyCode, effectiveExchangeRates, erpExchangeRates, currencyOptions]
+  );
 
   const createMutation = useMutation({
     mutationFn: async (payload: TempQuotattionCreateDto) => {
@@ -622,24 +696,17 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
             <View style={styles.sectionHeaderRow}>
               <View style={styles.sectionHeaderLeft}>
                 <Coins01Icon size={18} color={brandColor} variant="stroke" />
-                <Text style={[styles.sectionTitle, { color: textColor }]}>Kur Satırları</Text>
+                <Text style={[styles.sectionTitle, { color: textColor }]}>Anlık Kur Satırları</Text>
               </View>
-              <TouchableOpacity
-                style={[styles.sectionButton, { backgroundColor: isDark ? "rgba(16, 185, 129, 0.15)" : "rgba(16, 185, 129, 0.1)", borderColor: "rgba(16, 185, 129, 0.3)" }]}
-                onPress={() => setExchangeDialogVisible(true)}
-              >
-                <Edit02Icon size={16} color="#10B981" variant="stroke" style={{ marginRight: 4 }} />
-                <Text style={[styles.sectionButtonText, { color: "#10B981" }]}>Kur Yönet</Text>
-              </TouchableOpacity>
             </View>
 
-            {exchangeRates.length === 0 ? (
+            {effectiveExchangeRates.length === 0 ? (
               <View style={[styles.emptyContainer, { borderColor, backgroundColor: cardBg }]}>
                 <Text style={[styles.emptyText, { color: mutedColor }]}>Kur satırı bulunmuyor.</Text>
               </View>
             ) : (
               <View style={styles.listGroup}>
-                {exchangeRates.map((rate) => (
+                {effectiveExchangeRates.map((rate) => (
                   <View key={rate.id} style={[styles.exchangeCard, { borderColor, backgroundColor: cardBg }]}> 
                     <Text style={[styles.lineTitle, { color: textColor }]}>{rate.currency}</Text>
                     <View style={styles.exchangeRatePill}>
@@ -691,22 +758,7 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
             dovizTipi: x.dovizTipi,
             dovizIsmi: x.dovizIsmi ?? "",
           }))}
-          exchangeRates={erpExchangeRates.map((x) => ({ dovizTipi: x.dovizTipi, kurDegeri: x.kurDegeri }))}
-        />
-
-        <ExchangeRateDialog
-          visible={exchangeDialogVisible}
-          exchangeRates={exchangeRates}
-          currencyOptions={currencyOptions ?? []}
-          erpExchangeRates={erpExchangeRates}
-          isLoadingErpRates={isLoadingErpRates}
-          currencyInUse={currencyCode}
-          onClose={() => setExchangeDialogVisible(false)}
-          onSave={(rates) => {
-            setExchangeRates(rates);
-            setExchangeDialogVisible(false);
-          }}
-          offerDate={offerDate}
+          exchangeRates={effectiveLineExchangeRates}
         />
 
         <PickerModal
@@ -718,7 +770,7 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
           }))}
           selectedValue={currencyCode}
           onSelect={(option) => {
-            setCurrencyCode(String(option.id).toUpperCase());
+            applyCurrencyChange(String(option.id).toUpperCase());
             setCurrencyModalVisible(false);
           }}
           onClose={() => setCurrencyModalVisible(false)}
