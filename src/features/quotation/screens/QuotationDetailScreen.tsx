@@ -40,6 +40,8 @@ import {
   useCurrencyOptions,
   usePaymentTypes,
   useRelatedUsers,
+  useDocumentSerialTypeList,
+  useSalesTypeList,
   usePriceRuleOfQuotation,
   useUserDiscountLimitsBySalesperson,
   useUpdateExchangeRateInQuotation,
@@ -229,7 +231,11 @@ const gradientColors = isDark
   const { data: exchangeRatesData, isLoading: isLoadingErpRates } = useExchangeRate(exchangeRateParams);
   const { data: currencyOptions } = useCurrencyOptions(exchangeRateParams);
   const { data: paymentTypes } = usePaymentTypes();
+  const { data: documentSerialTypeList = [] } = useDocumentSerialTypeList();
   const { data: relatedUsers = [] } = useRelatedUsers(user?.id);
+  const { data: salesTypeList = [] } = useSalesTypeList({
+    offerType: header?.offerType ?? watch("quotation.offerType") ?? undefined,
+  });
 
   const customerTypeId = useMemo(() => {
     return resolveDocumentSerialCustomerTypeId({
@@ -244,6 +250,45 @@ const gradientColors = isDark
     if (watchedErpCustomerCode) return watchedErpCustomerCode;
     return undefined;
   }, [customer, watchedErpCustomerCode]);
+
+  const builtInReportMetaFields = useMemo(() => {
+    if (!header) return [];
+
+    const raw = header as unknown as Record<string, unknown>;
+    const representativeOption = relatedUsers.find((item) => item.userId === header.representativeId);
+    const offerTypeLabel =
+      header.offerType === "YURTDISI" ? "Yurt Dışı" : "Yurt İçi";
+    const representativeName =
+      header.representativeName ||
+      `${representativeOption?.firstName ?? ""} ${representativeOption?.lastName ?? ""}`.trim();
+    const paymentTypeName =
+      header.paymentTypeName ||
+      paymentTypes?.find((item) => item.id === header.paymentTypeId)?.name ||
+      "";
+    const documentSerialTypeName =
+      header.documentSerialTypeName ||
+      documentSerialTypeList.find((item) => item.id === header.documentSerialTypeId)?.name ||
+      "";
+    const salesTypeName =
+      (raw.salesTypeDefinitionName as string | null | undefined) ||
+      salesTypeList.find((item) => item.id === (raw.salesTypeDefinitionId as number | undefined))?.name ||
+      "";
+
+    return [
+      { label: "ERP Müşteri Kodu", value: header.erpCustomerCode ?? null },
+      { label: "Teklif Tipi", value: offerTypeLabel },
+      { label: "Teklif Tarihi", value: header.offerDate ? header.offerDate.split("T")[0] : null },
+      { label: "Teslim Tarihi", value: header.deliveryDate ? header.deliveryDate.split("T")[0] : null },
+      { label: "Geçerlilik Tarihi", value: (raw.validUntil as string | null | undefined)?.split("T")[0] ?? null },
+      { label: "Ödeme Tipi", value: paymentTypeName || null },
+      { label: "Temsilci", value: representativeName || null },
+      { label: "Sevk Adresi", value: header.shippingAddressText ?? null },
+      { label: "Seri No", value: documentSerialTypeName || null },
+      { label: "Teslim Şekli", value: salesTypeName || null },
+      { label: "Proje Kodu", value: (raw.erpProjectCode as string | null | undefined) ?? null },
+      { label: "Açıklama", value: header.description ?? null },
+    ];
+  }, [header, relatedUsers, paymentTypes, documentSerialTypeList, salesTypeList]);
 
   const effectiveRatesForLines = useMemo(() => {
     return erpRatesForQuotation.map((erp) => {
@@ -859,6 +904,7 @@ const gradientColors = isDark
             customerName={header?.potentialCustomerName ?? null}
             currency={header?.currency ?? "TRY"}
             lines={lines}
+            metaFields={builtInReportMetaFields}
           />
         ) : (
         <FlatListScrollView

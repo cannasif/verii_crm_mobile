@@ -10,6 +10,7 @@ interface QuotationReportTabProps {
   customerName?: string | null;
   currency?: string | null;
   lines: QuotationLineFormState[];
+  metaFields?: Array<{ label: string; value?: string | null }>;
 }
 
 export function QuotationReportTab({
@@ -18,6 +19,7 @@ export function QuotationReportTab({
   customerName,
   currency,
   lines,
+  metaFields,
 }: QuotationReportTabProps): React.ReactElement {
   return (
     <ReportTab
@@ -34,6 +36,7 @@ export function QuotationReportTab({
               customerName,
               currencyCode: currency || "TRY",
               lines,
+              metaFields,
             }),
         },
       ]}

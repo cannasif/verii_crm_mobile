@@ -13,6 +13,7 @@ interface CreateBuiltInQuotationReportPdfParams {
   customerName?: string | null;
   currencyCode: string;
   lines: QuotationLineFormState[];
+  metaFields?: Array<{ label: string; value?: string | null }>;
 }
 
 interface CurrencyPresentation {
@@ -75,9 +76,33 @@ function normalizeCustomerName(value?: string | null): string {
   return trimmed;
 }
 
+function normalizeMetaFields(
+  fields: Array<{ label: string; value?: string | null }> | undefined
+): Array<{ label: string; value: string }> {
+  return (fields ?? [])
+    .map((field) => ({
+      label: field.label?.trim() ?? "",
+      value: field.value?.trim() ?? "",
+    }))
+    .filter((field) => field.label && field.value);
+}
+
 function buildHtml(params: CreateBuiltInQuotationReportPdfParams): string {
   const customerName = normalizeCustomerName(params.customerName);
   const currency = getCurrencyPresentation(params.currencyCode);
+  const metaFields = [
+    ...(customerName ? [{ label: "Müşteri Hesabı", value: customerName }] : []),
+    ...normalizeMetaFields(params.metaFields),
+  ];
+  const metaRows = metaFields
+    .map(
+      (field) => `
+        <div class="meta-row">
+          <span class="label">${escapeHtml(field.label)}:</span> ${escapeHtml(field.value)}
+        </div>
+      `
+    )
+    .join("");
   const rowsHtml = params.lines
     .map((line) => {
       return `
@@ -107,7 +132,8 @@ function buildHtml(params: CreateBuiltInQuotationReportPdfParams): string {
           body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; color: #111827; }
           h1 { font-size: 24px; margin: 0 0 10px; }
           .meta { margin-bottom: 18px; font-size: 13px; }
-          .meta-row { margin-bottom: 6px; }
+          .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px; margin-top: 8px; }
+          .meta-row { margin-bottom: 0; }
           .label { font-weight: 700; }
           table { width: 100%; border-collapse: collapse; table-layout: fixed; }
           th, td { border: 1px solid #d1d5db; padding: 5px; font-size: 9px; vertical-align: top; word-wrap: break-word; }
@@ -129,7 +155,7 @@ function buildHtml(params: CreateBuiltInQuotationReportPdfParams): string {
           <div class="meta-row"><span class="label">Tarih:</span> ${escapeHtml(new Date().toLocaleDateString("tr-TR"))}</div>
           <div class="meta-row"><span class="label">Teklif No:</span> ${escapeHtml(params.offerNo ?? "-")}</div>
           <div class="meta-row"><span class="label">Döviz:</span> ${escapeHtml(currency.label)}</div>
-          ${customerName ? `<div class="meta-row"><span class="label">Müşteri Hesabı:</span> ${escapeHtml(customerName)}</div>` : ""}
+          ${metaRows ? `<div class="meta-grid">${metaRows}</div>` : ""}
         </div>
         <table>
           <thead>
