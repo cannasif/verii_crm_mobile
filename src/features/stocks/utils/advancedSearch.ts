@@ -1,5 +1,14 @@
 import type { StockGetDto } from "../types";
 
+function dedupeStocksById(stocks: StockGetDto[]): StockGetDto[] {
+  const seen = new Set<number>();
+  return stocks.filter((stock) => {
+    if (seen.has(stock.id)) return false;
+    seen.add(stock.id);
+    return true;
+  });
+}
+
 function normalizeSearchText(value: string | undefined | null): string {
   return String(value ?? "")
     .toLocaleLowerCase("tr-TR")
@@ -64,10 +73,11 @@ function scoreStock(stock: StockGetDto, rawQuery: string): number {
 }
 
 export function filterAndRankStocks(stocks: StockGetDto[], rawQuery: string): StockGetDto[] {
+  const uniqueStocks = dedupeStocksById(stocks);
   const normalizedQuery = normalizeSearchText(rawQuery);
-  if (normalizedQuery.length < 2) return stocks;
+  if (normalizedQuery.length < 2) return uniqueStocks;
 
-  return [...stocks]
+  return [...uniqueStocks]
     .map((stock, index) => ({
       stock,
       index,
