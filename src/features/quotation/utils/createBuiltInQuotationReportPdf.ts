@@ -7,7 +7,7 @@ import { Buffer } from "buffer";
 import type { QuotationLineFormState } from "../types";
 
 const COVER_TEMPLATE_ASSET = require("../../../../assets/pdf-templates/atlas-cover-first-3-pages.pdf");
-const BRAND_LOGO_ASSET = require("../../../../assets/veriicrmlogo.png");
+const BRAND_LOGO_ASSET = require("../../../../assets/windoformlogo.png");
 const REFERENCE_IMAGE_ASSETS = [
   require("../../../../assets/veriicrmlogo.png"),
   require("../../../../assets/v3logo.png"),
