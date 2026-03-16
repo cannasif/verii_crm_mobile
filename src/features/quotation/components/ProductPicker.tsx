@@ -16,6 +16,8 @@ import {
   ActivityIndicator,
   TextInput,
   Pressable,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
@@ -85,7 +87,9 @@ function compact(value: string): string {
 }
 
 function sortTokens(value: string): string {
-  return tokenize(value).sort((a, b) => a.localeCompare(b, "tr")).join(" ");
+  return tokenize(value)
+    .sort((a, b) => a.localeCompare(b, "tr"))
+    .join(" ");
 }
 
 function damerauLevenshtein(a: string, b: string): number {
@@ -95,7 +99,9 @@ function damerauLevenshtein(a: string, b: string): number {
   if (alen === 0) return blen;
   if (blen === 0) return alen;
 
-  const dp: number[][] = Array.from({ length: alen + 1 }, () => Array(blen + 1).fill(0));
+  const dp: number[][] = Array.from({ length: alen + 1 }, () =>
+    Array(blen + 1).fill(0)
+  );
 
   for (let i = 0; i <= alen; i++) dp[i][0] = i;
   for (let j = 0; j <= blen; j++) dp[0][j] = j;
@@ -126,6 +132,7 @@ function damerauLevenshtein(a: string, b: string): number {
 
 function isSubsequence(query: string, target: string): boolean {
   if (!query) return true;
+
   let qi = 0;
   let ti = 0;
 
@@ -199,7 +206,10 @@ function scoreWordAgainstField(word: string, field: string): number {
 
   if (word.length >= 3 && isSubsequence(compactWord, compactField)) return 120;
 
-  const compareSlice = compactField.slice(0, Math.min(compactField.length, compactWord.length + 2));
+  const compareSlice = compactField.slice(
+    0,
+    Math.min(compactField.length, compactWord.length + 2)
+  );
   const distance = damerauLevenshtein(compactWord, compareSlice);
 
   if (distance === 1) return 150;
@@ -250,7 +260,10 @@ function scoreWholeQueryAgainstField(query: string, field: string): number {
   if (distance === 2) return 160;
   if (distance === 3 && compactQuery.length >= 8) return 110;
 
-  const freqSim = charFrequencySimilarity(compactQuery, compactField.slice(0, compactQuery.length + 3));
+  const freqSim = charFrequencySimilarity(
+    compactQuery,
+    compactField.slice(0, compactQuery.length + 3)
+  );
   if (freqSim >= 0.9) return 140;
   if (freqSim >= 0.8) return 100;
   if (freqSim >= 0.7) return 65;
@@ -312,7 +325,8 @@ function scoreStock(stock: StockGetDto, query: string): number {
   const wholeCode3 = scoreWholeQueryAgainstField(normalizedQuery, code3) + 12;
   const wholeCode4 = scoreWholeQueryAgainstField(normalizedQuery, code4) + 10;
   const wholeCode5 = scoreWholeQueryAgainstField(normalizedQuery, code5) + 10;
-  const wholeManufacturerCode = scoreWholeQueryAgainstField(normalizedQuery, manufacturerCode) + 8;
+  const wholeManufacturerCode =
+    scoreWholeQueryAgainstField(normalizedQuery, manufacturerCode) + 8;
 
   const tokenName = scoreFieldWithTokens(name, normalizedQuery) + 25;
   const tokenCode = scoreFieldWithTokens(code, normalizedQuery) + 15;
@@ -323,7 +337,8 @@ function scoreStock(stock: StockGetDto, query: string): number {
   const tokenCode3 = scoreFieldWithTokens(code3, normalizedQuery) + 10;
   const tokenCode4 = scoreFieldWithTokens(code4, normalizedQuery) + 8;
   const tokenCode5 = scoreFieldWithTokens(code5, normalizedQuery) + 8;
-  const tokenManufacturerCode = scoreFieldWithTokens(manufacturerCode, normalizedQuery) + 6;
+  const tokenManufacturerCode =
+    scoreFieldWithTokens(manufacturerCode, normalizedQuery) + 6;
 
   let score = Math.max(
     wholeName,
@@ -348,7 +363,21 @@ function scoreStock(stock: StockGetDto, query: string): number {
     tokenManufacturerCode
   );
 
-  const combinedField = [name, code, groupCode, groupName, code1, code2, code3, code4, code5, manufacturerCode].filter(Boolean).join(" ");
+  const combinedField = [
+    name,
+    code,
+    groupCode,
+    groupName,
+    code1,
+    code2,
+    code3,
+    code4,
+    code5,
+    manufacturerCode,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   const combinedWhole = scoreWholeQueryAgainstField(normalizedQuery, combinedField);
   const combinedToken = scoreFieldWithTokens(combinedField, normalizedQuery);
   score = Math.max(score, combinedWhole + 18, combinedToken + 12);
@@ -408,7 +437,10 @@ function formatStockBalance(item: StockGetDto): string | null {
   return null;
 }
 
-function getStockMetaRows(item: StockGetDto, t: (key: string) => string): Array<{ label: string; value: string }> {
+function getStockMetaRows(
+  item: StockGetDto,
+  t: (key: string) => string
+): Array<{ label: string; value: string }> {
   return [
     item.grupKodu || item.grupAdi
       ? { label: t("stockPicker.group"), value: [item.grupKodu, item.grupAdi].filter(Boolean).join(" · ") }
@@ -578,11 +610,14 @@ function ProductPickerInner(
   const [relationDetailVisible, setRelationDetailVisible] = useState(false);
   const [relationDetailData, setRelationDetailData] = useState<StockRelationDto[]>([]);
   const [relatedSelectedIds, setRelatedSelectedIds] = useState<Set<number>>(new Set());
+
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
+
   const [appliedIdFilter, setAppliedIdFilter] = useState("");
   const [appliedCodeFilter, setAppliedCodeFilter] = useState("");
   const [appliedNameFilter, setAppliedNameFilter] = useState("");
   const [appliedUnitFilter, setAppliedUnitFilter] = useState("");
+
   const [tempIdFilter, setTempIdFilter] = useState("");
   const [tempCodeFilter, setTempCodeFilter] = useState("");
   const [tempNameFilter, setTempNameFilter] = useState("");
@@ -601,6 +636,7 @@ function ProductPickerInner(
   const [tempManufacturerCodeFilter, setTempManufacturerCodeFilter] = useState("");
   const [tempBranchCodeFilter, setTempBranchCodeFilter] = useState("");
   const [tempUnitFilter, setTempUnitFilter] = useState("");
+
   const [appliedGroupCodeFilter, setAppliedGroupCodeFilter] = useState("");
   const [appliedGroupNameFilter, setAppliedGroupNameFilter] = useState("");
   const [appliedCode1Filter, setAppliedCode1Filter] = useState("");
@@ -629,7 +665,7 @@ function ProductPickerInner(
   useEffect(() => {
     if (!relatedStocksSelection?.stock?.id) return;
     setRelatedSelectedIds(new Set(relatedMandatory.map((r) => r.relatedStockId)));
-  }, [relatedStocksSelection?.stock?.id]);
+  }, [relatedStocksSelection?.stock?.id, relatedMandatory]);
 
   useEffect(() => {
     if (!parentVisible) {
@@ -642,8 +678,10 @@ function ProductPickerInner(
   }, [parentVisible]);
 
   const normalizedQuery = useMemo(() => normalizeSearchText(searchText), [searchText]);
+
   const apiFilters = useMemo(() => {
     const filters: Array<{ column: string; operator: string; value: string }> = [];
+
     if (appliedIdFilter.trim()) {
       filters.push({ column: "Id", operator: "eq", value: appliedIdFilter.trim() });
     }
@@ -698,8 +736,29 @@ function ProductPickerInner(
     if (appliedBranchCodeFilter.trim()) {
       filters.push({ column: "BranchCode", operator: "eq", value: appliedBranchCodeFilter.trim() });
     }
+
     return filters;
-  }, [appliedBranchCodeFilter, appliedCode1Filter, appliedCode1NameFilter, appliedCode2Filter, appliedCode2NameFilter, appliedCode3Filter, appliedCode3NameFilter, appliedCode4Filter, appliedCode4NameFilter, appliedCode5Filter, appliedCode5NameFilter, appliedCodeFilter, appliedGroupCodeFilter, appliedGroupNameFilter, appliedIdFilter, appliedManufacturerCodeFilter, appliedNameFilter, appliedUnitFilter]);
+  }, [
+    appliedBranchCodeFilter,
+    appliedCode1Filter,
+    appliedCode1NameFilter,
+    appliedCode2Filter,
+    appliedCode2NameFilter,
+    appliedCode3Filter,
+    appliedCode3NameFilter,
+    appliedCode4Filter,
+    appliedCode4NameFilter,
+    appliedCode5Filter,
+    appliedCode5NameFilter,
+    appliedCodeFilter,
+    appliedGroupCodeFilter,
+    appliedGroupNameFilter,
+    appliedIdFilter,
+    appliedManufacturerCodeFilter,
+    appliedNameFilter,
+    appliedUnitFilter,
+  ]);
+
   const hasAdvancedFilters = apiFilters.length > 0;
 
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useStocks(
@@ -789,7 +848,14 @@ function ProductPickerInner(
     }
 
     handleClose();
-  }, [isFilterModalVisible, relatedStocksSelection, relationDetailVisible, handleRelatedCancel, handleCloseRelationDetail, handleClose]);
+  }, [
+    isFilterModalVisible,
+    relatedStocksSelection,
+    relationDetailVisible,
+    handleRelatedCancel,
+    handleCloseRelationDetail,
+    handleClose,
+  ]);
 
   const openFilterModal = useCallback(() => {
     setTempIdFilter(appliedIdFilter);
@@ -811,7 +877,26 @@ function ProductPickerInner(
     setTempBranchCodeFilter(appliedBranchCodeFilter);
     setTempUnitFilter(appliedUnitFilter);
     setIsFilterModalVisible(true);
-  }, [appliedBranchCodeFilter, appliedCode1Filter, appliedCode1NameFilter, appliedCode2Filter, appliedCode2NameFilter, appliedCode3Filter, appliedCode3NameFilter, appliedCode4Filter, appliedCode4NameFilter, appliedCode5Filter, appliedCode5NameFilter, appliedCodeFilter, appliedGroupCodeFilter, appliedGroupNameFilter, appliedIdFilter, appliedManufacturerCodeFilter, appliedNameFilter, appliedUnitFilter]);
+  }, [
+    appliedBranchCodeFilter,
+    appliedCode1Filter,
+    appliedCode1NameFilter,
+    appliedCode2Filter,
+    appliedCode2NameFilter,
+    appliedCode3Filter,
+    appliedCode3NameFilter,
+    appliedCode4Filter,
+    appliedCode4NameFilter,
+    appliedCode5Filter,
+    appliedCode5NameFilter,
+    appliedCodeFilter,
+    appliedGroupCodeFilter,
+    appliedGroupNameFilter,
+    appliedIdFilter,
+    appliedManufacturerCodeFilter,
+    appliedNameFilter,
+    appliedUnitFilter,
+  ]);
 
   const applyFilters = useCallback(() => {
     setAppliedIdFilter(tempIdFilter);
@@ -833,7 +918,26 @@ function ProductPickerInner(
     setAppliedBranchCodeFilter(tempBranchCodeFilter);
     setAppliedUnitFilter(tempUnitFilter);
     setIsFilterModalVisible(false);
-  }, [tempBranchCodeFilter, tempCode1Filter, tempCode1NameFilter, tempCode2Filter, tempCode2NameFilter, tempCode3Filter, tempCode3NameFilter, tempCode4Filter, tempCode4NameFilter, tempCode5Filter, tempCode5NameFilter, tempCodeFilter, tempGroupCodeFilter, tempGroupNameFilter, tempIdFilter, tempManufacturerCodeFilter, tempNameFilter, tempUnitFilter]);
+  }, [
+    tempBranchCodeFilter,
+    tempCode1Filter,
+    tempCode1NameFilter,
+    tempCode2Filter,
+    tempCode2NameFilter,
+    tempCode3Filter,
+    tempCode3NameFilter,
+    tempCode4Filter,
+    tempCode4NameFilter,
+    tempCode5Filter,
+    tempCode5NameFilter,
+    tempCodeFilter,
+    tempGroupCodeFilter,
+    tempGroupNameFilter,
+    tempIdFilter,
+    tempManufacturerCodeFilter,
+    tempNameFilter,
+    tempUnitFilter,
+  ]);
 
   const clearFilters = useCallback(() => {
     setTempIdFilter("");
@@ -854,6 +958,7 @@ function ProductPickerInner(
     setTempManufacturerCodeFilter("");
     setTempBranchCodeFilter("");
     setTempUnitFilter("");
+
     setAppliedIdFilter("");
     setAppliedCodeFilter("");
     setAppliedNameFilter("");
@@ -1183,11 +1288,7 @@ function ProductPickerInner(
                   <View style={[styles.handle, { backgroundColor: borderColor }]} />
                   <View style={styles.headerRow}>
                     <View style={[styles.productIcon, { backgroundColor: brandColor + "18" }]}>
-                      <MaterialCommunityIcons
-                        name="package-variant-closed"
-                        size={20}
-                        color={brandColor}
-                      />
+                      <MaterialCommunityIcons name="package-variant-closed" size={20} color={brandColor} />
                     </View>
 
                     <View style={styles.headerTitles}>
@@ -1211,9 +1312,9 @@ function ProductPickerInner(
                     { backgroundColor: inputBg, borderBottomColor: borderColor },
                   ]}
                 >
-                <View
-                  style={[
-                    styles.searchInputWrap,
+                  <View
+                    style={[
+                      styles.searchInputWrap,
                       {
                         backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "#FFFFFF",
                         borderColor: borderColor,
@@ -1297,167 +1398,271 @@ function ProductPickerInner(
         </View>
       </Modal>
 
-      <Modal visible={isFilterModalVisible} transparent animationType="fade" onRequestClose={() => setIsFilterModalVisible(false)}>
-        <Pressable style={styles.filterModalOverlay} onPress={() => setIsFilterModalVisible(false)}>
-          <Pressable
-            style={[
-              styles.filterModalCard,
-              { backgroundColor: mainBg, borderColor },
-            ]}
-            onPress={(event) => event.stopPropagation()}
+      <Modal
+        visible={isFilterModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsFilterModalVisible(false)}
+      >
+        <Pressable
+          style={styles.filterModalOverlay}
+          onPress={() => setIsFilterModalVisible(false)}
+        >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 24 : 20}
+            style={styles.filterKeyboardAvoid}
           >
-            <View style={[styles.filterModalHeader, { borderBottomColor: borderColor }]}>
-              <Text style={[styles.filterModalTitle, { color: textColor }]}>
-                {t("stockPicker.advancedFilterTitle")}
-              </Text>
-              <TouchableOpacity onPress={() => setIsFilterModalVisible(false)} style={styles.closeButton} activeOpacity={0.8}>
-                <Ionicons name="close" size={20} color={textColor} />
-              </TouchableOpacity>
-            </View>
+            <Pressable
+              style={[
+                styles.filterModalCard,
+                { backgroundColor: mainBg, borderColor },
+              ]}
+              onPress={(event) => event.stopPropagation()}
+            >
+              <View style={[styles.filterModalHeader, { borderBottomColor: borderColor }]}>
+                <Text style={[styles.filterModalTitle, { color: textColor }]}>
+                  {t("stockPicker.advancedFilterTitle")}
+                </Text>
+                <TouchableOpacity onPress={() => setIsFilterModalVisible(false)} style={styles.closeButton} activeOpacity={0.8}>
+                  <Ionicons name="close" size={20} color={textColor} />
+                </TouchableOpacity>
+              </View>
 
-            <View style={styles.filterFields}>
-              <View style={styles.filterFieldRow}>
-              <View style={styles.filterField}>
-                <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>{t("stockPicker.filterId")}</Text>
-                <TextInput
-                  value={tempIdFilter}
-                  onChangeText={setTempIdFilter}
-                  keyboardType="number-pad"
-                  placeholder={t("stockPicker.filterId")}
-                  placeholderTextColor={mutedColor}
-                  style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
-                />
-              </View>
-              <View style={styles.filterField}>
-                <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>{t("stockPicker.filterCode")}</Text>
-                <TextInput
-                  value={tempCodeFilter}
-                  onChangeText={setTempCodeFilter}
-                  placeholder={t("stockPicker.filterCode")}
-                  placeholderTextColor={mutedColor}
-                  style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
-                />
-              </View>
-              </View>
-              <View style={styles.filterFieldRow}>
-              <View style={styles.filterField}>
-                <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>{t("stockPicker.filterName")}</Text>
-                <TextInput
-                  value={tempNameFilter}
-                  onChangeText={setTempNameFilter}
-                  placeholder={t("stockPicker.filterName")}
-                  placeholderTextColor={mutedColor}
-                  style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
-                />
-              </View>
-              <View style={styles.filterField}>
-                <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>{t("stockPicker.filterUnit")}</Text>
-                <TextInput
-                  value={tempUnitFilter}
-                  onChangeText={setTempUnitFilter}
-                  placeholder={t("stockPicker.filterUnit")}
-                  placeholderTextColor={mutedColor}
-                  style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
-                />
-              </View>
-              </View>
-              <View style={styles.filterFieldRow}>
-              <View style={styles.filterField}>
-                <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>{t("stockPicker.filterGroupCode")}</Text>
-                <TextInput value={tempGroupCodeFilter} onChangeText={setTempGroupCodeFilter} placeholder={t("stockPicker.filterGroupCode")} placeholderTextColor={mutedColor} style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]} />
-              </View>
-              <View style={styles.filterField}>
-                <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>{t("stockPicker.filterGroupName")}</Text>
-                <TextInput value={tempGroupNameFilter} onChangeText={setTempGroupNameFilter} placeholder={t("stockPicker.filterGroupName")} placeholderTextColor={mutedColor} style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]} />
-              </View>
-              </View>
-              <View style={styles.filterFieldRow}>
-              <View style={styles.filterField}>
-                <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>{t("stockPicker.filterCode1")}</Text>
-                <TextInput value={tempCode1Filter} onChangeText={setTempCode1Filter} placeholder={t("stockPicker.filterCode1")} placeholderTextColor={mutedColor} style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]} />
-              </View>
-              <View style={styles.filterField}>
-                <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>{t("stockPicker.filterCode1Name")}</Text>
-                <TextInput value={tempCode1NameFilter} onChangeText={setTempCode1NameFilter} placeholder={t("stockPicker.filterCode1Name")} placeholderTextColor={mutedColor} style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]} />
-              </View>
-              </View>
-              <View style={styles.filterFieldRow}>
-              <View style={styles.filterField}>
-                <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>{t("stockPicker.filterCode2")}</Text>
-                <TextInput value={tempCode2Filter} onChangeText={setTempCode2Filter} placeholder={t("stockPicker.filterCode2")} placeholderTextColor={mutedColor} style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]} />
-              </View>
-              <View style={styles.filterField}>
-                <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>{t("stockPicker.filterCode2Name")}</Text>
-                <TextInput value={tempCode2NameFilter} onChangeText={setTempCode2NameFilter} placeholder={t("stockPicker.filterCode2Name")} placeholderTextColor={mutedColor} style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]} />
-              </View>
-              </View>
-              <View style={styles.filterFieldRow}>
-              <View style={styles.filterField}>
-                <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>{t("stockPicker.filterCode3")}</Text>
-                <TextInput value={tempCode3Filter} onChangeText={setTempCode3Filter} placeholder={t("stockPicker.filterCode3")} placeholderTextColor={mutedColor} style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]} />
-              </View>
-              <View style={styles.filterField}>
-                <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>{t("stockPicker.filterCode3Name")}</Text>
-                <TextInput value={tempCode3NameFilter} onChangeText={setTempCode3NameFilter} placeholder={t("stockPicker.filterCode3Name")} placeholderTextColor={mutedColor} style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]} />
-              </View>
-              </View>
-              <View style={styles.filterFieldRow}>
-              <View style={styles.filterField}>
-                <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>{t("stockPicker.filterCode4")}</Text>
-                <TextInput value={tempCode4Filter} onChangeText={setTempCode4Filter} placeholder={t("stockPicker.filterCode4")} placeholderTextColor={mutedColor} style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]} />
-              </View>
-              <View style={styles.filterField}>
-                <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>{t("stockPicker.filterCode4Name")}</Text>
-                <TextInput value={tempCode4NameFilter} onChangeText={setTempCode4NameFilter} placeholder={t("stockPicker.filterCode4Name")} placeholderTextColor={mutedColor} style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]} />
-              </View>
-              </View>
-              <View style={styles.filterFieldRow}>
-              <View style={styles.filterField}>
-                <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>{t("stockPicker.filterCode5")}</Text>
-                <TextInput value={tempCode5Filter} onChangeText={setTempCode5Filter} placeholder={t("stockPicker.filterCode5")} placeholderTextColor={mutedColor} style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]} />
-              </View>
-              <View style={styles.filterField}>
-                <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>{t("stockPicker.filterCode5Name")}</Text>
-                <TextInput value={tempCode5NameFilter} onChangeText={setTempCode5NameFilter} placeholder={t("stockPicker.filterCode5Name")} placeholderTextColor={mutedColor} style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]} />
-              </View>
-              </View>
-              <View style={styles.filterFieldRow}>
-              <View style={styles.filterField}>
-                <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>{t("stockPicker.filterManufacturerCode")}</Text>
-                <TextInput
-                  value={tempManufacturerCodeFilter}
-                  onChangeText={setTempManufacturerCodeFilter}
-                  placeholder={t("stockPicker.filterManufacturerCode")}
-                  placeholderTextColor={mutedColor}
-                  style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
-                />
-              </View>
-              <View style={styles.filterField}>
-                <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>{t("stockPicker.filterBranchCode")}</Text>
-                <TextInput
-                  value={tempBranchCodeFilter}
-                  onChangeText={setTempBranchCodeFilter}
-                  keyboardType="number-pad"
-                  placeholder={t("stockPicker.filterBranchCode")}
-                  placeholderTextColor={mutedColor}
-                  style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
-                />
-              </View>
-              </View>
-            </View>
+              <FlatListScrollView
+                style={styles.filterFormScroll}
+                contentContainerStyle={styles.filterFormScrollContent}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
+                <View style={styles.filterFields}>
+                  <View style={styles.filterFieldRow}>
+                    <View style={styles.filterField}>
+                      <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
+                        Stok Kodu
+                      </Text>
+                      <TextInput
+                        value={tempCodeFilter}
+                        onChangeText={setTempCodeFilter}
+                        placeholder="Stok Kodu"
+                        placeholderTextColor={mutedColor}
+                        style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
+                      />
+                    </View>
 
-            <View style={[styles.filterModalFooter, { borderTopColor: borderColor }]}>
-              <TouchableOpacity style={[styles.filterSecondaryButton, { borderColor }]} onPress={() => setIsFilterModalVisible(false)} activeOpacity={0.85}>
-                <Text style={[styles.filterSecondaryButtonText, { color: textColor }]}>{t("common.cancel")}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.filterSecondaryButton, { borderColor }]} onPress={clearFilters} activeOpacity={0.85}>
-                <Text style={[styles.filterSecondaryButtonText, { color: textColor }]}>{t("common.clear")}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.filterPrimaryButton, { backgroundColor: brandColor }]} onPress={applyFilters} activeOpacity={0.85}>
-                <Text style={styles.filterPrimaryButtonText}>{t("common.apply")}</Text>
-              </TouchableOpacity>
-            </View>
-          </Pressable>
+                    <View style={styles.filterField}>
+                      <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
+                        Stok Adı
+                      </Text>
+                      <TextInput
+                        value={tempNameFilter}
+                        onChangeText={setTempNameFilter}
+                        placeholder="Stok Adı"
+                        placeholderTextColor={mutedColor}
+                        style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.filterFieldRow}>
+                    <View style={styles.filterField}>
+                      <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
+                        Grup Kodu
+                      </Text>
+                      <TextInput
+                        value={tempGroupCodeFilter}
+                        onChangeText={setTempGroupCodeFilter}
+                        placeholder="Grup Kodu"
+                        placeholderTextColor={mutedColor}
+                        style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
+                      />
+                    </View>
+
+                    <View style={styles.filterField}>
+                      <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
+                        Grup Adı
+                      </Text>
+                      <TextInput
+                        value={tempGroupNameFilter}
+                        onChangeText={setTempGroupNameFilter}
+                        placeholder="Grup Adı"
+                        placeholderTextColor={mutedColor}
+                        style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.filterFieldRow}>
+                    <View style={styles.filterField}>
+                      <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
+                        Kod1
+                      </Text>
+                      <TextInput
+                        value={tempCode1Filter}
+                        onChangeText={setTempCode1Filter}
+                        placeholder="Kod1"
+                        placeholderTextColor={mutedColor}
+                        style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
+                      />
+                    </View>
+
+                    <View style={styles.filterField}>
+                      <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
+                        Kod1 Adı
+                      </Text>
+                      <TextInput
+                        value={tempCode1NameFilter}
+                        onChangeText={setTempCode1NameFilter}
+                        placeholder="Kod1 Adı"
+                        placeholderTextColor={mutedColor}
+                        style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.filterFieldRow}>
+                    <View style={styles.filterField}>
+                      <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
+                        Kod2
+                      </Text>
+                      <TextInput
+                        value={tempCode2Filter}
+                        onChangeText={setTempCode2Filter}
+                        placeholder="Kod2"
+                        placeholderTextColor={mutedColor}
+                        style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
+                      />
+                    </View>
+
+                    <View style={styles.filterField}>
+                      <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
+                        Kod2 Adı
+                      </Text>
+                      <TextInput
+                        value={tempCode2NameFilter}
+                        onChangeText={setTempCode2NameFilter}
+                        placeholder="Kod2 Adı"
+                        placeholderTextColor={mutedColor}
+                        style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.filterFieldRow}>
+                    <View style={styles.filterField}>
+                      <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
+                        Kod3
+                      </Text>
+                      <TextInput
+                        value={tempCode3Filter}
+                        onChangeText={setTempCode3Filter}
+                        placeholder="Kod3"
+                        placeholderTextColor={mutedColor}
+                        style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
+                      />
+                    </View>
+
+                    <View style={styles.filterField}>
+                      <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
+                        Kod3 Adı
+                      </Text>
+                      <TextInput
+                        value={tempCode3NameFilter}
+                        onChangeText={setTempCode3NameFilter}
+                        placeholder="Kod3 Adı"
+                        placeholderTextColor={mutedColor}
+                        style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.filterFieldRow}>
+                    <View style={styles.filterField}>
+                      <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
+                        Kod4
+                      </Text>
+                      <TextInput
+                        value={tempCode4Filter}
+                        onChangeText={setTempCode4Filter}
+                        placeholder="Kod4"
+                        placeholderTextColor={mutedColor}
+                        style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
+                      />
+                    </View>
+
+                    <View style={styles.filterField}>
+                      <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
+                        Kod4 Adı
+                      </Text>
+                      <TextInput
+                        value={tempCode4NameFilter}
+                        onChangeText={setTempCode4NameFilter}
+                        placeholder="Kod4 Adı"
+                        placeholderTextColor={mutedColor}
+                        style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.filterFieldRow}>
+                    <View style={styles.filterField}>
+                      <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
+                        Kod5
+                      </Text>
+                      <TextInput
+                        value={tempCode5Filter}
+                        onChangeText={setTempCode5Filter}
+                        placeholder="Kod5"
+                        placeholderTextColor={mutedColor}
+                        style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
+                      />
+                    </View>
+
+                    <View style={styles.filterField}>
+                      <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
+                        Kod5 Adı
+                      </Text>
+                      <TextInput
+                        value={tempCode5NameFilter}
+                        onChangeText={setTempCode5NameFilter}
+                        placeholder="Kod5 Adı"
+                        placeholderTextColor={mutedColor}
+                        style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
+                      />
+                    </View>
+                  </View>
+                </View>
+              </FlatListScrollView>
+
+              <View style={[styles.filterModalFooter, { borderTopColor: borderColor }]}>
+                <TouchableOpacity
+                  style={[styles.filterSecondaryButton, { borderColor }]}
+                  onPress={() => setIsFilterModalVisible(false)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[styles.filterSecondaryButtonText, { color: textColor }]}>
+                    {t("common.cancel")}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterSecondaryButton, { borderColor }]}
+                  onPress={clearFilters}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[styles.filterSecondaryButtonText, { color: textColor }]}>
+                    {t("common.clear")}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterPrimaryButton, { backgroundColor: brandColor }]}
+                  onPress={applyFilters}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.filterPrimaryButtonText}>{t("common.apply")}</Text>
+                </TouchableOpacity>
+              </View>
+            </Pressable>
+          </KeyboardAvoidingView>
         </Pressable>
       </Modal>
     </>
@@ -1658,6 +1863,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 20,
   },
+  filterKeyboardAvoid: {
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   filterModalCard: {
     width: "100%",
     maxWidth: 420,
@@ -1676,6 +1886,12 @@ const styles = StyleSheet.create({
   filterModalTitle: {
     fontSize: 17,
     fontWeight: "700",
+  },
+  filterFormScroll: {
+    maxHeight: 420,
+  },
+  filterFormScrollContent: {
+    paddingBottom: 8,
   },
   filterFields: {
     padding: 18,
