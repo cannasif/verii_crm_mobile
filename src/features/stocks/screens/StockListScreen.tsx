@@ -11,6 +11,8 @@ import {
   ScrollView,
   Modal,
   TextInput,
+  Keyboard,
+  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -44,21 +46,29 @@ const BRAND_COLOR_DARK = "#ec4899";
 
 const normalizeText = (text: string) => {
   if (!text) return "";
+
   return text
+    .toString()
+    .trim()
     .toLocaleLowerCase("tr-TR")
+    .replace(/İ/g, "i")
+    .replace(/I/g, "i")
+    .replace(/ı/g, "i")
+    .replace(/i̇/g, "i")
     .replace(/ğ/g, "g")
     .replace(/ü/g, "u")
     .replace(/ş/g, "s")
-    .replace(/ı/g, "i")
     .replace(/ö/g, "o")
-    .replace(/ç/g, "c");
+    .replace(/ç/g, "c")
+    .replace(/\s+/g, " ");
 };
 
 const fuzzyMatch = (query: string, text: string) => {
   const normalizedQuery = normalizeText(query).replace(/\s+/g, "");
-  const normalizedText = normalizeText(text);
+  const normalizedText = normalizeText(text).replace(/\s+/g, "");
 
   if (!normalizedQuery) return true;
+  if (normalizedText.includes(normalizedQuery)) return true;
 
   let queryIndex = 0;
   for (let i = 0; i < normalizedText.length; i++) {
@@ -69,7 +79,38 @@ const fuzzyMatch = (query: string, text: string) => {
       return true;
     }
   }
+
   return false;
+};
+
+const getStockSearchText = (item: StockGetDto) => {
+  const stock = item as any;
+
+  return [
+    stock?.stockCode,
+    stock?.stokKodu,
+    stock?.code,
+    stock?.kod,
+    stock?.stockName,
+    stock?.stokAdi,
+    stock?.name,
+    stock?.adi,
+    stock?.stockName2,
+    stock?.description,
+    stock?.aciklama,
+    stock?.grupKodu,
+    stock?.grupAdi,
+    stock?.groupCode,
+    stock?.groupName,
+    stock?.Kod1,
+    stock?.Kod2,
+    stock?.Kod3,
+    stock?.kod1,
+    stock?.kod2,
+    stock?.kod3,
+  ]
+    .filter(Boolean)
+    .join(" ");
 };
 
 export function StockListScreen() {
@@ -83,6 +124,7 @@ export function StockListScreen() {
   const [searchText, setSearchText] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
 
@@ -98,6 +140,11 @@ export function StockListScreen() {
 
   const [isGroupDropdownOpen, setIsGroupDropdownOpen] = useState(false);
   const [groupSearchText, setGroupSearchText] = useState("");
+
+  const normalizedDebouncedQuery = useMemo(
+    () => normalizeText(debouncedQuery),
+    [debouncedQuery]
+  );
 
   const mainBg = isDark ? "#0c0516" : "#FFFFFF";
   const gradientColors = (
@@ -134,8 +181,27 @@ export function StockListScreen() {
     const handler = setTimeout(() => {
       setDebouncedQuery(searchText);
     }, 300);
+
     return () => clearTimeout(handler);
   }, [searchText]);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardHeight(e.endCoordinates?.height ?? 0);
+    });
+
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const openFilterModal = () => {
     setTempGroupCode(appliedGroupCode);
@@ -182,23 +248,40 @@ export function StockListScreen() {
       sortDirection: sortOrder,
       pageSize: 20,
     },
-    debouncedQuery
+    normalizedDebouncedQuery
   );
 
   const { data: stockGroups = [] } = useStockGroups();
 
   const filteredGroups = useMemo(() => {
     if (!groupSearchText.trim()) return stockGroups;
+
     return stockGroups.filter((g: StockGroupDto) =>
       fuzzyMatch(groupSearchText, `${g.grupKodu ?? ""} ${g.grupAdi ?? ""}`)
     );
   }, [stockGroups, groupSearchText]);
 
   const stocks = useMemo(() => {
-    return data?.pages?.flatMap((page) => page.items || []) || [];
-  }, [data]);
+    const rawStocks = data?.pages?.flatMap((page) => page.items || []) || [];
 
-  const totalCount = data?.pages?.[0]?.totalCount || 0;
+    if (!normalizedDebouncedQuery.trim()) return rawStocks;
+
+    return rawStocks.filter((item: StockGetDto) =>
+      fuzzyMatch(normalizedDebouncedQuery, getStockSearchText(item))
+    );
+  }, [data, normalizedDebouncedQuery]);
+
+  const totalCount = normalizedDebouncedQuery.trim()
+    ? stocks.length
+    : data?.pages?.[0]?.totalCount || 0;
+
+  const listBottomPadding = useMemo(() => {
+    if (keyboardHeight <= 0) {
+      return 24;
+    }
+
+    return keyboardHeight + 24;
+  }, [keyboardHeight]);
 
   const renderItem = useCallback(
     ({ item }: { item: StockGetDto }) => (
@@ -206,12 +289,11 @@ export function StockListScreen() {
         item={item}
         viewMode={viewMode}
         isDark={isDark}
-        router={router}
         theme={theme}
         gridWidth={GRID_WIDTH}
       />
     ),
-    [viewMode, isDark, router]
+    [viewMode, isDark, theme]
   );
 
   const handleLoadMore = () => {
@@ -228,7 +310,8 @@ export function StockListScreen() {
         </View>
       );
     }
-    return <View style={{ height: 100 }} />;
+
+    return <View style={{ height: 8 }} />;
   };
 
   const isAnyFilterActive =
@@ -403,9 +486,11 @@ export function StockListScreen() {
               contentContainerStyle={{
                 paddingHorizontal: PADDING,
                 paddingTop: 12,
-                paddingBottom: 20,
+                paddingBottom: listBottomPadding,
                 gap: GAP,
               }}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
               onEndReached={handleLoadMore}
               onEndReachedThreshold={0.5}
               ListFooterComponent={renderFooter}
@@ -429,7 +514,9 @@ export function StockListScreen() {
                     <PackageIcon size={28} color={theme.textMute} variant="stroke" />
                   </View>
                   <Text style={[styles.emptyText, { color: theme.textMute }]}>
-                    {debouncedQuery.length > 0 ? t("common.noResults") : t("stock.emptyState")}
+                    {normalizedDebouncedQuery.length > 0
+                      ? t("common.noResults")
+                      : t("stock.emptyState")}
                   </Text>
                 </View>
               }
@@ -450,253 +537,275 @@ export function StockListScreen() {
               styles.modalContent,
               {
                 backgroundColor: theme.modalBg,
-                paddingBottom: insets.bottom + 20,
+                paddingBottom: insets.bottom + 20 + (keyboardHeight > 0 ? keyboardHeight * 0.15 : 0),
               },
             ]}
           >
             <View style={[styles.modalHandle, { backgroundColor: theme.handle }]} />
 
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.textSoft }]}>
-                {t("common.filter")}
-              </Text>
-              <TouchableOpacity onPress={() => setIsFilterModalVisible(false)} style={styles.closeBtn}>
-                <Cancel01Icon size={24} color={theme.textMute} variant="stroke" />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={[styles.modalLabel, { color: theme.textMute }]}>
-              {t("stock.group")}
-            </Text>
-
-            <TouchableOpacity
-              style={[
-                styles.dropdownBtn,
-                {
-                  backgroundColor: theme.filterBg,
-                  borderColor: isGroupDropdownOpen ? theme.borderColor : theme.softBorder,
-                },
-              ]}
-              onPress={() => {
-                setIsGroupDropdownOpen(!isGroupDropdownOpen);
-                setGroupSearchText("");
-              }}
-              activeOpacity={0.72}
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingBottom: 8 }}
             >
-              <Text
-                style={[
-                  styles.dropdownBtnText,
-                  { color: tempGroupCode ? theme.textSoft : theme.filterText, fontWeight: "500" },
-                ]}
-                numberOfLines={1}
-              >
-                {selectedGroupName}
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: theme.textSoft }]}>
+                  {t("common.filter")}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setIsFilterModalVisible(false)}
+                  style={styles.closeBtn}
+                >
+                  <Cancel01Icon size={24} color={theme.textMute} variant="stroke" />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={[styles.modalLabel, { color: theme.textMute }]}>
+                {t("stock.group")}
               </Text>
-              <ArrowDown01Icon
-                size={18}
-                color={tempGroupCode ? theme.primary : theme.textMute}
-                style={{ transform: [{ rotate: isGroupDropdownOpen ? "180deg" : "0deg" }] }}
-              />
-            </TouchableOpacity>
 
-            {isGroupDropdownOpen && (
-              <View
+              <TouchableOpacity
                 style={[
-                  styles.dropdownListContainer,
-                  { backgroundColor: theme.surfaceBg, borderColor: theme.softBorder },
+                  styles.dropdownBtn,
+                  {
+                    backgroundColor: theme.filterBg,
+                    borderColor: isGroupDropdownOpen ? theme.borderColor : theme.softBorder,
+                  },
                 ]}
+                onPress={() => {
+                  setIsGroupDropdownOpen(!isGroupDropdownOpen);
+                  setGroupSearchText("");
+                }}
+                activeOpacity={0.72}
               >
-                <View style={[styles.searchInputContainer, { borderBottomColor: theme.softBorder }]}>
-                  <TextInput
-                    style={[
-                      styles.dropdownSearchInput,
-                      {
-                        color: theme.filterText,
-                        backgroundColor: theme.filterBg,
-                        borderColor: theme.softBorder,
-                      },
-                    ]}
-                    placeholder={t("stock.searchGroup")}
-                    placeholderTextColor={theme.textMute}
-                    value={groupSearchText}
-                    onChangeText={setGroupSearchText}
-                  />
-                </View>
+                <Text
+                  style={[
+                    styles.dropdownBtnText,
+                    { color: tempGroupCode ? theme.textSoft : theme.filterText, fontWeight: "500" },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {selectedGroupName}
+                </Text>
+                <ArrowDown01Icon
+                  size={18}
+                  color={tempGroupCode ? theme.primary : theme.textMute}
+                  style={{ transform: [{ rotate: isGroupDropdownOpen ? "180deg" : "0deg" }] }}
+                />
+              </TouchableOpacity>
 
-                <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled keyboardShouldPersistTaps="handled">
-                  <TouchableOpacity
-                    style={[styles.dropdownItem, { borderBottomColor: theme.softBorder }]}
-                    onPress={() => {
-                      setTempGroupCode("");
-                      setIsGroupDropdownOpen(false);
-                    }}
-                  >
-                    <View
+              {isGroupDropdownOpen && (
+                <View
+                  style={[
+                    styles.dropdownListContainer,
+                    { backgroundColor: theme.surfaceBg, borderColor: theme.softBorder },
+                  ]}
+                >
+                  <View style={[styles.searchInputContainer, { borderBottomColor: theme.softBorder }]}>
+                    <TextInput
                       style={[
-                        styles.dropdownItemInner,
-                        !tempGroupCode && {
-                          backgroundColor: theme.selectedRowBg,
-                          borderColor: theme.selectedRowBorder,
+                        styles.dropdownSearchInput,
+                        {
+                          color: theme.filterText,
+                          backgroundColor: theme.filterBg,
+                          borderColor: theme.softBorder,
                         },
                       ]}
+                      placeholder={t("stock.searchGroup")}
+                      placeholderTextColor={theme.textMute}
+                      value={groupSearchText}
+                      onChangeText={setGroupSearchText}
+                    />
+                  </View>
+
+                  <ScrollView
+                    style={{ maxHeight: 200 }}
+                    nestedScrollEnabled
+                    keyboardShouldPersistTaps="handled"
+                  >
+                    <TouchableOpacity
+                      style={[styles.dropdownItem, { borderBottomColor: theme.softBorder }]}
+                      onPress={() => {
+                        setTempGroupCode("");
+                        setIsGroupDropdownOpen(false);
+                      }}
                     >
-                      <Text
+                      <View
                         style={[
-                          styles.dropdownItemText,
-                          { color: !tempGroupCode ? theme.primary : theme.textMute, fontWeight: "500" },
+                          styles.dropdownItemInner,
+                          !tempGroupCode && {
+                            backgroundColor: theme.selectedRowBg,
+                            borderColor: theme.selectedRowBorder,
+                          },
                         ]}
                       >
-                        {t("stock.allGroups")}
-                      </Text>
-                      {!tempGroupCode ? (
-                        <CheckmarkCircle02Icon size={16} color={theme.primary} variant="stroke" />
-                      ) : null}
-                    </View>
-                  </TouchableOpacity>
-
-                  {filteredGroups.map((group: StockGroupDto, index: number) => {
-                    const isSelected = tempGroupCode === (group.grupKodu ?? "");
-                    return (
-                      <TouchableOpacity
-                        key={`${group.grupKodu}-${index}`}
-                        style={[styles.dropdownItem, { borderBottomColor: theme.softBorder }]}
-                        onPress={() => {
-                          setTempGroupCode(group.grupKodu ?? "");
-                          setIsGroupDropdownOpen(false);
-                        }}
-                      >
-                        <View
+                        <Text
                           style={[
-                            styles.dropdownItemInner,
-                            isSelected && {
-                              backgroundColor: theme.selectedRowBg,
-                              borderColor: theme.selectedRowBorder,
+                            styles.dropdownItemText,
+                            {
+                              color: !tempGroupCode ? theme.primary : theme.textMute,
+                              fontWeight: "500",
                             },
                           ]}
                         >
-                          <Text
+                          {t("stock.allGroups")}
+                        </Text>
+                        {!tempGroupCode ? (
+                          <CheckmarkCircle02Icon size={16} color={theme.primary} variant="stroke" />
+                        ) : null}
+                      </View>
+                    </TouchableOpacity>
+
+                    {filteredGroups.map((group: StockGroupDto, index: number) => {
+                      const isSelected = tempGroupCode === (group.grupKodu ?? "");
+                      return (
+                        <TouchableOpacity
+                          key={`${group.grupKodu}-${index}`}
+                          style={[styles.dropdownItem, { borderBottomColor: theme.softBorder }]}
+                          onPress={() => {
+                            setTempGroupCode(group.grupKodu ?? "");
+                            setIsGroupDropdownOpen(false);
+                          }}
+                        >
+                          <View
                             style={[
-                              styles.dropdownItemText,
-                              {
-                                color: isSelected ? theme.primary : theme.textMute,
-                                fontWeight: "500",
+                              styles.dropdownItemInner,
+                              isSelected && {
+                                backgroundColor: theme.selectedRowBg,
+                                borderColor: theme.selectedRowBorder,
                               },
                             ]}
                           >
-                            {group.grupKodu
-                              ? `${group.grupKodu} - ${group.grupAdi ?? ""}`
-                              : group.grupAdi ?? "-"}
-                          </Text>
-                          {isSelected ? (
-                            <CheckmarkCircle02Icon size={16} color={theme.primary} variant="stroke" />
-                          ) : null}
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-              </View>
-            )}
+                            <Text
+                              style={[
+                                styles.dropdownItemText,
+                                {
+                                  color: isSelected ? theme.primary : theme.textMute,
+                                  fontWeight: "500",
+                                },
+                              ]}
+                            >
+                              {group.grupKodu
+                                ? `${group.grupKodu} - ${group.grupAdi ?? ""}`
+                                : group.grupAdi ?? "-"}
+                            </Text>
+                            {isSelected ? (
+                              <CheckmarkCircle02Icon size={16} color={theme.primary} variant="stroke" />
+                            ) : null}
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              )}
 
-            <Text style={[styles.modalLabel, { color: theme.textMute, marginTop: 18 }]}>Kod 1</Text>
-            <TextInput
-              value={tempKod1}
-              onChangeText={setTempKod1}
-              placeholder="Kod 1"
-              placeholderTextColor={theme.textMute}
-              style={[
-                styles.textFilterInput,
-                {
-                  color: theme.filterText,
-                  backgroundColor: theme.filterBg,
-                  borderColor: theme.softBorder,
-                },
-              ]}
-            />
-
-            <Text style={[styles.modalLabel, { color: theme.textMute, marginTop: 18 }]}>Kod 2</Text>
-            <TextInput
-              value={tempKod2}
-              onChangeText={setTempKod2}
-              placeholder="Kod 2"
-              placeholderTextColor={theme.textMute}
-              style={[
-                styles.textFilterInput,
-                {
-                  color: theme.filterText,
-                  backgroundColor: theme.filterBg,
-                  borderColor: theme.softBorder,
-                },
-              ]}
-            />
-
-            <Text style={[styles.modalLabel, { color: theme.textMute, marginTop: 18 }]}>Kod 3</Text>
-            <TextInput
-              value={tempKod3}
-              onChangeText={setTempKod3}
-              placeholder="Kod 3"
-              placeholderTextColor={theme.textMute}
-              style={[
-                styles.textFilterInput,
-                {
-                  color: theme.filterText,
-                  backgroundColor: theme.filterBg,
-                  borderColor: theme.softBorder,
-                },
-              ]}
-            />
-
-            <View style={styles.modalFooter}>
-              <TouchableOpacity
+              <Text style={[styles.modalLabel, { color: theme.textMute, marginTop: 18 }]}>
+                Kod 1
+              </Text>
+              <TextInput
+                value={tempKod1}
+                onChangeText={setTempKod1}
+                placeholder="Kod 1"
+                placeholderTextColor={theme.textMute}
                 style={[
-                  styles.modalActionBtn,
+                  styles.textFilterInput,
                   {
-                    backgroundColor: theme.switchBg,
+                    color: theme.filterText,
+                    backgroundColor: theme.filterBg,
                     borderColor: theme.softBorder,
-                    flex: 1,
-                    marginRight: 10,
                   },
                 ]}
-                onPress={() => {
-                  setTempGroupCode("");
-                  setTempKod1("");
-                  setTempKod2("");
-                  setTempKod3("");
-                  setGroupSearchText("");
-                  setIsGroupDropdownOpen(false);
-                  setAppliedGroupCode("");
-                  setAppliedKod1("");
-                  setAppliedKod2("");
-                  setAppliedKod3("");
-                }}
-              >
-                <Text style={[styles.modalActionText, { color: theme.textMute }]}>
-                  {t("common.clear")}
-                </Text>
-              </TouchableOpacity>
+              />
 
-              <TouchableOpacity
+              <Text style={[styles.modalLabel, { color: theme.textMute, marginTop: 18 }]}>
+                Kod 2
+              </Text>
+              <TextInput
+                value={tempKod2}
+                onChangeText={setTempKod2}
+                placeholder="Kod 2"
+                placeholderTextColor={theme.textMute}
                 style={[
-                  styles.modalActionBtn,
+                  styles.textFilterInput,
                   {
-                    backgroundColor: theme.primary,
-                    borderColor: theme.primary,
-                    flex: 2,
+                    color: theme.filterText,
+                    backgroundColor: theme.filterBg,
+                    borderColor: theme.softBorder,
                   },
                 ]}
-                onPress={() => {
-                  setAppliedGroupCode(tempGroupCode);
-                  setAppliedKod1(tempKod1);
-                  setAppliedKod2(tempKod2);
-                  setAppliedKod3(tempKod3);
-                  setIsFilterModalVisible(false);
-                }}
-              >
-                <Text style={[styles.modalActionText, { color: "#FFF" }]}>
-                  {t("common.apply")}
-                </Text>
-              </TouchableOpacity>
-            </View>
+              />
+
+              <Text style={[styles.modalLabel, { color: theme.textMute, marginTop: 18 }]}>
+                Kod 3
+              </Text>
+              <TextInput
+                value={tempKod3}
+                onChangeText={setTempKod3}
+                placeholder="Kod 3"
+                placeholderTextColor={theme.textMute}
+                style={[
+                  styles.textFilterInput,
+                  {
+                    color: theme.filterText,
+                    backgroundColor: theme.filterBg,
+                    borderColor: theme.softBorder,
+                  },
+                ]}
+              />
+
+              <View style={styles.modalFooter}>
+                <TouchableOpacity
+                  style={[
+                    styles.modalActionBtn,
+                    {
+                      backgroundColor: theme.switchBg,
+                      borderColor: theme.softBorder,
+                      flex: 1,
+                      marginRight: 10,
+                    },
+                  ]}
+                  onPress={() => {
+                    setTempGroupCode("");
+                    setTempKod1("");
+                    setTempKod2("");
+                    setTempKod3("");
+                    setGroupSearchText("");
+                    setIsGroupDropdownOpen(false);
+                    setAppliedGroupCode("");
+                    setAppliedKod1("");
+                    setAppliedKod2("");
+                    setAppliedKod3("");
+                  }}
+                >
+                  <Text style={[styles.modalActionText, { color: theme.textMute }]}>
+                    {t("common.clear")}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.modalActionBtn,
+                    {
+                      backgroundColor: theme.primary,
+                      borderColor: theme.primary,
+                      flex: 2,
+                    },
+                  ]}
+                  onPress={() => {
+                    setAppliedGroupCode(tempGroupCode);
+                    setAppliedKod1(tempKod1);
+                    setAppliedKod2(tempKod2);
+                    setAppliedKod3(tempKod3);
+                    setIsFilterModalVisible(false);
+                  }}
+                >
+                  <Text style={[styles.modalActionText, { color: "#FFF" }]}>
+                    {t("common.apply")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -707,7 +816,13 @@ export function StockListScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   listContainer: { flex: 1, backgroundColor: "transparent" },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", marginTop: 50 },
+
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 50,
+  },
 
   controlsArea: {
     flexDirection: "row",

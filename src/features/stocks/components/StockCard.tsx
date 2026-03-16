@@ -1,156 +1,219 @@
 import React, { memo, useState } from "react";
 import {
   View,
-  StyleSheet,
-  TouchableWithoutFeedback,
+ StyleSheet,
+  TouchableOpacity,
   Text,
   DimensionValue,
 } from "react-native";
+import { useRouter } from "expo-router";
 import {
   PackageIcon,
-  Tag01Icon,
+  BarCode01Icon,
   ArrowRight01Icon,
 } from "hugeicons-react-native";
 import type { StockGetDto } from "../types";
+
+interface StockCardTheme {
+  primary: string;
+  cardBorder: string;
+  cardBg: string;
+  textMute: string;
+  textTitle: string;
+}
 
 interface StockCardProps {
   item: StockGetDto;
   viewMode: "grid" | "list";
   isDark: boolean;
-  router: any;
-  theme: any;
+  theme: StockCardTheme;
   gridWidth: number;
+}
+
+function safeText(value: unknown, fallback: string): string {
+  if (typeof value !== "string") return fallback;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : fallback;
 }
 
 const StockCardComponent = ({
   item,
   viewMode,
   isDark,
-  router,
   theme,
   gridWidth,
-}: StockCardProps) => {
+}: StockCardProps): React.ReactElement => {
+  const router = useRouter();
   const [isPressed, setIsPressed] = useState(false);
 
-  const borderColor = isPressed ? theme.primary : theme.cardBorder;
-  const softBg = isDark ? "rgba(255,255,255,0.03)" : "rgba(248,250,252,0.92)";
-  const softBorder = isDark ? "rgba(255,255,255,0.06)" : "rgba(148,163,184,0.12)";
-  const iconBg = isDark ? "rgba(219,39,119,0.10)" : "rgba(219,39,119,0.08)";
-  const iconBorder = isDark ? "rgba(236,72,153,0.16)" : "rgba(219,39,119,0.14)";
-  const muted = theme.textMute;
-  const title = theme.textTitle;
+  const stockName = safeText(item?.stockName, "-");
+  const stockCode = safeText(item?.erpStockCode, "-");
+  const unitText = safeText(item?.unit, "Adet");
 
-  const containerStyle = [
-    viewMode === "grid" ? styles.gridCard : styles.listCard,
-    {
-      width: (viewMode === "grid" ? gridWidth : "100%") as DimensionValue,
-      backgroundColor: theme.cardBg,
-      borderColor,
-      borderWidth: 1.1,
-      shadowColor: isDark ? "#000" : "#94a3b8",
-      transform: [{ scale: isPressed ? 0.988 : 1 }],
-    },
-  ];
+  const softBg = isDark ? "rgba(255,255,255,0.03)" : "rgba(248,250,252,0.96)";
+  const softBorder = isDark
+    ? "rgba(255,255,255,0.07)"
+    : "rgba(148,163,184,0.14)";
+
+  const baseIconBg = isDark
+    ? "rgba(219,39,119,0.10)"
+    : "rgba(219,39,119,0.08)";
+  const pressedIconBg = isDark
+    ? "rgba(219,39,119,0.16)"
+    : "rgba(219,39,119,0.12)";
+  const baseIconBorder = isDark
+    ? "rgba(236,72,153,0.16)"
+    : "rgba(219,39,119,0.14)";
+  const pressedIconBorder = isDark
+    ? "rgba(236,72,153,0.32)"
+    : "rgba(219,39,119,0.28)";
+
+  const titleColor = theme.textTitle;
+  const mutedColor = theme.textMute;
+
+  const borderColor = isPressed ? theme.primary : theme.cardBorder;
+  const currentIconBg = isPressed ? pressedIconBg : baseIconBg;
+  const currentIconBorder = isPressed ? pressedIconBorder : baseIconBorder;
+  const chevronColor = isPressed ? theme.primary : mutedColor;
 
   return (
-    <TouchableWithoutFeedback
+    <TouchableOpacity
+      activeOpacity={0.96}
       onPress={() => router.push(`/(tabs)/stock/${item.id}`)}
       onPressIn={() => setIsPressed(true)}
       onPressOut={() => setIsPressed(false)}
+      accessibilityRole="button"
+      accessibilityLabel={stockName}
+      accessibilityHint="Stok detay ekranını açar"
+      style={[
+        viewMode === "grid" ? styles.gridCard : styles.listCard,
+        {
+          width: (viewMode === "grid" ? gridWidth : "100%") as DimensionValue,
+          backgroundColor: theme.cardBg,
+          borderColor,
+          borderWidth: isPressed ? 1.2 : 1,
+          shadowColor: isDark ? "#000" : "#94a3b8",
+          transform: [{ scale: isPressed ? 0.992 : 1 }],
+        },
+      ]}
     >
-      <View style={containerStyle}>
-        <View
-          style={[
-            viewMode === "grid" ? styles.iconBox : styles.listIconBox,
-            {
-              backgroundColor: iconBg,
-              borderColor: iconBorder,
-            },
-          ]}
-        >
-          <PackageIcon size={17} color={theme.primary} variant="stroke" />
-        </View>
+      <View
+        style={[
+          viewMode === "grid" ? styles.iconBox : styles.listIconBox,
+          {
+            backgroundColor: currentIconBg,
+            borderColor: currentIconBorder,
+          },
+        ]}
+      >
+        <PackageIcon
+          size={viewMode === "grid" ? 17 : 16}
+          color={theme.primary}
+          variant="stroke"
+          strokeWidth={1.9}
+        />
+      </View>
 
-        <View style={viewMode === "list" ? styles.listMiddle : styles.gridMiddle}>
+      <View style={viewMode === "list" ? styles.listMiddle : styles.gridMiddle}>
+        <Text
+          style={[
+            viewMode === "grid" ? styles.gridTitle : styles.listTitle,
+            { color: titleColor },
+          ]}
+          numberOfLines={viewMode === "grid" ? 3 : 1}
+          ellipsizeMode="tail"
+        >
+          {stockName}
+        </Text>
+
+        <View style={styles.codeRow}>
+          <BarCode01Icon
+            size={11}
+            color={mutedColor}
+            variant="stroke"
+            strokeWidth={1.9}
+          />
           <Text
             style={[
-              viewMode === "grid" ? styles.gridTitle : styles.listTitle,
-              { color: title },
+              viewMode === "grid" ? styles.stockCode : styles.listStockCode,
+              { color: mutedColor },
             ]}
-            numberOfLines={viewMode === "grid" ? 2 : 1}
+            numberOfLines={1}
+            ellipsizeMode="tail"
           >
-            {item.stockName || "-"}
+            {stockCode}
           </Text>
+        </View>
+      </View>
 
-          <View style={styles.codeRow}>
-            <Tag01Icon size={11} color={muted} variant="stroke" />
-            <Text
-              style={[
-                viewMode === "grid" ? styles.stockCode : styles.listStockCode,
-                { color: muted },
-              ]}
-              numberOfLines={1}
-            >
-              {item.erpStockCode || "-"}
+      {viewMode === "grid" ? (
+        <View style={styles.gridFooter}>
+          <View
+            style={[
+              styles.stockBadge,
+              {
+                backgroundColor: softBg,
+                borderColor: softBorder,
+              },
+            ]}
+          >
+            <Text style={[styles.stockText, { color: titleColor }]}>
+              {unitText}
             </Text>
           </View>
+
+          <View
+            style={[
+              styles.chevronWrap,
+              {
+                backgroundColor: softBg,
+                borderColor: softBorder,
+              },
+            ]}
+          >
+            <ArrowRight01Icon
+              size={13}
+              color={chevronColor}
+              variant="stroke"
+              strokeWidth={2}
+            />
+          </View>
         </View>
-
-        {viewMode === "grid" ? (
-          <View style={styles.gridFooter}>
-            <View
-              style={[
-                styles.stockBadge,
-                {
-                  backgroundColor: softBg,
-                  borderColor: softBorder,
-                },
-              ]}
-            >
-              <Text style={[styles.stockText, { color: title }]}>{item.unit || "Adet"}</Text>
-            </View>
-
-            <View
-              style={[
-                styles.chevronWrap,
-                {
-                  backgroundColor: softBg,
-                  borderColor: softBorder,
-                },
-              ]}
-            >
-              <ArrowRight01Icon size={13} color={muted} variant="stroke" />
-            </View>
+      ) : (
+        <View style={styles.listRight}>
+          <View
+            style={[
+              styles.listBadge,
+              {
+                backgroundColor: softBg,
+                borderColor: softBorder,
+              },
+            ]}
+          >
+            <Text style={[styles.stockText, { color: titleColor }]}>
+              {unitText}
+            </Text>
           </View>
-        ) : (
-          <View style={styles.listRight}>
-            <View
-              style={[
-                styles.stockBadge,
-                {
-                  backgroundColor: softBg,
-                  borderColor: softBorder,
-                },
-              ]}
-            >
-              <Text style={[styles.stockText, { color: title }]}>{item.unit || "Adet"}</Text>
-            </View>
 
-            <View
-              style={[
-                styles.chevronWrap,
-                {
-                  backgroundColor: softBg,
-                  borderColor: softBorder,
-                },
-              ]}
-            >
-              <ArrowRight01Icon size={13} color={muted} variant="stroke" />
-            </View>
+          <View
+            style={[
+              styles.listChevronWrap,
+              {
+                backgroundColor: softBg,
+                borderColor: softBorder,
+              },
+            ]}
+          >
+            <ArrowRight01Icon
+              size={13}
+              color={chevronColor}
+              variant="stroke"
+              strokeWidth={2}
+            />
           </View>
-        )}
-      </View>
-    </TouchableWithoutFeedback>
+        </View>
+      )}
+    </TouchableOpacity>
   );
 };
 
@@ -159,86 +222,101 @@ export const StockCard = memo(StockCardComponent);
 const styles = StyleSheet.create({
   gridCard: {
     borderRadius: 18,
-    padding: 13,
+    padding: 12,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 8,
     shadowOpacity: 0.08,
     elevation: 2,
-    minHeight: 154,
+    minHeight: 150,
+    marginBottom: 10,
   },
 
   listCard: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 16,
-    padding: 13,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 6,
-    shadowOpacity: 0.06,
-    elevation: 1,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 2,
+    shadowOpacity: 0.02,
+    elevation: 0,
+    minHeight: 64,
+    marginBottom: 6,
   },
 
   iconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 11,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
+    marginBottom: 10,
   },
 
   listIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
+    marginRight: 10,
   },
 
   gridMiddle: {
-    marginBottom: 12,
+    marginBottom: 10,
   },
 
   listMiddle: {
     flex: 1,
-    paddingHorizontal: 11,
+    justifyContent: "center",
+    paddingRight: 8,
   },
 
   gridTitle: {
-    fontSize: 13,
-    fontWeight: "700",
-    lineHeight: 17,
-    minHeight: 34,
-    marginBottom: 7,
+    fontSize: 11.4,
+    fontWeight: "600",
+    lineHeight: 14,
+    minHeight: 42,
+    marginBottom: 6,
+    letterSpacing: -0.1,
+    includeFontPadding: false,
   },
 
   listTitle: {
-    fontSize: 13,
-    fontWeight: "700",
-    lineHeight: 17,
-    marginBottom: 6,
+    fontSize: 11.8,
+    fontWeight: "600",
+    lineHeight: 14,
+    marginBottom: 4,
+    letterSpacing: -0.08,
+    includeFontPadding: false,
   },
 
   codeRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
   },
 
   stockCode: {
-    fontSize: 10.5,
-    fontWeight: "500",
-    lineHeight: 13,
+    fontSize: 9.6,
+    fontWeight: "400",
+    lineHeight: 11,
+    marginLeft: 5,
     flex: 1,
+    letterSpacing: -0.04,
+    includeFontPadding: false,
   },
 
   listStockCode: {
-    fontSize: 10.5,
-    fontWeight: "500",
-    lineHeight: 13,
+    fontSize: 9.7,
+    fontWeight: "400",
+    lineHeight: 11,
+    marginLeft: 5,
     flex: 1,
+    letterSpacing: -0.03,
+    includeFontPadding: false,
   },
 
   gridFooter: {
@@ -249,34 +327,57 @@ const styles = StyleSheet.create({
   },
 
   listRight: {
-    alignItems: "flex-end",
-    justifyContent: "space-between",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
     marginLeft: 8,
-    minHeight: 50,
   },
 
   stockBadge: {
-    minWidth: 52,
+    minWidth: 50,
     paddingHorizontal: 8,
-    paddingVertical: 5,
+    paddingVertical: 4,
     borderRadius: 10,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
 
-  stockText: {
-    fontSize: 10,
-    fontWeight: "600",
-  },
-
-  chevronWrap: {
-    width: 28,
-    height: 28,
+  listBadge: {
+    minWidth: 46,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 9,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 8,
+    marginRight: 8,
+  },
+
+  stockText: {
+    fontSize: 9.4,
+    fontWeight: "500",
+    lineHeight: 11,
+    letterSpacing: -0.03,
+    includeFontPadding: false,
+  },
+
+  chevronWrap: {
+    width: 27,
+    height: 27,
+    borderRadius: 9,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 7,
+  },
+
+  listChevronWrap: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
