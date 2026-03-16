@@ -33,7 +33,7 @@ export function buildAdvancedStockFilters(entries: AdvancedFilterInput[]): Advan
   if (activeEntries.length !== 1) {
     return {
       filters: activeEntries,
-      filterLogic: activeEntries.length > 0 ? "and" : undefined,
+      filterLogic: activeEntries.length > 0 ? "or" : undefined,
     };
   }
 
@@ -41,7 +41,7 @@ export function buildAdvancedStockFilters(entries: AdvancedFilterInput[]): Advan
   if (singleEntry.operator !== "contains") {
     return {
       filters: activeEntries,
-      filterLogic: "and",
+      filterLogic: "or",
     };
   }
 
@@ -49,7 +49,7 @@ export function buildAdvancedStockFilters(entries: AdvancedFilterInput[]): Advan
   if (tokens.length <= 1) {
     return {
       filters: activeEntries,
-      filterLogic: "and",
+      filterLogic: "or",
     };
   }
 
@@ -59,6 +59,6 @@ export function buildAdvancedStockFilters(entries: AdvancedFilterInput[]): Advan
       operator: singleEntry.operator,
       value: token,
     })),
-    filterLogic: "and",
+    filterLogic: "or",
   };
 }
