@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  useWindowDimensions,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -16,14 +15,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import * as Sharing from "expo-sharing";
 import {
-  Add01Icon, 
-  Edit02Icon, 
-  Delete02Icon, 
-  Note01Icon, 
+  Add01Icon,
+  Edit02Icon,
+  Delete02Icon,
+  Note01Icon,
   Coins01Icon,
   File01Icon,
 } from "hugeicons-react-native";
-import { WebView } from "react-native-webview";
 
 import { ScreenHeader } from "../../../components/navigation";
 import { Text } from "../../../components/ui/text";
@@ -39,7 +37,10 @@ import type {
   TempQuotattionUpdateDto,
 } from "../models/tempQuotattion.model";
 import { QuotationLineForm, PickerModal } from "../../quotation/components";
-import type { QuotationLineFormState, QuotationExchangeRateFormState } from "../../quotation/types";
+import type {
+  QuotationLineFormState,
+  QuotationExchangeRateFormState,
+} from "../../quotation/types";
 import { useExchangeRate, useCurrencyOptions } from "../../quotation/hooks";
 import { CustomerPicker } from "../../customer/components";
 import type { CustomerDto } from "../../customer/types";
@@ -48,7 +49,7 @@ import {
   findCurrencyOptionByValue,
   resolveExchangeRateByCurrency,
 } from "../../../lib/resolve-exchange-rate";
-import { canPreviewPdfInApp, openPdfExternallyAsync } from "../../../lib/pdf";
+import { openPdfExternallyAsync } from "../../../lib/pdf";
 import { calculateLineTotals } from "../../quotation/utils";
 import { createBuiltInTempQuickQuotationReportPdf } from "../utils/createBuiltInTempQuickQuotationReportPdf";
 
@@ -69,7 +70,10 @@ function toDbExchangeId(mixedId: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function mapFormLineToCreateDto(line: QuotationLineFormState, headerId: number): TempQuotattionLineCreateDto {
+function mapFormLineToCreateDto(
+  line: QuotationLineFormState,
+  headerId: number
+): TempQuotattionLineCreateDto {
   return {
     tempQuotattionId: headerId,
     productCode: line.productCode || "",
@@ -90,7 +94,9 @@ function mapFormLineToCreateDto(line: QuotationLineFormState, headerId: number):
   };
 }
 
-function mapFormLineToUpdateDto(line: QuotationLineFormState): TempQuotattionLineUpdateDto {
+function mapFormLineToUpdateDto(
+  line: QuotationLineFormState
+): TempQuotattionLineUpdateDto {
   return {
     productCode: line.productCode || "",
     productName: line.productName || "",
@@ -139,7 +145,6 @@ function mapRateToUpdateDto(
 export function TempQuickQuotationCreateScreen(): React.ReactElement {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { height: windowHeight } = useWindowDimensions();
   const { colors, themeMode } = useUIStore();
   const { showError, showSuccess } = useToast();
   const params = useLocalSearchParams<{
@@ -151,9 +156,11 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
 
   const isDark = themeMode === "dark";
   const mainBg = isDark ? "#0c0516" : "#FAFAFA";
-  const gradientColors = (isDark
-    ? ['rgba(236, 72, 153, 0.12)', 'transparent', 'rgba(249, 115, 22, 0.12)']
-    : ['rgba(255, 235, 240, 0.6)', '#FFFFFF', 'rgba(255, 240, 225, 0.6)']) as [string, string, ...string[]];
+  const gradientColors = (
+    isDark
+      ? ["rgba(236, 72, 153, 0.12)", "transparent", "rgba(249, 115, 22, 0.12)"]
+      : ["rgba(255, 235, 240, 0.6)", "#FFFFFF", "rgba(255, 240, 225, 0.6)"]
+  ) as [string, string, ...string[]];
 
   const cardBg = isDark ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.85)";
   const inputBg = isDark ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.6)";
@@ -192,8 +199,11 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
   const [exchangeRates, setExchangeRates] = useState<QuotationExchangeRateFormState[]>([]);
 
   const offerDate = useMemo(() => new Date().toISOString().split("T")[0], []);
-  const exchangeRateParams = useMemo(() => ({ tarih: offerDate, fiyatTipi: 1 as const }), [offerDate]);
-  const { data: erpExchangeRates = [], isLoading: isLoadingErpRates } = useExchangeRate(exchangeRateParams);
+  const exchangeRateParams = useMemo(
+    () => ({ tarih: offerDate, fiyatTipi: 1 as const }),
+    [offerDate]
+  );
+  const { data: erpExchangeRates = [] } = useExchangeRate(exchangeRateParams);
   const { data: currencyOptions = [] } = useCurrencyOptions(exchangeRateParams);
 
   const detailQuery = useQuery({
@@ -476,10 +486,14 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
       const existingExchangeLines = exchangeLinesQuery.data ?? [];
       const existingExchangeIdSet = new Set(existingExchangeLines.map((x) => x.id));
       const currentDbExchangeIds = new Set(
-        effectiveExchangeRates.map((x) => toDbExchangeId(x.id)).filter((x): x is number => x !== null)
+        effectiveExchangeRates
+          .map((x) => toDbExchangeId(x.id))
+          .filter((x): x is number => x !== null)
       );
 
-      const exchangeDeleteIds = [...existingExchangeIdSet].filter((idItem) => !currentDbExchangeIds.has(idItem));
+      const exchangeDeleteIds = [...existingExchangeIdSet].filter(
+        (idItem) => !currentDbExchangeIds.has(idItem)
+      );
       for (const deleteId of exchangeDeleteIds) {
         await tempQuickQuotationRepository.removeExchangeLine(deleteId);
       }
@@ -487,7 +501,10 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
       for (const rate of effectiveExchangeRates) {
         const dbId = toDbExchangeId(rate.id);
         if (dbId !== null) {
-          await tempQuickQuotationRepository.updateExchangeLine(dbId, mapRateToUpdateDto(rate, offerDate));
+          await tempQuickQuotationRepository.updateExchangeLine(
+            dbId,
+            mapRateToUpdateDto(rate, offerDate)
+          );
         }
       }
 
@@ -574,8 +591,6 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
 
   const pending = createMutation.isPending || updateMutation.isPending;
   const loading = detailQuery.isLoading || linesQuery.isLoading || exchangeLinesQuery.isLoading;
-  const inAppPdfPreviewAvailable = useMemo(() => canPreviewPdfInApp(), []);
-  const pdfViewerHeight = useMemo(() => Math.max(420, windowHeight * 0.55), [windowHeight]);
 
   const handleGeneratePdf = useCallback(async () => {
     if (lines.length === 0) {
@@ -596,12 +611,6 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
       });
 
       setPdfFileUri(fileUri);
-      if (!inAppPdfPreviewAvailable) {
-        const result = await openPdfExternallyAsync(fileUri);
-        if (!result.opened && result.reason === "no_app") {
-          showError("Cihazda PDF açabilecek bir uygulama bulunamadı.");
-        }
-      }
       showSuccess("PDF oluşturuldu");
     } catch (error) {
       showError(error instanceof Error ? error.message : "PDF oluşturulamadı");
@@ -620,13 +629,10 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
     selectedCustomer?.name,
     showError,
     showSuccess,
-    inAppPdfPreviewAvailable,
   ]);
 
   const handleSharePdf = useCallback(async () => {
-    if (pdfFileUri == null) {
-      return;
-    }
+    if (pdfFileUri == null) return;
 
     try {
       const shareUri = pdfFileUri.startsWith("file://") ? pdfFileUri : `file://${pdfFileUri}`;
@@ -646,9 +652,7 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
   }, [pdfFileUri, showError]);
 
   const handleOpenPdf = useCallback(async () => {
-    if (pdfFileUri == null) {
-      return;
-    }
+    if (pdfFileUri == null) return;
 
     const result = await openPdfExternallyAsync(pdfFileUri);
     if (!result.opened) {
@@ -663,7 +667,7 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
   return (
     <View style={[styles.container, { backgroundColor: mainBg }]}>
       <StatusBar style={isDark ? "light" : "dark"} />
-      
+
       <View style={StyleSheet.absoluteFill}>
         <LinearGradient
           colors={gradientColors}
@@ -687,7 +691,7 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
           <ScrollView
             contentContainerStyle={[
               styles.content,
-              { paddingBottom: Math.max(insets.bottom, 24) + 60 }, 
+              { paddingBottom: Math.max(insets.bottom, 24) + 60 },
             ]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
@@ -704,7 +708,11 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
             <View style={styles.field}>
               <Text style={[styles.label, { color: mutedColor }]}>Para Birimi</Text>
               <TouchableOpacity
-                style={[styles.input, styles.pickerButton, { borderColor, backgroundColor: inputBg }]}
+                style={[
+                  styles.input,
+                  styles.pickerButton,
+                  { borderColor, backgroundColor: inputBg },
+                ]}
                 onPress={() => setCurrencyModalVisible(true)}
               >
                 <Text style={[styles.pickerText, { color: textColor }]}>
@@ -716,7 +724,11 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
             <View style={styles.field}>
               <Text style={[styles.label, { color: mutedColor }]}>Açıklama</Text>
               <TextInput
-                style={[styles.input, styles.textArea, { borderColor, backgroundColor: inputBg, color: textColor }]}
+                style={[
+                  styles.input,
+                  styles.textArea,
+                  { borderColor, backgroundColor: inputBg, color: textColor },
+                ]}
                 value={description}
                 onChangeText={setDescription}
                 multiline
@@ -732,7 +744,15 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
                 <Text style={[styles.sectionTitle, { color: textColor }]}>Stok Satırları</Text>
               </View>
               <TouchableOpacity
-                style={[styles.sectionButton, { backgroundColor: isDark ? "rgba(14, 165, 233, 0.15)" : "rgba(14, 165, 233, 0.1)", borderColor: "rgba(14, 165, 233, 0.3)" }]}
+                style={[
+                  styles.sectionButton,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(14, 165, 233, 0.15)"
+                      : "rgba(14, 165, 233, 0.1)",
+                    borderColor: "rgba(14, 165, 233, 0.3)",
+                  },
+                ]}
                 onPress={() => {
                   setEditingLine(null);
                   setLineFormVisible(true);
@@ -745,40 +765,87 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
 
             {lines.length === 0 ? (
               <View style={[styles.emptyContainer, { borderColor, backgroundColor: cardBg }]}>
-                <Text style={[styles.emptyText, { color: mutedColor }]}>Henüz stok satırı eklenmedi.</Text>
+                <Text style={[styles.emptyText, { color: mutedColor }]}>
+                  Henüz stok satırı eklenmedi.
+                </Text>
               </View>
             ) : (
               <View style={styles.listGroup}>
                 {lines.map((line) => (
-                  <View key={line.id} style={[styles.lineCard, { borderColor, backgroundColor: cardBg }]}> 
-                    <Text style={[styles.lineTitle, { color: textColor }]}>{line.productCode} - {line.productName}</Text>
+                  <View
+                    key={line.id}
+                    style={[styles.lineCard, { borderColor, backgroundColor: cardBg }]}
+                  >
+                    <Text style={[styles.lineTitle, { color: textColor }]}>
+                      {line.productCode} - {line.productName}
+                    </Text>
                     <View style={styles.lineDetailsGrid}>
-                      <Text style={[styles.lineText, { color: mutedColor }]}>Miktar: <Text style={{ color: textColor }}>{line.quantity}</Text></Text>
-                      <Text style={[styles.lineText, { color: mutedColor }]}>Fiyat: <Text style={{ color: textColor }}>{line.unitPrice}</Text></Text>
-                      <Text style={[styles.lineText, { color: mutedColor }]}>Kur: <Text style={{ color: textColor }}>{exchangeRate}</Text></Text>
-                      <Text style={[styles.lineText, { color: mutedColor }]}>İsk. 1: <Text style={{ color: textColor }}>%{line.discountRate1 ?? 0}</Text></Text>
+                      <Text style={[styles.lineText, { color: mutedColor }]}>
+                        Miktar: <Text style={{ color: textColor }}>{line.quantity}</Text>
+                      </Text>
+                      <Text style={[styles.lineText, { color: mutedColor }]}>
+                        Fiyat: <Text style={{ color: textColor }}>{line.unitPrice}</Text>
+                      </Text>
+                      <Text style={[styles.lineText, { color: mutedColor }]}>
+                        Kur: <Text style={{ color: textColor }}>{exchangeRate}</Text>
+                      </Text>
+                      <Text style={[styles.lineText, { color: mutedColor }]}>
+                        İsk. 1: <Text style={{ color: textColor }}>%{line.discountRate1 ?? 0}</Text>
+                      </Text>
                     </View>
                     <View style={styles.lineActions}>
                       <TouchableOpacity
-                        style={[styles.actionPill, { backgroundColor: isDark ? "rgba(14, 165, 233, 0.1)" : "rgba(14, 165, 233, 0.08)", borderColor: "rgba(14, 165, 233, 0.2)" }]}
+                        style={[
+                          styles.actionPill,
+                          {
+                            backgroundColor: isDark
+                              ? "rgba(14, 165, 233, 0.1)"
+                              : "rgba(14, 165, 233, 0.08)",
+                            borderColor: "rgba(14, 165, 233, 0.2)",
+                          },
+                        ]}
                         onPress={() => {
                           setEditingLine(line);
                           setLineFormVisible(true);
                         }}
                       >
-                        <Edit02Icon size={16} color="#0ea5e9" variant="stroke" style={{ marginRight: 6 }} />
-                        <Text style={[styles.actionPillText, { color: "#0ea5e9" }]}>Düzenle</Text>
+                        <Edit02Icon
+                          size={16}
+                          color="#0ea5e9"
+                          variant="stroke"
+                          style={{ marginRight: 6 }}
+                        />
+                        <Text style={[styles.actionPillText, { color: "#0ea5e9" }]}>
+                          Düzenle
+                        </Text>
                       </TouchableOpacity>
                       <TouchableOpacity
-                        style={[styles.actionPill, { backgroundColor: isDark ? "rgba(239, 68, 68, 0.1)" : "rgba(239, 68, 68, 0.08)", borderColor: "rgba(239, 68, 68, 0.2)" }]}
+                        style={[
+                          styles.actionPill,
+                          {
+                            backgroundColor: isDark
+                              ? "rgba(239, 68, 68, 0.1)"
+                              : "rgba(239, 68, 68, 0.08)",
+                            borderColor: "rgba(239, 68, 68, 0.2)",
+                          },
+                        ]}
                         onPress={() =>
                           Alert.alert("Sil", "Bu stok satırını silmek istiyor musun?", [
                             { text: "Vazgeç", style: "cancel" },
-                            { text: "Sil", style: "destructive", onPress: () => handleDeleteLine(line.id) },
+                            {
+                              text: "Sil",
+                              style: "destructive",
+                              onPress: () => handleDeleteLine(line.id),
+                            },
                           ])
                         }
                       >
-                        <Delete02Icon size={16} color={errorColor} variant="stroke" style={{ marginRight: 6 }} />
+                        <Delete02Icon
+                          size={16}
+                          color={errorColor}
+                          variant="stroke"
+                          style={{ marginRight: 6 }}
+                        />
                         <Text style={[styles.actionPillText, { color: errorColor }]}>Sil</Text>
                       </TouchableOpacity>
                     </View>
@@ -801,10 +868,15 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
             ) : (
               <View style={styles.listGroup}>
                 {effectiveExchangeRates.map((rate) => (
-                  <View key={rate.id} style={[styles.exchangeCard, { borderColor, backgroundColor: cardBg }]}> 
+                  <View
+                    key={rate.id}
+                    style={[styles.exchangeCard, { borderColor, backgroundColor: cardBg }]}
+                  >
                     <Text style={[styles.lineTitle, { color: textColor }]}>{rate.currency}</Text>
                     <View style={styles.exchangeRatePill}>
-                      <Text style={[styles.lineText, { color: brandColor, fontWeight: "700" }]}>{rate.exchangeRate}</Text>
+                      <Text style={[styles.lineText, { color: brandColor, fontWeight: "700" }]}>
+                        {rate.exchangeRate}
+                      </Text>
                     </View>
                   </View>
                 ))}
@@ -820,88 +892,187 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
 
             <View style={[styles.reportCard, { borderColor, backgroundColor: cardBg }]}>
               <Text style={[styles.label, { color: mutedColor, marginLeft: 0 }]}>Rapor Şablonu</Text>
-              <View style={[styles.reportTemplateBox, { borderColor, backgroundColor: inputBg }]}>
-                <Text style={[styles.reportTemplateText, { color: textColor }]}>Windo Teklif Yap</Text>
+
+              <View
+                style={[
+                  styles.reportTemplateBox,
+                  { borderColor, backgroundColor: inputBg },
+                ]}
+              >
+                <Text style={[styles.reportTemplateText, { color: textColor }]}>
+                  Windo Teklif Yap
+                </Text>
               </View>
 
               <TouchableOpacity
                 style={[
                   styles.reportPrimaryButton,
-                  { backgroundColor: isGeneratingPdf ? mutedColor : brandColor },
+                  {
+                    backgroundColor: isGeneratingPdf
+                      ? isDark
+                        ? "rgba(236,72,153,0.10)"
+                        : "rgba(219,39,119,0.08)"
+                      : isDark
+                        ? "rgba(236,72,153,0.18)"
+                        : "rgba(219,39,119,0.12)",
+                    borderColor: isGeneratingPdf
+                      ? isDark
+                        ? "rgba(236,72,153,0.22)"
+                        : "rgba(219,39,119,0.16)"
+                      : isDark
+                        ? "rgba(236,72,153,0.38)"
+                        : "rgba(219,39,119,0.24)",
+                  },
                 ]}
                 onPress={() => {
                   void handleGeneratePdf();
                 }}
                 disabled={isGeneratingPdf}
+                activeOpacity={0.88}
               >
                 {isGeneratingPdf ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
+                  <ActivityIndicator color={brandColor} size="small" />
                 ) : (
-                  <Text style={styles.reportPrimaryButtonText}>PDF Oluştur</Text>
+                  <Text style={[styles.reportPrimaryButtonText, { color: brandColor }]}>
+                    PDF Oluştur
+                  </Text>
                 )}
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[
-                  styles.reportSecondaryButton,
-                  { backgroundColor: pdfFileUri ? "#60A5FA" : mutedColor, opacity: pdfFileUri ? 1 : 0.6 },
-                ]}
-                onPress={() => {
-                  void handleSharePdf();
-                }}
-                disabled={!pdfFileUri}
-              >
-                <Text style={styles.reportSecondaryButtonText}>Paylaş</Text>
-              </TouchableOpacity>
-
-              {!inAppPdfPreviewAvailable && (
+              <View style={styles.pdfActionRow}>
                 <TouchableOpacity
                   style={[
                     styles.reportSecondaryButton,
-                    { backgroundColor: pdfFileUri ? "#60A5FA" : mutedColor, opacity: pdfFileUri ? 1 : 0.6 },
+                    {
+                      flex: 1,
+                      backgroundColor: pdfFileUri
+                        ? isDark
+                          ? "rgba(56,189,248,0.10)"
+                          : "rgba(14,165,233,0.08)"
+                        : isDark
+                          ? "rgba(255,255,255,0.025)"
+                          : "rgba(15,23,42,0.035)",
+                      borderColor: pdfFileUri
+                        ? isDark
+                          ? "rgba(56,189,248,0.26)"
+                          : "rgba(14,165,233,0.18)"
+                        : borderColor,
+                      opacity: pdfFileUri ? 1 : 0.55,
+                    },
                   ]}
                   onPress={() => {
                     void handleOpenPdf();
                   }}
                   disabled={!pdfFileUri}
+                  activeOpacity={0.88}
                 >
-                  <Text style={styles.reportSecondaryButtonText}>PDF Aç</Text>
+                  <Text
+                    style={[
+                      styles.reportSecondaryButtonText,
+                      { color: pdfFileUri ? (isDark ? "#7DD3FC" : "#0284C7") : mutedColor },
+                    ]}
+                  >
+                    PDF Aç
+                  </Text>
                 </TouchableOpacity>
-              )}
 
-              {pdfFileUri && inAppPdfPreviewAvailable ? (
-                <View style={[styles.previewSection, { borderColor, backgroundColor: inputBg }]}>
-                  <Text style={[styles.previewTitle, { color: textColor }]}>PDF Önizleme</Text>
-                  <View style={[styles.pdfViewerWrapper, { height: pdfViewerHeight }]}>
-                    <WebView
-                      source={{ uri: pdfFileUri }}
-                      originWhitelist={["file://", "content://"]}
-                      style={styles.pdfWebView}
-                      scalesPageToFit
-                      nestedScrollEnabled
-                    />
-                  </View>
-                </View>
-              ) : pdfFileUri ? (
-                <View style={[styles.previewSection, { borderColor, backgroundColor: inputBg }]}>
-                  <Text style={[styles.previewTitle, { color: textColor }]}>PDF Önizleme</Text>
-                  <Text style={{ color: mutedColor, fontSize: 14, lineHeight: 20 }}>
-                    Android APK içinde yerel PDF önizleme yerine dosya, cihazdaki PDF uygulamasında açılır. Açılmazsa Paylaş ile dış uygulamaya gönderebilirsiniz.
+                <TouchableOpacity
+                  style={[
+                    styles.reportSecondaryButton,
+                    {
+                      flex: 1,
+                      backgroundColor: pdfFileUri
+                        ? isDark
+                          ? "rgba(249,115,22,0.10)"
+                          : "rgba(245,158,11,0.08)"
+                        : isDark
+                          ? "rgba(255,255,255,0.025)"
+                          : "rgba(15,23,42,0.035)",
+                      borderColor: pdfFileUri
+                        ? isDark
+                          ? "rgba(249,115,22,0.24)"
+                          : "rgba(245,158,11,0.18)"
+                        : borderColor,
+                      opacity: pdfFileUri ? 1 : 0.55,
+                    },
+                  ]}
+                  onPress={() => {
+                    void handleSharePdf();
+                  }}
+                  disabled={!pdfFileUri}
+                  activeOpacity={0.88}
+                >
+                  <Text
+                    style={[
+                      styles.reportSecondaryButtonText,
+                      { color: pdfFileUri ? (isDark ? "#FDBA74" : "#D97706") : mutedColor },
+                    ]}
+                  >
+                    Paylaş
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {pdfFileUri ? (
+                <View
+                  style={[
+                    styles.previewSection,
+                    {
+                      borderColor: isDark
+                        ? "rgba(236,72,153,0.18)"
+                        : "rgba(219,39,119,0.14)",
+                      backgroundColor: isDark
+                        ? "rgba(236,72,153,0.08)"
+                        : "rgba(219,39,119,0.06)",
+                    },
+                  ]}
+                >
+                  <Text style={[styles.previewTitle, { color: textColor }]}>PDF hazır</Text>
+                  <Text style={[styles.previewInfoText, { color: mutedColor }]}>
+                    Görüntülemek için “PDF Aç” butonuna dokunup cihazınızdaki uygun uygulamayı
+                    seçebilirsiniz.
                   </Text>
                 </View>
-              ) : null}
+              ) : (
+                <View
+                  style={[
+                    styles.previewSection,
+                    {
+                      borderColor,
+                      backgroundColor: isDark
+                        ? "rgba(255,255,255,0.025)"
+                        : "rgba(15,23,42,0.03)",
+                    },
+                  ]}
+                >
+                  <Text style={[styles.previewTitle, { color: textColor }]}>
+                    PDF henüz oluşturulmadı
+                  </Text>
+                  <Text style={[styles.previewInfoText, { color: mutedColor }]}>
+                    Önce PDF oluşturun, ardından açabilir veya paylaşabilirsiniz.
+                  </Text>
+                </View>
+              )}
             </View>
 
             {!loading && (
               <View style={styles.submitContainer}>
                 <TouchableOpacity
                   style={[
-                    styles.submitButton, 
-                    { 
-                      backgroundColor: pending ? mutedColor : (isDark ? "rgba(236, 72, 153, 0.15)" : "rgba(219, 39, 119, 0.1)"),
-                      borderColor: pending ? "transparent" : (isDark ? "rgba(236, 72, 153, 0.4)" : "rgba(219, 39, 119, 0.3)"),
-                      borderWidth: pending ? 0 : 1
-                    }
+                    styles.submitButton,
+                    {
+                      backgroundColor: pending
+                        ? mutedColor
+                        : isDark
+                          ? "rgba(236, 72, 153, 0.15)"
+                          : "rgba(219, 39, 119, 0.1)",
+                      borderColor: pending
+                        ? "transparent"
+                        : isDark
+                          ? "rgba(236, 72, 153, 0.4)"
+                          : "rgba(219, 39, 119, 0.3)",
+                      borderWidth: pending ? 0 : 1,
+                    },
                   ]}
                   onPress={submit}
                   disabled={pending}
@@ -909,7 +1080,12 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
                   {pending ? (
                     <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
-                    <Text style={[styles.submitButtonText, { color: pending ? "#FFFFFF" : brandColor }]}>
+                    <Text
+                      style={[
+                        styles.submitButtonText,
+                        { color: pending ? "#FFFFFF" : brandColor },
+                      ]}
+                    >
                       {isEdit ? "Revize Kaydet" : "Hızlı Teklif Oluştur"}
                     </Text>
                   )}
@@ -1130,20 +1306,25 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
   },
   reportPrimaryButtonText: {
-    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
+  },
+  pdfActionRow: {
+    flexDirection: "row",
+    gap: 10,
   },
   reportSecondaryButton: {
     minHeight: 52,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
+    paddingHorizontal: 12,
   },
   reportSecondaryButtonText: {
-    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
   },
@@ -1151,19 +1332,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 14,
     padding: 12,
-    gap: 10,
+    gap: 8,
   },
   previewTitle: {
     fontSize: 14,
     fontWeight: "700",
   },
-  pdfViewerWrapper: {
-    borderRadius: 10,
-    overflow: "hidden",
-  },
-  pdfWebView: {
-    flex: 1,
-    backgroundColor: "transparent",
+  previewInfoText: {
+    fontSize: 14,
+    lineHeight: 20,
   },
   submitContainer: {
     marginTop: 20,

@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   FlatList,
-  useWindowDimensions,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -13,7 +12,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import * as Sharing from "expo-sharing";
-import { WebView } from "react-native-webview";
 import {
   Calendar03Icon,
   Coins01Icon,
@@ -31,8 +29,11 @@ import { useToast } from "../../../hooks/useToast";
 import { tempQuickQuotationRepository } from "../repositories/tempQuotattion.repository";
 import { createBuiltInTempQuickQuotationReportPdf } from "../utils/createBuiltInTempQuickQuotationReportPdf";
 import type { QuotationLineFormState } from "../../quotation/types";
-import { canPreviewPdfInApp, openPdfExternallyAsync } from "../../../lib/pdf";
-import type { TempQuotattionLineGetDto, TempQuotattionExchangeLineGetDto } from "../models/tempQuotattion.model";
+import { openPdfExternallyAsync } from "../../../lib/pdf";
+import type {
+  TempQuotattionLineGetDto,
+  TempQuotattionExchangeLineGetDto,
+} from "../models/tempQuotattion.model";
 
 function formatDate(value?: string | null): string {
   if (!value) return "-";
@@ -113,7 +114,12 @@ type LineRowProps = {
   };
 };
 
-const LineRow = memo(function LineRow({ item, index, currencyCode, colors }: LineRowProps) {
+const LineRow = memo(function LineRow({
+  item,
+  index,
+  currencyCode,
+  colors,
+}: LineRowProps) {
   return (
     <View
       style={[
@@ -142,6 +148,7 @@ const LineRow = memo(function LineRow({ item, index, currencyCode, colors }: Lin
             {item.productName || "-"}
           </Text>
         </View>
+
         <View
           style={[
             styles.lineIndexBadge,
@@ -156,6 +163,7 @@ const LineRow = memo(function LineRow({ item, index, currencyCode, colors }: Lin
           </Text>
         </View>
       </View>
+
       <View style={styles.metricGrid}>
         <View
           style={[
@@ -168,6 +176,7 @@ const LineRow = memo(function LineRow({ item, index, currencyCode, colors }: Lin
             {formatNumber(item.quantity, 2)}
           </Text>
         </View>
+
         <View
           style={[
             styles.metricBox,
@@ -184,6 +193,7 @@ const LineRow = memo(function LineRow({ item, index, currencyCode, colors }: Lin
             {formatNumber(item.unitPrice)} {currencyCode}
           </Text>
         </View>
+
         <View
           style={[
             styles.metricBox,
@@ -195,6 +205,7 @@ const LineRow = memo(function LineRow({ item, index, currencyCode, colors }: Lin
             %{formatNumber(item.discountRate1 ?? 0, 2)}
           </Text>
         </View>
+
         <View
           style={[
             styles.metricBox,
@@ -207,6 +218,7 @@ const LineRow = memo(function LineRow({ item, index, currencyCode, colors }: Lin
           </Text>
         </View>
       </View>
+
       <View
         style={[
           styles.totalRow,
@@ -226,6 +238,7 @@ const LineRow = memo(function LineRow({ item, index, currencyCode, colors }: Lin
           {formatNumber(item.lineGrandTotal)} {currencyCode}
         </Text>
       </View>
+
       {!!item.description && (
         <View
           style={[
@@ -236,9 +249,7 @@ const LineRow = memo(function LineRow({ item, index, currencyCode, colors }: Lin
             },
           ]}
         >
-          <Text style={[styles.descriptionLabel, { color: colors.muted }]}>
-            Açıklama
-          </Text>
+          <Text style={[styles.descriptionLabel, { color: colors.muted }]}>Açıklama</Text>
           <Text
             style={[styles.descriptionText, { color: colors.text }]}
             numberOfLines={2}
@@ -255,7 +266,6 @@ const LineRow = memo(function LineRow({ item, index, currencyCode, colors }: Lin
 export function TempQuickQuotationDetailScreen(): React.ReactElement {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { height: windowHeight } = useWindowDimensions();
   const queryClient = useQueryClient();
   const { showError, showSuccess } = useToast();
   const { themeMode } = useUIStore();
@@ -295,8 +305,6 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
 
   const [pdfFileUri, setPdfFileUri] = useState<string | null>(null);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-  const inAppPdfPreviewAvailable = useMemo(() => canPreviewPdfInApp(), []);
-  const pdfViewerHeight = useMemo(() => Math.max(420, windowHeight * 0.55), [windowHeight]);
 
   const detailQuery = useQuery({
     queryKey: ["temp-quick-quotation", "detail", quickQuotationId],
@@ -312,7 +320,8 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
 
   const exchangeLinesQuery = useQuery({
     queryKey: ["temp-quick-quotation", "exchange-lines", quickQuotationId],
-    queryFn: () => tempQuickQuotationRepository.getExchangeLinesByHeaderId(quickQuotationId as number),
+    queryFn: () =>
+      tempQuickQuotationRepository.getExchangeLinesByHeaderId(quickQuotationId as number),
     enabled: quickQuotationId != null,
   });
 
@@ -367,19 +376,13 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
       });
 
       setPdfFileUri(fileUri);
-      if (!inAppPdfPreviewAvailable) {
-        const result = await openPdfExternallyAsync(fileUri);
-        if (!result.opened && result.reason === "no_app") {
-          showError("Cihazda PDF açabilecek bir uygulama bulunamadı.");
-        }
-      }
       showSuccess("PDF oluşturuldu");
     } catch (error) {
       showError(error instanceof Error ? error.message : "PDF oluşturulamadı");
     } finally {
       setIsGeneratingPdf(false);
     }
-  }, [detail, mappedLines, showError, showSuccess, inAppPdfPreviewAvailable]);
+  }, [detail, mappedLines, showError, showSuccess]);
 
   const handleSharePdf = useCallback(async () => {
     if (!pdfFileUri) return;
@@ -435,6 +438,7 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
 
   const listHeaderComponent = useMemo(() => {
     if (!detail) return null;
+
     return (
       <>
         <LinearGradient
@@ -460,6 +464,7 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
               </Text>
               <Text style={[styles.heroTitle, { color: colors.text }]}>#{detail.id}</Text>
             </View>
+
             <View
               style={[
                 styles.statusPill,
@@ -482,6 +487,7 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
               </Text>
             </View>
           </View>
+
           <View style={styles.customerRow}>
             <View
               style={[
@@ -491,6 +497,7 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
             >
               <UserIcon size={15} color={colors.brand} variant="stroke" />
             </View>
+
             <View style={styles.customerContent}>
               <Text style={[styles.infoLabel, { color: colors.muted }]}>Cari</Text>
               <Text
@@ -502,6 +509,7 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
               </Text>
             </View>
           </View>
+
           <View style={styles.metaRow}>
             <View
               style={[
@@ -510,13 +518,11 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
               ]}
             >
               <Coins01Icon size={14} color={colors.blue} variant="stroke" />
-              <Text
-                style={[styles.metaChipText, { color: colors.text }]}
-                numberOfLines={1}
-              >
+              <Text style={[styles.metaChipText, { color: colors.text }]} numberOfLines={1}>
                 {detail.currencyCode || "-"}
               </Text>
             </View>
+
             <View
               style={[
                 styles.metaChip,
@@ -527,14 +533,12 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
               ]}
             >
               <Calendar03Icon size={14} color={colors.orange} variant="stroke" />
-              <Text
-                style={[styles.metaChipText, { color: colors.text }]}
-                numberOfLines={1}
-              >
+              <Text style={[styles.metaChipText, { color: colors.text }]} numberOfLines={1}>
                 {formatDate(detail.offerDate)}
               </Text>
             </View>
           </View>
+
           <View style={styles.descriptionRow}>
             <View
               style={[
@@ -544,6 +548,7 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
             >
               <Note01Icon size={14} color={colors.muted} variant="stroke" />
             </View>
+
             <View style={styles.customerContent}>
               <Text style={[styles.infoLabel, { color: colors.muted }]}>Açıklama</Text>
               <Text
@@ -556,6 +561,7 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
             </View>
           </View>
         </LinearGradient>
+
         <View style={styles.summaryRow}>
           <View
             style={[
@@ -567,13 +573,10 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
               },
             ]}
           >
-            <Text style={[styles.summaryLabel, { color: colors.muted }]}>
-              Kalem Sayısı
-            </Text>
-            <Text style={[styles.summaryValue, { color: colors.text }]}>
-              {lineCount}
-            </Text>
+            <Text style={[styles.summaryLabel, { color: colors.muted }]}>Kalem Sayısı</Text>
+            <Text style={[styles.summaryValue, { color: colors.text }]}>{lineCount}</Text>
           </View>
+
           <View
             style={[
               styles.summaryCard,
@@ -595,6 +598,7 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
             </Text>
           </View>
         </View>
+
         <View style={styles.actionsRow}>
           <TouchableOpacity
             activeOpacity={0.9}
@@ -615,6 +619,7 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
             <Edit02Icon size={16} color={colors.blue} variant="stroke" />
             <Text style={[styles.actionBtnText, { color: colors.blue }]}>Revize Et</Text>
           </TouchableOpacity>
+
           <TouchableOpacity
             activeOpacity={0.9}
             style={[
@@ -642,12 +647,12 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
             )}
           </TouchableOpacity>
         </View>
+
         <View style={styles.sectionHeaderRow}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Stok Kalemleri</Text>
-          <Text style={[styles.sectionBadge, { color: colors.muted }]}>
-            {lineCount} kayıt
-          </Text>
+          <Text style={[styles.sectionBadge, { color: colors.muted }]}>{lineCount} kayıt</Text>
         </View>
+
         {lineCount === 0 && (
           <View
             style={[
@@ -669,7 +674,6 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
     lineCount,
     totalGrandAmount,
     convertMutation.isPending,
-    convertMutation.mutate,
     router,
   ]);
 
@@ -697,18 +701,15 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
           >
             <Coins01Icon size={14} color={colors.orange} variant="stroke" />
           </View>
+
           <View style={{ flex: 1 }}>
-            <Text
-              style={[styles.exchangeCurrency, { color: colors.text }]}
-              numberOfLines={1}
-            >
+            <Text style={[styles.exchangeCurrency, { color: colors.text }]} numberOfLines={1}>
               {rate.currency}
             </Text>
-            <Text style={[styles.exchangeSub, { color: colors.muted }]}>
-              Kur değeri
-            </Text>
+            <Text style={[styles.exchangeSub, { color: colors.muted }]}>Kur değeri</Text>
           </View>
         </View>
+
         <Text
           style={[styles.exchangeValue, { color: colors.brand }]}
           numberOfLines={1}
@@ -731,6 +732,7 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
             {exchangeData.length} kayıt
           </Text>
         </View>
+
         {exchangeData.length === 0 ? (
           <View
             style={[
@@ -750,12 +752,14 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
             scrollEnabled={false}
           />
         )}
+
         <View style={styles.sectionHeaderRow}>
           <View style={styles.sectionHeaderLeft}>
             <File01Icon size={16} color={colors.brand} variant="stroke" />
             <Text style={[styles.sectionTitle, { color: colors.text }]}>PDF Çıktısı</Text>
           </View>
         </View>
+
         <View
           style={[
             styles.pdfCard,
@@ -767,16 +771,12 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
           ]}
         >
           <View style={styles.pdfHeader}>
-            <Text style={[styles.pdfHeaderTitle, { color: colors.text }]}>
-              Teklif Raporu
-            </Text>
-            <Text
-              style={[styles.pdfHeaderSub, { color: colors.muted }]}
-              numberOfLines={2}
-            >
+            <Text style={[styles.pdfHeaderTitle, { color: colors.text }]}>Teklif Raporu</Text>
+            <Text style={[styles.pdfHeaderSub, { color: colors.muted }]} numberOfLines={2}>
               Hazır şablon ile PDF oluştur ve paylaş
             </Text>
           </View>
+
           <View
             style={[
               styles.reportTemplateBox,
@@ -791,105 +791,147 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
               Windo Teklif Yap
             </Text>
           </View>
+
           <TouchableOpacity
-            activeOpacity={0.9}
+            activeOpacity={0.88}
             style={[
               styles.reportPrimaryButton,
               {
-                backgroundColor: isGeneratingPdf ? colors.muted : colors.brand,
-                shadowColor: colors.brand,
-                borderColor: isGeneratingPdf ? colors.border : colors.borderStrong,
+                backgroundColor: isGeneratingPdf
+                  ? isDark
+                    ? "rgba(236,72,153,0.10)"
+                    : "rgba(219,39,119,0.08)"
+                  : isDark
+                    ? "rgba(236,72,153,0.18)"
+                    : "rgba(219,39,119,0.12)",
+                borderColor: isGeneratingPdf
+                  ? isDark
+                    ? "rgba(236,72,153,0.22)"
+                    : "rgba(219,39,119,0.16)"
+                  : isDark
+                    ? "rgba(236,72,153,0.38)"
+                    : "rgba(219,39,119,0.24)",
               },
             ]}
             onPress={() => void handleGeneratePdf()}
             disabled={isGeneratingPdf}
           >
             {isGeneratingPdf ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
+              <ActivityIndicator color={colors.brand} size="small" />
             ) : (
-              <Text style={styles.reportPrimaryButtonText}>PDF Oluştur</Text>
+              <Text style={[styles.reportPrimaryButtonText, { color: colors.brand }]}>
+                PDF Oluştur
+              </Text>
             )}
           </TouchableOpacity>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={[
-              styles.reportSecondaryButton,
-              {
-                backgroundColor: pdfFileUri ? colors.blue : colors.muted,
-                opacity: pdfFileUri ? 1 : 0.6,
-                shadowColor: colors.blue,
-                borderColor: pdfFileUri ? "rgba(56,189,248,0.28)" : colors.border,
-              },
-            ]}
-            onPress={() => void handleSharePdf()}
-            disabled={!pdfFileUri}
-          >
-            <Text style={styles.reportSecondaryButtonText}>Paylaş</Text>
-          </TouchableOpacity>
-          {!inAppPdfPreviewAvailable && (
+
+          <View style={styles.pdfActionRow}>
             <TouchableOpacity
-              activeOpacity={0.9}
+              activeOpacity={0.88}
               style={[
                 styles.reportSecondaryButton,
                 {
-                  backgroundColor: pdfFileUri ? colors.blue : colors.muted,
-                  opacity: pdfFileUri ? 1 : 0.6,
-                  shadowColor: colors.blue,
-                  borderColor: pdfFileUri ? "rgba(56,189,248,0.28)" : colors.border,
+                  flex: 1,
+                  backgroundColor: pdfFileUri
+                    ? isDark
+                      ? "rgba(56,189,248,0.10)"
+                      : "rgba(14,165,233,0.08)"
+                    : isDark
+                      ? "rgba(255,255,255,0.025)"
+                      : "rgba(15,23,42,0.035)",
+                  borderColor: pdfFileUri
+                    ? isDark
+                      ? "rgba(56,189,248,0.26)"
+                      : "rgba(14,165,233,0.18)"
+                    : colors.border,
+                  opacity: pdfFileUri ? 1 : 0.55,
                 },
               ]}
               onPress={() => void handleOpenPdf()}
               disabled={!pdfFileUri}
             >
-              <Text style={styles.reportSecondaryButtonText}>PDF Aç</Text>
+              <Text
+                style={[
+                  styles.reportSecondaryButtonText,
+                  { color: pdfFileUri ? (isDark ? "#7DD3FC" : "#0284C7") : colors.muted },
+                ]}
+              >
+                PDF Aç
+              </Text>
             </TouchableOpacity>
-          )}
+
+            <TouchableOpacity
+              activeOpacity={0.88}
+              style={[
+                styles.reportSecondaryButton,
+                {
+                  flex: 1,
+                  backgroundColor: pdfFileUri
+                    ? isDark
+                      ? "rgba(249,115,22,0.10)"
+                      : "rgba(245,158,11,0.08)"
+                    : isDark
+                      ? "rgba(255,255,255,0.025)"
+                      : "rgba(15,23,42,0.035)",
+                  borderColor: pdfFileUri
+                    ? isDark
+                      ? "rgba(249,115,22,0.24)"
+                      : "rgba(245,158,11,0.18)"
+                    : colors.border,
+                  opacity: pdfFileUri ? 1 : 0.55,
+                },
+              ]}
+              onPress={() => void handleSharePdf()}
+              disabled={!pdfFileUri}
+            >
+              <Text
+                style={[
+                  styles.reportSecondaryButtonText,
+                  { color: pdfFileUri ? (isDark ? "#FDBA74" : "#D97706") : colors.muted },
+                ]}
+              >
+                Paylaş
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           {pdfFileUri ? (
             <View
               style={[
                 styles.previewSection,
                 {
-                  borderColor: colors.border,
-                  backgroundColor: colors.inputBg,
+                  borderColor: isDark
+                    ? "rgba(236,72,153,0.18)"
+                    : "rgba(219,39,119,0.14)",
+                  backgroundColor: isDark
+                    ? "rgba(236,72,153,0.08)"
+                    : "rgba(219,39,119,0.06)",
                 },
               ]}
             >
-              <Text style={[styles.previewTitle, { color: colors.text }]}>
-                PDF Önizleme
+              <Text style={[styles.previewTitle, { color: colors.text }]}>PDF hazır</Text>
+              <Text style={[styles.previewInfoText, { color: colors.muted }]}>
+                Görüntülemek için “PDF Aç” butonuna dokunup cihazınızdaki uygun uygulamayı
+                seçebilirsiniz.
               </Text>
-              <View
-                style={[
-                  styles.pdfViewerWrapper,
-                  {
-                    height: pdfViewerHeight,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <WebView
-                  source={{ uri: pdfFileUri }}
-                  originWhitelist={["file://", "content://"]}
-                  style={styles.pdfWebView}
-                  scalesPageToFit
-                  nestedScrollEnabled
-                />
-              </View>
             </View>
           ) : (
             <View
               style={[
-                styles.previewPlaceholder,
+                styles.previewSection,
                 {
                   borderColor: colors.border,
-                  backgroundColor: colors.softBg,
+                  backgroundColor: isDark
+                    ? "rgba(255,255,255,0.025)"
+                    : "rgba(15,23,42,0.03)",
                 },
               ]}
             >
-              <Text style={[styles.previewPlaceholderTitle, { color: colors.text }]}>
+              <Text style={[styles.previewTitle, { color: colors.text }]}>
                 PDF henüz oluşturulmadı
               </Text>
-              <Text style={[styles.previewPlaceholderText, { color: colors.muted }]}>
-                Önizleme alanı için önce PDF oluştur.
+              <Text style={[styles.previewInfoText, { color: colors.muted }]}>
+                Önce PDF oluşturun, ardından açabilir veya paylaşabilirsiniz.
               </Text>
             </View>
           )}
@@ -901,12 +943,11 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
     exchangeData,
     renderExchangeItem,
     pdfFileUri,
-    pdfViewerHeight,
     isGeneratingPdf,
-    inAppPdfPreviewAvailable,
     handleGeneratePdf,
     handleSharePdf,
     handleOpenPdf,
+    isDark,
   ]);
 
   return (
@@ -935,9 +976,7 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
               },
             ]}
           >
-            <Text style={[styles.emptyStateTitle, { color: colors.text }]}>
-              Kayıt bulunamadı
-            </Text>
+            <Text style={[styles.emptyStateTitle, { color: colors.text }]}>Kayıt bulunamadı</Text>
             <Text style={[styles.emptyStateText, { color: colors.muted }]}>
               İlgili hızlı teklif kaydı yüklenemedi veya silinmiş olabilir.
             </Text>
@@ -978,14 +1017,15 @@ const styles = StyleSheet.create({
   },
 
   heroCard: {
-    borderWidth: 1,
+    borderWidth: 2,
     borderRadius: 18,
-    padding: 13,
-    gap: 10,
+    padding: 12,
+    gap: 3,
     shadowOpacity: 0.05,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 5 },
     elevation: 2,
+    marginBottom: 10,
   },
 
   heroTopRow: {
@@ -997,13 +1037,13 @@ const styles = StyleSheet.create({
 
   heroLeft: {
     flex: 1,
-    gap: 2,
+    gap: 1,
     paddingRight: 8,
   },
 
   heroEyebrow: {
     fontSize: 10,
-    fontWeight: "800",
+    fontWeight: "900",
     textTransform: "uppercase",
     letterSpacing: 0.8,
   },
@@ -1110,7 +1150,7 @@ const styles = StyleSheet.create({
 
   summaryCard: {
     flex: 1,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderRadius: 14,
     paddingVertical: 10,
     paddingHorizontal: 12,
@@ -1118,6 +1158,7 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
     elevation: 1,
+    marginBottom: 8,
   },
 
   summaryLabel: {
@@ -1317,6 +1358,7 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 3 },
     elevation: 1,
+    marginBottom: 5,
   },
 
   exchangeLeft: {
@@ -1412,17 +1454,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 1,
   },
 
   reportPrimaryButtonText: {
-    color: "#FFFFFF",
     fontSize: 12,
     fontWeight: "700",
     lineHeight: 14,
+  },
+
+  pdfActionRow: {
+    flexDirection: "row",
+    gap: 8,
   },
 
   reportSecondaryButton: {
@@ -1431,14 +1473,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 1,
+    paddingHorizontal: 10,
   },
 
   reportSecondaryButtonText: {
-    color: "#FFFFFF",
     fontSize: 12,
     fontWeight: "700",
     lineHeight: 14,
@@ -1447,8 +1485,8 @@ const styles = StyleSheet.create({
   previewSection: {
     borderWidth: 1,
     borderRadius: 12,
-    padding: 9,
-    gap: 7,
+    padding: 12,
+    gap: 6,
   },
 
   previewTitle: {
@@ -1457,36 +1495,9 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
 
-  pdfViewerWrapper: {
-    borderRadius: 10,
-    overflow: "hidden",
-    borderWidth: 1,
-  },
-
-  pdfWebView: {
-    flex: 1,
-    backgroundColor: "transparent",
-  },
-
-  previewPlaceholder: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 4,
-  },
-
-  previewPlaceholderTitle: {
-    fontSize: 11.5,
-    fontWeight: "700",
-    lineHeight: 14,
-  },
-
-  previewPlaceholderText: {
+  previewInfoText: {
     fontSize: 10.5,
-    textAlign: "center",
-    lineHeight: 13,
+    lineHeight: 15,
     fontWeight: "500",
   },
 
