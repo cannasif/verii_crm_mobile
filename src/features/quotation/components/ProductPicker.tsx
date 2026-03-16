@@ -29,9 +29,6 @@ import { VoiceSearchButton } from "./VoiceSearchButton";
 import { PickerModal } from "./PickerModal";
 import {
   useStocks,
-  useStock,
-  useStockRelations,
-  useStockRelationsAsRelated,
 } from "../../stocks/hooks";
 import { buildAdvancedStockFilters } from "../../stocks/utils/buildAdvancedStockFilters";
 import type { StockGetDto, StockRelationDto } from "../../stocks/types";
@@ -467,7 +464,35 @@ function filterAndRankStocksLocal(stocks: StockGetDto[], query: string): StockGe
     );
   }
 
-  return uniqueStocks
+  const queryTokens = tokenize(normalizedQuery);
+
+  const strictlyMatchedStocks = uniqueStocks.filter((stock) => {
+    const searchableText = normalizeSearchText(
+      [
+        stock.stockName,
+        stock.erpStockCode,
+        stock.grupKodu,
+        stock.grupAdi,
+        stock.kod1,
+        stock.kod1Adi,
+        stock.kod2,
+        stock.kod2Adi,
+        stock.kod3,
+        stock.kod3Adi,
+        stock.kod4,
+        stock.kod4Adi,
+        stock.kod5,
+        stock.kod5Adi,
+        stock.ureticiKodu,
+      ]
+        .filter(Boolean)
+        .join(" ")
+    );
+
+    return queryTokens.every((token) => searchableText.includes(token));
+  });
+
+  return strictlyMatchedStocks
     .map((stock) => ({
       stock,
       score: scoreStock(stock, normalizedQuery),
@@ -541,24 +566,10 @@ function StockListItem({
   const mutedColor = isDark ? "#94A3B8" : "#64748B";
   const metaRows = useMemo(() => getStockMetaRows(item, t), [item, t]);
   const balance = formatStockBalance(item);
-
-  const { data: stockDetail } = useStock(modalOpen ? item.id : undefined);
-  const { data: relationsData } = useStockRelations({
-    stockId: modalOpen ? item.id : undefined,
-  });
-  const { data: relationsAsRelatedData } = useStockRelationsAsRelated(modalOpen ? item.id : undefined);
-
-  const relationsList = useMemo((): StockRelationDto[] => {
-    if (stockDetail?.parentRelations && stockDetail.parentRelations.length > 0) {
-      return stockDetail.parentRelations;
-    }
-
-    const asParent = relationsData?.pages?.[0]?.items;
-    if (Array.isArray(asParent) && asParent.length > 0) return asParent;
-
-    const asRelated = relationsAsRelatedData?.items;
-    return Array.isArray(asRelated) ? asRelated : [];
-  }, [stockDetail?.parentRelations, relationsData?.pages, relationsAsRelatedData?.items]);
+  const relationsList = useMemo(
+    () => (Array.isArray(item.parentRelations) ? item.parentRelations : []),
+    [item.parentRelations]
+  );
 
   const relationCount = relationsList.length;
   const showBadge = relationCount > 0;
@@ -671,6 +682,7 @@ function ProductPickerInner(
 
   const [isOpen, setIsOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
+  const [debouncedSearchText, setDebouncedSearchText] = useState("");
   const [relationDetailStock, setRelationDetailStock] = useState<StockGetDto | null>(null);
   const [relationDetailVisible, setRelationDetailVisible] = useState(false);
   const [relationDetailData, setRelationDetailData] = useState<StockRelationDto[]>([]);
@@ -701,11 +713,20 @@ function ProductPickerInner(
     if (!parentVisible) {
       setIsOpen(false);
       setSearchText("");
+      setDebouncedSearchText("");
       setRelationDetailVisible(false);
       setRelationDetailStock(null);
       setRelationDetailData([]);
     }
   }, [parentVisible]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedSearchText(searchText);
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [searchText]);
 
   const normalizedQuery = useMemo(() => normalizeSearchText(searchText), [searchText]);
 
@@ -725,14 +746,16 @@ function ProductPickerInner(
 
   const { data, isLoading, isFetching, fetchNextPage, hasNextPage, isFetchingNextPage } = useStocks(
     { filters: apiFilters, filterLogic: advancedFilterLogic },
-    hasAdvancedFilters ? undefined : searchText
+    hasAdvancedFilters ? undefined : debouncedSearchText
   );
 
   const shouldHideStaleResults = useMemo(() => {
     const trimmedSearch = searchText.trim();
+    const trimmedDebouncedSearch = debouncedSearchText.trim();
     if (trimmedSearch.length < 2) return false;
+    if (trimmedSearch !== trimmedDebouncedSearch) return true;
     return isFetching && !isFetchingNextPage;
-  }, [isFetching, isFetchingNextPage, searchText]);
+  }, [debouncedSearchText, isFetching, isFetchingNextPage, searchText]);
 
   const stocks = useMemo(() => {
     if (shouldHideStaleResults) {
@@ -740,12 +763,12 @@ function ProductPickerInner(
     }
 
     const rawStocks = data?.pages.flatMap((page) => page.items) || [];
-    if (searchText.trim().length >= 2) {
-      return filterAndRankStocksLocal(rawStocks, searchText);
+    if (debouncedSearchText.trim().length >= 2) {
+      return filterAndRankStocksLocal(rawStocks, debouncedSearchText);
     }
 
-    return hasAdvancedFilters ? filterAndRankStocksLocal(rawStocks, searchText) : rawStocks;
-  }, [data, hasAdvancedFilters, searchText, shouldHideStaleResults]);
+    return hasAdvancedFilters ? filterAndRankStocksLocal(rawStocks, debouncedSearchText) : rawStocks;
+  }, [data, debouncedSearchText, hasAdvancedFilters, shouldHideStaleResults]);
 
   const handleOpen = useCallback(() => {
     if (!disabled) {
