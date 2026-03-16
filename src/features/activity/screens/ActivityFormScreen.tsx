@@ -72,6 +72,9 @@ export function ActivityFormScreen(): React.ReactElement {
     customerCode,
     contactId,
     contactName,
+    quickActivityMode,
+    lockStartDate,
+    autoFillSubject,
   } = useLocalSearchParams<{
     id: string;
     initialDate: string;
@@ -82,12 +85,18 @@ export function ActivityFormScreen(): React.ReactElement {
     customerCode: string;
     contactId: string;
     contactName: string;
+    quickActivityMode: string;
+    lockStartDate: string;
+    autoFillSubject: string;
   }>();
 
   const { colors, themeMode } = useUIStore();
   const insets = useSafeAreaInsets();
 
   const isEditMode = !!id;
+  const isQuickActivityMode = quickActivityMode === "true";
+  const isStartDateLocked = lockStartDate === "true" && !isEditMode;
+  const shouldAutoFillSubject = autoFillSubject === "true" && !isEditMode;
   const activityId = id ? Number(id) : undefined;
   const isDark = themeMode === "dark";
 
@@ -116,6 +125,7 @@ export function ActivityFormScreen(): React.ReactElement {
   const [priorityModalOpen, setPriorityModalOpen] = useState(false);
   const [startDateModalOpen, setStartDateModalOpen] = useState(false);
   const [endDateModalOpen, setEndDateModalOpen] = useState(false);
+  const [isSubjectAutoManaged, setIsSubjectAutoManaged] = useState(true);
   const [androidPickerStep, setAndroidPickerStep] = useState<AndroidPickerStep>(null);
 
   const [tempStartDate, setTempStartDate] = useState(new Date());
@@ -245,6 +255,31 @@ export function ActivityFormScreen(): React.ReactElement {
     return `${getApiBaseUrl()}${normalized}`;
   }, []);
 
+  const buildAutoSubject = useCallback(
+    (customerDisplayName?: string | null, startDateTime?: string | null) => {
+      const safeCustomerName =
+        customerDisplayName?.trim() ||
+        selectedCustomer?.name?.trim() ||
+        customerName?.trim() ||
+        "";
+
+      if (!safeCustomerName) return "";
+
+      const subjectDate = startDateTime ? new Date(startDateTime) : new Date();
+
+      const formattedDate = Number.isNaN(subjectDate.getTime())
+        ? new Date().toLocaleDateString("tr-TR")
+        : subjectDate.toLocaleDateString("tr-TR", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          });
+
+      return `${safeCustomerName} carisine ait ${formattedDate} tarihli aktivite`;
+    },
+    [customerName, selectedCustomer?.name]
+  );
+
   useEffect(() => {
     if (existingActivity) {
       reset({
@@ -305,8 +340,11 @@ export function ActivityFormScreen(): React.ReactElement {
     const initialCustomerId = customerId ? Number(customerId) : undefined;
     const initialContactId = contactId ? Number(contactId) : undefined;
 
+    const startValue = toDefaultStartDateTime();
+    const endValue = toDefaultEndDateTime();
+
     reset({
-      subject: "",
+      subject: shouldAutoFillSubject ? buildAutoSubject(customerName, startValue) : "",
       description: "",
       activityType: "",
       activityTypeId: undefined,
@@ -319,11 +357,13 @@ export function ActivityFormScreen(): React.ReactElement {
       priority: "Medium",
       contactId: initialContactId,
       assignedUserId: user?.id,
-      startDateTime: toDefaultStartDateTime(),
-      endDateTime: toDefaultEndDateTime(),
+      startDateTime: startValue,
+      endDateTime: endValue,
       isAllDay: false,
       reminders: [],
     });
+
+    setIsSubjectAutoManaged(shouldAutoFillSubject);
 
     setSelectedCustomer(
       initialCustomerId
@@ -356,6 +396,26 @@ export function ActivityFormScreen(): React.ReactElement {
     toDefaultEndDateTime,
     toDefaultStartDateTime,
     user?.id,
+    shouldAutoFillSubject,
+    buildAutoSubject,
+  ]);
+
+  useEffect(() => {
+    if (isEditMode) return;
+    if (!shouldAutoFillSubject) return;
+    if (!isSubjectAutoManaged) return;
+
+    const nextSubject = buildAutoSubject(selectedCustomer?.name || customerName, watchStartDateTime);
+    setValue("subject", nextSubject);
+  }, [
+    isEditMode,
+    shouldAutoFillSubject,
+    isSubjectAutoManaged,
+    selectedCustomer?.name,
+    customerName,
+    watchStartDateTime,
+    buildAutoSubject,
+    setValue,
   ]);
 
   useEffect(() => {
@@ -605,6 +665,121 @@ export function ActivityFormScreen(): React.ReactElement {
     });
   };
 
+  const uploadPickedAssets = useCallback(
+    async (assets: ImagePicker.ImagePickerAsset[]) => {
+      if (!activityId) {
+        Alert.alert(t("common.warning"), t("activity.imageSaveFirst"));
+        return;
+      }
+
+      if (!assets.length) return;
+
+      setImagesUploading(true);
+      try {
+        const uploaded = await activityImageApi.upload(
+          activityId,
+          assets.map((asset) => ({
+            uri: asset.uri,
+            description: t("activity.imageDefaultDescription"),
+          }))
+        );
+
+        setActivityImages((prev) => {
+          const existingIds = new Set(prev.map((item) => item.id));
+          const next = [...prev];
+          uploaded.forEach((item) => {
+            if (!existingIds.has(item.id)) {
+              next.push(item);
+            }
+          });
+          return next;
+        });
+
+        Alert.alert("", t("activity.imageUploadSuccess"));
+      } catch (error) {
+        const message =
+          error instanceof Error && error.message ? error.message : t("activity.imageUploadError");
+        Alert.alert(t("common.error"), message);
+      } finally {
+        setImagesUploading(false);
+      }
+    },
+    [activityId, t]
+  );
+
+  const handlePickFromGallery = useCallback(async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (permission.status !== "granted") {
+      Alert.alert(t("common.warning"), t("activity.imagePermissionRequired"));
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.85,
+      allowsMultipleSelection: true,
+      selectionLimit: 5,
+    });
+
+    if (result.canceled || result.assets.length === 0) {
+      return;
+    }
+
+    await uploadPickedAssets(result.assets);
+  }, [t, uploadPickedAssets]);
+
+  const handlePickFromCamera = useCallback(async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+
+    if (permission.status !== "granted") {
+      Alert.alert(t("common.warning"), t("activity.imagePermissionRequired"));
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.85,
+      allowsEditing: false,
+    });
+
+    if (result.canceled || !result.assets?.length) {
+      return;
+    }
+
+    await uploadPickedAssets(result.assets);
+  }, [t, uploadPickedAssets]);
+
+  const handlePickAndUploadImages = useCallback(() => {
+    if (!activityId) {
+      Alert.alert(t("common.warning"), t("activity.imageSaveFirst"));
+      return;
+    }
+
+    Alert.alert(
+      t("activity.addImage"),
+      t("customer.chooseImageSource"),
+      [
+        {
+          text: t("common.cancel"),
+          style: "cancel",
+        },
+        {
+          text: t("customer.fromGallery"),
+          onPress: () => {
+            void handlePickFromGallery();
+          },
+        },
+        {
+          text: t("customer.fromCamera"),
+          onPress: () => {
+            void handlePickFromCamera();
+          },
+        },
+      ]
+    );
+  }, [activityId, t, handlePickFromGallery, handlePickFromCamera]);
+
   const onSubmit = useCallback(
     async (data: ActivityFormData) => {
       try {
@@ -671,60 +846,6 @@ export function ActivityFormScreen(): React.ReactElement {
       t("validation.fillRequiredFields", "Lütfen zorunlu alanları doldurun")
     );
   }, [t]);
-
-  const handlePickAndUploadImages = useCallback(async () => {
-    if (!activityId) {
-      Alert.alert(t("common.warning"), t("activity.imageSaveFirst"));
-      return;
-    }
-
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (permission.status !== "granted") {
-      Alert.alert(t("common.warning"), t("activity.imagePermissionRequired"));
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.85,
-      allowsMultipleSelection: true,
-      selectionLimit: 5,
-    });
-
-    if (result.canceled || result.assets.length === 0) {
-      return;
-    }
-
-    setImagesUploading(true);
-    try {
-      const uploaded = await activityImageApi.upload(
-        activityId,
-        result.assets.map((asset) => ({
-          uri: asset.uri,
-          description: t("activity.imageDefaultDescription"),
-        }))
-      );
-
-      setActivityImages((prev) => {
-        const existingIds = new Set(prev.map((item) => item.id));
-        const next = [...prev];
-        uploaded.forEach((item) => {
-          if (!existingIds.has(item.id)) {
-            next.push(item);
-          }
-        });
-        return next;
-      });
-
-      Alert.alert("", t("activity.imageUploadSuccess"));
-    } catch (error) {
-      const message =
-        error instanceof Error && error.message ? error.message : t("activity.imageUploadError");
-      Alert.alert(t("common.error"), message);
-    } finally {
-      setImagesUploading(false);
-    }
-  }, [activityId, t]);
 
   const handleDeleteImage = useCallback(
     async (imageId: number) => {
@@ -948,7 +1069,12 @@ export function ActivityFormScreen(): React.ReactElement {
                     <FormField
                       label={t("activity.subject")}
                       value={value}
-                      onChangeText={onChange}
+                      onChangeText={(text) => {
+                        if (shouldAutoFillSubject && isSubjectAutoManaged) {
+                          setIsSubjectAutoManaged(false);
+                        }
+                        onChange(text);
+                      }}
                       error={errors.subject?.message}
                       required
                       maxLength={100}
@@ -969,6 +1095,7 @@ export function ActivityFormScreen(): React.ReactElement {
                       },
                     ]}
                     onPress={() => setTypeModalOpen(true)}
+                    activeOpacity={0.82}
                   >
                     <View style={styles.fieldLeftWrap}>
                       <View
@@ -1013,9 +1140,12 @@ export function ActivityFormScreen(): React.ReactElement {
                         {
                           backgroundColor: innerBg,
                           borderColor: errors.startDateTime ? colors.error : innerBorder,
+                          opacity: isStartDateLocked ? 0.55 : 1,
                         },
                       ]}
-                      onPress={handleOpenStartDateModal}
+                      onPress={isStartDateLocked ? undefined : handleOpenStartDateModal}
+                      disabled={isStartDateLocked}
+                      activeOpacity={isStartDateLocked ? 1 : 0.82}
                     >
                       <View style={styles.fieldLeftWrap}>
                         <View
@@ -1030,7 +1160,11 @@ export function ActivityFormScreen(): React.ReactElement {
                           {formatDisplayDate(watchStartDateTime)}
                         </Text>
                       </View>
-                      <Calendar03Icon size={14} color={softText} variant="stroke" />
+                      <Calendar03Icon
+                        size={14}
+                        color={isStartDateLocked ? mutedText : softText}
+                        variant="stroke"
+                      />
                     </TouchableOpacity>
                     {errors.startDateTime ? (
                       <Text style={[styles.errorText, { color: colors.error }]}>
@@ -1120,6 +1254,7 @@ export function ActivityFormScreen(): React.ReactElement {
                     value={watchCustomerId ?? undefined}
                     customerName={selectedCustomer?.name}
                     onChange={handleCustomerChange}
+                    disabled={isQuickActivityMode}
                   />
                 </View>
 
