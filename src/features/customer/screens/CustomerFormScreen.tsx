@@ -33,27 +33,29 @@ import {
   useCities,
   useDistricts,
   useUpdateCustomer,
-  useDeleteCustomer,
   useCustomerTypes,
-  useBusinessCardScan
+  useBusinessCardScan,
 } from "../hooks";
 import { useCustomerShippingAddresses } from "../../shipping-address/hooks/useShippingAddresses";
-import { FormField, LocationPicker, PremiumPicker } from "../components";
+import { FormField } from "../components/FormField";
+import { LocationPicker } from "../components/LocationPicker";
+import { PremiumPicker } from "../components/PremiumPicker";
 import { createCustomerSchema, type CustomerFormData } from "../schemas";
 import type { CountryDto, CityDto, DistrictDto } from "../types";
 import type { BusinessCardOcrResult } from "../types/businessCard";
-import { 
-  Camera01Icon, 
-  Image01Icon, 
-  ArrowDown01Icon, 
-  CheckmarkCircle02Icon, 
+import { useSpeechToText } from "../hooks/useSpeechToText";
+import {
+  Camera01Icon,
+  Image01Icon,
+  ArrowDown01Icon,
+  CheckmarkCircle02Icon,
   UserCircleIcon,
   ContactBookIcon,
   Location01Icon,
   Invoice01Icon,
   NoteIcon,
   Briefcase01Icon,
-  ArrowRight01Icon
+  ArrowRight01Icon,
 } from "hugeicons-react-native";
 
 export function CustomerFormScreen(): React.ReactElement {
@@ -69,10 +71,12 @@ export function CustomerFormScreen(): React.ReactElement {
   const customerId = id ? Number(id) : undefined;
   const isDark = themeMode === "dark";
 
-  const mainBg = isDark ? "#0c0516" : "#F8FAFC"; 
-  const gradientColors = (isDark
-    ? ['rgba(236, 72, 153, 0.15)', 'transparent', 'rgba(249, 115, 22, 0.15)'] 
-    : ['rgba(255, 235, 240, 0.8)', '#FFFFFF', 'rgba(255, 240, 225, 0.8)']) as [string, string, ...string[]];
+  const mainBg = isDark ? "#0c0516" : "#F8FAFC";
+  const gradientColors = (
+    isDark
+      ? ["rgba(236, 72, 153, 0.15)", "transparent", "rgba(249, 115, 22, 0.15)"]
+      : ["rgba(255, 235, 240, 0.8)", "#FFFFFF", "rgba(255, 240, 225, 0.8)"]
+  ) as [string, string, ...string[]];
 
   const formConfig = {
     showCustomerCode: false,
@@ -98,7 +102,7 @@ export function CustomerFormScreen(): React.ReactElement {
 
   const THEME = {
     bg: isDark ? "#020617" : "#F8FAFC",
-    cardBg: isDark ? "rgba(15, 23, 42, 0.80)" : "#FFFFFF", 
+    cardBg: isDark ? "rgba(15, 23, 42, 0.80)" : "#FFFFFF",
     text: isDark ? "#F8FAFC" : "#0F172A",
     textMute: isDark ? "#94a3b8" : "#64748B",
     border: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.15)",
@@ -119,6 +123,7 @@ export function CustomerFormScreen(): React.ReactElement {
   const [ocrDistrictName, setOcrDistrictName] = useState<string | null>(null);
   const [pendingBusinessCardResult, setPendingBusinessCardResult] = useState<BusinessCardOcrResult | null>(null);
   const [isBusinessCardReviewOpen, setIsBusinessCardReviewOpen] = useState(false);
+  const [hasAutoScanned, setHasAutoScanned] = useState(false);
 
   const { data: existingCustomer, isLoading: customerLoading } = useCustomer(customerId);
   const { data: customerTypes } = useCustomerTypes();
@@ -126,7 +131,9 @@ export function CustomerFormScreen(): React.ReactElement {
   const createCustomer = useCreateCustomer();
   const createCustomerFromMobile = useCreateCustomerFromMobile();
   const updateCustomer = useUpdateCustomer();
-  const { scanBusinessCard, pickBusinessCardFromGallery, retryBusinessCardExtraction, isScanning, error: scanError } = useBusinessCardScan();
+  const { scanBusinessCard, pickBusinessCardFromGallery, retryBusinessCardExtraction, isScanning, error: scanError } =
+    useBusinessCardScan();
+  const { startListening, isListening } = useSpeechToText();
 
   const schema = useMemo(() => createCustomerSchema(), []);
 
@@ -151,7 +158,7 @@ export function CustomerFormScreen(): React.ReactElement {
       email: "",
       website: "",
       notes: "",
-      salesRepCode: isEditMode ? "" : (user?.name ||""),
+      salesRepCode: isEditMode ? "" : user?.name || "",
       groupCode: "",
       creditLimit: 0,
       defaultShippingAddressId: null,
@@ -164,17 +171,20 @@ export function CustomerFormScreen(): React.ReactElement {
   const watchCityId = watch("cityId");
   const watchDistrictId = watch("districtId");
   const watchDefaultShippingAddressId = watch("defaultShippingAddressId");
+
   const { data: countries } = useCountries();
   const { data: cities } = useCities(watchCountryId);
   const { data: districts } = useDistricts(watchCityId);
 
-  const selectedShippingAddress = customerShippingAddresses.find((address) => address.id === watchDefaultShippingAddressId);
+  const selectedShippingAddress = customerShippingAddresses.find(
+    (address) => address.id === watchDefaultShippingAddressId
+  );
 
   const customerTypeOptions = useMemo(() => {
     if (!customerTypes) return [];
-    return customerTypes.map(ct => ({
-        label: ct.name,
-        value: ct.id
+    return customerTypes.map((ct) => ({
+      label: ct.name,
+      value: ct.id,
     }));
   }, [customerTypes]);
 
@@ -206,20 +216,29 @@ export function CustomerFormScreen(): React.ReactElement {
     }
   }, [existingCustomer, reset]);
 
-  const handleCountryChange = useCallback((country: CountryDto | undefined) => {
-    setValue("countryId", country?.id);
-    setValue("cityId", undefined);
-    setValue("districtId", undefined);
-  }, [setValue]);
+  const handleCountryChange = useCallback(
+    (country: CountryDto | undefined) => {
+      setValue("countryId", country?.id);
+      setValue("cityId", undefined);
+      setValue("districtId", undefined);
+    },
+    [setValue]
+  );
 
-  const handleCityChange = useCallback((city: CityDto | undefined) => {
-    setValue("cityId", city?.id);
-    setValue("districtId", undefined);
-  }, [setValue]);
+  const handleCityChange = useCallback(
+    (city: CityDto | undefined) => {
+      setValue("cityId", city?.id);
+      setValue("districtId", undefined);
+    },
+    [setValue]
+  );
 
-  const handleDistrictChange = useCallback((district: DistrictDto | undefined) => {
-    setValue("districtId", district?.id);
-  }, [setValue]);
+  const handleDistrictChange = useCallback(
+    (district: DistrictDto | undefined) => {
+      setValue("districtId", district?.id);
+    },
+    [setValue]
+  );
 
   const normalizeLookupName = useCallback((value?: string | null): string => {
     if (!value) return "";
@@ -231,23 +250,26 @@ export function CustomerFormScreen(): React.ReactElement {
       .trim();
   }, []);
 
-  const findLookupByName = useCallback(<T extends { id: number; name: string }>(
-    items: T[] | undefined,
-    name?: string | null
-  ): T | undefined => {
-    if (!items || items.length === 0 || !name) return undefined;
-    const target = normalizeLookupName(name);
-    if (!target) return undefined;
-    return items.find((item) => {
-      const normalized = normalizeLookupName(item.name);
-      return normalized === target || normalized.includes(target) || target.includes(normalized);
-    });
-  }, [normalizeLookupName]);
+  const findLookupByName = useCallback(
+    <T extends { id: number; name: string }>(items: T[] | undefined, name?: string | null): T | undefined => {
+      if (!items || items.length === 0 || !name) return undefined;
+      const target = normalizeLookupName(name);
+      if (!target) return undefined;
+      return items.find((item) => {
+        const normalized = normalizeLookupName(item.name);
+        return normalized === target || normalized.includes(target) || target.includes(normalized);
+      });
+    },
+    [normalizeLookupName]
+  );
 
-  const handleShippingAddressSelect = useCallback((shippingAddressId: number) => {
-    setValue("defaultShippingAddressId", shippingAddressId);
-    setShippingAddressModalOpen(false);
-  }, [setValue]);
+  const handleShippingAddressSelect = useCallback(
+    (shippingAddressId: number) => {
+      setValue("defaultShippingAddressId", shippingAddressId);
+      setShippingAddressModalOpen(false);
+    },
+    [setValue]
+  );
 
   const toNumber = useCallback((v: number | undefined): number => {
     if (v === undefined || v === null) return 0;
@@ -261,144 +283,166 @@ export function CustomerFormScreen(): React.ReactElement {
     return Number.isNaN(n) ? undefined : n;
   }, []);
 
-  const onSubmit = useCallback(async (data: CustomerFormData) => {
-    try {
-      const splitContactName = (fullName: string | null): { firstName?: string; middleName?: string; lastName?: string } => {
-        if (!fullName || !fullName.trim()) return {};
-        const tokens = fullName
-          .trim()
-          .split(/\s+/)
-          .filter(Boolean);
-        if (tokens.length === 0) return {};
-        if (tokens.length === 1) {
-          return { firstName: tokens[0], lastName: tokens[0] };
-        }
-        const firstName = tokens[0];
-        const lastName = tokens[tokens.length - 1];
-        const middleName = tokens.length > 2 ? tokens.slice(1, -1).join(" ") : undefined;
-        return { firstName, middleName, lastName };
-      };
+  const handleAddressSpeech = useCallback(
+    async (currentValue?: string) => {
+      await startListening((text) => {
+        const nextValue = currentValue?.trim() ? `${currentValue} ${text}`.trim() : text.trim();
 
-      const base = {
-        name: data.name,
-        customerCode: data.customerCode || undefined,
-        customerTypeId: data.customerTypeId,
-        defaultShippingAddressId: data.defaultShippingAddressId ?? undefined,
-        salesRepCode: data.salesRepCode || undefined,
-        groupCode: data.groupCode || undefined,
-        creditLimit: toNumberOptional(data.creditLimit),
-        branchCode: toNumber(data.branchCode) || 1,
-        businessUnitCode: toNumber(data.businessUnitCode) || 1,
-        phone: data.phone || undefined,
-        phone2: data.phone2 || undefined,
-        email: data.email?.trim() ? data.email : undefined,
-        website: data.website || undefined,
-        address: data.address || undefined,
-        taxNumber: data.taxNumber || undefined,
-        taxOffice: data.taxOffice || undefined,
-        tcknNumber: data.tcknNumber || undefined,
-        notes: data.notes || undefined,
-        countryId: data.countryId,
-        cityId: data.cityId,
-        districtId: data.districtId,
-      };
-      if (isEditMode && customerId) {
-        const updatePayload = { ...base, completedDate: existingCustomer?.completionDate };
-        await updateCustomer.mutateAsync({ id: customerId, data: updatePayload });
-        Alert.alert("", t("customer.updateSuccess"));
-      } else {
-        const shouldUseMobileOcrFlow = Boolean(scannedImageUri);
+        setValue("address", nextValue, {
+          shouldDirty: true,
+          shouldTouch: true,
+          shouldValidate: true,
+        });
+      });
+    },
+    [setValue, startListening]
+  );
 
-        if (shouldUseMobileOcrFlow) {
-          const contactNameParts = splitContactName(scannedContactName);
-          const mobileCreateResult = await createCustomerFromMobile.mutateAsync({
-            name: base.name,
-            contactName: scannedContactName || undefined,
-            contactFirstName: contactNameParts.firstName,
-            contactMiddleName: contactNameParts.middleName,
-            contactLastName: contactNameParts.lastName,
-            title: scannedTitle || undefined,
-            email: base.email,
-            phone: base.phone,
-            phone2: base.phone2,
-            address: base.address,
-            website: base.website,
-            notes: base.notes,
-            countryId: base.countryId,
-            cityId: base.cityId,
-            districtId: base.districtId,
-            customerTypeId: base.customerTypeId,
-            salesRepCode: base.salesRepCode,
-            groupCode: base.groupCode,
-            creditLimit: base.creditLimit,
-            branchCode: base.branchCode,
-            businessUnitCode: base.businessUnitCode,
-            imageUri: scannedImageUri || undefined,
-            imageDescription: scannedImageUri ? "Kartvizit görseli" : undefined,
-          });
-
-          if (mobileCreateResult.imageUploaded === false && mobileCreateResult.imageUploadError) {
-            Alert.alert("Uyarı", mobileCreateResult.imageUploadError);
+  const onSubmit = useCallback(
+    async (data: CustomerFormData) => {
+      try {
+        const splitContactName = (
+          fullName: string | null
+        ): { firstName?: string; middleName?: string; lastName?: string } => {
+          if (!fullName || !fullName.trim()) return {};
+          const tokens = fullName.trim().split(/\s+/).filter(Boolean);
+          if (tokens.length === 0) return {};
+          if (tokens.length === 1) {
+            return { firstName: tokens[0], lastName: tokens[0] };
           }
+          const firstName = tokens[0];
+          const lastName = tokens[tokens.length - 1];
+          const middleName = tokens.length > 2 ? tokens.slice(1, -1).join(" ") : undefined;
+          return { firstName, middleName, lastName };
+        };
+
+        const base = {
+          name: data.name,
+          customerCode: data.customerCode || undefined,
+          customerTypeId: data.customerTypeId,
+          defaultShippingAddressId: data.defaultShippingAddressId ?? undefined,
+          salesRepCode: data.salesRepCode || undefined,
+          groupCode: data.groupCode || undefined,
+          creditLimit: toNumberOptional(data.creditLimit),
+          branchCode: toNumber(data.branchCode) || 1,
+          businessUnitCode: toNumber(data.businessUnitCode) || 1,
+          phone: data.phone || undefined,
+          phone2: data.phone2 || undefined,
+          email: data.email?.trim() ? data.email : undefined,
+          website: data.website || undefined,
+          address: data.address || undefined,
+          taxNumber: data.taxNumber || undefined,
+          taxOffice: data.taxOffice || undefined,
+          tcknNumber: data.tcknNumber || undefined,
+          notes: data.notes || undefined,
+          countryId: data.countryId,
+          cityId: data.cityId,
+          districtId: data.districtId,
+        };
+
+        if (isEditMode && customerId) {
+          const updatePayload = { ...base, completedDate: existingCustomer?.completionDate };
+          await updateCustomer.mutateAsync({ id: customerId, data: updatePayload });
+          Alert.alert("", t("customer.updateSuccess"));
         } else {
-          await createCustomer.mutateAsync({
-            name: base.name,
-            customerCode: base.customerCode,
-            taxNumber: base.taxNumber,
-            taxOffice: base.taxOffice,
-            tcknNumber: base.tcknNumber,
-            address: base.address,
-            phone: base.phone,
-            phone2: base.phone2,
-            email: base.email,
-            website: base.website,
-            notes: base.notes,
-            countryId: base.countryId,
-            cityId: base.cityId,
-            districtId: base.districtId,
-            customerTypeId: base.customerTypeId,
-            salesRepCode: base.salesRepCode,
-            groupCode: base.groupCode,
-            creditLimit: base.creditLimit,
-            defaultShippingAddressId: base.defaultShippingAddressId,
-            branchCode: base.branchCode,
-            businessUnitCode: base.businessUnitCode,
-          });
+          const shouldUseMobileOcrFlow = Boolean(scannedImageUri);
+
+          if (shouldUseMobileOcrFlow) {
+            const contactNameParts = splitContactName(scannedContactName);
+            const mobileCreateResult = await createCustomerFromMobile.mutateAsync({
+              name: base.name,
+              contactName: scannedContactName || undefined,
+              contactFirstName: contactNameParts.firstName,
+              contactMiddleName: contactNameParts.middleName,
+              contactLastName: contactNameParts.lastName,
+              title: scannedTitle || undefined,
+              email: base.email,
+              phone: base.phone,
+              phone2: base.phone2,
+              address: base.address,
+              website: base.website,
+              notes: base.notes,
+              countryId: base.countryId,
+              cityId: base.cityId,
+              districtId: base.districtId,
+              customerTypeId: base.customerTypeId,
+              salesRepCode: base.salesRepCode,
+              groupCode: base.groupCode,
+              creditLimit: base.creditLimit,
+              branchCode: base.branchCode,
+              businessUnitCode: base.businessUnitCode,
+              imageUri: scannedImageUri || undefined,
+              imageDescription: scannedImageUri ? "Kartvizit görseli" : undefined,
+            });
+
+            if (mobileCreateResult.imageUploaded === false && mobileCreateResult.imageUploadError) {
+              Alert.alert("Uyarı", mobileCreateResult.imageUploadError);
+            }
+          } else {
+            await createCustomer.mutateAsync({
+              name: base.name,
+              customerCode: base.customerCode,
+              taxNumber: base.taxNumber,
+              taxOffice: base.taxOffice,
+              tcknNumber: base.tcknNumber,
+              address: base.address,
+              phone: base.phone,
+              phone2: base.phone2,
+              email: base.email,
+              website: base.website,
+              notes: base.notes,
+              countryId: base.countryId,
+              cityId: base.cityId,
+              districtId: base.districtId,
+              customerTypeId: base.customerTypeId,
+              salesRepCode: base.salesRepCode,
+              groupCode: base.groupCode,
+              creditLimit: base.creditLimit,
+              defaultShippingAddressId: base.defaultShippingAddressId,
+              branchCode: base.branchCode,
+              businessUnitCode: base.businessUnitCode,
+            });
+          }
+
+          Alert.alert("", t("customer.createSuccess"));
         }
 
-        Alert.alert("", t("customer.createSuccess"));
+        router.back();
+      } catch (error) {
+        const message = error instanceof Error && error.message ? error.message : t("common.error");
+        Alert.alert(t("common.error"), message);
       }
-      router.back();
-    } catch (error) {
-      const message = error instanceof Error && error.message ? error.message : t("common.error");
-      Alert.alert(t("common.error"), message);
-    }
-  }, [
-    isEditMode,
-    customerId,
-    existingCustomer?.completionDate,
-    createCustomer,
-    createCustomerFromMobile,
-    updateCustomer,
-    router,
-    t,
-    toNumber,
-    toNumberOptional,
-    scannedImageUri,
-    scannedContactName,
-    scannedTitle
-  ]);
+    },
+    [
+      isEditMode,
+      customerId,
+      existingCustomer?.completionDate,
+      createCustomer,
+      createCustomerFromMobile,
+      updateCustomer,
+      router,
+      t,
+      toNumber,
+      toNumberOptional,
+      scannedImageUri,
+      scannedContactName,
+      scannedTitle,
+    ]
+  );
 
-  const onError = useCallback((formErrors: any) => {
-    showToast("error", "Lütfen kırmızı ile işaretlenmiş zorunlu alanları doldurun.");
-    const generalFields = ["name", "customerTypeId", "countryId", "cityId", "districtId"];
-    const hasGeneralError = Object.keys(formErrors).some(field => generalFields.includes(field));
-    if (hasGeneralError) {
-      setActiveTab("general");
-    } else {
-      setActiveTab("details");
-    }
-  }, [showToast]);
+  const onError = useCallback(
+    (formErrors: any) => {
+      showToast("error", "Lütfen kırmızı ile işaretlenmiş zorunlu alanları doldurun.");
+      const generalFields = ["name", "customerTypeId", "countryId", "cityId", "districtId"];
+      const hasGeneralError = Object.keys(formErrors).some((field) => generalFields.includes(field));
+      if (hasGeneralError) {
+        setActiveTab("general");
+      } else {
+        setActiveTab("details");
+      }
+    },
+    [showToast]
+  );
 
   useEffect(() => {
     if (scanError) Alert.alert("Kartvizit Tarama", scanError);
@@ -436,21 +480,24 @@ export function CustomerFormScreen(): React.ReactElement {
     }
   }, [ocrDistrictName, watchCityId, watchDistrictId, districts, findLookupByName, handleDistrictChange]);
 
-  const applyBusinessCardResult = useCallback((data: BusinessCardOcrResult) => {
-    if (data.customerName) setValue("name", data.customerName);
-    if (data.contactNameAndSurname) setScannedContactName(data.contactNameAndSurname);
-    if (data.title) setScannedTitle(data.title);
-    if (data.countryName) setOcrCountryName(data.countryName);
-    if (data.cityName) setOcrCityName(data.cityName);
-    if (data.districtName) setOcrDistrictName(data.districtName);
-    if (data.email) setValue("email", data.email ?? "");
-    if (data.phone1) setValue("phone", data.phone1);
-    if (data.phone2) setValue("phone2", data.phone2);
-    if (data.address) setValue("address", data.address ?? "");
-    if (data.website) setValue("website", data.website ?? "");
-    if (data.notes) setValue("notes", data.notes);
-    if (data.imageUri) setScannedImageUri(data.imageUri);
-  }, [setValue]);
+  const applyBusinessCardResult = useCallback(
+    (data: BusinessCardOcrResult) => {
+      if (data.customerName) setValue("name", data.customerName);
+      if (data.contactNameAndSurname) setScannedContactName(data.contactNameAndSurname);
+      if (data.title) setScannedTitle(data.title);
+      if (data.countryName) setOcrCountryName(data.countryName);
+      if (data.cityName) setOcrCityName(data.cityName);
+      if (data.districtName) setOcrDistrictName(data.districtName);
+      if (data.email) setValue("email", data.email ?? "");
+      if (data.phone1) setValue("phone", data.phone1);
+      if (data.phone2) setValue("phone2", data.phone2);
+      if (data.address) setValue("address", data.address ?? "");
+      if (data.website) setValue("website", data.website ?? "");
+      if (data.notes) setValue("notes", data.notes);
+      if (data.imageUri) setScannedImageUri(data.imageUri);
+    },
+    [setValue]
+  );
 
   const openBusinessCardReview = useCallback((result: BusinessCardOcrResult | null) => {
     if (!result) return;
@@ -468,14 +515,14 @@ export function CustomerFormScreen(): React.ReactElement {
     openBusinessCardReview(result);
   }, [pickBusinessCardFromGallery, openBusinessCardReview]);
 
-  const [hasAutoScanned, setHasAutoScanned] = useState(false);
-
   useEffect(() => {
     if (autoScan === "true" && !hasAutoScanned) {
-      setHasAutoScanned(true); 
-      setTimeout(() => {
+      setHasAutoScanned(true);
+      const timer = setTimeout(() => {
         handleScanBusinessCard();
       }, 500);
+
+      return () => clearTimeout(timer);
     }
   }, [autoScan, hasAutoScanned, handleScanBusinessCard]);
 
@@ -503,36 +550,51 @@ export function CustomerFormScreen(): React.ReactElement {
     }
   }, [pendingBusinessCardResult, retryBusinessCardExtraction]);
 
-  const FormSection = ({ title, icon, children }: { title: string, icon?: React.ReactNode, children: React.ReactNode }) => {
+  const FormSection = ({
+    title,
+    icon,
+    children,
+  }: {
+    title: string;
+    icon?: React.ReactNode;
+    children: React.ReactNode;
+  }) => {
     const hasChildren = React.Children.count(children) > 0;
     if (!hasChildren) return null;
 
     return (
-      <View 
+      <View
         style={[
-          styles.card, 
-          { 
-            backgroundColor: THEME.cardBg, 
-            borderColor: THEME.border, 
+          styles.card,
+          {
+            backgroundColor: THEME.cardBg,
+            borderColor: THEME.border,
             shadowColor: THEME.shadow,
-            shadowOpacity: isDark ? 0.3 : 0.04, 
+            shadowOpacity: isDark ? 0.3 : 0.04,
             shadowRadius: isDark ? 8 : 4,
             elevation: isDark ? 0 : 2,
-          }
+          },
         ]}
       >
-        <View style={[
-            styles.sectionHeader, 
-            { borderBottomColor: THEME.border, borderBottomWidth: 1, paddingBottom: 6 }
-        ]}>
+        <View
+          style={[
+            styles.sectionHeader,
+            { borderBottomColor: THEME.border, borderBottomWidth: 1, paddingBottom: 6 },
+          ]}
+        >
           {icon && (
-            <View style={[styles.sectionIcon, { backgroundColor: isDark ? 'rgba(219, 39, 119, 0.15)' : '#FFF1F2' }]}>
+            <View
+              style={[
+                styles.sectionIcon,
+                { backgroundColor: isDark ? "rgba(219, 39, 119, 0.15)" : "#FFF1F2" },
+              ]}
+            >
               {icon}
             </View>
           )}
           <Text style={[styles.sectionTitle, { color: THEME.text }]}>{title}</Text>
         </View>
-        <View style={{ gap: 8 }}>{children}</View> 
+        <View style={{ gap: 8 }}>{children}</View>
       </View>
     );
   };
@@ -543,7 +605,7 @@ export function CustomerFormScreen(): React.ReactElement {
         <StatusBar style={isDark ? "light" : "dark"} />
         <View style={[styles.container, { backgroundColor: mainBg }]}>
           <ScreenHeader title={t("customer.edit")} showBackButton />
-          <View style={[styles.content, { backgroundColor: 'transparent' }]}>
+          <View style={[styles.content, { backgroundColor: "transparent" }]}>
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={THEME.primary} />
             </View>
@@ -556,7 +618,7 @@ export function CustomerFormScreen(): React.ReactElement {
   return (
     <View style={[styles.container, { backgroundColor: mainBg }]}>
       <StatusBar style={isDark ? "light" : "dark"} />
-      
+
       <View style={StyleSheet.absoluteFill}>
         <LinearGradient
           colors={gradientColors}
@@ -567,43 +629,52 @@ export function CustomerFormScreen(): React.ReactElement {
       </View>
 
       <View style={{ flex: 1 }}>
-        <View style={{ 
-            backgroundColor: isDark ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255,255,255,0.9)', 
-            borderBottomWidth: 1, 
-            borderBottomColor: THEME.border 
-        }}>
+        <View
+          style={{
+            backgroundColor: isDark ? "rgba(15, 23, 42, 0.9)" : "rgba(255,255,255,0.9)",
+            borderBottomWidth: 1,
+            borderBottomColor: THEME.border,
+          }}
+        >
           <ScreenHeader title={isEditMode ? t("customer.edit") : t("customer.create")} showBackButton />
         </View>
 
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <ScrollView
-            style={{ flex: 1, backgroundColor: 'transparent' }}
-            contentContainerStyle={[styles.contentContainer, { flexGrow: 1, paddingBottom: insets.bottom + 75}]}            
+            style={{ flex: 1, backgroundColor: "transparent" }}
+            contentContainerStyle={[styles.contentContainer, { flexGrow: 1, paddingBottom: insets.bottom + 75 }]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            <View style={[
-              styles.tabContainer, 
-              { 
-                backgroundColor: isDark ? 'rgba(15, 23, 42, 0.6)' : '#FFFFFF', 
-                borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' 
-              }
-            ]}>
+            <View
+              style={[
+                styles.tabContainer,
+                {
+                  backgroundColor: isDark ? "rgba(15, 23, 42, 0.6)" : "#FFFFFF",
+                  borderColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
+                },
+              ]}
+            >
               <TouchableOpacity
                 activeOpacity={0.8}
                 style={[
-                  styles.tabButton, 
+                  styles.tabButton,
                   activeTab === "general" && [
                     styles.activeTabPremium,
-                    { 
-                      borderColor: THEME.primary, 
-                      backgroundColor: isDark ? 'rgba(219, 39, 119, 0.15)' : 'rgba(219, 39, 119, 0.05)' 
-                    }
-                  ]
+                    {
+                      borderColor: THEME.primary,
+                      backgroundColor: isDark ? "rgba(219, 39, 119, 0.15)" : "rgba(219, 39, 119, 0.05)",
+                    },
+                  ],
                 ]}
                 onPress={() => setActiveTab("general")}
               >
-                <Text style={[styles.tabText, activeTab === "general" ? { color: THEME.primary } : { color: THEME.textMute }]}>
+                <Text
+                  style={[
+                    styles.tabText,
+                    activeTab === "general" ? { color: THEME.primary } : { color: THEME.textMute },
+                  ]}
+                >
                   Genel Bilgiler
                 </Text>
               </TouchableOpacity>
@@ -611,72 +682,128 @@ export function CustomerFormScreen(): React.ReactElement {
               <TouchableOpacity
                 activeOpacity={0.8}
                 style={[
-                  styles.tabButton, 
+                  styles.tabButton,
                   activeTab === "details" && [
                     styles.activeTabPremium,
-                    { 
-                      borderColor: THEME.primary, 
-                      backgroundColor: isDark ? 'rgba(219, 39, 119, 0.15)' : 'rgba(219, 39, 119, 0.05)'
-                    }
-                  ]
+                    {
+                      borderColor: THEME.primary,
+                      backgroundColor: isDark ? "rgba(219, 39, 119, 0.15)" : "rgba(219, 39, 119, 0.05)",
+                    },
+                  ],
                 ]}
                 onPress={() => setActiveTab("details")}
               >
-                <Text style={[styles.tabText, activeTab === "details" ? { color: THEME.primary } : { color: THEME.textMute }]}>
+                <Text
+                  style={[
+                    styles.tabText,
+                    activeTab === "details" ? { color: THEME.primary } : { color: THEME.textMute },
+                  ]}
+                >
                   Detaylar & Adres
                 </Text>
               </TouchableOpacity>
             </View>
-        
-            <View style={{ display: activeTab === "general" ? "flex" : "none", gap: 10 }}>
-              {(!isEditMode && formConfig.showBusinessCardScan) && (
-                <View style={[styles.scannerContainer, { borderColor: THEME.primary, backgroundColor: `${THEME.primary}08` }]}>
-                  <View style={styles.scannerContent}>
-                    
-                    <View style={styles.scannerLeft}>
-                      <Camera01Icon size={20} color={THEME.primary} variant="stroke" />
-                      <View>
-                        <Text style={[styles.scannerTitle, { color: THEME.text }]}>Kartvizit Tara</Text>
-                        <Text style={[styles.scannerSubtitle, { color: THEME.textMute }]}>Otomatik doldur</Text>
+
+            {activeTab === "general" && (
+              <View style={{ gap: 10 }}>
+                {!isEditMode && formConfig.showBusinessCardScan && (
+                  <View
+                    style={[
+                      styles.scannerContainer,
+                      { borderColor: THEME.primary, backgroundColor: `${THEME.primary}08` },
+                    ]}
+                  >
+                    <View style={styles.scannerContent}>
+                      <View style={styles.scannerLeft}>
+                        <Camera01Icon size={20} color={THEME.primary} variant="stroke" />
+                        <View>
+                          <Text style={[styles.scannerTitle, { color: THEME.text }]}>Kartvizit Tara</Text>
+                          <Text style={[styles.scannerSubtitle, { color: THEME.textMute }]}>Otomatik doldur</Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.scannerButtonsRow}>
+                        <TouchableOpacity
+                          style={[
+                            styles.scannerIconButton,
+                            {
+                              borderColor: THEME.primary,
+                              backgroundColor: isDark ? "rgba(0,0,0,0.3)" : "#FFF",
+                            },
+                          ]}
+                          onPress={handleScanBusinessCard}
+                          disabled={isScanning}
+                        >
+                          {isScanning ? (
+                            <ActivityIndicator size="small" color={THEME.primary} />
+                          ) : (
+                            <Camera01Icon size={16} color={THEME.primary} />
+                          )}
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[
+                            styles.scannerIconButton,
+                            {
+                              borderColor: THEME.primary,
+                              backgroundColor: isDark ? "rgba(0,0,0,0.3)" : "#FFF",
+                            },
+                          ]}
+                          onPress={handlePickBusinessCardFromGallery}
+                          disabled={isScanning}
+                        >
+                          {isScanning ? (
+                            <ActivityIndicator size="small" color={THEME.primary} />
+                          ) : (
+                            <Image01Icon size={16} color={THEME.primary} />
+                          )}
+                        </TouchableOpacity>
                       </View>
                     </View>
 
-                    <View style={styles.scannerButtonsRow}>
-                      <TouchableOpacity style={[styles.scannerIconButton, { borderColor: THEME.primary, backgroundColor: isDark ? 'rgba(0,0,0,0.3)' : '#FFF' }]} onPress={handleScanBusinessCard} disabled={isScanning}>
-                        {isScanning ? <ActivityIndicator size="small" color={THEME.primary} /> : <Camera01Icon size={16} color={THEME.primary} />}
-                      </TouchableOpacity>
-                      <TouchableOpacity style={[styles.scannerIconButton, { borderColor: THEME.primary, backgroundColor: isDark ? 'rgba(0,0,0,0.3)' : '#FFF' }]} onPress={handlePickBusinessCardFromGallery} disabled={isScanning}>
-                        {isScanning ? <ActivityIndicator size="small" color={THEME.primary} /> : <Image01Icon size={16} color={THEME.primary} />}
-                      </TouchableOpacity>
-                    </View>
-
+                    {scannedImageUri ? (
+                      <View
+                        style={[
+                          styles.previewContainer,
+                          {
+                            borderColor: THEME.border,
+                            backgroundColor: isDark ? "rgba(15,23,42,0.6)" : "#FFFFFF",
+                          },
+                        ]}
+                      >
+                        <Image source={{ uri: scannedImageUri }} style={styles.previewImage} resizeMode="cover" />
+                        <View style={styles.previewTextContainer}>
+                          <Text style={[styles.previewTitle, { color: THEME.text }]}>Görsel Eklendi</Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => setScannedImageUri(null)}
+                          style={[styles.previewRemoveBtn, { backgroundColor: THEME.primary + "15" }]}
+                        >
+                          <Text style={[styles.previewRemoveText, { color: THEME.primary }]}>SİL</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : null}
                   </View>
+                )}
 
-                  {scannedImageUri ? (
-                    <View style={[styles.previewContainer, { borderColor: THEME.border, backgroundColor: isDark ? "rgba(15,23,42,0.6)" : "#FFFFFF" }]}>
-                      <Image source={{ uri: scannedImageUri }} style={styles.previewImage} resizeMode="cover" />
-                      <View style={styles.previewTextContainer}>
-                        <Text style={[styles.previewTitle, { color: THEME.text }]}>Görsel Eklendi</Text>
-                      </View>
-                      <TouchableOpacity onPress={() => setScannedImageUri(null)} style={[styles.previewRemoveBtn, { backgroundColor: THEME.primary + '15' }]}>
-                        <Text style={[styles.previewRemoveText, { color: THEME.primary }]}>SİL</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ) : null}
-                </View>
-              )}
+                <FormSection title="Genel Bilgiler" icon={<UserCircleIcon size={16} color={THEME.primary} variant="stroke" />}>
+                  <Controller
+                    control={control}
+                    name="name"
+                    render={({ field: { onChange, value, ref } }) => (
+                      <FormField
+                        inputRef={ref}
+                        label={t("customer.name")}
+                        value={value}
+                        onChangeText={onChange}
+                        error={errors.name?.message}
+                        required
+                        maxLength={250}
+                      />
+                    )}
+                  />
 
-              <FormSection title="Genel Bilgiler" icon={<UserCircleIcon size={16} color={THEME.primary} variant="stroke" />}>
-                <Controller
-                  control={control}
-                  name="name"
-                  render={({ field: { onChange, value, ref } }) => (
-                    <FormField inputRef={ref}label={t("customer.name")} value={value} onChangeText={onChange} error={errors.name?.message} required maxLength={250} />
-                  )}
-                />
-
-                {(formConfig.showCustomerCode || formConfig.showCustomerType) && (
-                  <View style={styles.row}>
+                  {(formConfig.showCustomerCode || formConfig.showCustomerType) && (
+                    <View style={styles.row}>
                       {formConfig.showCustomerCode && (
                         <View style={styles.flex1}>
                           <Controller
@@ -684,7 +811,14 @@ export function CustomerFormScreen(): React.ReactElement {
                             name="customerCode"
                             render={({ field: { value, ref } }) => (
                               <View style={{ opacity: 0.6 }}>
-                                <FormField inputRef={ref} label={t("customer.customerCode")} value={value || ""} onChangeText={() => {}} maxLength={100} editable={false} />
+                                <FormField
+                                  inputRef={ref}
+                                  label={t("customer.customerCode")}
+                                  value={value || ""}
+                                  onChangeText={() => {}}
+                                  maxLength={100}
+                                  editable={false}
+                                />
                               </View>
                             )}
                           />
@@ -696,160 +830,374 @@ export function CustomerFormScreen(): React.ReactElement {
                             control={control}
                             name="customerTypeId"
                             render={({ field: { onChange, value } }) => (
-                                <PremiumPicker label={t("customer.customerType")} items={customerTypeOptions} value={value} onValueChange={onChange} placeholder={t("lookup.selectCustomerType")} error={errors.customerTypeId?.message} />
+                              <PremiumPicker
+                                label={t("customer.customerType")}
+                                items={customerTypeOptions}
+                                value={value}
+                                onValueChange={onChange}
+                                placeholder={t("lookup.selectCustomerType")}
+                                error={errors.customerTypeId?.message}
+                              />
                             )}
                           />
                         </View>
                       )}
-                  </View>
+                    </View>
+                  )}
+                </FormSection>
+
+                {(formConfig.showPhone || formConfig.showPhone2 || formConfig.showEmail || formConfig.showWebsite) && (
+                  <FormSection
+                    title="İletişim Bilgileri"
+                    icon={<ContactBookIcon size={16} color={THEME.primary} variant="stroke" />}
+                  >
+                    {(formConfig.showPhone || formConfig.showPhone2) && (
+                      <View style={styles.row}>
+                        {formConfig.showPhone && (
+                          <View style={styles.flex1}>
+                            <Controller
+                              control={control}
+                              name="phone"
+                              render={({ field: { onChange, value, ref } }) => (
+                                <FormField
+                                  inputRef={ref}
+                                  label={t("customer.phone")}
+                                  value={value || ""}
+                                  onChangeText={onChange}
+                                  keyboardType="phone-pad"
+                                  maxLength={100}
+                                />
+                              )}
+                            />
+                          </View>
+                        )}
+                        {formConfig.showPhone2 && (
+                          <View style={styles.flex1}>
+                            <Controller
+                              control={control}
+                              name="phone2"
+                              render={({ field: { onChange, value, ref } }) => (
+                                <FormField
+                                  inputRef={ref}
+                                  label={t("customer.phone2")}
+                                  value={value || ""}
+                                  onChangeText={onChange}
+                                  keyboardType="phone-pad"
+                                  maxLength={100}
+                                />
+                              )}
+                            />
+                          </View>
+                        )}
+                      </View>
+                    )}
+
+                    {(formConfig.showEmail || formConfig.showWebsite) && (
+                      <View style={styles.row}>
+                        {formConfig.showEmail && (
+                          <View style={styles.flex1}>
+                            <Controller
+                              control={control}
+                              name="email"
+                              render={({ field: { onChange, value, ref } }) => (
+                                <FormField
+                                  inputRef={ref}
+                                  label={t("customer.email")}
+                                  value={value || ""}
+                                  onChangeText={onChange}
+                                  error={errors.email?.message}
+                                  keyboardType="email-address"
+                                  autoCapitalize="none"
+                                  maxLength={100}
+                                />
+                              )}
+                            />
+                          </View>
+                        )}
+                        {formConfig.showWebsite && (
+                          <View style={styles.flex1}>
+                            <Controller
+                              control={control}
+                              name="website"
+                              render={({ field: { onChange, value, ref } }) => (
+                                <FormField
+                                  inputRef={ref}
+                                  label={t("customer.website")}
+                                  value={value || ""}
+                                  onChangeText={onChange}
+                                  autoCapitalize="none"
+                                  maxLength={100}
+                                />
+                              )}
+                            />
+                          </View>
+                        )}
+                      </View>
+                    )}
+                  </FormSection>
                 )}
-              </FormSection>
+              </View>
+            )}
 
-              {(formConfig.showPhone || formConfig.showPhone2 || formConfig.showEmail || formConfig.showWebsite) && (
-                <FormSection title="İletişim Bilgileri" icon={<ContactBookIcon size={16} color={THEME.primary} variant="stroke" />}>
-                  {(formConfig.showPhone || formConfig.showPhone2) && (
+            {activeTab === "details" && (
+              <View style={{ gap: 10 }}>
+                {(formConfig.showSalesRep ||
+                  formConfig.showGroupCode ||
+                  formConfig.showCreditLimit ||
+                  formConfig.showBranchCode ||
+                  formConfig.showBusinessUnit) && (
+                  <FormSection title="Ticari Detaylar" icon={<Briefcase01Icon size={16} color={THEME.primary} variant="stroke" />}>
+                    {(formConfig.showSalesRep || formConfig.showGroupCode) && (
                       <View style={styles.row}>
-                          {formConfig.showPhone && (
+                        {formConfig.showSalesRep && (
                           <View style={styles.flex1}>
-                              <Controller control={control} name="phone" render={({ field: { onChange, value, ref } }) => <FormField inputRef={ref} label={t("customer.phone")} value={value || ""} onChangeText={onChange} keyboardType="phone-pad" maxLength={100} />} />
+                            <Controller
+                              control={control}
+                              name="salesRepCode"
+                              render={({ field: { onChange, value, ref } }) => (
+                                <FormField
+                                  inputRef={ref}
+                                  label={t("customer.salesRepCode")}
+                                  value={value || ""}
+                                  onChangeText={onChange}
+                                  maxLength={50}
+                                />
+                              )}
+                            />
                           </View>
-                          )}
-                          {formConfig.showPhone2 && (
+                        )}
+                        {formConfig.showGroupCode && (
                           <View style={styles.flex1}>
-                              <Controller control={control} name="phone2" render={({ field: { onChange, value, ref } }) => <FormField inputRef={ref} label={t("customer.phone2")} value={value || ""} onChangeText={onChange} keyboardType="phone-pad" maxLength={100} />} />
+                            <Controller
+                              control={control}
+                              name="groupCode"
+                              render={({ field: { onChange, value, ref } }) => (
+                                <FormField
+                                  inputRef={ref}
+                                  label={t("customer.groupCode")}
+                                  value={value || ""}
+                                  onChangeText={onChange}
+                                  maxLength={50}
+                                />
+                              )}
+                            />
                           </View>
-                          )}
+                        )}
                       </View>
-                  )}
+                    )}
 
-                  {(formConfig.showEmail || formConfig.showWebsite) && (
+                    {(formConfig.showBranchCode || formConfig.showBusinessUnit) && (
                       <View style={styles.row}>
-                          {formConfig.showEmail && (
+                        {formConfig.showBranchCode && (
                           <View style={styles.flex1}>
-                              <Controller control={control} name="email" render={({ field: { onChange, value, ref } }) => <FormField inputRef={ref}label={t("customer.email")} value={value || ""} onChangeText={onChange} error={errors.email?.message} keyboardType="email-address" autoCapitalize="none" maxLength={100} />} />
+                            <Controller
+                              control={control}
+                              name="branchCode"
+                              render={({ field: { onChange, value, ref } }) => (
+                                <FormField
+                                  inputRef={ref}
+                                  label={t("customer.branchCode")}
+                                  value={value !== undefined && value !== null ? String(value) : ""}
+                                  onChangeText={(text) => onChange(text ? Number(text) : 0)}
+                                  keyboardType="numeric"
+                                />
+                              )}
+                            />
                           </View>
-                          )}
-                          {formConfig.showWebsite && (
+                        )}
+                        {formConfig.showBusinessUnit && (
                           <View style={styles.flex1}>
-                              <Controller control={control} name="website" render={({ field: { onChange, value, ref } }) => <FormField inputRef={ref}label={t("customer.website")} value={value || ""} onChangeText={onChange} autoCapitalize="none" maxLength={100} />} />
+                            <Controller
+                              control={control}
+                              name="businessUnitCode"
+                              render={({ field: { onChange, value, ref } }) => (
+                                <FormField
+                                  inputRef={ref}
+                                  label={t("customer.businessUnitCode")}
+                                  value={value !== undefined && value !== null ? String(value) : ""}
+                                  onChangeText={(text) => onChange(text ? Number(text) : 0)}
+                                  keyboardType="numeric"
+                                />
+                              )}
+                            />
                           </View>
-                          )}
+                        )}
                       </View>
-                  )}
-                </FormSection>
-              )}
-            </View>
+                    )}
 
-            <View style={{ display: activeTab === "details" ? "flex" : "none", gap: 10 }}>
-              {(formConfig.showSalesRep || formConfig.showGroupCode || formConfig.showCreditLimit || formConfig.showBranchCode || formConfig.showBusinessUnit) && (
-                <FormSection title="Ticari Detaylar" icon={<Briefcase01Icon size={16} color={THEME.primary} variant="stroke" />}>
-                  
-                  {(formConfig.showSalesRep || formConfig.showGroupCode) && (
+                    {formConfig.showCreditLimit && (
+                      <Controller
+                        control={control}
+                        name="creditLimit"
+                        render={({ field: { onChange, value, ref } }) => (
+                          <FormField
+                            inputRef={ref}
+                            label={t("customer.creditLimit")}
+                            value={value !== undefined && value !== null ? String(value) : ""}
+                            onChangeText={(text) => onChange(text ? Number(text) : undefined)}
+                            keyboardType="numeric"
+                          />
+                        )}
+                      />
+                    )}
+                  </FormSection>
+                )}
+
+                {(formConfig.showAddress || formConfig.showLocation || formConfig.showShippingAddress) && (
+                  <FormSection title="Adres Bilgileri" icon={<Location01Icon size={16} color={THEME.primary} variant="stroke" />}>
+                    {formConfig.showLocation && (
+                      <View style={styles.locationSection}>
+                        <Text style={[styles.subSectionTitle, { color: THEME.textMute }]}>{t("lookup.location")}</Text>
+                        <LocationPicker
+                          countryId={watchCountryId}
+                          cityId={watchCityId}
+                          districtId={watchDistrictId}
+                          onCountryChange={handleCountryChange}
+                          onCityChange={handleCityChange}
+                          onDistrictChange={handleDistrictChange}
+                        />
+                      </View>
+                    )}
+
+                    {formConfig.showAddress && (
+                      <Controller
+                        control={control}
+                        name="address"
+                        render={({ field: { onChange, value, ref } }) => (
+                          <FormField
+                            inputRef={ref}
+                            label={t("customer.address")}
+                            value={value || ""}
+                            onChangeText={onChange}
+                            multiline
+                            numberOfLines={2}
+                            maxLength={500}
+                            enableSpeechToText
+                            isListening={isListening}
+                            onPressSpeechToText={() => handleAddressSpeech(value)}
+                          />
+                        )}
+                      />
+                    )}
+
+                    {formConfig.showShippingAddress && (
+                      <View style={styles.fieldContainer}>
+                        <Text style={[styles.label, { color: THEME.textMute }]}>{t("customer.defaultShippingAddress")}</Text>
+                        <TouchableOpacity
+                          style={[styles.pickerField, { backgroundColor: THEME.inputBg, borderColor: THEME.border }]}
+                          onPress={() => setShippingAddressModalOpen(true)}
+                          disabled={!isEditMode || !customerId}
+                        >
+                          <Text
+                            style={[
+                              styles.pickerFieldText,
+                              { color: selectedShippingAddress ? THEME.text : THEME.textMute },
+                            ]}
+                          >
+                            {selectedShippingAddress?.address || t("customer.defaultShippingAddressPlaceholder")}
+                          </Text>
+                          <ArrowDown01Icon size={14} color={THEME.textMute} />
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </FormSection>
+                )}
+
+                {(formConfig.showTaxNumber || formConfig.showTaxOffice || formConfig.showTCKN) && (
+                  <FormSection title="Yasal Bilgiler" icon={<Invoice01Icon size={16} color={THEME.primary} variant="stroke" />}>
+                    {(formConfig.showTaxOffice || formConfig.showTaxNumber) && (
                       <View style={styles.row}>
-                          {formConfig.showSalesRep && (
+                        {formConfig.showTaxOffice && (
                           <View style={styles.flex1}>
-                              <Controller control={control} name="salesRepCode" render={({ field: { onChange, value, ref } }) => <FormField inputRef={ref} label={t("customer.salesRepCode")} value={value || ""} onChangeText={onChange} maxLength={50} />} />
+                            <Controller
+                              control={control}
+                              name="taxOffice"
+                              render={({ field: { onChange, value, ref } }) => (
+                                <FormField
+                                  inputRef={ref}
+                                  label={t("customer.taxOffice")}
+                                  value={value || ""}
+                                  onChangeText={onChange}
+                                  maxLength={100}
+                                />
+                              )}
+                            />
                           </View>
-                          )}
-                          {formConfig.showGroupCode && (
+                        )}
+                        {formConfig.showTaxNumber && (
                           <View style={styles.flex1}>
-                              <Controller control={control} name="groupCode" render={({ field: { onChange, value, ref } }) => <FormField inputRef={ref} label={t("customer.groupCode")} value={value || ""} onChangeText={onChange} maxLength={50} />} />
+                            <Controller
+                              control={control}
+                              name="taxNumber"
+                              render={({ field: { onChange, value, ref } }) => (
+                                <FormField
+                                  inputRef={ref}
+                                  label={t("customer.taxNumber")}
+                                  value={value || ""}
+                                  onChangeText={onChange}
+                                  keyboardType="numeric"
+                                  maxLength={15}
+                                />
+                              )}
+                            />
                           </View>
-                          )}
+                        )}
                       </View>
-                  )}
+                    )}
 
-                  {(formConfig.showBranchCode || formConfig.showBusinessUnit) && (
-                      <View style={styles.row}>
-                          {formConfig.showBranchCode && (
-                          <View style={styles.flex1}>
-                              <Controller control={control} name="branchCode" render={({ field: { onChange, value, ref } }) => <FormField inputRef={ref} label={t("customer.branchCode")} value={value !== undefined && value !== null ? String(value) : ""} onChangeText={(text) => onChange(text ? Number(text) : 0)} keyboardType="numeric" />} />
-                          </View>
-                          )}
-                          {formConfig.showBusinessUnit && (
-                          <View style={styles.flex1}>
-                              <Controller control={control} name="businessUnitCode" render={({ field: { onChange, value, ref } }) => <FormField inputRef={ref} label={t("customer.businessUnitCode")} value={value !== undefined && value !== null ? String(value) : ""} onChangeText={(text) => onChange(text ? Number(text) : 0)} keyboardType="numeric" />} />
-                          </View>
-                          )}
-                      </View>
-                  )}
+                    {formConfig.showTCKN && (
+                      <Controller
+                        control={control}
+                        name="tcknNumber"
+                        render={({ field: { onChange, value, ref } }) => (
+                          <FormField
+                            inputRef={ref}
+                            label={t("customer.tcknNumber")}
+                            value={value || ""}
+                            onChangeText={onChange}
+                            keyboardType="numeric"
+                            maxLength={11}
+                          />
+                        )}
+                      />
+                    )}
+                  </FormSection>
+                )}
 
-                  {formConfig.showCreditLimit && (
-                    <Controller control={control} name="creditLimit" render={({ field: { onChange, value, ref } }) => <FormField inputRef={ref} label={t("customer.creditLimit")} value={value !== undefined && value !== null ? String(value) : ""} onChangeText={(text) => onChange(text ? Number(text) : undefined)} keyboardType="numeric" />} />
-                  )}
-                </FormSection>
-              )}
+                {formConfig.showNotes && (
+                  <FormSection title="Notlar" icon={<NoteIcon size={16} color={THEME.primary} variant="stroke" />}>
+                    <Controller
+                      control={control}
+                      name="notes"
+                      render={({ field: { onChange, value, ref } }) => (
+                        <FormField
+                          inputRef={ref}
+                          label={t("customer.notes")}
+                          value={value || ""}
+                          onChangeText={onChange}
+                          multiline
+                          numberOfLines={2}
+                          maxLength={250}
+                        />
+                      )}
+                    />
+                  </FormSection>
+                )}
+              </View>
+            )}
 
-              {(formConfig.showAddress || formConfig.showLocation || formConfig.showShippingAddress) && (
-                <FormSection title="Adres Bilgileri" icon={<Location01Icon size={16} color={THEME.primary} variant="stroke" />}>
-                  {formConfig.showLocation && (
-                    <View style={styles.locationSection}>
-                      <Text style={[styles.subSectionTitle, { color: THEME.textMute }]}>{t("lookup.location")}</Text>
-                      <LocationPicker countryId={watchCountryId} cityId={watchCityId} districtId={watch("districtId")} onCountryChange={handleCountryChange} onCityChange={handleCityChange} onDistrictChange={handleDistrictChange} />
-                    </View>
-                  )}
-
-                  {formConfig.showAddress && (
-                    <Controller control={control} name="address" render={({ field: { onChange, value, ref } }) => <FormField inputRef={ref} label={t("customer.address")} value={value || ""} onChangeText={onChange} multiline numberOfLines={2} maxLength={500} />} />
-                  )}
-
-                  {formConfig.showShippingAddress && (
-                    <View style={styles.fieldContainer}>
-                      <Text style={[styles.label, { color: THEME.textMute }]}>{t("customer.defaultShippingAddress")}</Text>
-                      <TouchableOpacity style={[styles.pickerField, { backgroundColor: THEME.inputBg, borderColor: THEME.border }]} onPress={() => setShippingAddressModalOpen(true)} disabled={!isEditMode || !customerId}>
-                        <Text style={[styles.pickerFieldText, { color: selectedShippingAddress ? THEME.text : THEME.textMute }]}>
-                          {selectedShippingAddress?.address || t("customer.defaultShippingAddressPlaceholder")}
-                        </Text>
-                        <ArrowDown01Icon size={14} color={THEME.textMute} />
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </FormSection>
-              )}
-
-              {(formConfig.showTaxNumber || formConfig.showTaxOffice || formConfig.showTCKN) && (
-                <FormSection title="Yasal Bilgiler" icon={<Invoice01Icon size={16} color={THEME.primary} variant="stroke" />}>
-                  {(formConfig.showTaxOffice || formConfig.showTaxNumber) && (
-                      <View style={styles.row}>
-                          {formConfig.showTaxOffice && (
-                          <View style={styles.flex1}>
-                              <Controller control={control} name="taxOffice" render={({ field: { onChange, value, ref } }) => <FormField inputRef={ref} label={t("customer.taxOffice")} value={value || ""} onChangeText={onChange} maxLength={100} />} />
-                          </View>
-                          )}
-                          {formConfig.showTaxNumber && (
-                          <View style={styles.flex1}>
-                              <Controller control={control} name="taxNumber" render={({ field: { onChange, value, ref } }) => <FormField inputRef={ref} label={t("customer.taxNumber")} value={value || ""} onChangeText={onChange} keyboardType="numeric" maxLength={15} />} />
-                          </View>
-                          )}
-                      </View>
-                  )}
-
-                  {formConfig.showTCKN && (
-                    <Controller control={control} name="tcknNumber" render={({ field: { onChange, value, ref } }) => <FormField inputRef={ref} label={t("customer.tcknNumber")} value={value || ""} onChangeText={onChange} keyboardType="numeric" maxLength={11} />} />
-                  )}
-                </FormSection>
-              )}
-
-              {formConfig.showNotes && (
-                <FormSection title="Notlar" icon={<NoteIcon size={16} color={THEME.primary} variant="stroke" />}>
-                  <Controller control={control} name="notes" render={({ field: { onChange, value, ref } }) => <FormField inputRef={ref} label={t("customer.notes")} value={value || ""} onChangeText={onChange} multiline numberOfLines={2} maxLength={250} />} />
-                </FormSection>
-              )}
-            </View>
-
-        
             {activeTab === "general" ? (
-              <View style={{ alignItems: 'flex-end', marginTop: 10, marginBottom: 20, paddingRight: 4 }}>
-                <TouchableOpacity 
+              <View style={{ alignItems: "flex-end", marginTop: 10, marginBottom: 20, paddingRight: 4 }}>
+                <TouchableOpacity
                   activeOpacity={0.6}
-                  onPress={() => setActiveTab("details")} 
+                  onPress={() => setActiveTab("details")}
                   style={[
-                    styles.sleekNextButton, 
-                    { 
-                      borderColor: THEME.primary, 
-                      backgroundColor: isDark ? 'rgba(219, 39, 119, 0.15)' : '#FFF0F5', 
-                      shadowColor: THEME.primary 
-                    }
+                    styles.sleekNextButton,
+                    {
+                      borderColor: THEME.primary,
+                      backgroundColor: isDark ? "rgba(219, 39, 119, 0.15)" : "#FFF0F5",
+                      shadowColor: THEME.primary,
+                    },
                   ]}
                 >
                   <Text style={[styles.sleekNextText, { color: THEME.primary }]}>Detaylara İlerle</Text>
@@ -857,14 +1205,14 @@ export function CustomerFormScreen(): React.ReactElement {
                 </TouchableOpacity>
               </View>
             ) : (
-              <TouchableOpacity 
+              <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={handleSubmit(onSubmit, onError)}
                 disabled={isSubmitting}
                 style={[styles.submitButtonContainer, { shadowColor: THEME.primary, marginTop: 16 }]}
               >
                 <LinearGradient
-                  colors={['#f472b6', '#db2777']}
+                  colors={["#f472b6", "#db2777"]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.submitButtonGradient}
@@ -879,12 +1227,16 @@ export function CustomerFormScreen(): React.ReactElement {
                 </LinearGradient>
               </TouchableOpacity>
             )}
-
           </ScrollView>
         </KeyboardAvoidingView>
       </View>
 
-      <Modal visible={shippingAddressModalOpen} transparent animationType="slide" onRequestClose={() => setShippingAddressModalOpen(false)}>
+      <Modal
+        visible={shippingAddressModalOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShippingAddressModalOpen(false)}
+      >
         <View style={styles.modalOverlay}>
           <TouchableOpacity style={styles.modalBackdrop} onPress={() => setShippingAddressModalOpen(false)} />
           <View style={[styles.modalContent, { backgroundColor: THEME.cardBg, paddingBottom: insets.bottom + 16 }]}>
@@ -899,7 +1251,13 @@ export function CustomerFormScreen(): React.ReactElement {
                 const isSelected = watchDefaultShippingAddressId === item.id;
                 return (
                   <TouchableOpacity
-                    style={[styles.pickerItem, { borderBottomColor: THEME.border }, isSelected && { backgroundColor: isDark ? "rgba(219, 39, 119, 0.1)" : colors.activeBackground }]}
+                    style={[
+                      styles.pickerItem,
+                      { borderBottomColor: THEME.border },
+                      isSelected && {
+                        backgroundColor: isDark ? "rgba(219, 39, 119, 0.1)" : colors.activeBackground,
+                      },
+                    ]}
                     onPress={() => handleShippingAddressSelect(item.id)}
                   >
                     <Text style={[styles.pickerItemText, { color: THEME.text }]}>{item.address}</Text>
@@ -938,33 +1296,62 @@ export function CustomerFormScreen(): React.ReactElement {
             ) : null}
 
             <View style={styles.ocrFieldsWrap}>
-              <Text style={[styles.ocrFieldLine, { color: THEME.text }]}>Firma: {pendingBusinessCardResult?.customerName || "-"}</Text>
-              <Text style={[styles.ocrFieldLine, { color: THEME.text }]}>İsim: {pendingBusinessCardResult?.contactNameAndSurname || "-"}</Text>
-              <Text style={[styles.ocrFieldLine, { color: THEME.text }]}>Ünvan: {pendingBusinessCardResult?.title || "-"}</Text>
-              <Text style={[styles.ocrFieldLine, { color: THEME.text }]}>Telefon 1: {pendingBusinessCardResult?.phone1 || "-"}</Text>
-              <Text style={[styles.ocrFieldLine, { color: THEME.text }]}>Telefon 2: {pendingBusinessCardResult?.phone2 || "-"}</Text>
-              <Text style={[styles.ocrFieldLine, { color: THEME.text }]}>E-posta: {pendingBusinessCardResult?.email || "-"}</Text>
-              <Text style={[styles.ocrFieldLine, { color: THEME.text }]}>Web: {pendingBusinessCardResult?.website || "-"}</Text>
-              <Text style={[styles.ocrFieldLine, { color: THEME.text }]}>Adres: {pendingBusinessCardResult?.address || "-"}</Text>
+              <Text style={[styles.ocrFieldLine, { color: THEME.text }]}>
+                Firma: {pendingBusinessCardResult?.customerName || "-"}
+              </Text>
+              <Text style={[styles.ocrFieldLine, { color: THEME.text }]}>
+                İsim: {pendingBusinessCardResult?.contactNameAndSurname || "-"}
+              </Text>
+              <Text style={[styles.ocrFieldLine, { color: THEME.text }]}>
+                Ünvan: {pendingBusinessCardResult?.title || "-"}
+              </Text>
+              <Text style={[styles.ocrFieldLine, { color: THEME.text }]}>
+                Telefon 1: {pendingBusinessCardResult?.phone1 || "-"}
+              </Text>
+              <Text style={[styles.ocrFieldLine, { color: THEME.text }]}>
+                Telefon 2: {pendingBusinessCardResult?.phone2 || "-"}
+              </Text>
+              <Text style={[styles.ocrFieldLine, { color: THEME.text }]}>
+                E-posta: {pendingBusinessCardResult?.email || "-"}
+              </Text>
+              <Text style={[styles.ocrFieldLine, { color: THEME.text }]}>
+                Web: {pendingBusinessCardResult?.website || "-"}
+              </Text>
+              <Text style={[styles.ocrFieldLine, { color: THEME.text }]}>
+                Adres: {pendingBusinessCardResult?.address || "-"}
+              </Text>
             </View>
 
             <View style={styles.ocrActionRow}>
               <TouchableOpacity
-                style={[styles.ocrActionBtn, { borderColor: THEME.border, backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#f8fafc" }]}
+                style={[
+                  styles.ocrActionBtn,
+                  { borderColor: THEME.border, backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#f8fafc" },
+                ]}
                 onPress={handleCancelBusinessCardReview}
                 disabled={isScanning}
               >
                 <Text style={[styles.ocrActionText, { color: THEME.text }]}>İptal</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.ocrActionBtn, { borderColor: THEME.primary, backgroundColor: `${THEME.primary}14` }]}
+                style={[
+                  styles.ocrActionBtn,
+                  { borderColor: THEME.primary, backgroundColor: `${THEME.primary}14` },
+                ]}
                 onPress={handleRetryBusinessCardReview}
                 disabled={isScanning}
               >
-                {isScanning ? <ActivityIndicator size="small" color={THEME.primary} /> : <Text style={[styles.ocrActionText, { color: THEME.primary }]}>Tekrar Dene</Text>}
+                {isScanning ? (
+                  <ActivityIndicator size="small" color={THEME.primary} />
+                ) : (
+                  <Text style={[styles.ocrActionText, { color: THEME.primary }]}>Tekrar Dene</Text>
+                )}
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.ocrActionBtn, { borderColor: THEME.primary, backgroundColor: THEME.primary }]}
+                style={[
+                  styles.ocrActionBtn,
+                  { borderColor: THEME.primary, backgroundColor: THEME.primary },
+                ]}
                 onPress={handleConfirmBusinessCardReview}
                 disabled={isScanning}
               >
@@ -981,17 +1368,17 @@ export function CustomerFormScreen(): React.ReactElement {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1 },
-  contentContainer: { padding: 10, gap: 5 }, 
+  contentContainer: { padding: 10, gap: 5 },
   loadingContainer: { flex: 1, alignItems: "center", justifyContent: "center" },
-  
+
   tabContainer: {
-    flexDirection: 'row',
-    marginHorizontal: 12, 
+    flexDirection: "row",
+    marginHorizontal: 12,
     marginTop: 0,
     marginBottom: 16,
     borderRadius: 32,
-    padding: 2, 
-    borderWidth: 1.5, 
+    padding: 2,
+    borderWidth: 1.5,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.03,
     shadowRadius: 4,
@@ -999,184 +1386,184 @@ const styles = StyleSheet.create({
   },
   tabButton: {
     flex: 1,
-    paddingVertical: 6, 
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingVertical: 6,
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: 28,
-    borderWidth: 1.5, 
-    borderColor: 'transparent', 
+    borderWidth: 1.5,
+    borderColor: "transparent",
   },
   tabText: {
-    fontSize: 11, 
-    fontWeight: '700',
-    letterSpacing: 0.5, 
-    textTransform: 'uppercase',
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
   },
   activeTabPremium: {
-    shadowColor: '#ff0073ff',
-    shadowOffset: { width: 0, height: 0 }, 
+    shadowColor: "#ff0073ff",
+    shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.2,
     shadowRadius: 6,
     elevation: 2,
   },
   card: {
-    borderRadius: 12, 
-    padding: 12, 
+    borderRadius: 12,
+    padding: 12,
     borderWidth: 1,
     shadowOffset: { width: 0, height: 2 },
   },
   sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8, 
-    gap: 8, 
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+    gap: 8,
   },
   sectionIcon: {
-    width: 28, 
+    width: 28,
     height: 28,
     borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   sectionTitle: {
-    fontSize: 14, 
+    fontSize: 14,
     fontWeight: "700",
     letterSpacing: -0.2,
   },
   subSectionTitle: {
-    fontSize: 11, 
+    fontSize: 11,
     fontWeight: "600",
-    marginBottom: 4, 
-    textTransform: 'uppercase',
+    marginBottom: 4,
+    textTransform: "uppercase",
     letterSpacing: 0.5,
   },
-  
+
   row: {
-    flexDirection: 'row',
-    gap: 10, 
+    flexDirection: "row",
+    gap: 10,
   },
   flex1: {
     flex: 1,
   },
 
   scannerContainer: {
-    borderRadius: 10, 
+    borderRadius: 10,
     borderWidth: 1,
-    borderStyle: 'dashed',
-    padding: 8, 
+    borderStyle: "dashed",
+    padding: 8,
     marginBottom: 0,
   },
   scannerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between', 
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   scannerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   scannerTitle: {
-    fontSize: 13, 
+    fontSize: 13,
     fontWeight: "700",
   },
   scannerSubtitle: {
-    fontSize: 10, 
+    fontSize: 10,
     marginTop: 1,
   },
   scannerButtonsRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 6,
   },
   scannerIconButton: {
-    width: 32, 
+    width: 32,
     height: 32,
     borderRadius: 8,
     borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   previewContainer: {
-    marginTop: 8, 
-    borderRadius: 8, 
+    marginTop: 8,
+    borderRadius: 8,
     borderWidth: 1,
-    padding: 6, 
+    padding: 6,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8, 
+    gap: 8,
   },
-  previewImage: { width: 30, height: 30, borderRadius: 6 }, 
-  previewTextContainer: { flex: 1, justifyContent: 'center' },
-  previewTitle: { fontSize: 11, fontWeight: "600" }, 
+  previewImage: { width: 30, height: 30, borderRadius: 6 },
+  previewTextContainer: { flex: 1, justifyContent: "center" },
+  previewTitle: { fontSize: 11, fontWeight: "600" },
   previewRemoveBtn: {
     borderRadius: 6,
-    paddingHorizontal: 8, 
+    paddingHorizontal: 8,
     paddingVertical: 6,
   },
-  previewRemoveText: { fontSize: 10, fontWeight: "700" }, 
-  
+  previewRemoveText: { fontSize: 10, fontWeight: "700" },
+
   fieldContainer: { marginBottom: 0 },
   label: { fontSize: 12, fontWeight: "600", marginBottom: 4 },
-  pickerField: { 
-    flexDirection: "row", 
-    alignItems: "center", 
-    justifyContent: "space-between", 
-    borderWidth: 1, 
-    borderRadius: 8, 
-    paddingHorizontal: 10, 
-    minHeight: 48 
+  pickerField: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    minHeight: 48,
   },
   pickerFieldText: { fontSize: 13, flex: 1 },
   locationSection: { marginTop: 0 },
-  
+
   submitButtonContainer: {
     marginTop: 4,
     marginBottom: 20,
-    borderRadius: 12, 
+    borderRadius: 12,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   },
   submitButtonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 44, 
-    borderRadius: 12, 
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    height: 44,
+    borderRadius: 12,
     gap: 10,
   },
-  submitButtonText: { 
-    color: "#FFFFFF", 
-    fontSize: 14, 
-    fontWeight: "700", 
+  submitButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
     letterSpacing: 0.8,
-    textTransform: 'uppercase'
+    textTransform: "uppercase",
   },
   sleekNextButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
-    paddingVertical: 10, 
-    paddingHorizontal: 22, 
-    borderRadius: 24, 
-    borderWidth: 1.5, 
+    paddingVertical: 10,
+    paddingHorizontal: 22,
+    borderRadius: 24,
+    borderWidth: 1.5,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 6,
-    elevation: 3, 
+    elevation: 3,
   },
   sleekNextText: {
-    fontSize: 14, 
-    fontWeight: '700',
-    letterSpacing: 0.6, 
+    fontSize: 14,
+    fontWeight: "700",
+    letterSpacing: 0.6,
   },
   sleekIconWrapper: {
     width: 30,
     height: 30,
-    borderRadius: 15, 
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 3,
@@ -1184,13 +1571,20 @@ const styles = StyleSheet.create({
   },
 
   modalOverlay: { flex: 1, justifyContent: "flex-end" },
-  modalBackdrop: { flex: 1, backgroundColor: "rgba(0, 0, 0, 0.7)" }, 
+  modalBackdrop: { flex: 1, backgroundColor: "rgba(0, 0, 0, 0.7)" },
   modalContent: { borderTopLeftRadius: 16, borderTopRightRadius: 16, maxHeight: "75%" },
   modalHeader: { alignItems: "center", paddingVertical: 12, borderBottomWidth: 1 },
   handle: { width: 36, height: 4, borderRadius: 2, marginBottom: 8, opacity: 0.4 },
   modalTitle: { fontSize: 15, fontWeight: "700" },
   list: { flexGrow: 0 },
-  pickerItem: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1 },
+  pickerItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+  },
   pickerItemText: { fontSize: 13, fontWeight: "500", flex: 1 },
   ocrReviewContent: {
     marginHorizontal: 16,
