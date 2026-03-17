@@ -41,7 +41,10 @@ import type {
 import { QuotationLineForm, PickerModal } from "../../quotation/components";
 import type { QuotationLineFormState, QuotationExchangeRateFormState } from "../../quotation/types";
 import { useExchangeRate, useCurrencyOptions } from "../../quotation/hooks";
-import { CustomerPicker } from "../../customer/components";
+import {
+  CustomerSelectDialog,
+  type CustomerSelectionResult,
+} from "../../customer/components";
 import type { CustomerDto } from "../../customer/types";
 import {
   buildEffectiveExchangeRates,
@@ -182,6 +185,7 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
   const [exchangeRate, setExchangeRate] = useState("1.00");
   const [description, setDescription] = useState("");
   const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
+  const [customerSelectDialogOpen, setCustomerSelectDialogOpen] = useState(false);
   const [pdfFileUri, setPdfFileUri] = useState<string | null>(null);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
@@ -249,6 +253,16 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
     setSelectedCustomer(customer);
     setCustomerId(customer?.id);
   }, []);
+
+  const handleCustomerSelect = useCallback((result: CustomerSelectionResult) => {
+    const nextCustomer: CustomerDto = {
+      id: result.customerId,
+      name: result.customerName,
+      customerCode: result.erpCustomerCode,
+    };
+
+    handleCustomerChange(nextCustomer);
+  }, [handleCustomerChange]);
 
   useEffect(() => {
     if (isEdit) return;
@@ -694,11 +708,20 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
           >
             <View style={styles.field}>
               <Text style={[styles.label, { color: mutedColor }]}>Müşteri</Text>
-              <CustomerPicker
-                value={customerId}
-                customerName={selectedCustomer?.name}
-                onChange={handleCustomerChange}
-              />
+              <TouchableOpacity
+                style={[styles.input, styles.pickerButton, { borderColor, backgroundColor: inputBg }]}
+                onPress={() => setCustomerSelectDialogOpen(true)}
+                activeOpacity={0.78}
+              >
+                <Text
+                  style={[
+                    styles.pickerText,
+                    { color: selectedCustomer?.name ? textColor : mutedColor },
+                  ]}
+                >
+                  {selectedCustomer?.name?.trim() || "Müşteri seçiniz"}
+                </Text>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.field}>
@@ -951,6 +974,12 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
           onClose={() => setCurrencyModalVisible(false)}
           title="Para Birimi Seçiniz"
           searchPlaceholder="Para birimi ara..."
+        />
+
+        <CustomerSelectDialog
+          open={customerSelectDialogOpen}
+          onOpenChange={setCustomerSelectDialogOpen}
+          onSelect={handleCustomerSelect}
         />
       </View>
     </View>

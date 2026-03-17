@@ -6,7 +6,6 @@ import {
   ActivityIndicator,
   ScrollView,
   useWindowDimensions,
-  ScrollView,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
