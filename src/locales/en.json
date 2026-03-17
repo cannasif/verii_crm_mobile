@@ -827,25 +827,7 @@
     "filterCode5": "Code-5",
     "filterCode5Name": "Code-5 Name",
     "filterManufacturerCode": "Manufacturer Code",
-    "filterBranchCode": "Branch Code",
-    "addFilterRow": "Add Filter",
-    "filterRowLabel": "Filter Row",
-    "filterColumn": "Column",
-    "filterOperator": "Operator",
-    "filterValue": "Value",
-    "filterColumnSearch": "Search column...",
-    "filterOperatorSearch": "Search operator...",
-    "noAdvancedFilters": "No filters added yet",
-    "operator": {
-      "contains": "Contains",
-      "startsWith": "Starts With",
-      "endsWith": "Ends With",
-      "eq": "Equals",
-      "gt": ">",
-      "gte": ">=",
-      "lt": "<",
-      "lte": "<="
-    }
+    "filterBranchCode": "Branch Code"
   },
   "quotation": {
     "list": "Quotation List",

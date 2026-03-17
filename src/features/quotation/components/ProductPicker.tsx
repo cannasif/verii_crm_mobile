@@ -26,7 +26,6 @@ import { useTranslation } from "react-i18next";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { VoiceSearchButton } from "./VoiceSearchButton";
-import { PickerModal } from "./PickerModal";
 import {
   useStocks,
   useStock,
@@ -37,63 +36,25 @@ import { buildAdvancedStockFilters } from "../../stocks/utils/buildAdvancedStock
 import type { StockGetDto, StockRelationDto } from "../../stocks/types";
 
 const STOCK_FILTER_COLUMNS = [
-  { value: "Id", type: "number", labelKey: "filterId" },
-  { value: "ErpStockCode", type: "string", labelKey: "filterCode" },
-  { value: "StockName", type: "string", labelKey: "filterName" },
-  { value: "GrupKodu", type: "string", labelKey: "filterGroupCode" },
-  { value: "GrupAdi", type: "string", labelKey: "filterGroupName" },
-  { value: "Kod1", type: "string", labelKey: "filterCode1" },
-  { value: "Kod1Adi", type: "string", labelKey: "filterCode1Name" },
-  { value: "Kod2", type: "string", labelKey: "filterCode2" },
-  { value: "Kod2Adi", type: "string", labelKey: "filterCode2Name" },
-  { value: "Kod3", type: "string", labelKey: "filterCode3" },
-  { value: "Kod3Adi", type: "string", labelKey: "filterCode3Name" },
-  { value: "Kod4", type: "string", labelKey: "filterCode4" },
-  { value: "Kod4Adi", type: "string", labelKey: "filterCode4Name" },
-  { value: "Kod5", type: "string", labelKey: "filterCode5" },
-  { value: "Kod5Adi", type: "string", labelKey: "filterCode5Name" },
-  { value: "UreticiKodu", type: "string", labelKey: "filterManufacturerCode" },
-  { value: "unit", type: "string", labelKey: "filterUnit" },
-  { value: "BranchCode", type: "number", labelKey: "filterBranchCode" },
+  { column: "Id", operator: "eq", labelKey: "filterId", keyboardType: "number-pad" as const },
+  { column: "ErpStockCode", operator: "contains", labelKey: "filterCode" },
+  { column: "StockName", operator: "contains", labelKey: "filterName" },
+  { column: "GrupKodu", operator: "contains", labelKey: "filterGroupCode" },
+  { column: "GrupAdi", operator: "contains", labelKey: "filterGroupName" },
+  { column: "Kod1", operator: "contains", labelKey: "filterCode1" },
+  { column: "Kod1Adi", operator: "contains", labelKey: "filterCode1Name" },
+  { column: "Kod2", operator: "contains", labelKey: "filterCode2" },
+  { column: "Kod2Adi", operator: "contains", labelKey: "filterCode2Name" },
+  { column: "Kod3", operator: "contains", labelKey: "filterCode3" },
+  { column: "Kod3Adi", operator: "contains", labelKey: "filterCode3Name" },
+  { column: "Kod4", operator: "contains", labelKey: "filterCode4" },
+  { column: "Kod4Adi", operator: "contains", labelKey: "filterCode4Name" },
+  { column: "Kod5", operator: "contains", labelKey: "filterCode5" },
+  { column: "Kod5Adi", operator: "contains", labelKey: "filterCode5Name" },
+  { column: "UreticiKodu", operator: "contains", labelKey: "filterManufacturerCode" },
+  { column: "unit", operator: "contains", labelKey: "filterUnit" },
+  { column: "BranchCode", operator: "eq", labelKey: "filterBranchCode", keyboardType: "number-pad" as const },
 ] as const;
-
-const STRING_OPERATORS = ["contains", "startsWith", "endsWith", "eq"] as const;
-const NUMBER_OPERATORS = ["eq", "gt", "gte", "lt", "lte"] as const;
-
-type StockFilterColumnValue = (typeof STOCK_FILTER_COLUMNS)[number]["value"];
-type AdvancedFilterOperator = (typeof STRING_OPERATORS)[number] | (typeof NUMBER_OPERATORS)[number];
-
-type AdvancedFilterRow = {
-  id: string;
-  column: StockFilterColumnValue;
-  operator: AdvancedFilterOperator;
-  value: string;
-};
-
-function generateFilterRowId(): string {
-  return `filter-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-}
-
-function getColumnConfig(column: StockFilterColumnValue) {
-  return STOCK_FILTER_COLUMNS.find((item) => item.value === column) ?? STOCK_FILTER_COLUMNS[0];
-}
-
-function getOperatorsForColumn(column: StockFilterColumnValue): readonly AdvancedFilterOperator[] {
-  return getColumnConfig(column).type === "number" ? NUMBER_OPERATORS : STRING_OPERATORS;
-}
-
-function getDefaultOperatorForColumn(column: StockFilterColumnValue): AdvancedFilterOperator {
-  return getColumnConfig(column).type === "number" ? "eq" : "contains";
-}
-
-function createFilterRow(column: StockFilterColumnValue = "StockName"): AdvancedFilterRow {
-  return {
-    id: generateFilterRowId(),
-    column,
-    operator: getDefaultOperatorForColumn(column),
-    value: "",
-  };
-}
 
 export interface ProductPickerRef {
   close: () => void;
@@ -677,10 +638,45 @@ function ProductPickerInner(
   const [relatedSelectedIds, setRelatedSelectedIds] = useState<Set<number>>(new Set());
 
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
-  const [draftFilterRows, setDraftFilterRows] = useState<AdvancedFilterRow[]>([]);
-  const [appliedFilterRows, setAppliedFilterRows] = useState<AdvancedFilterRow[]>([]);
-  const [columnPickerRowId, setColumnPickerRowId] = useState<string | null>(null);
-  const [operatorPickerRowId, setOperatorPickerRowId] = useState<string | null>(null);
+
+  const [appliedIdFilter, setAppliedIdFilter] = useState("");
+  const [appliedCodeFilter, setAppliedCodeFilter] = useState("");
+  const [appliedNameFilter, setAppliedNameFilter] = useState("");
+  const [appliedUnitFilter, setAppliedUnitFilter] = useState("");
+
+  const [tempIdFilter, setTempIdFilter] = useState("");
+  const [tempCodeFilter, setTempCodeFilter] = useState("");
+  const [tempNameFilter, setTempNameFilter] = useState("");
+  const [tempGroupCodeFilter, setTempGroupCodeFilter] = useState("");
+  const [tempGroupNameFilter, setTempGroupNameFilter] = useState("");
+  const [tempCode1Filter, setTempCode1Filter] = useState("");
+  const [tempCode1NameFilter, setTempCode1NameFilter] = useState("");
+  const [tempCode2Filter, setTempCode2Filter] = useState("");
+  const [tempCode2NameFilter, setTempCode2NameFilter] = useState("");
+  const [tempCode3Filter, setTempCode3Filter] = useState("");
+  const [tempCode3NameFilter, setTempCode3NameFilter] = useState("");
+  const [tempCode4Filter, setTempCode4Filter] = useState("");
+  const [tempCode4NameFilter, setTempCode4NameFilter] = useState("");
+  const [tempCode5Filter, setTempCode5Filter] = useState("");
+  const [tempCode5NameFilter, setTempCode5NameFilter] = useState("");
+  const [tempManufacturerCodeFilter, setTempManufacturerCodeFilter] = useState("");
+  const [tempBranchCodeFilter, setTempBranchCodeFilter] = useState("");
+  const [tempUnitFilter, setTempUnitFilter] = useState("");
+
+  const [appliedGroupCodeFilter, setAppliedGroupCodeFilter] = useState("");
+  const [appliedGroupNameFilter, setAppliedGroupNameFilter] = useState("");
+  const [appliedCode1Filter, setAppliedCode1Filter] = useState("");
+  const [appliedCode1NameFilter, setAppliedCode1NameFilter] = useState("");
+  const [appliedCode2Filter, setAppliedCode2Filter] = useState("");
+  const [appliedCode2NameFilter, setAppliedCode2NameFilter] = useState("");
+  const [appliedCode3Filter, setAppliedCode3Filter] = useState("");
+  const [appliedCode3NameFilter, setAppliedCode3NameFilter] = useState("");
+  const [appliedCode4Filter, setAppliedCode4Filter] = useState("");
+  const [appliedCode4NameFilter, setAppliedCode4NameFilter] = useState("");
+  const [appliedCode5Filter, setAppliedCode5Filter] = useState("");
+  const [appliedCode5NameFilter, setAppliedCode5NameFilter] = useState("");
+  const [appliedManufacturerCodeFilter, setAppliedManufacturerCodeFilter] = useState("");
+  const [appliedBranchCodeFilter, setAppliedBranchCodeFilter] = useState("");
 
   const relatedMandatory = useMemo(
     () => (relatedStocksSelection?.stock.parentRelations ?? []).filter((r) => r.isMandatory),
@@ -708,18 +704,218 @@ function ProductPickerInner(
   }, [parentVisible]);
 
   const normalizedQuery = useMemo(() => normalizeSearchText(searchText), [searchText]);
+  const filterFieldRows = useMemo(
+    () => [
+      [
+        {
+          ...STOCK_FILTER_COLUMNS[1],
+          value: tempCodeFilter,
+          onChange: setTempCodeFilter,
+        },
+        {
+          ...STOCK_FILTER_COLUMNS[2],
+          value: tempNameFilter,
+          onChange: setTempNameFilter,
+        },
+      ],
+      [
+        {
+          ...STOCK_FILTER_COLUMNS[3],
+          value: tempGroupCodeFilter,
+          onChange: setTempGroupCodeFilter,
+        },
+        {
+          ...STOCK_FILTER_COLUMNS[4],
+          value: tempGroupNameFilter,
+          onChange: setTempGroupNameFilter,
+        },
+      ],
+      [
+        {
+          ...STOCK_FILTER_COLUMNS[5],
+          value: tempCode1Filter,
+          onChange: setTempCode1Filter,
+        },
+        {
+          ...STOCK_FILTER_COLUMNS[6],
+          value: tempCode1NameFilter,
+          onChange: setTempCode1NameFilter,
+        },
+      ],
+      [
+        {
+          ...STOCK_FILTER_COLUMNS[7],
+          value: tempCode2Filter,
+          onChange: setTempCode2Filter,
+        },
+        {
+          ...STOCK_FILTER_COLUMNS[8],
+          value: tempCode2NameFilter,
+          onChange: setTempCode2NameFilter,
+        },
+      ],
+      [
+        {
+          ...STOCK_FILTER_COLUMNS[9],
+          value: tempCode3Filter,
+          onChange: setTempCode3Filter,
+        },
+        {
+          ...STOCK_FILTER_COLUMNS[10],
+          value: tempCode3NameFilter,
+          onChange: setTempCode3NameFilter,
+        },
+      ],
+      [
+        {
+          ...STOCK_FILTER_COLUMNS[11],
+          value: tempCode4Filter,
+          onChange: setTempCode4Filter,
+        },
+        {
+          ...STOCK_FILTER_COLUMNS[12],
+          value: tempCode4NameFilter,
+          onChange: setTempCode4NameFilter,
+        },
+      ],
+      [
+        {
+          ...STOCK_FILTER_COLUMNS[13],
+          value: tempCode5Filter,
+          onChange: setTempCode5Filter,
+        },
+        {
+          ...STOCK_FILTER_COLUMNS[14],
+          value: tempCode5NameFilter,
+          onChange: setTempCode5NameFilter,
+        },
+      ],
+      [
+        {
+          ...STOCK_FILTER_COLUMNS[15],
+          value: tempManufacturerCodeFilter,
+          onChange: setTempManufacturerCodeFilter,
+        },
+        {
+          ...STOCK_FILTER_COLUMNS[16],
+          value: tempUnitFilter,
+          onChange: setTempUnitFilter,
+        },
+      ],
+      [
+        {
+          ...STOCK_FILTER_COLUMNS[0],
+          value: tempIdFilter,
+          onChange: setTempIdFilter,
+        },
+        {
+          ...STOCK_FILTER_COLUMNS[17],
+          value: tempBranchCodeFilter,
+          onChange: setTempBranchCodeFilter,
+        },
+      ],
+    ],
+    [
+      tempBranchCodeFilter,
+      tempCode1Filter,
+      tempCode1NameFilter,
+      tempCode2Filter,
+      tempCode2NameFilter,
+      tempCode3Filter,
+      tempCode3NameFilter,
+      tempCode4Filter,
+      tempCode4NameFilter,
+      tempCode5Filter,
+      tempCode5NameFilter,
+      tempCodeFilter,
+      tempGroupCodeFilter,
+      tempGroupNameFilter,
+      tempIdFilter,
+      tempManufacturerCodeFilter,
+      tempNameFilter,
+      tempUnitFilter,
+    ]
+  );
 
   const { filters: apiFilters, filterLogic: advancedFilterLogic } = useMemo(() => {
-    const entries = appliedFilterRows
-      .map((row) => ({
-        column: row.column,
-        operator: row.operator,
-        value: row.value.trim(),
-      }))
-      .filter((row) => row.value.length > 0);
+    const entries: Array<{ column: string; operator: string; value: string }> = [];
+
+    if (appliedIdFilter.trim()) {
+      entries.push({ column: "Id", operator: "eq", value: appliedIdFilter.trim() });
+    }
+    if (appliedCodeFilter.trim()) {
+      entries.push({ column: "ErpStockCode", operator: "contains", value: appliedCodeFilter.trim() });
+    }
+    if (appliedNameFilter.trim()) {
+      entries.push({ column: "StockName", operator: "contains", value: appliedNameFilter.trim() });
+    }
+    if (appliedGroupCodeFilter.trim()) {
+      entries.push({ column: "GrupKodu", operator: "contains", value: appliedGroupCodeFilter.trim() });
+    }
+    if (appliedGroupNameFilter.trim()) {
+      entries.push({ column: "GrupAdi", operator: "contains", value: appliedGroupNameFilter.trim() });
+    }
+    if (appliedCode1Filter.trim()) {
+      entries.push({ column: "Kod1", operator: "contains", value: appliedCode1Filter.trim() });
+    }
+    if (appliedCode1NameFilter.trim()) {
+      entries.push({ column: "Kod1Adi", operator: "contains", value: appliedCode1NameFilter.trim() });
+    }
+    if (appliedCode2Filter.trim()) {
+      entries.push({ column: "Kod2", operator: "contains", value: appliedCode2Filter.trim() });
+    }
+    if (appliedCode2NameFilter.trim()) {
+      entries.push({ column: "Kod2Adi", operator: "contains", value: appliedCode2NameFilter.trim() });
+    }
+    if (appliedCode3Filter.trim()) {
+      entries.push({ column: "Kod3", operator: "contains", value: appliedCode3Filter.trim() });
+    }
+    if (appliedCode3NameFilter.trim()) {
+      entries.push({ column: "Kod3Adi", operator: "contains", value: appliedCode3NameFilter.trim() });
+    }
+    if (appliedCode4Filter.trim()) {
+      entries.push({ column: "Kod4", operator: "contains", value: appliedCode4Filter.trim() });
+    }
+    if (appliedCode4NameFilter.trim()) {
+      entries.push({ column: "Kod4Adi", operator: "contains", value: appliedCode4NameFilter.trim() });
+    }
+    if (appliedCode5Filter.trim()) {
+      entries.push({ column: "Kod5", operator: "contains", value: appliedCode5Filter.trim() });
+    }
+    if (appliedCode5NameFilter.trim()) {
+      entries.push({ column: "Kod5Adi", operator: "contains", value: appliedCode5NameFilter.trim() });
+    }
+    if (appliedManufacturerCodeFilter.trim()) {
+      entries.push({ column: "UreticiKodu", operator: "contains", value: appliedManufacturerCodeFilter.trim() });
+    }
+    if (appliedUnitFilter.trim()) {
+      entries.push({ column: "unit", operator: "contains", value: appliedUnitFilter.trim() });
+    }
+    if (appliedBranchCodeFilter.trim()) {
+      entries.push({ column: "BranchCode", operator: "eq", value: appliedBranchCodeFilter.trim() });
+    }
 
     return buildAdvancedStockFilters(entries);
-  }, [appliedFilterRows]);
+  }, [
+    appliedBranchCodeFilter,
+    appliedCode1Filter,
+    appliedCode1NameFilter,
+    appliedCode2Filter,
+    appliedCode2NameFilter,
+    appliedCode3Filter,
+    appliedCode3NameFilter,
+    appliedCode4Filter,
+    appliedCode4NameFilter,
+    appliedCode5Filter,
+    appliedCode5NameFilter,
+    appliedCodeFilter,
+    appliedGroupCodeFilter,
+    appliedGroupNameFilter,
+    appliedIdFilter,
+    appliedManufacturerCodeFilter,
+    appliedNameFilter,
+    appliedUnitFilter,
+  ]);
 
   const hasAdvancedFilters = apiFilters.length > 0;
 
@@ -829,46 +1025,126 @@ function ProductPickerInner(
     handleClose,
   ]);
 
-  const updateDraftRow = useCallback((id: string, patch: Partial<Omit<AdvancedFilterRow, "id">>) => {
-    setDraftFilterRows((prev) =>
-      prev.map((row) => {
-        if (row.id !== id) return row;
-        const next = { ...row, ...patch };
-        if (patch.column) {
-          next.operator = getDefaultOperatorForColumn(patch.column);
-        }
-        return next;
-      })
-    );
-  }, []);
-
-  const addDraftRow = useCallback(() => {
-    setDraftFilterRows((prev) => [...prev, createFilterRow()]);
-  }, []);
-
-  const removeDraftRow = useCallback((id: string) => {
-    setDraftFilterRows((prev) => prev.filter((row) => row.id !== id));
-  }, []);
-
   const openFilterModal = useCallback(() => {
-    setDraftFilterRows(
-      appliedFilterRows.length > 0
-        ? appliedFilterRows.map((row) => ({ ...row }))
-        : [createFilterRow()]
-    );
+    setTempIdFilter(appliedIdFilter);
+    setTempCodeFilter(appliedCodeFilter);
+    setTempNameFilter(appliedNameFilter);
+    setTempGroupCodeFilter(appliedGroupCodeFilter);
+    setTempGroupNameFilter(appliedGroupNameFilter);
+    setTempCode1Filter(appliedCode1Filter);
+    setTempCode1NameFilter(appliedCode1NameFilter);
+    setTempCode2Filter(appliedCode2Filter);
+    setTempCode2NameFilter(appliedCode2NameFilter);
+    setTempCode3Filter(appliedCode3Filter);
+    setTempCode3NameFilter(appliedCode3NameFilter);
+    setTempCode4Filter(appliedCode4Filter);
+    setTempCode4NameFilter(appliedCode4NameFilter);
+    setTempCode5Filter(appliedCode5Filter);
+    setTempCode5NameFilter(appliedCode5NameFilter);
+    setTempManufacturerCodeFilter(appliedManufacturerCodeFilter);
+    setTempBranchCodeFilter(appliedBranchCodeFilter);
+    setTempUnitFilter(appliedUnitFilter);
     setIsFilterModalVisible(true);
-  }, [appliedFilterRows]);
+  }, [
+    appliedBranchCodeFilter,
+    appliedCode1Filter,
+    appliedCode1NameFilter,
+    appliedCode2Filter,
+    appliedCode2NameFilter,
+    appliedCode3Filter,
+    appliedCode3NameFilter,
+    appliedCode4Filter,
+    appliedCode4NameFilter,
+    appliedCode5Filter,
+    appliedCode5NameFilter,
+    appliedCodeFilter,
+    appliedGroupCodeFilter,
+    appliedGroupNameFilter,
+    appliedIdFilter,
+    appliedManufacturerCodeFilter,
+    appliedNameFilter,
+    appliedUnitFilter,
+  ]);
 
   const applyFilters = useCallback(() => {
-    setAppliedFilterRows(draftFilterRows.map((row) => ({ ...row })));
+    setAppliedIdFilter(tempIdFilter);
+    setAppliedCodeFilter(tempCodeFilter);
+    setAppliedNameFilter(tempNameFilter);
+    setAppliedGroupCodeFilter(tempGroupCodeFilter);
+    setAppliedGroupNameFilter(tempGroupNameFilter);
+    setAppliedCode1Filter(tempCode1Filter);
+    setAppliedCode1NameFilter(tempCode1NameFilter);
+    setAppliedCode2Filter(tempCode2Filter);
+    setAppliedCode2NameFilter(tempCode2NameFilter);
+    setAppliedCode3Filter(tempCode3Filter);
+    setAppliedCode3NameFilter(tempCode3NameFilter);
+    setAppliedCode4Filter(tempCode4Filter);
+    setAppliedCode4NameFilter(tempCode4NameFilter);
+    setAppliedCode5Filter(tempCode5Filter);
+    setAppliedCode5NameFilter(tempCode5NameFilter);
+    setAppliedManufacturerCodeFilter(tempManufacturerCodeFilter);
+    setAppliedBranchCodeFilter(tempBranchCodeFilter);
+    setAppliedUnitFilter(tempUnitFilter);
     setIsFilterModalVisible(false);
-  }, [draftFilterRows]);
+  }, [
+    tempBranchCodeFilter,
+    tempCode1Filter,
+    tempCode1NameFilter,
+    tempCode2Filter,
+    tempCode2NameFilter,
+    tempCode3Filter,
+    tempCode3NameFilter,
+    tempCode4Filter,
+    tempCode4NameFilter,
+    tempCode5Filter,
+    tempCode5NameFilter,
+    tempCodeFilter,
+    tempGroupCodeFilter,
+    tempGroupNameFilter,
+    tempIdFilter,
+    tempManufacturerCodeFilter,
+    tempNameFilter,
+    tempUnitFilter,
+  ]);
 
   const clearFilters = useCallback(() => {
-    setDraftFilterRows([]);
-    setAppliedFilterRows([]);
-    setColumnPickerRowId(null);
-    setOperatorPickerRowId(null);
+    setTempIdFilter("");
+    setTempCodeFilter("");
+    setTempNameFilter("");
+    setTempGroupCodeFilter("");
+    setTempGroupNameFilter("");
+    setTempCode1Filter("");
+    setTempCode1NameFilter("");
+    setTempCode2Filter("");
+    setTempCode2NameFilter("");
+    setTempCode3Filter("");
+    setTempCode3NameFilter("");
+    setTempCode4Filter("");
+    setTempCode4NameFilter("");
+    setTempCode5Filter("");
+    setTempCode5NameFilter("");
+    setTempManufacturerCodeFilter("");
+    setTempBranchCodeFilter("");
+    setTempUnitFilter("");
+
+    setAppliedIdFilter("");
+    setAppliedCodeFilter("");
+    setAppliedNameFilter("");
+    setAppliedGroupCodeFilter("");
+    setAppliedGroupNameFilter("");
+    setAppliedCode1Filter("");
+    setAppliedCode1NameFilter("");
+    setAppliedCode2Filter("");
+    setAppliedCode2NameFilter("");
+    setAppliedCode3Filter("");
+    setAppliedCode3NameFilter("");
+    setAppliedCode4Filter("");
+    setAppliedCode4NameFilter("");
+    setAppliedCode5Filter("");
+    setAppliedCode5NameFilter("");
+    setAppliedManufacturerCodeFilter("");
+    setAppliedBranchCodeFilter("");
+    setAppliedUnitFilter("");
     setIsFilterModalVisible(false);
   }, []);
 
@@ -1327,95 +1603,32 @@ function ProductPickerInner(
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
               >
-                <TouchableOpacity
-                  style={[styles.addFilterRowButton, { borderColor, backgroundColor: inputBg }]}
-                  onPress={addDraftRow}
-                  activeOpacity={0.85}
-                >
-                  <Ionicons name="add" size={16} color={brandColor} />
-                  <Text style={[styles.addFilterRowButtonText, { color: brandColor }]}>
-                    {t("stockPicker.addFilterRow")}
-                  </Text>
-                </TouchableOpacity>
-
                 <View style={styles.filterFields}>
-                  {draftFilterRows.map((row) => {
-                    const columnConfig = getColumnConfig(row.column);
-                    const operatorOptions = getOperatorsForColumn(row.column);
-                    const isNumeric = columnConfig.type === "number";
-                    return (
-                      <View
-                        style={[
-                          styles.advancedFilterRowCard,
-                          { borderColor, backgroundColor: isDark ? "rgba(255,255,255,0.02)" : "#FFFFFF" },
-                        ]}
-                        key={row.id}
-                      >
-                        <View style={styles.advancedFilterRowHeader}>
-                          <Text style={[styles.advancedFilterRowTitle, { color: textColor }]}>
-                            {t("stockPicker.filterRowLabel")}
-                          </Text>
-                          <TouchableOpacity onPress={() => removeDraftRow(row.id)} activeOpacity={0.8}>
-                            <Ionicons name="trash-outline" size={18} color={mutedColor} />
-                          </TouchableOpacity>
-                        </View>
-
-                        <View style={styles.filterFieldRow}>
-                          <TouchableOpacity
-                            style={[styles.filterField, styles.filterSelectField, { borderColor, backgroundColor: inputBg }]}
-                            onPress={() => setColumnPickerRowId(row.id)}
-                            activeOpacity={0.8}
-                          >
+                  {filterFieldRows.map((row, rowIndex) => (
+                    <View style={styles.filterFieldRow} key={`filter-row-${rowIndex}`}>
+                      {row.map((field) => {
+                        const label = t(`stockPicker.${field.labelKey}`);
+                        return (
+                          <View style={styles.filterField} key={field.column}>
                             <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
-                              {t("stockPicker.filterColumn")}
-                            </Text>
-                            <Text style={[styles.filterSelectValue, { color: textColor }]} numberOfLines={1}>
-                              {t(`stockPicker.${columnConfig.labelKey}`)}
-                            </Text>
-                          </TouchableOpacity>
-
-                          <TouchableOpacity
-                            style={[styles.filterField, styles.filterSelectField, { borderColor, backgroundColor: inputBg }]}
-                            onPress={() => setOperatorPickerRowId(row.id)}
-                            activeOpacity={0.8}
-                          >
-                            <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
-                              {t("stockPicker.filterOperator")}
-                            </Text>
-                            <Text style={[styles.filterSelectValue, { color: textColor }]} numberOfLines={1}>
-                              {t(`stockPicker.operator.${row.operator}`)}
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-
-                        <View style={styles.filterFieldRow}>
-                          <View style={styles.filterField}>
-                            <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
-                              {t("stockPicker.filterValue")}
+                              {label}
                             </Text>
                             <TextInput
-                              value={row.value}
-                              onChangeText={(value) => updateDraftRow(row.id, { value })}
-                              placeholder={t("stockPicker.filterValue")}
+                              value={field.value}
+                              onChangeText={field.onChange}
+                              placeholder={label}
                               placeholderTextColor={mutedColor}
-                              keyboardType={isNumeric ? "number-pad" : "default"}
+                              keyboardType={"keyboardType" in field ? field.keyboardType : "default"}
                               style={[
                                 styles.filterFieldInput,
                                 { color: textColor, borderColor, backgroundColor: inputBg },
                               ]}
                             />
                           </View>
-                        </View>
-                      </View>
-                    );
-                  })}
-                  {draftFilterRows.length === 0 ? (
-                    <View style={styles.emptyContainer}>
-                      <Text style={[styles.emptyText, { color: mutedColor }]}>
-                        {t("stockPicker.noAdvancedFilters")}
-                      </Text>
+                        );
+                      })}
                     </View>
-                  ) : null}
+                  ))}
                 </View>
               </FlatListScrollView>
 
@@ -1450,45 +1663,6 @@ function ProductPickerInner(
           </KeyboardAvoidingView>
         </Pressable>
       </Modal>
-
-      <PickerModal
-        visible={columnPickerRowId !== null}
-        options={STOCK_FILTER_COLUMNS.map((column) => ({
-          id: column.value,
-          name: t(`stockPicker.${column.labelKey}`),
-          code: column.value,
-        }))}
-        selectedValue={draftFilterRows.find((row) => row.id === columnPickerRowId)?.column}
-        onSelect={(option) => {
-          if (!columnPickerRowId) return;
-          updateDraftRow(columnPickerRowId, { column: option.id as StockFilterColumnValue });
-        }}
-        onClose={() => setColumnPickerRowId(null)}
-        title={t("stockPicker.filterColumn")}
-        searchPlaceholder={t("stockPicker.filterColumnSearch")}
-      />
-
-      <PickerModal
-        visible={operatorPickerRowId !== null}
-        options={
-          operatorPickerRowId
-            ? getOperatorsForColumn(
-                draftFilterRows.find((row) => row.id === operatorPickerRowId)?.column ?? "StockName"
-              ).map((operator) => ({
-                id: operator,
-                name: t(`stockPicker.operator.${operator}`),
-              }))
-            : []
-        }
-        selectedValue={draftFilterRows.find((row) => row.id === operatorPickerRowId)?.operator}
-        onSelect={(option) => {
-          if (!operatorPickerRowId) return;
-          updateDraftRow(operatorPickerRowId, { operator: option.id as AdvancedFilterOperator });
-        }}
-        onClose={() => setOperatorPickerRowId(null)}
-        title={t("stockPicker.filterOperator")}
-        searchPlaceholder={t("stockPicker.filterOperatorSearch")}
-      />
     </>
   );
 }
@@ -1717,39 +1891,9 @@ const styles = StyleSheet.create({
   filterFormScrollContent: {
     paddingBottom: 8,
   },
-  addFilterRowButton: {
-    marginHorizontal: 18,
-    marginTop: 18,
-    borderWidth: 1,
-    borderRadius: 14,
-    minHeight: 44,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  addFilterRowButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
-  },
   filterFields: {
     padding: 18,
     gap: 14,
-  },
-  advancedFilterRowCard: {
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 14,
-    gap: 12,
-  },
-  advancedFilterRowHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  advancedFilterRowTitle: {
-    fontSize: 14,
-    fontWeight: "700",
   },
   filterFieldRow: {
     flexDirection: "row",
@@ -1759,23 +1903,11 @@ const styles = StyleSheet.create({
     gap: 6,
     flex: 1,
   },
-  filterSelectField: {
-    borderWidth: 1,
-    borderRadius: 14,
-    minHeight: 46,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    justifyContent: "center",
-  },
   filterFieldLabel: {
     fontSize: 12,
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 0.5,
-  },
-  filterSelectValue: {
-    fontSize: 14,
-    fontWeight: "500",
   },
   filterFieldInput: {
     borderWidth: 1,

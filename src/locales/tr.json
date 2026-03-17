@@ -867,25 +867,7 @@
     "filterCode5": "Kod-5",
     "filterCode5Name": "Kod-5 Adı",
     "filterManufacturerCode": "Üretici Kodu",
-    "filterBranchCode": "Şube Kodu",
-    "addFilterRow": "Filtre Ekle",
-    "filterRowLabel": "Filtre Satırı",
-    "filterColumn": "Alan",
-    "filterOperator": "Operatör",
-    "filterValue": "Değer",
-    "filterColumnSearch": "Alan ara...",
-    "filterOperatorSearch": "Operatör ara...",
-    "noAdvancedFilters": "Henüz filtre eklenmedi",
-    "operator": {
-      "contains": "İçerir",
-      "startsWith": "Şununla başlar",
-      "endsWith": "Şununla biter",
-      "eq": "Eşittir",
-      "gt": ">",
-      "gte": ">=",
-      "lt": "<",
-      "lte": "<="
-    }
+    "filterBranchCode": "Şube Kodu"
   },
   "quotation": {
     "list": "Teklif Listesi",

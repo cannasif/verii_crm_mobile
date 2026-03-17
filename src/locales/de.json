@@ -823,25 +823,7 @@
     "filterCode5": "Code-5",
     "filterCode5Name": "Code-5 Name",
     "filterManufacturerCode": "Herstellercode",
-    "filterBranchCode": "Filialcode",
-    "addFilterRow": "Filter hinzufügen",
-    "filterRowLabel": "Filterzeile",
-    "filterColumn": "Feld",
-    "filterOperator": "Operator",
-    "filterValue": "Wert",
-    "filterColumnSearch": "Feld suchen...",
-    "filterOperatorSearch": "Operator suchen...",
-    "noAdvancedFilters": "Noch kein Filter hinzugefügt",
-    "operator": {
-      "contains": "Enthält",
-      "startsWith": "Beginnt mit",
-      "endsWith": "Endet mit",
-      "eq": "Gleich",
-      "gt": ">",
-      "gte": ">=",
-      "lt": "<",
-      "lte": "<="
-    }
+    "filterBranchCode": "Filialcode"
   },
   "quotation": {
     "list": "Angebotsliste",
