@@ -803,7 +803,6 @@ function ProductPickerInner(
   const [operatorPickerRowId, setOperatorPickerRowId] = useState<string | null>(null);
   const endReachedLockRef = useRef(false);
   const endReachedEligibleRef = useRef(false);
-  const autoPrefetchPageRef = useRef<number | null>(null);
 
   const relatedMandatory = useMemo(
     () => (relatedStocksSelection?.stock.parentRelations ?? []).filter((r) => r.isMandatory),
@@ -934,36 +933,11 @@ function ProductPickerInner(
   useEffect(() => {
     endReachedLockRef.current = false;
     endReachedEligibleRef.current = false;
-    autoPrefetchPageRef.current = null;
   }, [debouncedSearchText, hasAdvancedFilters, filterQueryKey]);
 
   useEffect(() => {
     if (!isFetchingNextPage) endReachedLockRef.current = false;
   }, [isFetchingNextPage]);
-
-  useEffect(() => {
-    const pageCount = data?.pages.length ?? 0;
-    const isFilteredMode = hasAdvancedFilters || debouncedSearchText.trim().length >= 2;
-
-    if (!isOpen || !isFilteredMode) return;
-    if (shouldHideStaleResults || isFetchingNextPage || !hasNextPage) return;
-    if (stocks.length >= 10) return;
-    if (pageCount === 0) return;
-    if (autoPrefetchPageRef.current === pageCount) return;
-
-    autoPrefetchPageRef.current = pageCount;
-    fetchNextPage();
-  }, [
-    data?.pages.length,
-    debouncedSearchText,
-    fetchNextPage,
-    hasAdvancedFilters,
-    hasNextPage,
-    isFetchingNextPage,
-    isOpen,
-    shouldHideStaleResults,
-    stocks.length,
-  ]);
 
   const handleShowRelationDetail = useCallback((stock: StockGetDto, relations: StockRelationDto[]) => {
     setRelationDetailStock(stock);
