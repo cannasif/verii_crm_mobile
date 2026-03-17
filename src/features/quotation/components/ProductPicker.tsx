@@ -740,10 +740,6 @@ function ProductPickerInner(
     }
 
     const rawStocks = data?.pages.flatMap((page) => page.items) || [];
-    if (searchText.trim().length >= 2) {
-      return filterAndRankStocksLocal(rawStocks, searchText);
-    }
-
     return hasAdvancedFilters ? filterAndRankStocksLocal(rawStocks, searchText) : rawStocks;
   }, [data, hasAdvancedFilters, searchText, shouldHideStaleResults]);
 
