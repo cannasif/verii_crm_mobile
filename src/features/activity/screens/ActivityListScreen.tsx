@@ -2,10 +2,7 @@ import React, { useState, useCallback, useMemo, useEffect } from "react";
 import {
   View,
   StyleSheet,
-  FlatList,
-  ActivityIndicator,
   TouchableOpacity,
-  Dimensions,
   Text,
 } from "react-native";
 import { useRouter } from "expo-router";
@@ -14,11 +11,23 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { ScreenHeader } from "../../../components/navigation";
+import {
+  PagedAdvancedFilterBuilder,
+  PagedAdvancedFilterModal,
+  PagedFlatList,
+  mapPagedAdvancedFilterRowsToFilters,
+  type PagedAdvancedFilterFieldConfig,
+  type PagedAdvancedFilterRow,
+} from "../../../components/paged";
 import { useUIStore } from "../../../store/ui";
 import { useActivities } from "../hooks";
-import { SearchInput, ActivityCard } from "../components";
-import type { ActivityDto, PagedFilter } from "../types";
-import { CalendarAdd01Icon } from "hugeicons-react-native";
+import { ActivityCard } from "../components";
+import type { ActivityDto } from "../types";
+import {
+  CalendarAdd01Icon,
+  ArrowDown01Icon,
+  ArrowUp01Icon,
+} from "hugeicons-react-native";
 
 const GAP = 12;
 const PADDING = 16;
@@ -51,18 +60,56 @@ export function ActivityListScreen(): React.ReactElement {
 
   const [searchText, setSearchText] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
+  const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
+  const [draftFilterRows, setDraftFilterRows] = useState<PagedAdvancedFilterRow[]>([]);
+  const [appliedFilterRows, setAppliedFilterRows] = useState<PagedAdvancedFilterRow[]>([]);
+  const [tempFilterLogic, setTempFilterLogic] = useState<"and" | "or">("and");
+  const [appliedFilterLogic, setAppliedFilterLogic] = useState<"and" | "or">("and");
 
   useEffect(() => {
     const handler = setTimeout(() => { setDebouncedQuery(searchText); }, 300);
     return () => clearTimeout(handler);
   }, [searchText]);
 
-  const filters: PagedFilter[] | undefined = useMemo(() => {
-    if (debouncedQuery.trim().length >= 2) {
-      return [{ column: "subject", operator: "contains", value: debouncedQuery.trim() }];
-    }
-    return undefined;
-  }, [debouncedQuery]);
+  const apiFilters = useMemo(
+    () => mapPagedAdvancedFilterRowsToFilters(appliedFilterRows),
+    [appliedFilterRows]
+  );
+
+  const activityFilterFields = useMemo<PagedAdvancedFilterFieldConfig[]>(
+    () => [
+      { value: "subject", label: t("activity.subject", "Konu"), type: "text", placeholder: t("activity.subject", "Konu") },
+      { value: "activityTypeName", label: t("activity.type", "Aktivite Tipi"), type: "text", placeholder: t("activity.type", "Aktivite Tipi") },
+      { value: "contactName", label: t("contact.title", "Kişi"), type: "text", placeholder: t("contact.title", "Kişi") },
+      { value: "potentialCustomerName", label: t("customer.title", "Cari"), type: "text", placeholder: t("customer.title", "Cari") },
+      {
+        value: "status",
+        label: t("activity.status", "Durum"),
+        type: "select",
+        operators: ["eq"],
+        placeholder: t("activity.status", "Durum"),
+        options: [
+          { value: "0", label: t("activity.statusScheduled", "Planlandı") },
+          { value: "1", label: t("activity.statusCompleted", "Tamamlandı") },
+          { value: "2", label: t("activity.statusCancelled", "İptal") },
+        ],
+      },
+      {
+        value: "priority",
+        label: t("activity.priority", "Öncelik"),
+        type: "select",
+        operators: ["eq"],
+        placeholder: t("activity.priority", "Öncelik"),
+        options: [
+          { value: "0", label: t("activity.priorityLow", "Düşük") },
+          { value: "1", label: t("activity.priorityMedium", "Orta") },
+          { value: "2", label: t("activity.priorityHigh", "Yüksek") },
+        ],
+      },
+    ],
+    [t]
+  );
 
   const {
     data,
@@ -74,7 +121,14 @@ export function ActivityListScreen(): React.ReactElement {
     hasNextPage,
     isFetchingNextPage,
     isRefetching,
-  } = useActivities({ filters, pageSize: 20 });
+  } = useActivities({
+    filters: apiFilters,
+    filterLogic: appliedFilterLogic,
+    search: debouncedQuery.trim().length >= 2 ? debouncedQuery.trim() : undefined,
+    sortBy: "Id",
+    sortDirection: sortOrder,
+    pageSize: 20,
+  });
 
   const handleRefresh = useCallback(() => {
     refetch();
@@ -106,7 +160,6 @@ export function ActivityListScreen(): React.ReactElement {
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
- 
   const renderItem = useCallback(
     ({ item }: { item: ActivityDto }) => {
       if (!item) return null;
@@ -130,12 +183,8 @@ export function ActivityListScreen(): React.ReactElement {
 
   const renderFooter = useCallback(() => {
     if (!isFetchingNextPage) return <View style={{ height: 40 }} />;
-    return (
-      <View style={styles.footerLoading}>
-        <ActivityIndicator size="small" color={theme.primary} />
-      </View>
-    );
-  }, [isFetchingNextPage, theme]);
+    return <View style={styles.footerLoading} />;
+  }, [isFetchingNextPage]);
 
   const renderEmpty = useCallback(() => {
     if (isLoading) return null;
@@ -149,28 +198,29 @@ export function ActivityListScreen(): React.ReactElement {
     );
   }, [isLoading, theme, t]);
 
-  if (isError) {
-    return (
-      <View style={[styles.container, { backgroundColor: mainBg }]}>
-        <StatusBar style={isDark ? "light" : "dark"} />
-        <View style={StyleSheet.absoluteFill}>
-           <LinearGradient colors={gradientColors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-        </View>
-        <ScreenHeader title={t("activity.title")} showBackButton />
-        <View style={styles.center}>
-            <Text style={{ color: theme.error, marginBottom: 12, textAlign: 'center' }}>
-                {error?.message || t("common.error")}
-            </Text>
-            <TouchableOpacity 
-                style={[styles.retryButton, { backgroundColor: theme.primary }]} 
-                onPress={() => refetch()}
-            >
-                <Text style={{ color: "#FFF", fontWeight: "600" }}>{t("common.retry")}</Text>
-            </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
+  const toolbarActions = (
+    <>
+      <TouchableOpacity
+        style={[styles.iconBtn, { backgroundColor: theme.surfaceBg, borderColor: theme.borderColor }]}
+        onPress={handleCreatePress}
+        activeOpacity={0.72}
+      >
+        <CalendarAdd01Icon size={22} color={theme.primary} variant="stroke" strokeWidth={2.3} />
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.sortToolbarBtn, { backgroundColor: theme.surfaceBg, borderColor: theme.borderColor }]}
+        onPress={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
+        activeOpacity={0.72}
+      >
+        {sortOrder === "desc" ? (
+          <ArrowDown01Icon size={18} color={theme.primary} strokeWidth={2.2} />
+        ) : (
+          <ArrowUp01Icon size={18} color={theme.primary} strokeWidth={2.2} />
+        )}
+      </TouchableOpacity>
+    </>
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: mainBg }]}>
@@ -183,53 +233,84 @@ export function ActivityListScreen(): React.ReactElement {
       <ScreenHeader title={t("activity.title")} showBackButton />
 
       <View style={styles.listContainer}>
-        
-        {/* CONTROLS AREA */}
-        <View style={styles.controlsArea}>
-             <View style={{ flex: 1, marginRight: 10 }}>
-                <SearchInput
-                    value={searchText}
-                    onSearch={setSearchText}
-                    placeholder={t("activity.searchPlaceholder")}
-                />
-             </View>
-
-             <TouchableOpacity 
-                onPress={handleCreatePress} 
-                style={styles.iconBtn} 
-                activeOpacity={0.7}
-             >
-               <CalendarAdd01Icon size={24} color="#FFF" variant="stroke" strokeWidth={2.5} />
-             </TouchableOpacity>
-        </View>
-
-        {/* LOADING & LIST */}
-        {isLoading && activities.length === 0 ? (
-           <View style={styles.center}>
-             <ActivityIndicator size="large" color={theme.primary} />
-           </View>
+        {isError ? (
+          <View style={styles.center}>
+            <Text style={{ color: theme.error, marginBottom: 12, textAlign: "center" }}>
+              {error?.message || t("common.error")}
+            </Text>
+            <TouchableOpacity
+              style={[styles.retryButton, { backgroundColor: theme.primary }]}
+              onPress={() => refetch()}
+            >
+              <Text style={{ color: "#FFF", fontWeight: "600" }}>{t("common.retry")}</Text>
+            </TouchableOpacity>
+          </View>
         ) : (
-          <FlatList
+          <PagedFlatList
             data={activities}
             keyExtractor={(item, index) => String(item?.id ?? index)}
             renderItem={renderItem}
-            contentContainerStyle={{
-                paddingHorizontal: PADDING,
-                paddingTop: 12,
-              
-                paddingBottom: insets.bottom + 40, 
-                gap: GAP, 
+            searchValue={searchText}
+            onSearchChange={setSearchText}
+            searchPlaceholder={t("activity.searchPlaceholder")}
+            onOpenFilters={() => {
+              setDraftFilterRows(appliedFilterRows);
+              setTempFilterLogic(appliedFilterLogic);
+              setIsFilterModalVisible(true);
             }}
-            showsVerticalScrollIndicator={false}
+            activeFilterCount={apiFilters.length}
+            toolbarActions={toolbarActions}
+            metaContent={
+              <View style={styles.metaRow}>
+                <Text style={[styles.metaText, { color: theme.textMute }]}>
+                  {t("activity.foundCount", { count: activities.length, defaultValue: `${activities.length} aktivite bulundu` })}
+                </Text>
+              </View>
+            }
+            isLoading={Boolean(isLoading && activities.length === 0)}
             refreshing={isRefetching && !isFetchingNextPage}
             onRefresh={handleRefresh}
             onEndReached={handleEndReached}
             onEndReachedThreshold={0.5}
-            ListEmptyComponent={renderEmpty}
-            ListFooterComponent={renderFooter}
+            ListEmptyComponent={renderEmpty()}
+            ListFooterComponent={renderFooter()}
+            contentContainerStyle={{
+              paddingHorizontal: PADDING,
+              paddingTop: 12,
+              paddingBottom: insets.bottom + 40,
+              gap: GAP,
+            }}
+            showsVerticalScrollIndicator={false}
           />
         )}
       </View>
+
+      <PagedAdvancedFilterModal
+        visible={isFilterModalVisible}
+        title={t("common.advancedFilter.title", "Gelişmiş Filtre")}
+        filterLogic={tempFilterLogic}
+        onFilterLogicChange={setTempFilterLogic}
+        onClose={() => setIsFilterModalVisible(false)}
+        onClear={() => {
+          setDraftFilterRows([]);
+          setAppliedFilterRows([]);
+          setTempFilterLogic("and");
+          setAppliedFilterLogic("and");
+        }}
+        onApply={() => {
+          setAppliedFilterRows(draftFilterRows);
+          setAppliedFilterLogic(tempFilterLogic);
+          setIsFilterModalVisible(false);
+        }}
+        bottomInset={insets.bottom}
+      >
+        <PagedAdvancedFilterBuilder
+          fields={activityFilterFields}
+          rows={draftFilterRows}
+          onRowsChange={setDraftFilterRows}
+          defaultField={activityFilterFields[0]?.value}
+        />
+      </PagedAdvancedFilterModal>
     </View>
   );
 }
@@ -243,25 +324,33 @@ const styles = StyleSheet.create({
     justifyContent: "center", 
     marginTop: 50 
   },
-  controlsArea: {
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    paddingHorizontal: 16, 
-    paddingTop: 12, 
-    paddingBottom: 8 
-  },
   iconBtn: { 
-    height: 50, 
-    width: 50, 
-    borderRadius: 16, 
-    backgroundColor: BRAND_COLOR, 
+    height: 48,
+    width: 48,
+    borderRadius: 14,
+    borderWidth: 1.2,
     alignItems: 'center', 
-    justifyContent: 'center', 
-    shadowColor: BRAND_COLOR, 
-    shadowOffset: { width: 0, height: 4 }, 
-    shadowOpacity: 0.4, 
-    shadowRadius: 8, 
-    elevation: 6 
+    justifyContent: 'center',
+    marginLeft: 10,
+  },
+  sortToolbarBtn: {
+    height: 48,
+    width: 48,
+    borderRadius: 14,
+    borderWidth: 1.2,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 8,
+  },
+  metaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  metaText: {
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 0.2,
   },
   cardWrapper: {
     borderRadius: 16,

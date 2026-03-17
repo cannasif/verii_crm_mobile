@@ -3,15 +3,11 @@ import {
   View,
   StyleSheet,
   ActivityIndicator,
-  FlatList,
   TouchableWithoutFeedback,
   TouchableOpacity,
   Text,
   Dimensions,
   Platform,
-  ScrollView,
-  Modal,
-  TextInput,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -20,19 +16,25 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ScreenHeader } from "../../../components/navigation";
+import {
+  PagedAdvancedFilterBuilder,
+  PagedAdvancedFilterModal,
+  PagedFlatList,
+  createPagedAdvancedFilterRow,
+  mapPagedAdvancedFilterRowsToFilters,
+  type PagedAdvancedFilterFieldConfig,
+  type PagedAdvancedFilterRow,
+} from "../../../components/paged";
 import { useUIStore } from "../../../store/ui";
 import { useCustomers, useCities, useDistricts } from "../hooks";
 import type { CustomerDto, PagedFilter } from "../types";
 
-import { SearchInput } from "../components/SearchInput";
 import {
   LayoutGridIcon,
   ListViewIcon,
   AddTeamIcon,
   ArrowDown01Icon,
   ArrowUp01Icon,
-  FilterIcon,
-  Cancel01Icon,
 } from "hugeicons-react-native";
 import { CustomerCard } from "../components/CustomerCard";
 
@@ -44,36 +46,6 @@ const GRID_WIDTH = (width - PADDING * 2 - GAP) / 2;
 const BRAND_COLOR = "#db2777";
 const BRAND_COLOR_DARK = "#ec4899";
 const DEFAULT_COUNTRY_ID = 1;
-
-const normalizeText = (text: string) => {
-  if (!text) return "";
-  return text
-    .toLocaleLowerCase("tr-TR")
-    .replace(/ğ/g, "g")
-    .replace(/ü/g, "u")
-    .replace(/ş/g, "s")
-    .replace(/ı/g, "i")
-    .replace(/ö/g, "o")
-    .replace(/ç/g, "c");
-};
-
-const fuzzyMatch = (query: string, text: string) => {
-  const normalizedQuery = normalizeText(query).replace(/\s+/g, "");
-  const normalizedText = normalizeText(text);
-
-  if (!normalizedQuery) return true;
-
-  let queryIndex = 0;
-  for (let i = 0; i < normalizedText.length; i++) {
-    if (normalizedText[i] === normalizedQuery[queryIndex]) {
-      queryIndex++;
-    }
-    if (queryIndex === normalizedQuery.length) {
-      return true;
-    }
-  }
-  return false;
-};
 
 export function CustomerListScreen() {
   const { t } = useTranslation();
@@ -115,20 +87,10 @@ export function CustomerListScreen() {
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
 
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
-
-  const [appliedFilter, setAppliedFilter] = useState<string>("all");
-  const [appliedCityId, setAppliedCityId] = useState<number | null>(null);
-  const [appliedDistrictId, setAppliedDistrictId] = useState<number | null>(null);
-
-  const [tempFilter, setTempFilter] = useState<string>("all");
-  const [tempCityId, setTempCityId] = useState<number | null>(null);
-  const [tempDistrictId, setTempDistrictId] = useState<number | null>(null);
-
-  const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
-  const [isDistrictDropdownOpen, setIsDistrictDropdownOpen] = useState(false);
-
-  const [citySearchText, setCitySearchText] = useState("");
-  const [districtSearchText, setDistrictSearchText] = useState("");
+  const [draftFilterRows, setDraftFilterRows] = useState<PagedAdvancedFilterRow[]>([]);
+  const [appliedFilterRows, setAppliedFilterRows] = useState<PagedAdvancedFilterRow[]>([]);
+  const [tempFilterLogic, setTempFilterLogic] = useState<"and" | "or">("and");
+  const [appliedFilterLogic, setAppliedFilterLogic] = useState<"and" | "or">("and");
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -138,58 +100,69 @@ export function CustomerListScreen() {
   }, [searchText]);
 
   const openFilterModal = () => {
-    setTempFilter(appliedFilter);
-    setTempCityId(appliedCityId);
-    setTempDistrictId(appliedDistrictId);
-    setIsCityDropdownOpen(false);
-    setIsDistrictDropdownOpen(false);
-    setCitySearchText("");
-    setDistrictSearchText("");
+    setDraftFilterRows(appliedFilterRows);
     setIsFilterModalVisible(true);
   };
 
-  const apiFilters = useMemo(() => {
-    const filters: PagedFilter[] = [];
-    if (debouncedQuery && debouncedQuery.trim().length >= 2) {
-      filters.push({ column: "Name", operator: "contains", value: debouncedQuery.trim() });
-    }
-    if (appliedFilter === "erp_yes") {
-      filters.push({ column: "IsERPIntegrated", operator: "eq", value: "true" });
-    }
-    if (appliedFilter === "erp_no") {
-      filters.push({ column: "IsERPIntegrated", operator: "eq", value: "false" });
-    }
-    if (appliedCityId) {
-      filters.push({ column: "CityId", operator: "eq", value: String(appliedCityId) });
-    }
-    if (appliedDistrictId) {
-      filters.push({ column: "DistrictId", operator: "eq", value: String(appliedDistrictId) });
-    }
-    return filters;
-  }, [debouncedQuery, appliedFilter, appliedCityId, appliedDistrictId]);
+  const apiFilters = useMemo(
+    () => mapPagedAdvancedFilterRowsToFilters(appliedFilterRows),
+    [appliedFilterRows]
+  );
 
   const { data, isLoading, refetch, isRefetching, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useCustomers({
+      search: debouncedQuery.trim().length >= 2 ? debouncedQuery.trim() : undefined,
       filters: apiFilters,
+      filterLogic: appliedFilterLogic,
       sortBy: "Id",
       sortDirection: sortOrder,
       pageSize: 20,
     });
 
   const { data: cities } = useCities(DEFAULT_COUNTRY_ID);
-  const { data: tempDistricts } = useDistricts(tempCityId || undefined);
+  const draftCityId = useMemo(() => {
+    const cityRow = draftFilterRows.find((row) => row.field === "CityId");
+    return cityRow?.value ? Number(cityRow.value) : undefined;
+  }, [draftFilterRows]);
+  const { data: draftDistricts } = useDistricts(draftCityId);
 
-  const filteredCities = useMemo(() => {
-    if (!cities) return [];
-    if (!citySearchText.trim()) return cities;
-    return cities.filter((c) => fuzzyMatch(citySearchText, c.name));
-  }, [cities, citySearchText]);
-
-  const filteredDistricts = useMemo(() => {
-    if (!tempDistricts) return [];
-    if (!districtSearchText.trim()) return tempDistricts;
-    return tempDistricts.filter((d) => fuzzyMatch(districtSearchText, d.name));
-  }, [tempDistricts, districtSearchText]);
+  const customerFilterFields = useMemo<PagedAdvancedFilterFieldConfig[]>(
+    () => [
+      {
+        value: "IsERPIntegrated",
+        label: t("customer.modal.customerStatus"),
+        type: "select",
+        operators: ["eq"],
+        placeholder: t("customer.modal.customerStatus"),
+        options: [
+          { value: "true", label: t("customer.status.erpYes") },
+          { value: "false", label: t("customer.status.erpNo") },
+        ],
+      },
+      {
+        value: "CityId",
+        label: t("customer.modal.citySelection"),
+        type: "select",
+        operators: ["eq"],
+        placeholder: t("customer.modal.citySelection"),
+        options: (cities ?? []).map((city) => ({ value: String(city.id), label: city.name })),
+      },
+      {
+        value: "DistrictId",
+        label: t("customer.modal.districtSelection"),
+        type: "select",
+        operators: ["eq"],
+        placeholder: draftCityId
+          ? t("customer.modal.districtSelection")
+          : t("customer.selectCityFirst", "Önce il seçin"),
+        options: (draftDistricts ?? []).map((district) => ({
+          value: String(district.id),
+          label: district.name,
+        })),
+      },
+    ],
+    [cities, draftCityId, draftDistricts, t]
+  );
 
   const customers = useMemo(() => {
     return data?.pages?.flatMap((page) => page.items ?? []) || [];
@@ -220,13 +193,89 @@ export function CustomerListScreen() {
     [viewMode, router]
   );
 
-  const isAnyFilterActive =
-    appliedFilter !== "all" || appliedCityId !== null || appliedDistrictId !== null;
+  const toolbarActions = (
+    <>
+      <TouchableOpacity
+        onPress={handleCreatePress}
+        style={[
+          styles.iconBtn,
+          {
+            backgroundColor: theme.surfaceBg,
+            borderColor: theme.borderColor,
+            marginRight: 8,
+          },
+        ]}
+        activeOpacity={0.72}
+      >
+        <AddTeamIcon size={20} color={theme.primary} variant="stroke" strokeWidth={2.3} />
+      </TouchableOpacity>
 
-  const tempSelectedCityName =
-    cities?.find((c) => c.id === tempCityId)?.name || t("customer.allCities");
-  const tempSelectedDistrictName =
-    tempDistricts?.find((d) => d.id === tempDistrictId)?.name || t("customer.allDistricts");
+      <View
+        style={[
+          styles.viewSwitcher,
+          {
+            backgroundColor: theme.switchBg,
+            borderColor: theme.softBorder,
+          },
+        ]}
+      >
+        <TouchableWithoutFeedback onPress={() => setViewMode("grid")}>
+          <View
+            style={[
+              styles.switchBtn,
+              viewMode === "grid" && {
+                backgroundColor: theme.activeSwitchBg,
+                borderColor: theme.borderColor,
+              },
+            ]}
+          >
+            <LayoutGridIcon
+              size={19}
+              color={viewMode === "grid" ? theme.primary : theme.iconColor}
+              variant="stroke"
+              strokeWidth={viewMode === "grid" ? 2.2 : 1.7}
+            />
+          </View>
+        </TouchableWithoutFeedback>
+
+        <TouchableWithoutFeedback onPress={() => setViewMode("list")}>
+          <View
+            style={[
+              styles.switchBtn,
+              viewMode === "list" && {
+                backgroundColor: theme.activeSwitchBg,
+                borderColor: theme.borderColor,
+              },
+            ]}
+          >
+            <ListViewIcon
+              size={19}
+              color={viewMode === "list" ? theme.primary : theme.iconColor}
+              variant="stroke"
+              strokeWidth={viewMode === "list" ? 2.2 : 1.7}
+            />
+          </View>
+        </TouchableWithoutFeedback>
+      </View>
+
+      <TouchableOpacity
+        style={[
+          styles.sortToolbarBtn,
+          {
+            backgroundColor: theme.surfaceBgSoft,
+            borderColor: theme.softBorder,
+          },
+        ]}
+        onPress={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
+      >
+        {sortOrder === "desc" ? (
+          <ArrowDown01Icon size={18} color={theme.primary} strokeWidth={2.2} />
+        ) : (
+          <ArrowUp01Icon size={18} color={theme.primary} strokeWidth={2.2} />
+        )}
+      </TouchableOpacity>
+    </>
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: mainBg }]}>
@@ -245,527 +294,90 @@ export function CustomerListScreen() {
         <ScreenHeader title={t("customer.title")} showBackButton={true} />
 
         <View style={styles.contentContainer}>
-          <View style={styles.controlsArea}>
-            <View style={{ flex: 1, marginRight: 10 }}>
-              <SearchInput value={searchText} onSearch={setSearchText} placeholder={t("customer.search")} />
-            </View>
-
-            <TouchableOpacity
-              onPress={handleCreatePress}
-              style={[
-                styles.iconBtn,
-                {
-                  backgroundColor: theme.surfaceBg,
-                  borderColor: theme.borderColor,
-                  marginRight: 8,
-                },
-              ]}
-              activeOpacity={0.72}
-            >
-              <AddTeamIcon size={20} color={theme.primary} variant="stroke" strokeWidth={2.3} />
-            </TouchableOpacity>
-
-            <View
-              style={[
-                styles.viewSwitcher,
-                {
-                  backgroundColor: theme.switchBg,
-                  borderColor: theme.softBorder,
-                },
-              ]}
-            >
-              <TouchableWithoutFeedback onPress={() => setViewMode("grid")}>
+          <PagedFlatList
+            listKey={viewMode}
+            data={customers}
+            renderItem={renderItem}
+            keyExtractor={(item) => String(item.id)}
+            searchValue={searchText}
+            onSearchChange={setSearchText}
+            searchPlaceholder={t("customer.search")}
+            onOpenFilters={openFilterModal}
+            activeFilterCount={apiFilters.length}
+            toolbarActions={toolbarActions}
+            metaContent={
+              <View style={styles.metaRow}>
+                <Text style={[styles.metaText, { color: theme.textMute }]}>
+                  {t("customer.foundCount", { count: totalCount })}
+                </Text>
+              </View>
+            }
+            isLoading={Boolean(isLoading && !data)}
+            refreshing={isRefetching && !isFetchingNextPage}
+            onRefresh={refetch}
+            numColumns={viewMode === "grid" ? 2 : 1}
+            columnWrapperStyle={viewMode === "grid" ? { gap: GAP } : undefined}
+            contentContainerStyle={{
+              paddingHorizontal: viewMode === "grid" ? PADDING : 16,
+              paddingTop: 8,
+              paddingBottom: insets.bottom + 100,
+              gap: viewMode === "grid" ? GAP : 0,
+            }}
+            onEndReached={loadMoreData}
+            onEndReachedThreshold={0.3}
+            initialNumToRender={10}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            removeClippedSubviews={Platform.OS === "android"}
+            isFetchingNextPage={isFetchingNextPage}
+            emptyComponent={
+              <View style={styles.center}>
                 <View
                   style={[
-                    styles.switchBtn,
-                    viewMode === "grid" && {
-                      backgroundColor: theme.activeSwitchBg,
-                      borderColor: theme.borderColor,
-                    },
-                  ]}
-                >
-                  <LayoutGridIcon
-                    size={19}
-                    color={viewMode === "grid" ? theme.primary : theme.iconColor}
-                    variant="stroke"
-                    strokeWidth={viewMode === "grid" ? 2.2 : 1.7}
-                  />
-                </View>
-              </TouchableWithoutFeedback>
-
-              <TouchableWithoutFeedback onPress={() => setViewMode("list")}>
-                <View
-                  style={[
-                    styles.switchBtn,
-                    viewMode === "list" && {
-                      backgroundColor: theme.activeSwitchBg,
-                      borderColor: theme.borderColor,
-                    },
-                  ]}
-                >
-                  <ListViewIcon
-                    size={19}
-                    color={viewMode === "list" ? theme.primary : theme.iconColor}
-                    variant="stroke"
-                    strokeWidth={viewMode === "list" ? 2.2 : 1.7}
-                  />
-                </View>
-              </TouchableWithoutFeedback>
-            </View>
-          </View>
-
-          {(!isLoading || data) && (
-            <View style={styles.metaRow}>
-              <Text style={[styles.metaText, { color: theme.textMute }]}>
-                {t("customer.foundCount", { count: totalCount })}
-              </Text>
-
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <TouchableOpacity
-                  style={[
-                    styles.sortBtn,
-                    styles.metaActionChip,
-                    {
-                      backgroundColor: theme.surfaceBgSoft,
-                      borderColor: isAnyFilterActive ? theme.borderColor : theme.softBorder,
-                      marginRight: 10,
-                    },
-                  ]}
-                  onPress={openFilterModal}
-                >
-                  <Text
-                    style={[
-                      styles.sortText,
-                      { color: isAnyFilterActive ? theme.primary : theme.textMute },
-                    ]}
-                  >
-                    {t("customer.filter")}
-                  </Text>
-                  <FilterIcon
-                    size={15}
-                    color={isAnyFilterActive ? theme.primary : theme.textMute}
-                    strokeWidth={2.2}
-                    style={{ marginLeft: 4 }}
-                  />
-                  {isAnyFilterActive && (
-                    <View style={[styles.activeFilterDot, { backgroundColor: theme.primary }]} />
-                  )}
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.sortBtn,
-                    styles.metaActionChip,
+                    styles.emptyIconWrap,
                     {
                       backgroundColor: theme.surfaceBgSoft,
                       borderColor: theme.softBorder,
                     },
                   ]}
-                  onPress={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
                 >
-                  <Text style={[styles.sortText, { color: theme.primary }]}>
-                    {sortOrder === "desc" ? t("customer.sortNewest") : t("customer.sortOldest")}
-                  </Text>
-                  {sortOrder === "desc" ? (
-                    <ArrowDown01Icon
-                      size={15}
-                      color={theme.primary}
-                      strokeWidth={2.2}
-                      style={{ marginLeft: 4 }}
-                    />
-                  ) : (
-                    <ArrowUp01Icon
-                      size={15}
-                      color={theme.primary}
-                      strokeWidth={2.2}
-                      style={{ marginLeft: 4 }}
-                    />
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-
-          {isLoading && !data ? (
-            <View style={styles.center}>
-              <ActivityIndicator size="large" color={theme.primary} />
-            </View>
-          ) : (
-            <FlatList
-              key={viewMode}
-              data={customers}
-              renderItem={renderItem}
-              keyExtractor={(item) => String(item.id)}
-              numColumns={viewMode === "grid" ? 2 : 1}
-              columnWrapperStyle={viewMode === "grid" ? { gap: GAP } : undefined}
-              contentContainerStyle={{
-                paddingHorizontal: viewMode === "grid" ? PADDING : 16,
-                paddingTop: 8,
-                paddingBottom: insets.bottom + 100,
-                gap: viewMode === "grid" ? GAP : 0,
-              }}
-              onEndReached={loadMoreData}
-              onEndReachedThreshold={0.3}
-              ListFooterComponent={
-                isFetchingNextPage ? (
-                  <View style={{ paddingVertical: 20 }}>
-                    <ActivityIndicator size="small" color={theme.primary} />
-                  </View>
-                ) : null
-              }
-              initialNumToRender={10}
-              maxToRenderPerBatch={10}
-              windowSize={5}
-              removeClippedSubviews={Platform.OS === "android"}
-              refreshing={isRefetching && !isFetchingNextPage}
-              onRefresh={refetch}
-              ListEmptyComponent={
-                <View style={styles.center}>
-                  <View
-                    style={[
-                      styles.emptyIconWrap,
-                      {
-                        backgroundColor: theme.surfaceBgSoft,
-                        borderColor: theme.softBorder,
-                      },
-                    ]}
-                  >
-                    <Text style={{ fontSize: 30, opacity: 0.8 }}>📍</Text>
-                  </View>
-                  <Text style={[styles.emptyText, { color: theme.textMute }]}>
-                    {t("customer.emptyState")}
-                  </Text>
+                  <Text style={{ fontSize: 30, opacity: 0.8 }}>📍</Text>
                 </View>
-              }
-            />
-          )}
+                <Text style={[styles.emptyText, { color: theme.textMute }]}>
+                  {t("customer.emptyState")}
+                </Text>
+              </View>
+            }
+          />
         </View>
       </View>
 
-      <Modal
+      <PagedAdvancedFilterModal
         visible={isFilterModalVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setIsFilterModalVisible(false)}
+        title={t("customer.modal.title")}
+        filterLogic={tempFilterLogic}
+        onFilterLogicChange={setTempFilterLogic}
+        onClose={() => setIsFilterModalVisible(false)}
+        onClear={() => {
+          setDraftFilterRows([]);
+          setAppliedFilterRows([]);
+          setTempFilterLogic("and");
+          setAppliedFilterLogic("and");
+        }}
+        onApply={() => {
+          setAppliedFilterRows(draftFilterRows);
+          setAppliedFilterLogic(tempFilterLogic);
+          setIsFilterModalVisible(false);
+        }}
+        bottomInset={insets.bottom + 20}
       >
-        <View style={[styles.modalOverlay, { backgroundColor: theme.modalOverlay }]}>
-          <View
-            style={[
-              styles.modalContent,
-              {
-                backgroundColor: theme.modalBg,
-                paddingBottom: insets.bottom + 20,
-              },
-            ]}
-          >
-            <View style={[styles.modalHandle, { backgroundColor: theme.handle }]} />
-
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.textSoft }]}>
-                {t("customer.modal.title")}
-              </Text>
-              <TouchableOpacity onPress={() => setIsFilterModalVisible(false)} style={styles.closeBtn}>
-                <Cancel01Icon size={24} color={theme.textMute} variant="stroke" />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={[styles.modalLabel, { color: theme.textMute }]}>
-              {t("customer.modal.customerStatus")}
-            </Text>
-
-            <View style={styles.statusContainer}>
-              {[
-                { id: "all", label: t("customer.status.all") },
-                { id: "erp_yes", label: t("customer.status.erpYes") },
-                { id: "erp_no", label: t("customer.status.erpNo") },
-              ].map((filter) => {
-                const isActive = tempFilter === filter.id;
-                return (
-                  <TouchableOpacity
-                    key={filter.id}
-                    style={[
-                      styles.statusOption,
-                      {
-                        backgroundColor: isActive ? theme.activeSwitchBg : theme.filterBg,
-                        borderColor: isActive ? theme.borderColor : theme.softBorder,
-                      },
-                    ]}
-                    activeOpacity={0.72}
-                    onPress={() => setTempFilter(filter.id)}
-                  >
-                    <View
-                      style={[
-                        styles.radioCircle,
-                        { borderColor: isActive ? theme.primary : theme.iconColor },
-                      ]}
-                    >
-                      {isActive && <View style={[styles.radioDot, { backgroundColor: theme.primary }]} />}
-                    </View>
-                    <Text
-                      style={[
-                        styles.statusOptionText,
-                        { color: isActive ? theme.textSoft : theme.filterText },
-                      ]}
-                    >
-                      {filter.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            <Text style={[styles.modalLabel, { color: theme.textMute, marginTop: 24 }]}>
-              {t("customer.modal.citySelection")}
-            </Text>
-
-            <TouchableOpacity
-              style={[
-                styles.dropdownBtn,
-                {
-                  backgroundColor: theme.filterBg,
-                  borderColor: isCityDropdownOpen ? theme.borderColor : theme.softBorder,
-                },
-              ]}
-              onPress={() => {
-                setIsCityDropdownOpen(!isCityDropdownOpen);
-                setCitySearchText("");
-              }}
-              activeOpacity={0.72}
-            >
-              <Text
-                style={[
-                  styles.dropdownBtnText,
-                  { color: tempCityId ? theme.textSoft : theme.filterText, fontWeight: "500" },
-                ]}
-              >
-                {tempSelectedCityName}
-              </Text>
-              <ArrowDown01Icon
-                size={18}
-                color={tempCityId ? theme.primary : theme.textMute}
-                style={{ transform: [{ rotate: isCityDropdownOpen ? "180deg" : "0deg" }] }}
-              />
-            </TouchableOpacity>
-
-            {isCityDropdownOpen && (
-              <View
-                style={[
-                  styles.dropdownListContainer,
-                  { backgroundColor: theme.surfaceBg, borderColor: theme.softBorder },
-                ]}
-              >
-                <View style={[styles.searchInputContainer, { borderBottomColor: theme.softBorder }]}>
-                  <TextInput
-                    style={[
-                      styles.dropdownSearchInput,
-                      {
-                        color: theme.filterText,
-                        backgroundColor: theme.filterBg,
-                        borderColor: theme.softBorder,
-                      },
-                    ]}
-                    placeholder={t("customer.searchCity") || "İl ara..."}
-                    placeholderTextColor={theme.textMute}
-                    value={citySearchText}
-                    onChangeText={setCitySearchText}
-                  />
-                </View>
-                <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled">
-                  <TouchableOpacity
-                    style={[styles.dropdownItem, { borderBottomColor: theme.softBorder }]}
-                    onPress={() => {
-                      setTempCityId(null);
-                      setTempDistrictId(null);
-                      setIsCityDropdownOpen(false);
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.dropdownItemText,
-                        { color: !tempCityId ? theme.primary : theme.textMute, fontWeight: "500" },
-                      ]}
-                    >
-                      {t("customer.allCities")}
-                    </Text>
-                  </TouchableOpacity>
-
-                  {filteredCities.map((city) => (
-                    <TouchableOpacity
-                      key={city.id}
-                      style={[styles.dropdownItem, { borderBottomColor: theme.softBorder }]}
-                      onPress={() => {
-                        setTempCityId(city.id);
-                        setTempDistrictId(null);
-                        setIsCityDropdownOpen(false);
-                      }}
-                    >
-                      <Text
-                        style={[
-                          styles.dropdownItemText,
-                          {
-                            color: tempCityId === city.id ? theme.primary : theme.textMute,
-                            fontWeight: "500",
-                          },
-                        ]}
-                      >
-                        {city.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
-
-            {tempCityId && tempDistricts && tempDistricts.length > 0 && (
-              <>
-                <Text style={[styles.modalLabel, { color: theme.textMute, marginTop: 16 }]}>
-                  {t("customer.modal.districtSelection")}
-                </Text>
-
-                <TouchableOpacity
-                  style={[
-                    styles.dropdownBtn,
-                    {
-                      backgroundColor: theme.filterBg,
-                      borderColor: isDistrictDropdownOpen ? theme.borderColor : theme.softBorder,
-                    },
-                  ]}
-                  onPress={() => {
-                    setIsDistrictDropdownOpen(!isDistrictDropdownOpen);
-                    setDistrictSearchText("");
-                  }}
-                  activeOpacity={0.72}
-                >
-                  <Text
-                    style={[
-                      styles.dropdownBtnText,
-                      { color: tempDistrictId ? theme.textSoft : theme.filterText, fontWeight: "500" },
-                    ]}
-                  >
-                    {tempSelectedDistrictName}
-                  </Text>
-                  <ArrowDown01Icon
-                    size={18}
-                    color={tempDistrictId ? theme.primary : theme.textMute}
-                    style={{ transform: [{ rotate: isDistrictDropdownOpen ? "180deg" : "0deg" }] }}
-                  />
-                </TouchableOpacity>
-
-                {isDistrictDropdownOpen && (
-                  <View
-                    style={[
-                      styles.dropdownListContainer,
-                      { backgroundColor: theme.surfaceBg, borderColor: theme.softBorder },
-                    ]}
-                  >
-                    <View style={[styles.searchInputContainer, { borderBottomColor: theme.softBorder }]}>
-                      <TextInput
-                        style={[
-                          styles.dropdownSearchInput,
-                          {
-                            color: theme.filterText,
-                            backgroundColor: theme.filterBg,
-                            borderColor: theme.softBorder,
-                          },
-                        ]}
-                        placeholder={t("customer.searchDistrict") || "İlçe ara..."}
-                        placeholderTextColor={theme.textMute}
-                        value={districtSearchText}
-                        onChangeText={setDistrictSearchText}
-                      />
-                    </View>
-                    <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled">
-                      <TouchableOpacity
-                        style={[styles.dropdownItem, { borderBottomColor: theme.softBorder }]}
-                        onPress={() => {
-                          setTempDistrictId(null);
-                          setIsDistrictDropdownOpen(false);
-                        }}
-                      >
-                        <Text
-                          style={[
-                            styles.dropdownItemText,
-                            { color: !tempDistrictId ? theme.primary : theme.textMute, fontWeight: "500" },
-                          ]}
-                        >
-                          {t("customer.allDistricts")}
-                        </Text>
-                      </TouchableOpacity>
-
-                      {filteredDistricts.map((district) => (
-                        <TouchableOpacity
-                          key={district.id}
-                          style={[styles.dropdownItem, { borderBottomColor: theme.softBorder }]}
-                          onPress={() => {
-                            setTempDistrictId(district.id);
-                            setIsDistrictDropdownOpen(false);
-                          }}
-                        >
-                          <Text
-                            style={[
-                              styles.dropdownItemText,
-                              {
-                                color: tempDistrictId === district.id ? theme.primary : theme.textMute,
-                                fontWeight: "500",
-                              },
-                            ]}
-                          >
-                            {district.name}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                )}
-              </>
-            )}
-
-            <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={[
-                  styles.modalActionBtn,
-                  {
-                    backgroundColor: theme.switchBg,
-                    borderColor: theme.softBorder,
-                    flex: 1,
-                    marginRight: 10,
-                  },
-                ]}
-                onPress={() => {
-                  setTempFilter("all");
-                  setTempCityId(null);
-                  setTempDistrictId(null);
-                  setIsCityDropdownOpen(false);
-                  setIsDistrictDropdownOpen(false);
-                  setCitySearchText("");
-                  setDistrictSearchText("");
-                }}
-              >
-                <Text style={[styles.modalActionText, { color: theme.textMute }]}>{t("common.clear")}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.modalActionBtn,
-                  {
-                    backgroundColor: theme.primary,
-                    borderColor: theme.primary,
-                    flex: 2,
-                  },
-                ]}
-                onPress={() => {
-                  setAppliedFilter(tempFilter);
-                  setAppliedCityId(tempCityId);
-                  setAppliedDistrictId(tempDistrictId);
-                  setIsFilterModalVisible(false);
-                }}
-              >
-                <Text style={[styles.modalActionText, { color: "#FFF" }]}>{t("common.apply")}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        <PagedAdvancedFilterBuilder
+          fields={customerFilterFields}
+          rows={draftFilterRows}
+          onRowsChange={setDraftFilterRows}
+          defaultField="IsERPIntegrated"
+        />
+      </PagedAdvancedFilterModal>
     </View>
   );
 }
@@ -804,6 +416,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     height: 50,
     borderWidth: 1,
+  },
+
+  sortToolbarBtn: {
+    height: 50,
+    width: 50,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 8,
   },
 
   switchBtn: {

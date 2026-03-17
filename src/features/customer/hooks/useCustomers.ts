@@ -6,24 +6,38 @@ const DEFAULT_PAGE_SIZE = 20;
 
 interface UseCustomersParams {
   filters?: PagedFilter[];
+  search?: string;
+  filterLogic?: "and" | "or";
   sortBy?: string;
   sortDirection?: "asc" | "desc";
   pageSize?: number;
+  enabled?: boolean;
 }
 
 export function useCustomers(params: UseCustomersParams = {}) {
-  const { filters, sortBy = "Id", sortDirection = "asc", pageSize = DEFAULT_PAGE_SIZE } = params;
+  const {
+    filters,
+    search,
+    filterLogic,
+    sortBy = "Id",
+    sortDirection = "asc",
+    pageSize = DEFAULT_PAGE_SIZE,
+    enabled = true,
+  } = params;
 
   return useInfiniteQuery<PagedResponse<CustomerDto>, Error>({
-    queryKey: ["customer", "list", { filters, sortBy, sortDirection, pageSize }],
+    queryKey: ["customer", "list", { filters, search, filterLogic, sortBy, sortDirection, pageSize }],
     queryFn: ({ pageParam }) =>
       customerApi.getList({
         pageNumber: pageParam as number,
         pageSize,
+        search,
         sortBy,
         sortDirection,
         filters,
+        filterLogic,
       }),
+    enabled,
     initialPageParam: 1,
     getNextPageParam: (lastPage) => (lastPage.hasNextPage ? lastPage.pageNumber + 1 : undefined),
     staleTime: 30 * 1000,

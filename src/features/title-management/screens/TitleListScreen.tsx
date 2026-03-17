@@ -2,7 +2,6 @@ import React, { useCallback, useMemo, useState, useEffect } from "react";
 import { 
   View, 
   StyleSheet, 
-  FlatList, 
   ActivityIndicator, 
   TouchableOpacity, 
   Alert,
@@ -14,12 +13,26 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient"; 
 import { ScreenHeader } from "../../../components/navigation";
+import {
+  PagedAdvancedFilterBuilder,
+  PagedAdvancedFilterModal,
+  PagedFlatList,
+  mapPagedAdvancedFilterRowsToFilters,
+  type PagedAdvancedFilterFieldConfig,
+  type PagedAdvancedFilterRow,
+} from "../../../components/paged";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useTitles, useDeleteTitle } from "../hooks";
-import { SearchInput, TitleCard, TitleFormModal } from "../components";
-import type { TitleDto, PagedFilter } from "../types";
-import { Add01Icon, AlertCircleIcon, RefreshIcon } from "hugeicons-react-native";
+import { TitleCard, TitleFormModal } from "../components";
+import type { TitleDto } from "../types";
+import {
+  Add01Icon,
+  AlertCircleIcon,
+  RefreshIcon,
+  ArrowDown01Icon,
+  ArrowUp01Icon,
+} from "hugeicons-react-native";
 
 export function TitleListScreen(): React.ReactElement {
   const { t } = useTranslation();
@@ -50,18 +63,30 @@ export function TitleListScreen(): React.ReactElement {
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedTitle, setSelectedTitle] = useState<TitleDto | null>(null);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
+  const [draftFilterRows, setDraftFilterRows] = useState<PagedAdvancedFilterRow[]>([]);
+  const [appliedFilterRows, setAppliedFilterRows] = useState<PagedAdvancedFilterRow[]>([]);
+  const [tempFilterLogic, setTempFilterLogic] = useState<"and" | "or">("and");
+  const [appliedFilterLogic, setAppliedFilterLogic] = useState<"and" | "or">("and");
 
   useEffect(() => {
     const handler = setTimeout(() => { setDebouncedQuery(searchText); }, 300);
     return () => clearTimeout(handler);
   }, [searchText]);
 
-  const filters: PagedFilter[] | undefined = useMemo(() => {
-    if (debouncedQuery.trim().length >= 2) {
-      return [{ column: "TitleName", operator: "contains", value: debouncedQuery.trim() }];
-    }
-    return undefined;
-  }, [debouncedQuery]);
+  const titleFilterFields = useMemo<PagedAdvancedFilterFieldConfig[]>(
+    () => [
+      { value: "titleName", label: t("titleManagement.title"), type: "text", placeholder: t("titleManagement.title") },
+      { value: "code", label: t("common.code", "Kod"), type: "text", placeholder: t("common.code", "Kod") },
+    ],
+    [t]
+  );
+
+  const apiFilters = useMemo(
+    () => mapPagedAdvancedFilterRowsToFilters(appliedFilterRows),
+    [appliedFilterRows]
+  );
 
   const {
     data,
@@ -72,7 +97,13 @@ export function TitleListScreen(): React.ReactElement {
     hasNextPage,
     isFetchingNextPage,
     isRefetching,
-  } = useTitles({ filters });
+  } = useTitles({
+    filters: apiFilters,
+    filterLogic: appliedFilterLogic,
+    search: debouncedQuery.trim().length >= 2 ? debouncedQuery.trim() : undefined,
+    sortBy: "titleName",
+    sortDirection: sortOrder,
+  });
 
   const handleRefresh = useCallback(() => {
     refetch();
@@ -174,40 +205,6 @@ export function TitleListScreen(): React.ReactElement {
 
           <View style={styles.content}>
             
-            <View style={styles.controlsArea}>
-               <View style={{ flex: 1, marginRight: 10 }}>
-                  <SearchInput
-                      value={searchText}
-                      onSearch={setSearchText}
-                      placeholder={t("titleManagement.searchPlaceholder")}
-                  />
-               </View>
-
-               <TouchableOpacity 
-                  onPress={handleCreatePress}
-                  style={[
-                    styles.iconBtn, 
-                    { 
-                      backgroundColor: isDark ? "rgba(219, 39, 119, 0.15)" : theme.surfaceBg, 
-                      borderColor: isDark ? "rgba(236, 72, 153, 0.3)" : theme.borderColor,
-                      shadowOpacity: isDark ? 0 : 0.25,
-                      elevation: isDark ? 0 : 3
-                    }
-                  ]}
-                  activeOpacity={0.7}
-               >
-                  <Add01Icon size={24} color={theme.primary} variant="stroke" strokeWidth={2.5} />
-               </TouchableOpacity>
-            </View>
-
-            {(!isInitialLoading || data) && (
-              <View style={styles.metaRow}>
-                <Text style={[styles.metaText, { color: theme.textMute }]}>
-                  {totalCount} unvan bulundu
-                </Text>
-              </View>
-            )}
-
             {isInitialLoading ? (
                <View style={styles.centerContainer}>
                   <ActivityIndicator size="large" color={theme.primary} />
@@ -222,27 +219,72 @@ export function TitleListScreen(): React.ReactElement {
                   </TouchableOpacity>
                </View>
             ) : (
-                <FlatList
+                <PagedFlatList
                     data={titles}
                     keyExtractor={(item, index) => String(item?.id ?? index)}
                     renderItem={renderItem}
+                    searchValue={searchText}
+                    onSearchChange={setSearchText}
+                    searchPlaceholder={t("titleManagement.searchPlaceholder")}
+                    onOpenFilters={() => {
+                      setDraftFilterRows(appliedFilterRows);
+                      setTempFilterLogic(appliedFilterLogic);
+                      setIsFilterModalVisible(true);
+                    }}
+                    activeFilterCount={apiFilters.length}
+                    toolbarActions={
+                      <>
+                        <TouchableOpacity 
+                          onPress={handleCreatePress}
+                          style={[
+                            styles.iconBtn, 
+                            { 
+                              backgroundColor: isDark ? "rgba(219, 39, 119, 0.15)" : theme.surfaceBg, 
+                              borderColor: isDark ? "rgba(236, 72, 153, 0.3)" : theme.borderColor,
+                            }
+                          ]}
+                          activeOpacity={0.72}
+                        >
+                          <Add01Icon size={24} color={theme.primary} variant="stroke" strokeWidth={2.5} />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.sortToolbarBtn, { backgroundColor: theme.surfaceBg, borderColor: theme.borderColor }]}
+                          onPress={() => setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))}
+                          activeOpacity={0.72}
+                        >
+                          {sortOrder === "asc" ? (
+                            <ArrowUp01Icon size={18} color={theme.primary} strokeWidth={2.2} />
+                          ) : (
+                            <ArrowDown01Icon size={18} color={theme.primary} strokeWidth={2.2} />
+                          )}
+                        </TouchableOpacity>
+                      </>
+                    }
+                    metaContent={
+                      <View style={styles.metaRow}>
+                        <Text style={[styles.metaText, { color: theme.textMute }]}>
+                          {totalCount} unvan bulundu
+                        </Text>
+                      </View>
+                    }
+                    isLoading={isInitialLoading}
+                    refreshing={isRefetching && !isFetchingNextPage}
+                    onRefresh={handleRefresh}
+                    onEndReached={handleEndReached}
+                    onEndReachedThreshold={0.5}
                     contentContainerStyle={{
                         paddingHorizontal: 16,
                         paddingTop: 4,
                         paddingBottom: insets.bottom + 100,
                     }}
                     showsVerticalScrollIndicator={false}
-                    onEndReached={handleEndReached}
-                    onEndReachedThreshold={0.5}
                     initialNumToRender={15}
                     maxToRenderPerBatch={15}
                     windowSize={5}
                     removeClippedSubviews={Platform.OS === 'android'}
-                    refreshing={isRefetching && !isFetchingNextPage}
-                    onRefresh={handleRefresh}
                     ListFooterComponent={
                       isFetchingNextPage ? (
-                        <View style={{ paddingVertical: 20 }}><ActivityIndicator size="small" color={theme.primary} /></View>
+                        <View style={{ paddingVertical: 20 }} />
                       ) : null
                     }
                     ListEmptyComponent={
@@ -256,6 +298,33 @@ export function TitleListScreen(): React.ReactElement {
           </View>
         </KeyboardAvoidingView>
       </View>
+
+      <PagedAdvancedFilterModal
+        visible={isFilterModalVisible}
+        title={t("common.advancedFilter.title", "Gelişmiş Filtre")}
+        filterLogic={tempFilterLogic}
+        onFilterLogicChange={setTempFilterLogic}
+        onClose={() => setIsFilterModalVisible(false)}
+        onClear={() => {
+          setDraftFilterRows([]);
+          setAppliedFilterRows([]);
+          setTempFilterLogic("and");
+          setAppliedFilterLogic("and");
+        }}
+        onApply={() => {
+          setAppliedFilterRows(draftFilterRows);
+          setAppliedFilterLogic(tempFilterLogic);
+          setIsFilterModalVisible(false);
+        }}
+        bottomInset={insets.bottom}
+      >
+        <PagedAdvancedFilterBuilder
+          fields={titleFilterFields}
+          rows={draftFilterRows}
+          onRowsChange={setDraftFilterRows}
+          defaultField={titleFilterFields[0]?.value}
+        />
+      </PagedAdvancedFilterModal>
 
       <TitleFormModal
         visible={modalVisible}
@@ -285,6 +354,15 @@ const styles = StyleSheet.create({
     alignItems: 'center', 
     justifyContent: 'center',
     overflow: 'hidden' 
+  },
+  sortToolbarBtn: {
+    height: 48,
+    width: 48,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 8,
   },
 
   metaRow: { 

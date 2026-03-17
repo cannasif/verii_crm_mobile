@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useMemo } from "react";
+import React, { useCallback, useState, useMemo, useEffect } from "react";
 import {
   View,
   TouchableOpacity,
@@ -13,7 +13,7 @@ import { useTranslation } from "react-i18next";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useCustomers } from "../hooks";
-import type { CustomerDto, PagedFilter } from "../types";
+import type { CustomerDto } from "../types";
 // YENİ İKONLAR
 import { ArrowDown01Icon, Cancel01Icon, CheckmarkCircle02Icon, Search01Icon } from "hugeicons-react-native";
 
@@ -51,16 +51,19 @@ export function CustomerPicker({
 
   const [isOpen, setIsOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
-  const filters: PagedFilter[] | undefined = useMemo(() => {
-    if (searchText.trim().length >= 2) {
-      return [{ column: "name", operator: "contains", value: searchText.trim() }];
-    }
-    return undefined;
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchText.trim());
+    }, 700);
+
+    return () => clearTimeout(handler);
   }, [searchText]);
 
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useCustomers({
-    filters,
+    enabled: isOpen,
+    search: debouncedSearch.length >= 2 ? debouncedSearch : undefined,
   });
 
   const customers = useMemo(() => {

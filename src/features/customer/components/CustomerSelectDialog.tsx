@@ -10,6 +10,13 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
+import {
+  PagedAdvancedFilterBuilder,
+  PagedAdvancedFilterModal,
+  mapPagedAdvancedFilterRowsToFilters,
+  type PagedAdvancedFilterFieldConfig,
+  type PagedAdvancedFilterRow,
+} from "../../../components/paged";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useCustomers } from "../hooks";
@@ -53,6 +60,7 @@ interface CustomerSelectDialogProps {
 }
 
 const PAGE_SIZE = 50;
+const SEARCH_DEBOUNCE_MS = 700;
 const BADGE_ERP = "#8B5CF6";      // Mor (ERP)
 const BADGE_POTENTIAL = "#db2777"; // Pembe (Potansiyel) - Temaya uyduruldu
 
@@ -81,7 +89,77 @@ export function CustomerSelectDialog({
   };
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"erp" | "potential" | "all">("all");
+  const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
+  const [draftFilterRows, setDraftFilterRows] = useState<PagedAdvancedFilterRow[]>([]);
+  const [appliedFilterRows, setAppliedFilterRows] = useState<PagedAdvancedFilterRow[]>([]);
+  const [tempFilterLogic, setTempFilterLogic] = useState<"and" | "or">("and");
+  const [appliedFilterLogic, setAppliedFilterLogic] = useState<"and" | "or">("and");
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery.trim());
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => clearTimeout(timeout);
+  }, [searchQuery]);
+
+  const apiFilters = useMemo(() => {
+    const filters: Array<{ column: string; operator: string; value: string }> = [];
+
+    if (activeTab === "erp") {
+      filters.push({ column: "isERPIntegrated", operator: "eq", value: "true" });
+    } else if (activeTab === "potential") {
+      filters.push({ column: "isERPIntegrated", operator: "eq", value: "false" });
+    }
+
+    filters.push(...mapPagedAdvancedFilterRowsToFilters(appliedFilterRows));
+
+    return filters;
+  }, [activeTab, appliedFilterRows]);
+
+  const customerFilterFields = useMemo<PagedAdvancedFilterFieldConfig[]>(
+    () => [
+      {
+        value: "customerCode",
+        label: t("customer.customerCode"),
+        type: "text",
+        placeholder: t("customer.customerCode"),
+      },
+      {
+        value: "name",
+        label: t("customer.name"),
+        type: "text",
+        placeholder: t("customer.name"),
+      },
+      {
+        value: "phone",
+        label: t("customer.phone"),
+        type: "text",
+        placeholder: t("customer.phone"),
+      },
+      {
+        value: "email",
+        label: t("customer.email"),
+        type: "text",
+        placeholder: t("customer.email"),
+      },
+      {
+        value: "cityName",
+        label: t("customer.modal.citySelection"),
+        type: "text",
+        placeholder: t("customer.modal.citySelection"),
+      },
+      {
+        value: "customerTypeName",
+        label: t("customer.customerType"),
+        type: "text",
+        placeholder: t("customer.customerType"),
+      },
+    ],
+    [t]
+  );
 
   const {
     data: pagesData,
@@ -89,11 +167,14 @@ export function CustomerSelectDialog({
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-    refetch,
   } = useCustomers({
     pageSize: PAGE_SIZE,
+    enabled: open,
+    search: debouncedSearchQuery || undefined,
     sortBy: "Id",
     sortDirection: "asc",
+    filters: apiFilters,
+    filterLogic: appliedFilterLogic,
   });
 
   const allItems = useMemo(
@@ -105,33 +186,20 @@ export function CustomerSelectDialog({
     return allItems.map((c) => ({ ...c, type: getCustomerType(c) }));
   }, [allItems]);
 
-  const filteredItems = useMemo((): CustomerWithType[] => {
-    const q = searchQuery.trim().toLowerCase();
-    let list = itemsWithType;
-    if (activeTab === "erp") list = list.filter((c) => c.type === "erp");
-    else if (activeTab === "potential")
-      list = list.filter((c) => c.type === "potential");
-    if (q) {
-      list = list.filter(
-        (c) =>
-          c.name?.toLowerCase().includes(q) ||
-          (c.customerCode != null &&
-            String(c.customerCode).toLowerCase().includes(q))
-      );
-    }
-    return list;
-  }, [itemsWithType, activeTab, searchQuery]);
+  const filteredItems = useMemo((): CustomerWithType[] => itemsWithType, [itemsWithType]);
 
   useEffect(() => {
     if (!open) {
       setSearchQuery("");
+      setDebouncedSearchQuery("");
       setActiveTab("all");
+      setIsFilterModalVisible(false);
+      setDraftFilterRows([]);
+      setAppliedFilterRows([]);
+      setTempFilterLogic("and");
+      setAppliedFilterLogic("and");
     }
   }, [open]);
-
-  useEffect(() => {
-    if (open) refetch();
-  }, [open, refetch]);
 
   const handleSelect = useCallback(
     (item: CustomerWithType) => {
@@ -157,11 +225,24 @@ export function CustomerSelectDialog({
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const emptyMessage = useMemo((): string => {
-    if (searchQuery.trim()) return t("common.noResults");
+    if (debouncedSearchQuery || apiFilters.length > 0) return t("common.noResults");
     if (activeTab === "erp") return t("customer.selectEmptyErp");
     if (activeTab === "potential") return t("customer.selectEmptyPotential");
     return t("customer.selectEmptyAll");
-  }, [searchQuery, activeTab, t]);
+  }, [debouncedSearchQuery, apiFilters.length, activeTab, t]);
+
+  const handleApplyFilters = useCallback(() => {
+    setAppliedFilterRows(draftFilterRows);
+    setAppliedFilterLogic(tempFilterLogic);
+    setIsFilterModalVisible(false);
+  }, [draftFilterRows, tempFilterLogic]);
+
+  const handleClearFilters = useCallback(() => {
+    setDraftFilterRows([]);
+    setAppliedFilterRows([]);
+    setTempFilterLogic("and");
+    setAppliedFilterLogic("and");
+  }, []);
 
   const renderItem = useCallback(
     ({ item }: { item: CustomerWithType }) => (
@@ -220,16 +301,27 @@ export function CustomerSelectDialog({
           </View>
 
           {/* ARAMA */}
-          <View style={[styles.searchContainer, { backgroundColor: THEME.inputBg }]}>
-            <Search01Icon size={18} color={THEME.textMute} variant="stroke" />
-            <TextInput
-              style={[styles.searchInput, { color: THEME.text }]}
-              placeholder={t("customer.searchPlaceholder")}
-              placeholderTextColor={THEME.textMute}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              autoFocus
-            />
+          <View style={styles.searchRow}>
+            <View style={[styles.searchContainer, { backgroundColor: THEME.inputBg }]}>
+              <Search01Icon size={18} color={THEME.textMute} variant="stroke" />
+              <TextInput
+                style={[styles.searchInput, { color: THEME.text }]}
+                placeholder={t("customer.searchPlaceholder")}
+                placeholderTextColor={THEME.textMute}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoFocus
+              />
+            </View>
+            <TouchableOpacity
+              style={[styles.filterButton, { borderColor: THEME.border, backgroundColor: THEME.inputBg }]}
+              onPress={() => setIsFilterModalVisible(true)}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.filterButtonText, { color: THEME.text }]}>
+                {t("common.filter")}
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* TABS */}
@@ -347,6 +439,24 @@ export function CustomerSelectDialog({
           )}
         </View>
       </View>
+
+      <PagedAdvancedFilterModal
+        visible={isFilterModalVisible}
+        title={t("customer.modal.title")}
+        filterLogic={tempFilterLogic}
+        onFilterLogicChange={setTempFilterLogic}
+        onClose={() => setIsFilterModalVisible(false)}
+        onClear={handleClearFilters}
+        onApply={handleApplyFilters}
+        bottomInset={insets.bottom + 20}
+      >
+        <PagedAdvancedFilterBuilder
+          fields={customerFilterFields}
+          rows={draftFilterRows}
+          onRowsChange={setDraftFilterRows}
+          defaultField="customerCode"
+        />
+      </PagedAdvancedFilterModal>
     </Modal>
   );
 }
@@ -443,6 +553,13 @@ function CustomerSelectRow({
 }
 
 const styles = StyleSheet.create({
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 16,
+    marginTop: 12,
+    gap: 10,
+  },
   modalOverlay: {
     flex: 1,
     justifyContent: "flex-end",
@@ -494,10 +611,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    marginHorizontal: 16,
-    marginTop: 12,
+    flex: 1,
     borderRadius: 12,
     gap: 10,
+  },
+  filterButton: {
+    minHeight: 48,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
   },
   searchInput: {
     flex: 1,
@@ -605,5 +733,80 @@ const styles = StyleSheet.create({
   detailText: {
     fontSize: 13,
     flex: 1,
+  },
+  filterModalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
+  filterModalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  filterModalContent: {
+    borderWidth: 1,
+    borderRadius: 18,
+    padding: 18,
+    gap: 10,
+  },
+  filterModalTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 6,
+  },
+  filterInput: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    fontSize: 14,
+  },
+  filterModalActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 10,
+    marginTop: 8,
+  },
+  logicRow: {
+    marginTop: 4,
+    gap: 8,
+  },
+  logicLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  logicButtons: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  logicButton: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  logicButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  filterActionButton: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  filterActionText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  filterApplyButton: {
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  filterApplyButtonText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "700",
   },
 });

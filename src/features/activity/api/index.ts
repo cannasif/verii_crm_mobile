@@ -60,6 +60,9 @@ const buildQueryParams = (params: PagedParams): Record<string, string | number> 
   if (params.pageSize) {
     queryParams.pageSize = params.pageSize;
   }
+  if (params.search) {
+    queryParams.search = params.search;
+  }
   if (params.sortBy) {
     queryParams.sortBy = params.sortBy;
   }
@@ -68,6 +71,9 @@ const buildQueryParams = (params: PagedParams): Record<string, string | number> 
   }
   if (params.filters && params.filters.length > 0) {
     queryParams.filters = JSON.stringify(params.filters);
+  }
+  if (params.filterLogic) {
+    queryParams.filterLogic = params.filterLogic;
   }
 
   return queryParams;

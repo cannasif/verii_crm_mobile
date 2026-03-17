@@ -6,6 +6,8 @@ const DEFAULT_PAGE_SIZE = 20;
 
 interface UseShippingAddressesParams {
   filters?: PagedFilter[];
+  search?: string;
+  filterLogic?: "and" | "or";
   sortBy?: string;
   sortDirection?: "asc" | "desc";
   pageSize?: number;
@@ -15,6 +17,8 @@ interface UseShippingAddressesParams {
 export function useShippingAddresses(params: UseShippingAddressesParams = {}) {
   const {
     filters: externalFilters,
+    search,
+    filterLogic = "and",
     sortBy = "address",
     sortDirection = "asc",
     pageSize = DEFAULT_PAGE_SIZE,
@@ -28,14 +32,16 @@ export function useShippingAddresses(params: UseShippingAddressesParams = {}) {
   }
 
   return useInfiniteQuery<PagedResponse<ShippingAddressDto>, Error>({
-    queryKey: ["shippingAddress", "list", { filters, sortBy, sortDirection }],
+    queryKey: ["shippingAddress", "list", { filters, search, filterLogic, sortBy, sortDirection }],
     queryFn: ({ pageParam }) =>
       shippingAddressApi.getList({
         pageNumber: pageParam as number,
         pageSize,
+        search,
         sortBy,
         sortDirection,
         filters: filters.length > 0 ? filters : undefined,
+        filterLogic,
       }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => (lastPage.hasNextPage ? lastPage.pageNumber + 1 : undefined),
