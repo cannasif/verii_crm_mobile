@@ -23,6 +23,8 @@ interface PagedFlatListProps<ItemT>
   onOpenFilters?: () => void;
   activeFilterCount?: number;
   toolbarActions?: React.ReactNode;
+  topRightActions?: React.ReactNode;
+  bottomRightActions?: React.ReactNode;
   metaContent?: React.ReactNode;
   afterToolbarContent?: React.ReactNode;
   isLoading?: boolean;
@@ -42,6 +44,8 @@ export function PagedFlatList<ItemT>({
   onOpenFilters,
   activeFilterCount = 0,
   toolbarActions,
+  topRightActions,
+  bottomRightActions,
   metaContent,
   afterToolbarContent,
   isLoading = false,
@@ -65,10 +69,13 @@ export function PagedFlatList<ItemT>({
     accent: "#db2777",
   };
 
+  const resolvedTopRightActions = topRightActions ?? toolbarActions;
+
   const footerNode =
     typeof ListFooterComponent === "function"
       ? <ListFooterComponent />
       : ListFooterComponent;
+
   const emptyNode =
     typeof emptyComponent === "function"
       ? React.createElement(emptyComponent as React.ComponentType)
@@ -87,7 +94,8 @@ export function PagedFlatList<ItemT>({
 
   return (
     <View style={styles.container}>
-      <View style={styles.toolbar}>
+      {/* 1. SATIR: SEARCH + GRID/LIST */}
+      <View style={styles.toolbarTopRow}>
         <View style={styles.searchWrap}>
           <PagedSearchInput
             value={searchValue}
@@ -96,41 +104,48 @@ export function PagedFlatList<ItemT>({
           />
         </View>
 
-        {onOpenFilters ? (
-          <TouchableOpacity
-            style={[
-              styles.filterButton,
-              {
-                backgroundColor: theme.softBg,
-                borderColor: activeFilterCount > 0 ? theme.accent : theme.border,
-              },
-            ]}
-            onPress={onOpenFilters}
-            activeOpacity={0.72}
-          >
-            <FilterIcon
-              size={18}
-              color={activeFilterCount > 0 ? theme.accent : theme.textMuted}
-              strokeWidth={2.1}
-            />
-            <Text
-              style={[
-                styles.filterButtonText,
-                { color: activeFilterCount > 0 ? theme.accent : theme.textMuted },
-              ]}
-            >
-              {t("common.filter")}
-            </Text>
-            {activeFilterCount > 0 ? (
-              <View style={[styles.filterBadge, { backgroundColor: theme.accent }]}>
-                <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
-              </View>
-            ) : null}
-          </TouchableOpacity>
+        {resolvedTopRightActions ? (
+          <View style={styles.topRightActions}>{resolvedTopRightActions}</View>
         ) : null}
-
-        {toolbarActions ? <View style={styles.toolbarActions}>{toolbarActions}</View> : null}
       </View>
+
+      {/* 2. SATIR: FILTER + SORT */}
+      {(onOpenFilters || bottomRightActions) ? (
+        <View style={styles.toolbarBottomRow}>
+          <View style={styles.bottomRowRight}>
+            {onOpenFilters ? (
+                <TouchableOpacity
+  style={styles.filterInlineBtn}
+  onPress={onOpenFilters}
+  activeOpacity={0.72}
+>
+  <FilterIcon
+    size={14}
+    color={activeFilterCount > 0 ? theme.accent : theme.textMuted}
+    strokeWidth={1.9}
+  />
+  <Text
+    style={[
+      styles.filterInlineText,
+      { color: activeFilterCount > 0 ? theme.accent : theme.textMuted },
+    ]}
+  >
+    {t("common.filter", "Filtrele")}
+  </Text>
+  {activeFilterCount > 0 ? (
+    <Text style={[styles.filterInlineCount, { color: theme.accent }]}>
+      {activeFilterCount}
+    </Text>
+  ) : null}
+</TouchableOpacity>
+            ) : null}
+
+            {bottomRightActions ? (
+              <View style={styles.bottomRightActions}>{bottomRightActions}</View>
+            ) : null}
+          </View>
+        </View>
+      ) : null}
 
       {afterToolbarContent ? <View style={styles.afterToolbar}>{afterToolbarContent}</View> : null}
       {metaContent ? <View style={styles.metaRow}>{metaContent}</View> : null}
@@ -160,66 +175,83 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  toolbar: {
+
+  toolbarTopRow: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
     paddingTop: 14,
     paddingBottom: 10,
   },
+
+  toolbarBottomRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+  },
+
   searchWrap: {
     flex: 1,
   },
-  filterButton: {
-    marginLeft: 10,
-    height: 48,
-    borderRadius: 14,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  filterButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    marginLeft: 8,
-  },
-  filterBadge: {
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: 8,
-    paddingHorizontal: 4,
-  },
-  filterBadgeText: {
-    color: "#FFFFFF",
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  toolbarActions: {
+
+  topRightActions: {
     flexDirection: "row",
     alignItems: "center",
     marginLeft: 10,
   },
+
+  bottomRowRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+  },
+
+bottomRightActions: {
+  flexDirection: "row",
+  alignItems: "center",
+  marginLeft: 14,
+},
+
   afterToolbar: {
     paddingHorizontal: 16,
     paddingBottom: 12,
   },
+
   metaRow: {
     paddingHorizontal: 18,
     paddingBottom: 10,
   },
+
   loaderWrap: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 60,
   },
+
   footerLoader: {
     paddingVertical: 20,
     alignItems: "center",
     justifyContent: "center",
   },
+  filterInlineBtn: {
+  flexDirection: "row",
+  alignItems: "center",
+  paddingHorizontal: 2,
+  paddingVertical: 2,
+},
+
+filterInlineText: {
+  fontSize: 12,
+  fontWeight: "500",
+  marginLeft: 6,
+  letterSpacing: 0.1,
+},
+
+filterInlineCount: {
+  fontSize: 11,
+  fontWeight: "600",
+  marginLeft: 5,
+},
 });

@@ -193,7 +193,7 @@ export function CustomerListScreen() {
     [viewMode, router]
   );
 
-  const toolbarActions = (
+  const topRightActions = (
     <>
       <TouchableOpacity
         onPress={handleCreatePress}
@@ -257,25 +257,25 @@ export function CustomerListScreen() {
           </View>
         </TouchableWithoutFeedback>
       </View>
-
-      <TouchableOpacity
-        style={[
-          styles.sortToolbarBtn,
-          {
-            backgroundColor: theme.surfaceBgSoft,
-            borderColor: theme.softBorder,
-          },
-        ]}
-        onPress={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
-      >
-        {sortOrder === "desc" ? (
-          <ArrowDown01Icon size={18} color={theme.primary} strokeWidth={2.2} />
-        ) : (
-          <ArrowUp01Icon size={18} color={theme.primary} strokeWidth={2.2} />
-        )}
-      </TouchableOpacity>
     </>
   );
+
+  const bottomRightActions = (
+  <TouchableOpacity
+    style={styles.sortInlineBtn}
+    onPress={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
+    activeOpacity={0.72}
+  >
+    {sortOrder === "desc" ? (
+      <ArrowDown01Icon size={14} color={theme.textMute} strokeWidth={2} />
+    ) : (
+      <ArrowUp01Icon size={14} color={theme.textMute} strokeWidth={2} />
+    )}
+    <Text style={[styles.sortInlineText, { color: theme.textMute }]}>
+      {t("common.sort", "Sıralama")}
+    </Text>
+  </TouchableOpacity>
+);
 
   return (
     <View style={[styles.container, { backgroundColor: mainBg }]}>
@@ -304,7 +304,8 @@ export function CustomerListScreen() {
             searchPlaceholder={t("customer.search")}
             onOpenFilters={openFilterModal}
             activeFilterCount={apiFilters.length}
-            toolbarActions={toolbarActions}
+            topRightActions={topRightActions}
+            bottomRightActions={bottomRightActions}
             metaContent={
               <View style={styles.metaRow}>
                 <Text style={[styles.metaText, { color: theme.textMute }]}>
@@ -643,4 +644,17 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
   },
+  sortInlineBtn: {
+  flexDirection: "row",
+  alignItems: "center",
+  paddingHorizontal: 2,
+  paddingVertical: 2,
+},
+
+sortInlineText: {
+  fontSize: 12,
+  fontWeight: "500",
+  marginLeft: 6,
+  letterSpacing: 0.1,
+}
 });
