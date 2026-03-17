@@ -2,7 +2,6 @@ import React, { useCallback, useMemo, useState, useEffect } from "react";
 import { 
   View, 
   StyleSheet, 
-  ActivityIndicator,
   TouchableOpacity, 
   Platform, 
   Text,
@@ -109,10 +108,7 @@ export function ContactListScreen(): React.ReactElement {
         type: "select",
         operators: ["eq"],
         placeholder: t("contact.filterHasPhone", "Telefonu Olanlar"),
-        options: [
-          { value: "true", label: t("common.true", "Evet") },
-          { value: "false", label: t("common.false", "Hayır") },
-        ],
+        options: [{ value: "true", label: t("common.true", "Evet") }],
       },
       {
         value: "__hasEmail",
@@ -120,10 +116,7 @@ export function ContactListScreen(): React.ReactElement {
         type: "select",
         operators: ["eq"],
         placeholder: t("contact.filterHasEmail", "E-postası Olanlar"),
-        options: [
-          { value: "true", label: t("common.true", "Evet") },
-          { value: "false", label: t("common.false", "Hayır") },
-        ],
+        options: [{ value: "true", label: t("common.true", "Evet") }],
       },
     ],
     [customersList, t]
