@@ -395,19 +395,15 @@ function scoreStock(stock: StockGetDto, query: string): number {
 }
 
 function filterAndRankStocksLocal(stocks: StockGetDto[], query: string): StockGetDto[] {
-  const uniqueStocks = stocks.filter((stock, index, array) => {
-    return array.findIndex((candidate) => candidate.id === stock.id) === index;
-  });
-
   const normalizedQuery = normalizeSearchText(query);
 
   if (!normalizedQuery) {
-    return [...uniqueStocks].sort((a, b) =>
+    return [...stocks].sort((a, b) =>
       (a.stockName || "").localeCompare(b.stockName || "", "tr")
     );
   }
 
-  return uniqueStocks
+  return stocks
     .map((stock) => ({
       stock,
       score: scoreStock(stock, normalizedQuery),
