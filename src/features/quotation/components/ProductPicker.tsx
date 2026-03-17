@@ -832,10 +832,6 @@ function ProductPickerInner(
   }, [parentVisible]);
 
   useEffect(() => {
-    if (isOpen) endReachedEligibleRef.current = true;
-  }, [isOpen]);
-
-  useEffect(() => {
     const timeout = setTimeout(() => {
       setDebouncedSearchText(searchText);
     }, 300);
@@ -882,16 +878,10 @@ function ProductPickerInner(
       return [];
     }
 
-    const rawStocks = data?.pages.flatMap((page) => page.items) ?? [];
-    const seenIds = new Set<number>();
-    const uniqueStocks = rawStocks.filter((item) => {
-      if (seenIds.has(item.id)) return false;
-      seenIds.add(item.id);
-      return true;
-    });
+    const rawStocks = data?.pages.flatMap((page) => page.items) || [];
     const advancedFilteredStocks = hasAdvancedFilters
-      ? applyAdvancedFiltersLocally(uniqueStocks, apiFilters, advancedFilterLogic ?? "or")
-      : uniqueStocks;
+      ? applyAdvancedFiltersLocally(rawStocks, apiFilters, advancedFilterLogic ?? "or")
+      : rawStocks;
 
     if (debouncedSearchText.trim().length >= 2) {
       return filterAndRankStocksLocal(advancedFilteredStocks, debouncedSearchText);
@@ -900,14 +890,7 @@ function ProductPickerInner(
     return hasAdvancedFilters
       ? filterAndRankStocksLocal(advancedFilteredStocks, debouncedSearchText)
       : advancedFilteredStocks;
-  }, [
-    apiFilters,
-    advancedFilterLogic,
-    data?.pages,
-    debouncedSearchText,
-    hasAdvancedFilters,
-    shouldHideStaleResults,
-  ]);
+  }, [appliedFilterRows, data, debouncedSearchText, hasAdvancedFilters, shouldHideStaleResults]);
 
   const handleOpen = useCallback(() => {
     if (!disabled) {
@@ -964,7 +947,6 @@ function ProductPickerInner(
 
     if (!isOpen || !isFilteredMode) return;
     if (shouldHideStaleResults || isFetchingNextPage || !hasNextPage) return;
-    if (hasAdvancedFilters) return;
     if (stocks.length >= 10) return;
     if (pageCount === 0) return;
     if (autoPrefetchPageRef.current === pageCount) return;
@@ -1485,9 +1467,6 @@ function ProductPickerInner(
                     keyExtractor={(item) => String(item.id)}
                     onEndReached={handleEndReached}
                     onEndReachedThreshold={0.5}
-                    onScrollBeginDrag={() => {
-                      endReachedEligibleRef.current = true;
-                    }}
                     onMomentumScrollBegin={() => {
                       endReachedEligibleRef.current = true;
                     }}

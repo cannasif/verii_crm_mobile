@@ -91,32 +91,22 @@ export const stockApi = {
       return { items: [], totalCount: 0, pageNumber: 1, pageSize: 20, totalPages: 0, hasPreviousPage: false, hasNextPage: false };
     }
 
-    const shaped = payload as Record<string, unknown>;
+    const shaped = payload as any;
     const rawItems = Array.isArray(shaped.items) ? shaped.items : (shaped.Items || []);
-    const requestedPage = params.pageNumber ?? 1;
-    const requestedSize = params.pageSize ?? 20;
-
+    
+    // Type Safe Mapping
     const items = rawItems
-      .map((item: unknown) => normalizeStock(item))
-      .filter((item: StockGetDto | null): item is StockGetDto => item !== null);
-
-    const totalCount = toNumber(shaped.totalCount ?? shaped.TotalCount) ?? items.length;
-    const pageSizeFromApi = toNumber(shaped.pageSize ?? shaped.PageSize) ?? requestedSize;
-    const totalPages = toNumber(shaped.totalPages ?? shaped.TotalPages) ?? Math.max(1, Math.ceil(totalCount / pageSizeFromApi));
-    const hasNextFromApi = shaped.hasNextPage ?? shaped.HasNextPage;
-    const hasNextPage =
-      typeof hasNextFromApi === "boolean"
-        ? hasNextFromApi
-        : requestedPage * requestedSize < totalCount;
+      .map((item: any) => normalizeStock(item))
+      .filter((item: any): item is StockGetDto => item !== null);
 
     return {
       items,
-      totalCount,
-      pageNumber: requestedPage,
-      pageSize: pageSizeFromApi,
-      totalPages,
-      hasPreviousPage: Boolean(shaped.hasPreviousPage ?? shaped.HasPreviousPage),
-      hasNextPage,
+      totalCount: shaped.totalCount ?? shaped.TotalCount ?? items.length,
+      pageNumber: shaped.pageNumber ?? shaped.PageNumber ?? 1,
+      pageSize: shaped.pageSize ?? shaped.PageSize ?? 20,
+      totalPages: shaped.totalPages ?? shaped.TotalPages ?? 1,
+      hasPreviousPage: shaped.hasPreviousPage ?? false,
+      hasNextPage: shaped.hasNextPage ?? false,
     };
   },
   
