@@ -9,6 +9,7 @@ interface UseStocksParams {
   sortBy?: string;
   sortDirection?: "asc" | "desc";
   pageSize?: number;
+  enabled?: boolean;
 }
 
 export function useStocks(params: UseStocksParams = {}) {
@@ -19,6 +20,7 @@ export function useStocks(params: UseStocksParams = {}) {
     sortBy = "stockName",
     sortDirection = "asc",
     pageSize = 20,
+    enabled = true,
   } = params;
 
   const normalizedSearch =
@@ -38,6 +40,7 @@ export function useStocks(params: UseStocksParams = {}) {
         filters,
         filterLogic,
       }),
+    enabled,
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
       return lastPage.hasNextPage ? lastPage.pageNumber + 1 : undefined;

@@ -1,16 +1,24 @@
 import React, { useCallback, useMemo, useState, useEffect } from "react";
-import { View, StyleSheet, FlatList, ActivityIndicator } from "react-native";
+import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenHeader } from "../../../components/navigation";
 import { Text } from "../../../components/ui/text";
-import { CustomRefreshControl } from "../../../components/CustomRefreshControl";
+import {
+  PagedAdvancedFilterBuilder,
+  PagedAdvancedFilterModal,
+  PagedFlatList,
+  mapPagedAdvancedFilterRowsToFilters,
+  type PagedAdvancedFilterFieldConfig,
+  type PagedAdvancedFilterRow,
+} from "../../../components/paged";
 import { useUIStore } from "../../../store/ui";
 import { useStocks } from "../hooks";
-import { SearchInput, StockCard } from "../components";
+import { StockCard } from "../components";
 import type { StockGetDto, PagedResponse } from "../types";
+import { ArrowDown01Icon, ArrowUp01Icon } from "hugeicons-react-native";
 
 export function StockListScreen(): React.ReactElement {
   const { t } = useTranslation();
@@ -20,6 +28,12 @@ export function StockListScreen(): React.ReactElement {
 
   const [searchText, setSearchText] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
+  const [draftFilterRows, setDraftFilterRows] = useState<PagedAdvancedFilterRow[]>([]);
+  const [appliedFilterRows, setAppliedFilterRows] = useState<PagedAdvancedFilterRow[]>([]);
+  const [tempFilterLogic, setTempFilterLogic] = useState<"and" | "or">("and");
+  const [appliedFilterLogic, setAppliedFilterLogic] = useState<"and" | "or">("and");
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -30,6 +44,20 @@ export function StockListScreen(): React.ReactElement {
   }, [searchText]);
 
   const contentBackground = themeMode === "dark" ? "rgba(20, 10, 30, 0.5)" : colors.background;
+  const apiFilters = useMemo(
+    () => mapPagedAdvancedFilterRowsToFilters(appliedFilterRows),
+    [appliedFilterRows]
+  );
+
+  const stockFilterFields = useMemo<PagedAdvancedFilterFieldConfig[]>(
+    () => [
+      { value: "erpStockCode", label: t("stock.erpStockCode", "ERP Stok Kodu"), type: "text", placeholder: t("stock.erpStockCode", "ERP Stok Kodu") },
+      { value: "stockName", label: t("stock.stockName", "Stok Adı"), type: "text", placeholder: t("stock.stockName", "Stok Adı") },
+      { value: "unit", label: t("stock.unit", "Birim"), type: "text", placeholder: t("stock.unit", "Birim") },
+      { value: "ureticiKodu", label: t("stock.manufacturerCode", "Üretici Kodu"), type: "text", placeholder: t("stock.manufacturerCode", "Üretici Kodu") },
+    ],
+    [t]
+  );
 
   const {
     data,
@@ -41,7 +69,11 @@ export function StockListScreen(): React.ReactElement {
     isFetchingNextPage,
     isRefetching,
   } = useStocks({
+    filters: apiFilters,
+    filterLogic: appliedFilterLogic,
     search: debouncedQuery.trim().length >= 2 ? debouncedQuery.trim() : undefined,
+    sortBy: "stockName",
+    sortDirection: sortOrder,
   });
 
   const handleRefresh = useCallback(() => {
@@ -55,6 +87,7 @@ export function StockListScreen(): React.ReactElement {
         .filter((item): item is StockGetDto => item != null) || []
     );
   }, [data]);
+  const totalCount = data?.pages?.[0]?.totalCount || stocks.length;
 
   const handleStockPress = useCallback(
     (stock: StockGetDto) => {
@@ -80,12 +113,8 @@ export function StockListScreen(): React.ReactElement {
 
   const renderFooter = useCallback(() => {
     if (!isFetchingNextPage) return null;
-    return (
-      <View style={styles.footer}>
-        <ActivityIndicator size="small" color={colors.accent} />
-      </View>
-    );
-  }, [isFetchingNextPage, colors]);
+    return <View style={styles.footer} />;
+  }, [isFetchingNextPage]);
 
   const renderEmpty = useCallback(() => {
     if (isLoading) return null;
@@ -104,44 +133,88 @@ export function StockListScreen(): React.ReactElement {
       <View style={[styles.container, { backgroundColor: colors.header }]}>
         <ScreenHeader title={t("stock.list")} showBackButton />
         <View style={[styles.content, { backgroundColor: contentBackground }]}>
-          <View style={[styles.searchContainer, { paddingTop: insets.top > 0 ? 0 : 20 }]}>
-            <SearchInput
-              value={searchText}
-              onSearch={setSearchText}
-              placeholder={t("stock.searchPlaceholder")}
-            />
-          </View>
-
-          {isLoading && !data ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.accent} />
-            </View>
-          ) : isError ? (
+          {isError ? (
             <View style={styles.errorContainer}>
               <Text style={[styles.errorText, { color: colors.error }]}>{t("common.error")}</Text>
             </View>
           ) : (
-            <FlatList
+            <PagedFlatList
               data={stocks}
               renderItem={renderItem}
               keyExtractor={(item) => String(item.id)}
+              searchValue={searchText}
+              onSearchChange={setSearchText}
+              searchPlaceholder={t("stock.searchPlaceholder")}
+              onOpenFilters={() => {
+                setDraftFilterRows(appliedFilterRows);
+                setTempFilterLogic(appliedFilterLogic);
+                setIsFilterModalVisible(true);
+              }}
+              activeFilterCount={apiFilters.length}
+              toolbarActions={
+                <TouchableOpacity
+                  style={[styles.sortToolbarBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
+                  onPress={() => setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))}
+                  activeOpacity={0.72}
+                >
+                  {sortOrder === "asc" ? (
+                    <ArrowUp01Icon size={18} color={colors.accent} strokeWidth={2.2} />
+                  ) : (
+                    <ArrowDown01Icon size={18} color={colors.accent} strokeWidth={2.2} />
+                  )}
+                </TouchableOpacity>
+              }
+              metaContent={
+                <View style={styles.metaRow}>
+                  <Text style={[styles.metaText, { color: colors.textSecondary }]}>
+                    {totalCount} stok bulundu
+                  </Text>
+                </View>
+              }
+              isLoading={Boolean(isLoading && !data)}
+              refreshing={isRefetching}
+              onRefresh={handleRefresh}
+              onEndReached={handleEndReached}
+              onEndReachedThreshold={0.5}
               contentContainerStyle={[
                 styles.listContent,
                 stocks.length === 0 && styles.listContentEmpty,
                 { paddingBottom: insets.bottom + 20 },
               ]}
-              onEndReached={handleEndReached}
-              onEndReachedThreshold={0.5}
               ListFooterComponent={renderFooter}
               ListEmptyComponent={renderEmpty}
-              refreshControl={
-                <CustomRefreshControl refreshing={isRefetching} onRefresh={handleRefresh} />
-              }
               showsVerticalScrollIndicator={false}
             />
           )}
         </View>
       </View>
+
+      <PagedAdvancedFilterModal
+        visible={isFilterModalVisible}
+        title={t("common.advancedFilter.title", "Gelişmiş Filtre")}
+        filterLogic={tempFilterLogic}
+        onFilterLogicChange={setTempFilterLogic}
+        onClose={() => setIsFilterModalVisible(false)}
+        onClear={() => {
+          setDraftFilterRows([]);
+          setAppliedFilterRows([]);
+          setTempFilterLogic("and");
+          setAppliedFilterLogic("and");
+        }}
+        onApply={() => {
+          setAppliedFilterRows(draftFilterRows);
+          setAppliedFilterLogic(tempFilterLogic);
+          setIsFilterModalVisible(false);
+        }}
+        bottomInset={insets.bottom}
+      >
+        <PagedAdvancedFilterBuilder
+          fields={stockFilterFields}
+          rows={draftFilterRows}
+          onRowsChange={setDraftFilterRows}
+          defaultField={stockFilterFields[0]?.value}
+        />
+      </PagedAdvancedFilterModal>
     </>
   );
 }
@@ -154,10 +227,6 @@ const styles = StyleSheet.create({
     flex: 1,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-  },
-  searchContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
   },
   listContent: {
     paddingHorizontal: 20,
@@ -183,6 +252,25 @@ const styles = StyleSheet.create({
   footer: {
     paddingVertical: 20,
     alignItems: "center",
+  },
+  metaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  metaText: {
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 0.2,
+  },
+  sortToolbarBtn: {
+    height: 48,
+    width: 48,
+    borderRadius: 14,
+    borderWidth: 1.2,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 10,
   },
   emptyContainer: {
     flex: 1,
