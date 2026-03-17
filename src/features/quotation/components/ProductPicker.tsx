@@ -31,8 +31,7 @@ import { PickerModal } from "./PickerModal";
 import {
   useStocks,
 } from "../../stocks/hooks";
-import { buildAdvancedStockFilters } from "../../stocks/utils/buildAdvancedStockFilters";
-import type { StockGetDto, StockRelationDto, PagedFilter } from "../../stocks/types";
+import type { StockGetDto, StockRelationDto } from "../../stocks/types";
 
 const STOCK_FILTER_COLUMNS = [
   { value: "Id", type: "number", labelKey: "filterId" },
@@ -136,29 +135,23 @@ function getStockColumnValue(stock: StockGetDto, column: StockFilterColumnValue)
   }
 }
 
-function applyAdvancedFiltersLocally(
-  stocks: StockGetDto[],
-  filters: PagedFilter[],
-  filterLogic: "and" | "or" = "or"
-): StockGetDto[] {
-  const activeFilters = filters.filter((filter) => `${filter.value ?? ""}`.trim().length > 0);
-  if (activeFilters.length === 0) return stocks;
+function applyAdvancedFilterRowsLocally(stocks: StockGetDto[], rows: AdvancedFilterRow[]): StockGetDto[] {
+  const validRows = rows.filter((row) => row.value.trim().length > 0);
+  if (validRows.length === 0) return stocks;
 
-  return stocks.filter((stock) => {
-    const matches = activeFilters.map((filter) => {
-      const columnValue = normalizeSearchText(
-        getStockColumnValue(stock, filter.column as StockFilterColumnValue)
-      );
-      const filterValue = normalizeSearchText(String(filter.value ?? ""));
+  return stocks.filter((stock) =>
+    validRows.every((row) => {
+      const columnValue = normalizeSearchText(getStockColumnValue(stock, row.column));
+      const filterValue = normalizeSearchText(row.value);
 
       if (!columnValue || !filterValue) return false;
 
-      if (getColumnConfig(filter.column as StockFilterColumnValue).type === "number") {
+      if (getColumnConfig(row.column).type === "number") {
         const stockNumber = Number(columnValue);
         const filterNumber = Number(filterValue);
         if (!Number.isFinite(stockNumber) || !Number.isFinite(filterNumber)) return false;
 
-        switch (filter.operator) {
+        switch (row.operator) {
           case "gt":
             return stockNumber > filterNumber;
           case "gte":
@@ -172,7 +165,7 @@ function applyAdvancedFiltersLocally(
         }
       }
 
-      switch (filter.operator) {
+      switch (row.operator) {
         case "startsWith":
           return columnValue.startsWith(filterValue);
         case "endsWith":
@@ -180,13 +173,13 @@ function applyAdvancedFiltersLocally(
         case "eq":
           return columnValue === filterValue;
         case "contains":
-        default:
-          return columnValue.includes(filterValue);
+        default: {
+          const tokens = filterValue.split(/\s+/).filter(Boolean);
+          return tokens.some((token) => columnValue.includes(token));
+        }
       }
-    });
-
-    return filterLogic === "and" ? matches.every(Boolean) : matches.some(Boolean);
-  });
+    })
+  );
 }
 
 export interface ProductPickerRef {
@@ -791,7 +784,6 @@ function ProductPickerInner(
   const [columnPickerRowId, setColumnPickerRowId] = useState<string | null>(null);
   const [operatorPickerRowId, setOperatorPickerRowId] = useState<string | null>(null);
   const endReachedLockRef = useRef(false);
-  const endReachedEligibleRef = useRef(false);
 
   const relatedMandatory = useMemo(
     () => (relatedStocksSelection?.stock.parentRelations ?? []).filter((r) => r.isMandatory),
@@ -838,15 +830,13 @@ function ProductPickerInner(
       }))
       .filter((row) => row.value.length > 0);
 
-    return buildAdvancedStockFilters(entries);
+    return {
+      filters: entries,
+      filterLogic: entries.length > 0 ? "and" : undefined,
+    } as const;
   }, [appliedFilterRows]);
 
   const hasAdvancedFilters = apiFilters.length > 0;
-
-  const filterQueryKey = useMemo(
-    () => JSON.stringify({ apiFilters, advancedFilterLogic }),
-    [apiFilters, advancedFilterLogic]
-  );
 
   const { data, isLoading, isFetching, fetchNextPage, hasNextPage, isFetchingNextPage } = useStocks(
     { filters: apiFilters, filterLogic: advancedFilterLogic },
@@ -868,7 +858,7 @@ function ProductPickerInner(
 
     const rawStocks = data?.pages.flatMap((page) => page.items) || [];
     const advancedFilteredStocks = hasAdvancedFilters
-      ? applyAdvancedFiltersLocally(rawStocks, apiFilters, advancedFilterLogic ?? "or")
+      ? applyAdvancedFilterRowsLocally(rawStocks, appliedFilterRows)
       : rawStocks;
 
     if (debouncedSearchText.trim().length >= 2) {
@@ -910,23 +900,16 @@ function ProductPickerInner(
   }, [onChange]);
 
   const handleEndReached = useCallback(() => {
-    if (!endReachedEligibleRef.current) return;
     if (endReachedLockRef.current) return;
     if (hasNextPage && !isFetchingNextPage) {
       endReachedLockRef.current = true;
-      endReachedEligibleRef.current = false;
       fetchNextPage();
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   useEffect(() => {
     endReachedLockRef.current = false;
-    endReachedEligibleRef.current = false;
-  }, [debouncedSearchText, hasAdvancedFilters, filterQueryKey]);
-
-  useEffect(() => {
-    if (!isFetchingNextPage) endReachedLockRef.current = false;
-  }, [isFetchingNextPage]);
+  }, [data?.pages.length, searchText, debouncedSearchText, hasAdvancedFilters]);
 
   const handleShowRelationDetail = useCallback((stock: StockGetDto, relations: StockRelationDto[]) => {
     setRelationDetailStock(stock);
@@ -1422,9 +1405,6 @@ function ProductPickerInner(
                     keyExtractor={(item) => String(item.id)}
                     onEndReached={handleEndReached}
                     onEndReachedThreshold={0.5}
-                    onMomentumScrollBegin={() => {
-                      endReachedEligibleRef.current = true;
-                    }}
                     keyboardShouldPersistTaps="handled"
                     ListFooterComponent={
                       isFetchingNextPage ? (

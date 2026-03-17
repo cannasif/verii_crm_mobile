@@ -70,17 +70,33 @@ const normalizeStock = (raw: unknown): StockGetDto | null => {
 
 export const stockApi = {
   getList: async (params: PagedParams = {}): Promise<PagedResponse<StockGetDto>> => {
-    const body = {
-      pageNumber: params.pageNumber ?? 1,
-      pageSize: params.pageSize ?? 20,
-      sortBy: params.sortBy || "StockName",
-      sortDirection: params.sortDirection || "asc",
-      filterLogic: params.filterLogic,
-      filters: params.filters ?? [],
-    };
+    const hasFilters = Array.isArray(params.filters) && params.filters.length > 0;
+    let response;
 
-    console.log("📡 API REQUEST (POST):", "/api/Stock/search", body);
-    const response = await apiClient.post<PagedApiResponse<StockGetDto>>("/api/Stock/search", body);
+    if (hasFilters) {
+      const body = {
+        pageNumber: params.pageNumber ?? 1,
+        pageSize: params.pageSize ?? 20,
+        sortBy: params.sortBy || "StockName",
+        sortDirection: params.sortDirection || "asc",
+        filterLogic: params.filterLogic,
+        filters: params.filters,
+      };
+
+      console.log("📡 API REQUEST (Filtreli POST):", "/api/Stock/search", body);
+      response = await apiClient.post<PagedApiResponse<StockGetDto>>("/api/Stock/search", body);
+    } else {
+      const queryParams = new URLSearchParams();
+      if (params.pageNumber) queryParams.append("PageNumber", params.pageNumber.toString());
+      if (params.pageSize) queryParams.append("PageSize", params.pageSize.toString());
+      queryParams.append("SortBy", params.sortBy || "StockName");
+      queryParams.append("SortDirection", params.sortDirection || "asc");
+      if (params.filterLogic) queryParams.append("FilterLogic", params.filterLogic);
+
+      const fullPath = `/api/Stock?${queryParams.toString()}`;
+      console.log("📡 API REQUEST:", fullPath);
+      response = await apiClient.get<PagedApiResponse<StockGetDto>>(fullPath);
+    }
 
     if (!response.data.success) {
       throw new Error(response.data.message || "Hata");

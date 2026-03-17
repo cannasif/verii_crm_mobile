@@ -1,11 +1,12 @@
-import React, { useCallback, memo, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   View,
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  FlatList,
+  ScrollView,
   useWindowDimensions,
+  ScrollView,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -32,7 +33,6 @@ import { tempQuickQuotationRepository } from "../repositories/tempQuotattion.rep
 import { createBuiltInTempQuickQuotationReportPdf } from "../utils/createBuiltInTempQuickQuotationReportPdf";
 import type { QuotationLineFormState } from "../../quotation/types";
 import { canPreviewPdfInApp, openPdfExternallyAsync } from "../../../lib/pdf";
-import type { TempQuotattionLineGetDto, TempQuotattionExchangeLineGetDto } from "../models/tempQuotattion.model";
 
 function formatDate(value?: string | null): string {
   if (!value) return "-";
@@ -95,162 +95,6 @@ function mapTempLineToFormState(
     approvalStatus: 0,
   };
 }
-
-type LineRowProps = {
-  item: TempQuotattionLineGetDto;
-  index: number;
-  currencyCode: string;
-  colors: {
-    cardBg: string;
-    border: string;
-    shadow: string;
-    text: string;
-    muted: string;
-    brand: string;
-    brandSoft: string;
-    borderStrong: string;
-    softBg: string;
-  };
-};
-
-const LineRow = memo(function LineRow({ item, index, currencyCode, colors }: LineRowProps) {
-  return (
-    <View
-      style={[
-        styles.lineCard,
-        {
-          backgroundColor: colors.cardBg,
-          borderColor: colors.border,
-          shadowColor: colors.shadow,
-        },
-      ]}
-    >
-      <View style={styles.lineCardTop}>
-        <View style={{ flex: 1, paddingRight: 8 }}>
-          <Text
-            style={[styles.lineCode, { color: colors.brand }]}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
-            {item.productCode}
-          </Text>
-          <Text
-            style={[styles.lineName, { color: colors.text }]}
-            numberOfLines={3}
-            ellipsizeMode="tail"
-          >
-            {item.productName || "-"}
-          </Text>
-        </View>
-        <View
-          style={[
-            styles.lineIndexBadge,
-            {
-              backgroundColor: colors.brandSoft,
-              borderColor: colors.borderStrong,
-            },
-          ]}
-        >
-          <Text style={[styles.lineIndexText, { color: colors.brand }]}>
-            {index + 1}
-          </Text>
-        </View>
-      </View>
-      <View style={styles.metricGrid}>
-        <View
-          style={[
-            styles.metricBox,
-            { backgroundColor: colors.softBg, borderColor: colors.border },
-          ]}
-        >
-          <Text style={[styles.metricLabel, { color: colors.muted }]}>Miktar</Text>
-          <Text style={[styles.metricValue, { color: colors.text }]} numberOfLines={1}>
-            {formatNumber(item.quantity, 2)}
-          </Text>
-        </View>
-        <View
-          style={[
-            styles.metricBox,
-            { backgroundColor: colors.softBg, borderColor: colors.border },
-          ]}
-        >
-          <Text style={[styles.metricLabel, { color: colors.muted }]}>Birim Fiyat</Text>
-          <Text
-            style={[styles.metricValue, { color: colors.text }]}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.9}
-          >
-            {formatNumber(item.unitPrice)} {currencyCode}
-          </Text>
-        </View>
-        <View
-          style={[
-            styles.metricBox,
-            { backgroundColor: colors.softBg, borderColor: colors.border },
-          ]}
-        >
-          <Text style={[styles.metricLabel, { color: colors.muted }]}>İskonto</Text>
-          <Text style={[styles.metricValue, { color: colors.text }]} numberOfLines={1}>
-            %{formatNumber(item.discountRate1 ?? 0, 2)}
-          </Text>
-        </View>
-        <View
-          style={[
-            styles.metricBox,
-            { backgroundColor: colors.softBg, borderColor: colors.border },
-          ]}
-        >
-          <Text style={[styles.metricLabel, { color: colors.muted }]}>KDV</Text>
-          <Text style={[styles.metricValue, { color: colors.text }]} numberOfLines={1}>
-            %{formatNumber(item.vatRate ?? 0, 2)}
-          </Text>
-        </View>
-      </View>
-      <View
-        style={[
-          styles.totalRow,
-          {
-            backgroundColor: colors.brandSoft,
-            borderColor: colors.borderStrong,
-          },
-        ]}
-      >
-        <Text style={[styles.totalLabel, { color: colors.muted }]}>Satır Toplamı</Text>
-        <Text
-          style={[styles.totalValue, { color: colors.brand }]}
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.9}
-        >
-          {formatNumber(item.lineGrandTotal)} {currencyCode}
-        </Text>
-      </View>
-      {!!item.description && (
-        <View
-          style={[
-            styles.descriptionBox,
-            {
-              backgroundColor: colors.softBg,
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          <Text style={[styles.descriptionLabel, { color: colors.muted }]}>
-            Açıklama
-          </Text>
-          <Text
-            style={[styles.descriptionText, { color: colors.text }]}
-            numberOfLines={2}
-            ellipsizeMode="tail"
-          >
-            {item.description}
-          </Text>
-        </View>
-      )}
-    </View>
-  );
-});
 
 export function TempQuickQuotationDetailScreen(): React.ReactElement {
   const router = useRouter();
@@ -416,499 +260,6 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
     }
   }, [pdfFileUri, showError]);
 
-  const linesData = linesQuery.data ?? [];
-  const exchangeData = exchangeLinesQuery.data ?? [];
-
-  const keyExtractor = useCallback((item: TempQuotattionLineGetDto) => String(item.id), []);
-
-  const renderItem = useCallback(
-    ({ item, index }: { item: TempQuotattionLineGetDto; index: number }) => (
-      <LineRow
-        item={item}
-        index={index}
-        currencyCode={detail?.currencyCode ?? ""}
-        colors={colors}
-      />
-    ),
-    [detail?.currencyCode, colors]
-  );
-
-  const listHeaderComponent = useMemo(() => {
-    if (!detail) return null;
-    return (
-      <>
-        <LinearGradient
-          colors={
-            isDark
-              ? ["rgba(236,72,153,0.11)", "rgba(16,18,28,0.92)"]
-              : ["rgba(255,243,248,0.9)", "rgba(255,255,255,0.98)"]
-          }
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[
-            styles.heroCard,
-            {
-              borderColor: colors.borderStrong,
-              shadowColor: colors.shadow,
-            },
-          ]}
-        >
-          <View style={styles.heroTopRow}>
-            <View style={styles.heroLeft}>
-              <Text style={[styles.heroEyebrow, { color: colors.brand }]}>
-                Hızlı Teklif
-              </Text>
-              <Text style={[styles.heroTitle, { color: colors.text }]}>#{detail.id}</Text>
-            </View>
-            <View
-              style={[
-                styles.statusPill,
-                {
-                  backgroundColor: detail.isApproved ? colors.greenSoft : colors.orangeSoft,
-                  borderColor: detail.isApproved
-                    ? "rgba(16,185,129,0.22)"
-                    : "rgba(249,115,22,0.22)",
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.statusPillText,
-                  { color: detail.isApproved ? colors.green : colors.orange },
-                ]}
-                numberOfLines={1}
-              >
-                {detail.isApproved ? "Onaylandı" : "Taslak"}
-              </Text>
-            </View>
-          </View>
-          <View style={styles.customerRow}>
-            <View
-              style={[
-                styles.infoIconBox,
-                { backgroundColor: colors.brandSoft, borderColor: colors.borderStrong },
-              ]}
-            >
-              <UserIcon size={15} color={colors.brand} variant="stroke" />
-            </View>
-            <View style={styles.customerContent}>
-              <Text style={[styles.infoLabel, { color: colors.muted }]}>Cari</Text>
-              <Text
-                style={[styles.customerValue, { color: colors.text }]}
-                numberOfLines={2}
-                ellipsizeMode="tail"
-              >
-                {detail.customerName || `Cari ID: ${detail.customerId}`}
-              </Text>
-            </View>
-          </View>
-          <View style={styles.metaRow}>
-            <View
-              style={[
-                styles.metaChip,
-                { backgroundColor: colors.blueSoft, borderColor: "rgba(56,189,248,0.16)" },
-              ]}
-            >
-              <Coins01Icon size={14} color={colors.blue} variant="stroke" />
-              <Text
-                style={[styles.metaChipText, { color: colors.text }]}
-                numberOfLines={1}
-              >
-                {detail.currencyCode || "-"}
-              </Text>
-            </View>
-            <View
-              style={[
-                styles.metaChip,
-                {
-                  backgroundColor: colors.orangeSoft,
-                  borderColor: "rgba(249,115,22,0.16)",
-                },
-              ]}
-            >
-              <Calendar03Icon size={14} color={colors.orange} variant="stroke" />
-              <Text
-                style={[styles.metaChipText, { color: colors.text }]}
-                numberOfLines={1}
-              >
-                {formatDate(detail.offerDate)}
-              </Text>
-            </View>
-          </View>
-          <View style={styles.descriptionRow}>
-            <View
-              style={[
-                styles.infoIconBox,
-                { backgroundColor: colors.softBg, borderColor: colors.border },
-              ]}
-            >
-              <Note01Icon size={14} color={colors.muted} variant="stroke" />
-            </View>
-            <View style={styles.customerContent}>
-              <Text style={[styles.infoLabel, { color: colors.muted }]}>Açıklama</Text>
-              <Text
-                style={[styles.infoValue, { color: colors.text }]}
-                numberOfLines={2}
-                ellipsizeMode="tail"
-              >
-                {detail.description || "-"}
-              </Text>
-            </View>
-          </View>
-        </LinearGradient>
-        <View style={styles.summaryRow}>
-          <View
-            style={[
-              styles.summaryCard,
-              {
-                backgroundColor: colors.cardBg,
-                borderColor: colors.border,
-                shadowColor: colors.shadow,
-              },
-            ]}
-          >
-            <Text style={[styles.summaryLabel, { color: colors.muted }]}>
-              Kalem Sayısı
-            </Text>
-            <Text style={[styles.summaryValue, { color: colors.text }]}>
-              {lineCount}
-            </Text>
-          </View>
-          <View
-            style={[
-              styles.summaryCard,
-              {
-                backgroundColor: colors.cardBg,
-                borderColor: colors.border,
-                shadowColor: colors.shadow,
-              },
-            ]}
-          >
-            <Text style={[styles.summaryLabel, { color: colors.muted }]}>Toplam</Text>
-            <Text
-              style={[styles.summaryValue, { color: colors.brand }]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.9}
-            >
-              {formatNumber(totalGrandAmount)} {detail.currencyCode}
-            </Text>
-          </View>
-        </View>
-        <View style={styles.actionsRow}>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={[
-              styles.actionBtnPrimary,
-              {
-                backgroundColor: colors.blueSoft,
-                borderColor: "rgba(56,189,248,0.18)",
-              },
-            ]}
-            onPress={() =>
-              router.push({
-                pathname: "/(tabs)/sales/quotations/quick/create",
-                params: { id: String(detail.id) },
-              })
-            }
-          >
-            <Edit02Icon size={16} color={colors.blue} variant="stroke" />
-            <Text style={[styles.actionBtnText, { color: colors.blue }]}>Revize Et</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={[
-              styles.actionBtnPrimary,
-              {
-                backgroundColor: detail.isApproved ? colors.softBg : colors.greenSoft,
-                borderColor: detail.isApproved
-                  ? colors.border
-                  : "rgba(16,185,129,0.18)",
-                opacity: convertMutation.isPending || detail.isApproved ? 0.65 : 1,
-              },
-            ]}
-            disabled={convertMutation.isPending || detail.isApproved}
-            onPress={() => convertMutation.mutate(detail.id)}
-          >
-            {convertMutation.isPending ? (
-              <ActivityIndicator size="small" color={colors.green} />
-            ) : (
-              <>
-                <Tick02Icon size={16} color={colors.green} variant="stroke" />
-                <Text style={[styles.actionBtnText, { color: colors.green }]}>
-                  {detail.isApproved ? "Dönüştürüldü" : "Teklife Dön"}
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
-        <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Stok Kalemleri</Text>
-          <Text style={[styles.sectionBadge, { color: colors.muted }]}>
-            {lineCount} kayıt
-          </Text>
-        </View>
-        {lineCount === 0 && (
-          <View
-            style={[
-              styles.emptyListCard,
-              { backgroundColor: colors.cardBg, borderColor: colors.border },
-            ]}
-          >
-            <Text style={[styles.emptyListText, { color: colors.muted }]}>
-              Bu hızlı teklife ait stok kalemi bulunamadı.
-            </Text>
-          </View>
-        )}
-      </>
-    );
-  }, [
-    detail,
-    colors,
-    isDark,
-    lineCount,
-    totalGrandAmount,
-    convertMutation.isPending,
-    convertMutation.mutate,
-    router,
-  ]);
-
-  const renderExchangeItem = useCallback(
-    ({ item: rate }: { item: TempQuotattionExchangeLineGetDto }) => (
-      <View
-        style={[
-          styles.exchangeCard,
-          {
-            borderColor: colors.border,
-            backgroundColor: colors.cardBg,
-            shadowColor: colors.shadow,
-          },
-        ]}
-      >
-        <View style={styles.exchangeLeft}>
-          <View
-            style={[
-              styles.exchangeIconBox,
-              {
-                backgroundColor: colors.orangeSoft,
-                borderColor: "rgba(249,115,22,0.16)",
-              },
-            ]}
-          >
-            <Coins01Icon size={14} color={colors.orange} variant="stroke" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text
-              style={[styles.exchangeCurrency, { color: colors.text }]}
-              numberOfLines={1}
-            >
-              {rate.currency}
-            </Text>
-            <Text style={[styles.exchangeSub, { color: colors.muted }]}>
-              Kur değeri
-            </Text>
-          </View>
-        </View>
-        <Text
-          style={[styles.exchangeValue, { color: colors.brand }]}
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.9}
-        >
-          {formatNumber(rate.exchangeRate, 4)}
-        </Text>
-      </View>
-    ),
-    [colors]
-  );
-
-  const listFooterComponent = useMemo(() => {
-    return (
-      <>
-        <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Kur Satırları</Text>
-          <Text style={[styles.sectionBadge, { color: colors.muted }]}>
-            {exchangeData.length} kayıt
-          </Text>
-        </View>
-        {exchangeData.length === 0 ? (
-          <View
-            style={[
-              styles.emptyListCard,
-              { backgroundColor: colors.cardBg, borderColor: colors.border },
-            ]}
-          >
-            <Text style={[styles.emptyListText, { color: colors.muted }]}>
-              Kur satırı bulunamadı.
-            </Text>
-          </View>
-        ) : (
-          <FlatList
-            data={exchangeData}
-            keyExtractor={(item) => String(item.id)}
-            renderItem={renderExchangeItem}
-            scrollEnabled={false}
-          />
-        )}
-        <View style={styles.sectionHeaderRow}>
-          <View style={styles.sectionHeaderLeft}>
-            <File01Icon size={16} color={colors.brand} variant="stroke" />
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>PDF Çıktısı</Text>
-          </View>
-        </View>
-        <View
-          style={[
-            styles.pdfCard,
-            {
-              backgroundColor: colors.cardBg,
-              borderColor: colors.borderStrong,
-              shadowColor: colors.shadow,
-            },
-          ]}
-        >
-          <View style={styles.pdfHeader}>
-            <Text style={[styles.pdfHeaderTitle, { color: colors.text }]}>
-              Teklif Raporu
-            </Text>
-            <Text
-              style={[styles.pdfHeaderSub, { color: colors.muted }]}
-              numberOfLines={2}
-            >
-              Hazır şablon ile PDF oluştur ve paylaş
-            </Text>
-          </View>
-          <View
-            style={[
-              styles.reportTemplateBox,
-              {
-                borderColor: colors.border,
-                backgroundColor: colors.inputBg,
-              },
-            ]}
-          >
-            <Text style={[styles.label, { color: colors.muted }]}>Rapor Şablonu</Text>
-            <Text style={[styles.reportTemplateText, { color: colors.text }]} numberOfLines={1}>
-              Windo Teklif Yap
-            </Text>
-          </View>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={[
-              styles.reportPrimaryButton,
-              {
-                backgroundColor: isGeneratingPdf ? colors.muted : colors.brand,
-                shadowColor: colors.brand,
-                borderColor: isGeneratingPdf ? colors.border : colors.borderStrong,
-              },
-            ]}
-            onPress={() => void handleGeneratePdf()}
-            disabled={isGeneratingPdf}
-          >
-            {isGeneratingPdf ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            ) : (
-              <Text style={styles.reportPrimaryButtonText}>PDF Oluştur</Text>
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={[
-              styles.reportSecondaryButton,
-              {
-                backgroundColor: pdfFileUri ? colors.blue : colors.muted,
-                opacity: pdfFileUri ? 1 : 0.6,
-                shadowColor: colors.blue,
-                borderColor: pdfFileUri ? "rgba(56,189,248,0.28)" : colors.border,
-              },
-            ]}
-            onPress={() => void handleSharePdf()}
-            disabled={!pdfFileUri}
-          >
-            <Text style={styles.reportSecondaryButtonText}>Paylaş</Text>
-          </TouchableOpacity>
-          {!inAppPdfPreviewAvailable && (
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={[
-                styles.reportSecondaryButton,
-                {
-                  backgroundColor: pdfFileUri ? colors.blue : colors.muted,
-                  opacity: pdfFileUri ? 1 : 0.6,
-                  shadowColor: colors.blue,
-                  borderColor: pdfFileUri ? "rgba(56,189,248,0.28)" : colors.border,
-                },
-              ]}
-              onPress={() => void handleOpenPdf()}
-              disabled={!pdfFileUri}
-            >
-              <Text style={styles.reportSecondaryButtonText}>PDF Aç</Text>
-            </TouchableOpacity>
-          )}
-          {pdfFileUri ? (
-            <View
-              style={[
-                styles.previewSection,
-                {
-                  borderColor: colors.border,
-                  backgroundColor: colors.inputBg,
-                },
-              ]}
-            >
-              <Text style={[styles.previewTitle, { color: colors.text }]}>
-                PDF Önizleme
-              </Text>
-              <View
-                style={[
-                  styles.pdfViewerWrapper,
-                  {
-                    height: pdfViewerHeight,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <WebView
-                  source={{ uri: pdfFileUri }}
-                  originWhitelist={["file://", "content://"]}
-                  style={styles.pdfWebView}
-                  scalesPageToFit
-                  nestedScrollEnabled
-                />
-              </View>
-            </View>
-          ) : (
-            <View
-              style={[
-                styles.previewPlaceholder,
-                {
-                  borderColor: colors.border,
-                  backgroundColor: colors.softBg,
-                },
-              ]}
-            >
-              <Text style={[styles.previewPlaceholderTitle, { color: colors.text }]}>
-                PDF henüz oluşturulmadı
-              </Text>
-              <Text style={[styles.previewPlaceholderText, { color: colors.muted }]}>
-                Önizleme alanı için önce PDF oluştur.
-              </Text>
-            </View>
-          )}
-        </View>
-      </>
-    );
-  }, [
-    colors,
-    exchangeData,
-    renderExchangeItem,
-    pdfFileUri,
-    pdfViewerHeight,
-    isGeneratingPdf,
-    inAppPdfPreviewAvailable,
-    handleGeneratePdf,
-    handleSharePdf,
-    handleOpenPdf,
-  ]);
-
   return (
     <View style={[styles.container, { backgroundColor: colors.mainBg }]}>
       <StatusBar style={isDark ? "light" : "dark"} />
@@ -944,18 +295,600 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
           </View>
         </View>
       ) : (
-        <FlatList
-          data={linesData}
-          keyExtractor={keyExtractor}
-          renderItem={renderItem}
-          ListHeaderComponent={listHeaderComponent}
-          ListFooterComponent={listFooterComponent}
+        <ScrollView
           contentContainerStyle={[
             styles.content,
-            { paddingBottom: Math.max(insets.bottom, 24) + 88 },
+            {
+              paddingBottom: Math.max(insets.bottom, 24) + 88,
+            },
           ]}
           showsVerticalScrollIndicator={false}
-        />
+        >
+          <LinearGradient
+            colors={
+              isDark
+                ? ["rgba(236,72,153,0.11)", "rgba(16,18,28,0.92)"]
+                : ["rgba(255,243,248,0.9)", "rgba(255,255,255,0.98)"]
+            }
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[
+              styles.heroCard,
+              {
+                borderColor: colors.borderStrong,
+                shadowColor: colors.shadow,
+              },
+            ]}
+          >
+            <View style={styles.heroTopRow}>
+              <View style={styles.heroLeft}>
+                <Text style={[styles.heroEyebrow, { color: colors.brand }]}>
+                  Hızlı Teklif
+                </Text>
+                <Text style={[styles.heroTitle, { color: colors.text }]}>#{detail.id}</Text>
+              </View>
+
+              <View
+                style={[
+                  styles.statusPill,
+                  {
+                    backgroundColor: detail.isApproved
+                      ? colors.greenSoft
+                      : colors.orangeSoft,
+                    borderColor: detail.isApproved
+                      ? "rgba(16,185,129,0.22)"
+                      : "rgba(249,115,22,0.22)",
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.statusPillText,
+                    { color: detail.isApproved ? colors.green : colors.orange },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {detail.isApproved ? "Onaylandı" : "Taslak"}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.customerRow}>
+              <View
+                style={[
+                  styles.infoIconBox,
+                  { backgroundColor: colors.brandSoft, borderColor: colors.borderStrong },
+                ]}
+              >
+                <UserIcon size={15} color={colors.brand} variant="stroke" />
+              </View>
+
+              <View style={styles.customerContent}>
+                <Text style={[styles.infoLabel, { color: colors.muted }]}>Cari</Text>
+                <Text
+                  style={[styles.customerValue, { color: colors.text }]}
+                  numberOfLines={2}
+                  ellipsizeMode="tail"
+                >
+                  {detail.customerName || `Cari ID: ${detail.customerId}`}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.metaRow}>
+              <View
+                style={[
+                  styles.metaChip,
+                  { backgroundColor: colors.blueSoft, borderColor: "rgba(56,189,248,0.16)" },
+                ]}
+              >
+                <Coins01Icon size={14} color={colors.blue} variant="stroke" />
+                <Text
+                  style={[styles.metaChipText, { color: colors.text }]}
+                  numberOfLines={1}
+                >
+                  {detail.currencyCode || "-"}
+                </Text>
+              </View>
+
+              <View
+                style={[
+                  styles.metaChip,
+                  {
+                    backgroundColor: colors.orangeSoft,
+                    borderColor: "rgba(249,115,22,0.16)",
+                  },
+                ]}
+              >
+                <Calendar03Icon size={14} color={colors.orange} variant="stroke" />
+                <Text
+                  style={[styles.metaChipText, { color: colors.text }]}
+                  numberOfLines={1}
+                >
+                  {formatDate(detail.offerDate)}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.descriptionRow}>
+              <View
+                style={[
+                  styles.infoIconBox,
+                  { backgroundColor: colors.softBg, borderColor: colors.border },
+                ]}
+              >
+                <Note01Icon size={14} color={colors.muted} variant="stroke" />
+              </View>
+
+              <View style={styles.customerContent}>
+                <Text style={[styles.infoLabel, { color: colors.muted }]}>Açıklama</Text>
+                <Text
+                  style={[styles.infoValue, { color: colors.text }]}
+                  numberOfLines={2}
+                  ellipsizeMode="tail"
+                >
+                  {detail.description || "-"}
+                </Text>
+              </View>
+            </View>
+          </LinearGradient>
+
+          <View style={styles.summaryRow}>
+            <View
+              style={[
+                styles.summaryCard,
+                {
+                  backgroundColor: colors.cardBg,
+                  borderColor: colors.border,
+                  shadowColor: colors.shadow,
+                },
+              ]}
+            >
+              <Text style={[styles.summaryLabel, { color: colors.muted }]}>
+                Kalem Sayısı
+              </Text>
+              <Text style={[styles.summaryValue, { color: colors.text }]}>
+                {lineCount}
+              </Text>
+            </View>
+
+            <View
+              style={[
+                styles.summaryCard,
+                {
+                  backgroundColor: colors.cardBg,
+                  borderColor: colors.border,
+                  shadowColor: colors.shadow,
+                },
+              ]}
+            >
+              <Text style={[styles.summaryLabel, { color: colors.muted }]}>Toplam</Text>
+              <Text
+                style={[styles.summaryValue, { color: colors.brand }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.9}
+              >
+                {formatNumber(totalGrandAmount)} {detail.currencyCode}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.actionsRow}>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={[
+                styles.actionBtnPrimary,
+                {
+                  backgroundColor: colors.blueSoft,
+                  borderColor: "rgba(56,189,248,0.18)",
+                },
+              ]}
+              onPress={() =>
+                router.push({
+                  pathname: "/(tabs)/sales/quotations/quick/create",
+                  params: { id: String(detail.id) },
+                })
+              }
+            >
+              <Edit02Icon size={16} color={colors.blue} variant="stroke" />
+              <Text style={[styles.actionBtnText, { color: colors.blue }]}>Revize Et</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={[
+                styles.actionBtnPrimary,
+                {
+                  backgroundColor: detail.isApproved ? colors.softBg : colors.greenSoft,
+                  borderColor: detail.isApproved
+                    ? colors.border
+                    : "rgba(16,185,129,0.18)",
+                  opacity: convertMutation.isPending || detail.isApproved ? 0.65 : 1,
+                },
+              ]}
+              disabled={convertMutation.isPending || detail.isApproved}
+              onPress={() => convertMutation.mutate(detail.id)}
+            >
+              {convertMutation.isPending ? (
+                <ActivityIndicator size="small" color={colors.green} />
+              ) : (
+                <>
+                  <Tick02Icon size={16} color={colors.green} variant="stroke" />
+                  <Text style={[styles.actionBtnText, { color: colors.green }]}>
+                    {detail.isApproved ? "Dönüştürüldü" : "Teklife Dön"}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Stok Kalemleri</Text>
+            <Text style={[styles.sectionBadge, { color: colors.muted }]}>
+              {lineCount} kayıt
+            </Text>
+          </View>
+
+          {(linesQuery.data ?? []).length === 0 ? (
+            <View
+              style={[
+                styles.emptyListCard,
+                { backgroundColor: colors.cardBg, borderColor: colors.border },
+              ]}
+            >
+              <Text style={[styles.emptyListText, { color: colors.muted }]}>
+                Bu hızlı teklife ait stok kalemi bulunamadı.
+              </Text>
+            </View>
+          ) : (
+            (linesQuery.data ?? []).map((line, index) => (
+              <View
+                key={line.id}
+                style={[
+                  styles.lineCard,
+                  {
+                    backgroundColor: colors.cardBg,
+                    borderColor: colors.border,
+                    shadowColor: colors.shadow,
+                  },
+                ]}
+              >
+                <View style={styles.lineCardTop}>
+                  <View style={{ flex: 1, paddingRight: 8 }}>
+                    <Text
+                      style={[styles.lineCode, { color: colors.brand }]}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {line.productCode}
+                    </Text>
+                    <Text
+                      style={[styles.lineName, { color: colors.text }]}
+                      numberOfLines={3}
+                      ellipsizeMode="tail"
+                    >
+                      {line.productName || "-"}
+                    </Text>
+                  </View>
+
+                  <View
+                    style={[
+                      styles.lineIndexBadge,
+                      {
+                        backgroundColor: colors.brandSoft,
+                        borderColor: colors.borderStrong,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.lineIndexText, { color: colors.brand }]}>
+                      {index + 1}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.metricGrid}>
+                  <View
+                    style={[
+                      styles.metricBox,
+                      { backgroundColor: colors.softBg, borderColor: colors.border },
+                    ]}
+                  >
+                    <Text style={[styles.metricLabel, { color: colors.muted }]}>Miktar</Text>
+                    <Text style={[styles.metricValue, { color: colors.text }]} numberOfLines={1}>
+                      {formatNumber(line.quantity, 2)}
+                    </Text>
+                  </View>
+
+                  <View
+                    style={[
+                      styles.metricBox,
+                      { backgroundColor: colors.softBg, borderColor: colors.border },
+                    ]}
+                  >
+                    <Text style={[styles.metricLabel, { color: colors.muted }]}>Birim Fiyat</Text>
+                    <Text
+                      style={[styles.metricValue, { color: colors.text }]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.9}
+                    >
+                      {formatNumber(line.unitPrice)} {detail.currencyCode}
+                    </Text>
+                  </View>
+
+                  <View
+                    style={[
+                      styles.metricBox,
+                      { backgroundColor: colors.softBg, borderColor: colors.border },
+                    ]}
+                  >
+                    <Text style={[styles.metricLabel, { color: colors.muted }]}>İskonto</Text>
+                    <Text style={[styles.metricValue, { color: colors.text }]} numberOfLines={1}>
+                      %{formatNumber(line.discountRate1 ?? 0, 2)}
+                    </Text>
+                  </View>
+
+                  <View
+                    style={[
+                      styles.metricBox,
+                      { backgroundColor: colors.softBg, borderColor: colors.border },
+                    ]}
+                  >
+                    <Text style={[styles.metricLabel, { color: colors.muted }]}>KDV</Text>
+                    <Text style={[styles.metricValue, { color: colors.text }]} numberOfLines={1}>
+                      %{formatNumber(line.vatRate ?? 0, 2)}
+                    </Text>
+                  </View>
+                </View>
+
+                <View
+                  style={[
+                    styles.totalRow,
+                    {
+                      backgroundColor: colors.brandSoft,
+                      borderColor: colors.borderStrong,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.totalLabel, { color: colors.muted }]}>Satır Toplamı</Text>
+                  <Text
+                    style={[styles.totalValue, { color: colors.brand }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.9}
+                  >
+                    {formatNumber(line.lineGrandTotal)} {detail.currencyCode}
+                  </Text>
+                </View>
+
+                {!!line.description && (
+                  <View
+                    style={[
+                      styles.descriptionBox,
+                      {
+                        backgroundColor: colors.softBg,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.descriptionLabel, { color: colors.muted }]}>
+                      Açıklama
+                    </Text>
+                    <Text
+                      style={[styles.descriptionText, { color: colors.text }]}
+                      numberOfLines={2}
+                      ellipsizeMode="tail"
+                    >
+                      {line.description}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            ))
+          )}
+
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Kur Satırları</Text>
+            <Text style={[styles.sectionBadge, { color: colors.muted }]}>
+              {(exchangeLinesQuery.data ?? []).length} kayıt
+            </Text>
+          </View>
+
+          {(exchangeLinesQuery.data ?? []).length === 0 ? (
+            <View
+              style={[
+                styles.emptyListCard,
+                { backgroundColor: colors.cardBg, borderColor: colors.border },
+              ]}
+            >
+              <Text style={[styles.emptyListText, { color: colors.muted }]}>
+                Kur satırı bulunamadı.
+              </Text>
+            </View>
+          ) : (
+            (exchangeLinesQuery.data ?? []).map((rate) => (
+              <View
+                key={rate.id}
+                style={[
+                  styles.exchangeCard,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: colors.cardBg,
+                    shadowColor: colors.shadow,
+                  },
+                ]}
+              >
+                <View style={styles.exchangeLeft}>
+                  <View
+                    style={[
+                      styles.exchangeIconBox,
+                      {
+                        backgroundColor: colors.orangeSoft,
+                        borderColor: "rgba(249,115,22,0.16)",
+                      },
+                    ]}
+                  >
+                    <Coins01Icon size={14} color={colors.orange} variant="stroke" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={[styles.exchangeCurrency, { color: colors.text }]}
+                      numberOfLines={1}
+                    >
+                      {rate.currency}
+                    </Text>
+                      <Text style={[styles.exchangeSub, { color: colors.muted }]}>
+                      Kur değeri
+                      </Text>
+                  </View>
+                </View>
+
+                <Text
+                  style={[styles.exchangeValue, { color: colors.brand }]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.9}
+                >
+                  {formatNumber(rate.exchangeRate, 4)}
+                </Text>
+              </View>
+            ))
+          )}
+
+          <View style={styles.sectionHeaderRow}>
+            <View style={styles.sectionHeaderLeft}>
+              <File01Icon size={16} color={colors.brand} variant="stroke" />
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>PDF Çıktısı</Text>
+            </View>
+          </View>
+
+          <View
+            style={[
+              styles.pdfCard,
+              {
+                backgroundColor: colors.cardBg,
+                borderColor: colors.borderStrong,
+                shadowColor: colors.shadow,
+              },
+            ]}
+          >
+            <View style={styles.pdfHeader}>
+              <Text style={[styles.pdfHeaderTitle, { color: colors.text }]}>
+                Teklif Raporu
+              </Text>
+              <Text
+                style={[styles.pdfHeaderSub, { color: colors.muted }]}
+                numberOfLines={2}
+              >
+                Hazır şablon ile PDF oluştur ve paylaş
+              </Text>
+            </View>
+
+            <View
+              style={[
+                styles.reportTemplateBox,
+                {
+                  borderColor: colors.border,
+                  backgroundColor: colors.inputBg,
+                },
+              ]}
+            >
+              <Text style={[styles.label, { color: colors.muted }]}>Rapor Şablonu</Text>
+              <Text style={[styles.reportTemplateText, { color: colors.text }]} numberOfLines={1}>
+                Windo Teklif Yap
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={[
+                styles.reportPrimaryButton,
+                {
+                  backgroundColor: isGeneratingPdf ? colors.muted : colors.brand,
+                  shadowColor: colors.brand,
+                  borderColor: isGeneratingPdf ? colors.border : colors.borderStrong,
+                },
+              ]}
+              onPress={() => void handleGeneratePdf()}
+              disabled={isGeneratingPdf}
+            >
+              {isGeneratingPdf ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Text style={styles.reportPrimaryButtonText}>PDF Oluştur</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={[
+                styles.reportSecondaryButton,
+                {
+                  backgroundColor: pdfFileUri ? colors.blue : colors.muted,
+                  opacity: pdfFileUri ? 1 : 0.6,
+                  shadowColor: colors.blue,
+                  borderColor: pdfFileUri ? "rgba(56,189,248,0.28)" : colors.border,
+                },
+              ]}
+              onPress={() => void handleSharePdf()}
+              disabled={!pdfFileUri}
+            >
+              <Text style={styles.reportSecondaryButtonText}>Paylaş</Text>
+            </TouchableOpacity>
+
+            {pdfFileUri ? (
+              <View
+                style={[
+                  styles.previewSection,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: colors.inputBg,
+                  },
+                ]}
+              >
+                <Text style={[styles.previewTitle, { color: colors.text }]}>
+                  PDF Önizleme
+                </Text>
+
+                <View
+                  style={[
+                    styles.pdfViewerWrapper,
+                    {
+                      height: pdfViewerHeight,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <WebView
+                    source={{ uri: pdfFileUri }}
+                    originWhitelist={["file://", "content://"]}
+                    style={styles.pdfWebView}
+                    scalesPageToFit
+                    nestedScrollEnabled
+                  />
+                </View>
+              </View>
+            ) : (
+              <View
+                style={[
+                  styles.previewPlaceholder,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: colors.softBg,
+                  },
+                ]}
+              >
+                <Text style={[styles.previewPlaceholderTitle, { color: colors.text }]}>
+                  PDF henüz oluşturulmadı
+                </Text>
+                <Text style={[styles.previewPlaceholderText, { color: colors.muted }]}>
+                  Önizleme alanı için önce PDF oluştur.
+                </Text>
+              </View>
+            )}
+          </View>
+        </ScrollView>
       )}
     </View>
   );
