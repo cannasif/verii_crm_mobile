@@ -35,27 +35,6 @@ import {
 import { buildAdvancedStockFilters } from "../../stocks/utils/buildAdvancedStockFilters";
 import type { StockGetDto, StockRelationDto } from "../../stocks/types";
 
-const STOCK_FILTER_COLUMNS = [
-  { column: "Id", operator: "eq", labelKey: "filterId", keyboardType: "number-pad" as const },
-  { column: "ErpStockCode", operator: "contains", labelKey: "filterCode" },
-  { column: "StockName", operator: "contains", labelKey: "filterName" },
-  { column: "GrupKodu", operator: "contains", labelKey: "filterGroupCode" },
-  { column: "GrupAdi", operator: "contains", labelKey: "filterGroupName" },
-  { column: "Kod1", operator: "contains", labelKey: "filterCode1" },
-  { column: "Kod1Adi", operator: "contains", labelKey: "filterCode1Name" },
-  { column: "Kod2", operator: "contains", labelKey: "filterCode2" },
-  { column: "Kod2Adi", operator: "contains", labelKey: "filterCode2Name" },
-  { column: "Kod3", operator: "contains", labelKey: "filterCode3" },
-  { column: "Kod3Adi", operator: "contains", labelKey: "filterCode3Name" },
-  { column: "Kod4", operator: "contains", labelKey: "filterCode4" },
-  { column: "Kod4Adi", operator: "contains", labelKey: "filterCode4Name" },
-  { column: "Kod5", operator: "contains", labelKey: "filterCode5" },
-  { column: "Kod5Adi", operator: "contains", labelKey: "filterCode5Name" },
-  { column: "UreticiKodu", operator: "contains", labelKey: "filterManufacturerCode" },
-  { column: "unit", operator: "contains", labelKey: "filterUnit" },
-  { column: "BranchCode", operator: "eq", labelKey: "filterBranchCode", keyboardType: "number-pad" as const },
-] as const;
-
 export interface ProductPickerRef {
   close: () => void;
 }
@@ -704,138 +683,6 @@ function ProductPickerInner(
   }, [parentVisible]);
 
   const normalizedQuery = useMemo(() => normalizeSearchText(searchText), [searchText]);
-  const filterFieldRows = useMemo(
-    () => [
-      [
-        {
-          ...STOCK_FILTER_COLUMNS[1],
-          value: tempCodeFilter,
-          onChange: setTempCodeFilter,
-        },
-        {
-          ...STOCK_FILTER_COLUMNS[2],
-          value: tempNameFilter,
-          onChange: setTempNameFilter,
-        },
-      ],
-      [
-        {
-          ...STOCK_FILTER_COLUMNS[3],
-          value: tempGroupCodeFilter,
-          onChange: setTempGroupCodeFilter,
-        },
-        {
-          ...STOCK_FILTER_COLUMNS[4],
-          value: tempGroupNameFilter,
-          onChange: setTempGroupNameFilter,
-        },
-      ],
-      [
-        {
-          ...STOCK_FILTER_COLUMNS[5],
-          value: tempCode1Filter,
-          onChange: setTempCode1Filter,
-        },
-        {
-          ...STOCK_FILTER_COLUMNS[6],
-          value: tempCode1NameFilter,
-          onChange: setTempCode1NameFilter,
-        },
-      ],
-      [
-        {
-          ...STOCK_FILTER_COLUMNS[7],
-          value: tempCode2Filter,
-          onChange: setTempCode2Filter,
-        },
-        {
-          ...STOCK_FILTER_COLUMNS[8],
-          value: tempCode2NameFilter,
-          onChange: setTempCode2NameFilter,
-        },
-      ],
-      [
-        {
-          ...STOCK_FILTER_COLUMNS[9],
-          value: tempCode3Filter,
-          onChange: setTempCode3Filter,
-        },
-        {
-          ...STOCK_FILTER_COLUMNS[10],
-          value: tempCode3NameFilter,
-          onChange: setTempCode3NameFilter,
-        },
-      ],
-      [
-        {
-          ...STOCK_FILTER_COLUMNS[11],
-          value: tempCode4Filter,
-          onChange: setTempCode4Filter,
-        },
-        {
-          ...STOCK_FILTER_COLUMNS[12],
-          value: tempCode4NameFilter,
-          onChange: setTempCode4NameFilter,
-        },
-      ],
-      [
-        {
-          ...STOCK_FILTER_COLUMNS[13],
-          value: tempCode5Filter,
-          onChange: setTempCode5Filter,
-        },
-        {
-          ...STOCK_FILTER_COLUMNS[14],
-          value: tempCode5NameFilter,
-          onChange: setTempCode5NameFilter,
-        },
-      ],
-      [
-        {
-          ...STOCK_FILTER_COLUMNS[15],
-          value: tempManufacturerCodeFilter,
-          onChange: setTempManufacturerCodeFilter,
-        },
-        {
-          ...STOCK_FILTER_COLUMNS[16],
-          value: tempUnitFilter,
-          onChange: setTempUnitFilter,
-        },
-      ],
-      [
-        {
-          ...STOCK_FILTER_COLUMNS[0],
-          value: tempIdFilter,
-          onChange: setTempIdFilter,
-        },
-        {
-          ...STOCK_FILTER_COLUMNS[17],
-          value: tempBranchCodeFilter,
-          onChange: setTempBranchCodeFilter,
-        },
-      ],
-    ],
-    [
-      tempBranchCodeFilter,
-      tempCode1Filter,
-      tempCode1NameFilter,
-      tempCode2Filter,
-      tempCode2NameFilter,
-      tempCode3Filter,
-      tempCode3NameFilter,
-      tempCode4Filter,
-      tempCode4NameFilter,
-      tempCode5Filter,
-      tempCode5NameFilter,
-      tempCodeFilter,
-      tempGroupCodeFilter,
-      tempGroupNameFilter,
-      tempIdFilter,
-      tempManufacturerCodeFilter,
-      tempNameFilter,
-      tempUnitFilter,
-    ]
-  );
 
   const { filters: apiFilters, filterLogic: advancedFilterLogic } = useMemo(() => {
     const entries: Array<{ column: string; operator: string; value: string }> = [];
@@ -1604,31 +1451,201 @@ function ProductPickerInner(
                 showsVerticalScrollIndicator={false}
               >
                 <View style={styles.filterFields}>
-                  {filterFieldRows.map((row, rowIndex) => (
-                    <View style={styles.filterFieldRow} key={`filter-row-${rowIndex}`}>
-                      {row.map((field) => {
-                        const label = t(`stockPicker.${field.labelKey}`);
-                        return (
-                          <View style={styles.filterField} key={field.column}>
-                            <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
-                              {label}
-                            </Text>
-                            <TextInput
-                              value={field.value}
-                              onChangeText={field.onChange}
-                              placeholder={label}
-                              placeholderTextColor={mutedColor}
-                              keyboardType={"keyboardType" in field ? field.keyboardType : "default"}
-                              style={[
-                                styles.filterFieldInput,
-                                { color: textColor, borderColor, backgroundColor: inputBg },
-                              ]}
-                            />
-                          </View>
-                        );
-                      })}
+                  <View style={styles.filterFieldRow}>
+                    <View style={styles.filterField}>
+                      <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
+                        Stok Kodu
+                      </Text>
+                      <TextInput
+                        value={tempCodeFilter}
+                        onChangeText={setTempCodeFilter}
+                        placeholder="Stok Kodu"
+                        placeholderTextColor={mutedColor}
+                        style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
+                      />
                     </View>
-                  ))}
+
+                    <View style={styles.filterField}>
+                      <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
+                        Stok Adı
+                      </Text>
+                      <TextInput
+                        value={tempNameFilter}
+                        onChangeText={setTempNameFilter}
+                        placeholder="Stok Adı"
+                        placeholderTextColor={mutedColor}
+                        style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.filterFieldRow}>
+                    <View style={styles.filterField}>
+                      <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
+                        Grup Kodu
+                      </Text>
+                      <TextInput
+                        value={tempGroupCodeFilter}
+                        onChangeText={setTempGroupCodeFilter}
+                        placeholder="Grup Kodu"
+                        placeholderTextColor={mutedColor}
+                        style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
+                      />
+                    </View>
+
+                    <View style={styles.filterField}>
+                      <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
+                        Grup Adı
+                      </Text>
+                      <TextInput
+                        value={tempGroupNameFilter}
+                        onChangeText={setTempGroupNameFilter}
+                        placeholder="Grup Adı"
+                        placeholderTextColor={mutedColor}
+                        style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.filterFieldRow}>
+                    <View style={styles.filterField}>
+                      <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
+                        Kod1
+                      </Text>
+                      <TextInput
+                        value={tempCode1Filter}
+                        onChangeText={setTempCode1Filter}
+                        placeholder="Kod1"
+                        placeholderTextColor={mutedColor}
+                        style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
+                      />
+                    </View>
+
+                    <View style={styles.filterField}>
+                      <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
+                        Kod1 Adı
+                      </Text>
+                      <TextInput
+                        value={tempCode1NameFilter}
+                        onChangeText={setTempCode1NameFilter}
+                        placeholder="Kod1 Adı"
+                        placeholderTextColor={mutedColor}
+                        style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.filterFieldRow}>
+                    <View style={styles.filterField}>
+                      <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
+                        Kod2
+                      </Text>
+                      <TextInput
+                        value={tempCode2Filter}
+                        onChangeText={setTempCode2Filter}
+                        placeholder="Kod2"
+                        placeholderTextColor={mutedColor}
+                        style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
+                      />
+                    </View>
+
+                    <View style={styles.filterField}>
+                      <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
+                        Kod2 Adı
+                      </Text>
+                      <TextInput
+                        value={tempCode2NameFilter}
+                        onChangeText={setTempCode2NameFilter}
+                        placeholder="Kod2 Adı"
+                        placeholderTextColor={mutedColor}
+                        style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.filterFieldRow}>
+                    <View style={styles.filterField}>
+                      <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
+                        Kod3
+                      </Text>
+                      <TextInput
+                        value={tempCode3Filter}
+                        onChangeText={setTempCode3Filter}
+                        placeholder="Kod3"
+                        placeholderTextColor={mutedColor}
+                        style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
+                      />
+                    </View>
+
+                    <View style={styles.filterField}>
+                      <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
+                        Kod3 Adı
+                      </Text>
+                      <TextInput
+                        value={tempCode3NameFilter}
+                        onChangeText={setTempCode3NameFilter}
+                        placeholder="Kod3 Adı"
+                        placeholderTextColor={mutedColor}
+                        style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.filterFieldRow}>
+                    <View style={styles.filterField}>
+                      <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
+                        Kod4
+                      </Text>
+                      <TextInput
+                        value={tempCode4Filter}
+                        onChangeText={setTempCode4Filter}
+                        placeholder="Kod4"
+                        placeholderTextColor={mutedColor}
+                        style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
+                      />
+                    </View>
+
+                    <View style={styles.filterField}>
+                      <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
+                        Kod4 Adı
+                      </Text>
+                      <TextInput
+                        value={tempCode4NameFilter}
+                        onChangeText={setTempCode4NameFilter}
+                        placeholder="Kod4 Adı"
+                        placeholderTextColor={mutedColor}
+                        style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.filterFieldRow}>
+                    <View style={styles.filterField}>
+                      <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
+                        Kod5
+                      </Text>
+                      <TextInput
+                        value={tempCode5Filter}
+                        onChangeText={setTempCode5Filter}
+                        placeholder="Kod5"
+                        placeholderTextColor={mutedColor}
+                        style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
+                      />
+                    </View>
+
+                    <View style={styles.filterField}>
+                      <Text style={[styles.filterFieldLabel, { color: mutedColor }]}>
+                        Kod5 Adı
+                      </Text>
+                      <TextInput
+                        value={tempCode5NameFilter}
+                        onChangeText={setTempCode5NameFilter}
+                        placeholder="Kod5 Adı"
+                        placeholderTextColor={mutedColor}
+                        style={[styles.filterFieldInput, { color: textColor, borderColor, backgroundColor: inputBg }]}
+                      />
+                    </View>
+                  </View>
                 </View>
               </FlatListScrollView>
 
