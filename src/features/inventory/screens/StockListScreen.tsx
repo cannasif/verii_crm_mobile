@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState, useEffect } from "react";
 import { View, StyleSheet, FlatList, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -10,7 +10,7 @@ import { CustomRefreshControl } from "../../../components/CustomRefreshControl";
 import { useUIStore } from "../../../store/ui";
 import { useStocks } from "../hooks";
 import { SearchInput, StockCard } from "../components";
-import type { StockGetDto, PagedFilter, PagedResponse } from "../types";
+import type { StockGetDto, PagedResponse } from "../types";
 
 export function StockListScreen(): React.ReactElement {
   const { t } = useTranslation();
@@ -19,15 +19,17 @@ export function StockListScreen(): React.ReactElement {
   const insets = useSafeAreaInsets();
 
   const [searchText, setSearchText] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(searchText);
+    }, 700);
+
+    return () => clearTimeout(handler);
+  }, [searchText]);
 
   const contentBackground = themeMode === "dark" ? "rgba(20, 10, 30, 0.5)" : colors.background;
-
-  const filters: PagedFilter[] | undefined = useMemo(() => {
-    if (searchText.trim().length >= 2) {
-      return [{ column: "stockName", operator: "contains", value: searchText.trim() }];
-    }
-    return undefined;
-  }, [searchText]);
 
   const {
     data,
@@ -38,7 +40,9 @@ export function StockListScreen(): React.ReactElement {
     hasNextPage,
     isFetchingNextPage,
     isRefetching,
-  } = useStocks({ filters });
+  } = useStocks({
+    search: debouncedQuery.trim().length >= 2 ? debouncedQuery.trim() : undefined,
+  });
 
   const handleRefresh = useCallback(() => {
     refetch();

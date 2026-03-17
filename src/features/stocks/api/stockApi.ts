@@ -75,6 +75,7 @@ export const stockApi = {
     const queryParams = new URLSearchParams();
     if (params.pageNumber) queryParams.append("PageNumber", params.pageNumber.toString());
     if (params.pageSize) queryParams.append("PageSize", params.pageSize.toString());
+    if (params.search) queryParams.append("Search", params.search);
     queryParams.append("SortBy", params.sortBy || "StockName"); // Sıralama dinamik olsun
     queryParams.append("SortDirection", params.sortDirection || "asc");
     if (params.filterLogic) queryParams.append("FilterLogic", params.filterLogic);

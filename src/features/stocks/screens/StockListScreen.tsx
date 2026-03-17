@@ -3,14 +3,10 @@ import {
   View,
   StyleSheet,
   ActivityIndicator,
-  FlatList,
   TouchableWithoutFeedback,
   TouchableOpacity,
   Text,
   Dimensions,
-  ScrollView,
-  Modal,
-  TextInput,
   Keyboard,
   Platform,
 } from "react-native";
@@ -20,20 +16,25 @@ import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenHeader } from "../../../components/navigation";
+import {
+  PagedAdvancedFilterBuilder,
+  PagedAdvancedFilterModal,
+  PagedFlatList,
+  createPagedAdvancedFilterRow,
+  mapPagedAdvancedFilterRowsToFilters,
+  type PagedAdvancedFilterFieldConfig,
+  type PagedAdvancedFilterRow,
+} from "../../../components/paged";
 import { useUIStore } from "../../../store/ui";
 import { useStocks, useStockGroups } from "../hooks";
-import { SearchInput } from "../components/SearchInput";
 import {
   LayoutGridIcon,
   ListViewIcon,
   ArrowDown01Icon,
   ArrowUp01Icon,
-  FilterIcon,
-  Cancel01Icon,
   PackageIcon,
-  CheckmarkCircle02Icon,
 } from "hugeicons-react-native";
-import type { StockGetDto, PagedFilter, StockGroupDto } from "../types";
+import type { StockGetDto, StockGroupDto } from "../types";
 import { StockCard } from "../components/StockCard";
 
 const { width } = Dimensions.get("window");
@@ -83,36 +84,6 @@ const fuzzyMatch = (query: string, text: string) => {
   return false;
 };
 
-const getStockSearchText = (item: StockGetDto) => {
-  const stock = item as any;
-
-  return [
-    stock?.stockCode,
-    stock?.stokKodu,
-    stock?.code,
-    stock?.kod,
-    stock?.stockName,
-    stock?.stokAdi,
-    stock?.name,
-    stock?.adi,
-    stock?.stockName2,
-    stock?.description,
-    stock?.aciklama,
-    stock?.grupKodu,
-    stock?.grupAdi,
-    stock?.groupCode,
-    stock?.groupName,
-    stock?.Kod1,
-    stock?.Kod2,
-    stock?.Kod3,
-    stock?.kod1,
-    stock?.kod2,
-    stock?.kod3,
-  ]
-    .filter(Boolean)
-    .join(" ");
-};
-
 export function StockListScreen() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -124,27 +95,11 @@ export function StockListScreen() {
   const [searchText, setSearchText] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
-
-  const [appliedGroupCode, setAppliedGroupCode] = useState<string>("");
-  const [appliedKod1, setAppliedKod1] = useState<string>("");
-  const [appliedKod2, setAppliedKod2] = useState<string>("");
-  const [appliedKod3, setAppliedKod3] = useState<string>("");
-
-  const [tempGroupCode, setTempGroupCode] = useState<string>("");
-  const [tempKod1, setTempKod1] = useState<string>("");
-  const [tempKod2, setTempKod2] = useState<string>("");
-  const [tempKod3, setTempKod3] = useState<string>("");
-
-  const [isGroupDropdownOpen, setIsGroupDropdownOpen] = useState(false);
-  const [groupSearchText, setGroupSearchText] = useState("");
-
-  const normalizedDebouncedQuery = useMemo(
-    () => normalizeText(debouncedQuery),
-    [debouncedQuery]
-  );
+  const [draftFilterRows, setDraftFilterRows] = useState<PagedAdvancedFilterRow[]>([]);
+  const [appliedFilterRows, setAppliedFilterRows] = useState<PagedAdvancedFilterRow[]>([]);
+  const [tempFilterLogic, setTempFilterLogic] = useState<"and" | "or">("and");
+  const [appliedFilterLogic, setAppliedFilterLogic] = useState<"and" | "or">("and");
 
   const mainBg = isDark ? "#0c0516" : "#FFFFFF";
   const gradientColors = (
@@ -185,52 +140,15 @@ export function StockListScreen() {
     return () => clearTimeout(handler);
   }, [searchText]);
 
-  useEffect(() => {
-    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-
-    const showSub = Keyboard.addListener(showEvent, (e) => {
-      setKeyboardHeight(e.endCoordinates?.height ?? 0);
-    });
-
-    const hideSub = Keyboard.addListener(hideEvent, () => {
-      setKeyboardHeight(0);
-    });
-
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
-
   const openFilterModal = () => {
-    setTempGroupCode(appliedGroupCode);
-    setTempKod1(appliedKod1);
-    setTempKod2(appliedKod2);
-    setTempKod3(appliedKod3);
-    setIsGroupDropdownOpen(false);
-    setGroupSearchText("");
+    setDraftFilterRows(appliedFilterRows);
     setIsFilterModalVisible(true);
   };
 
-  const apiFilters = useMemo(() => {
-    const filters: PagedFilter[] = [];
-
-    if (appliedGroupCode.trim()) {
-      filters.push({ column: "GrupKodu", operator: "eq", value: appliedGroupCode.trim() });
-    }
-    if (appliedKod1.trim()) {
-      filters.push({ column: "Kod1", operator: "contains", value: appliedKod1.trim() });
-    }
-    if (appliedKod2.trim()) {
-      filters.push({ column: "Kod2", operator: "contains", value: appliedKod2.trim() });
-    }
-    if (appliedKod3.trim()) {
-      filters.push({ column: "Kod3", operator: "contains", value: appliedKod3.trim() });
-    }
-
-    return filters;
-  }, [appliedGroupCode, appliedKod1, appliedKod2, appliedKod3]);
+  const apiFilters = useMemo(
+    () => mapPagedAdvancedFilterRowsToFilters(appliedFilterRows),
+    [appliedFilterRows]
+  );
 
   const {
     data,
@@ -241,47 +159,57 @@ export function StockListScreen() {
     isError,
     refetch,
     isRefetching,
-  } = useStocks(
-    {
-      filters: apiFilters,
-      sortBy: "createdDate",
-      sortDirection: sortOrder,
-      pageSize: 20,
-    },
-    normalizedDebouncedQuery
-  );
+  } = useStocks({
+    filters: apiFilters,
+    filterLogic: appliedFilterLogic,
+    search: debouncedQuery.trim().length >= 2 ? debouncedQuery.trim() : undefined,
+    sortBy: "createdDate",
+    sortDirection: sortOrder,
+    pageSize: 20,
+  });
 
   const { data: stockGroups = [] } = useStockGroups();
 
-  const filteredGroups = useMemo(() => {
-    if (!groupSearchText.trim()) return stockGroups;
+  const stockFilterFields = useMemo<PagedAdvancedFilterFieldConfig[]>(
+    () => [
+      {
+        value: "GrupKodu",
+        label: t("stock.group"),
+        type: "select",
+        operators: ["eq"],
+        placeholder: t("stock.group"),
+        options: stockGroups.map((group: StockGroupDto) => ({
+          value: group.grupKodu ?? "",
+          label: group.grupKodu
+            ? `${group.grupKodu} - ${group.grupAdi ?? ""}`
+            : group.grupAdi ?? "-",
+        })),
+      },
+      {
+        value: "Kod1",
+        label: "Kod 1",
+        type: "text",
+        placeholder: "Kod 1",
+      },
+      {
+        value: "Kod2",
+        label: "Kod 2",
+        type: "text",
+        placeholder: "Kod 2",
+      },
+      {
+        value: "Kod3",
+        label: "Kod 3",
+        type: "text",
+        placeholder: "Kod 3",
+      },
+    ],
+    [stockGroups, t]
+  );
 
-    return stockGroups.filter((g: StockGroupDto) =>
-      fuzzyMatch(groupSearchText, `${g.grupKodu ?? ""} ${g.grupAdi ?? ""}`)
-    );
-  }, [stockGroups, groupSearchText]);
+  const stocks = useMemo(() => data?.pages?.flatMap((page) => page.items || []) || [], [data]);
 
-  const stocks = useMemo(() => {
-    const rawStocks = data?.pages?.flatMap((page) => page.items || []) || [];
-
-    if (!normalizedDebouncedQuery.trim()) return rawStocks;
-
-    return rawStocks.filter((item: StockGetDto) =>
-      fuzzyMatch(normalizedDebouncedQuery, getStockSearchText(item))
-    );
-  }, [data, normalizedDebouncedQuery]);
-
-  const totalCount = normalizedDebouncedQuery.trim()
-    ? stocks.length
-    : data?.pages?.[0]?.totalCount || 0;
-
-  const listBottomPadding = useMemo(() => {
-    if (keyboardHeight <= 0) {
-      return 24;
-    }
-
-    return keyboardHeight + 24;
-  }, [keyboardHeight]);
+  const totalCount = data?.pages?.[0]?.totalCount || 0;
 
   const renderItem = useCallback(
     ({ item }: { item: StockGetDto }) => (
@@ -302,25 +230,74 @@ export function StockListScreen() {
     }
   };
 
-  const renderFooter = () => {
-    if (isFetchingNextPage) {
-      return (
-        <View style={styles.footerLoader}>
-          <ActivityIndicator size="small" color={theme.primary} />
-        </View>
-      );
-    }
+  const toolbarActions = (
+    <>
+      <View
+        style={[
+          styles.viewSwitcher,
+          {
+            backgroundColor: theme.switchBg,
+            borderColor: theme.softBorder,
+          },
+        ]}
+      >
+        <TouchableWithoutFeedback onPress={() => setViewMode("grid")}>
+          <View
+            style={[
+              styles.switchBtn,
+              viewMode === "grid" && {
+                backgroundColor: theme.activeSwitchBg,
+                borderColor: theme.borderColor,
+              },
+            ]}
+          >
+            <LayoutGridIcon
+              size={18}
+              color={viewMode === "grid" ? theme.primary : theme.textMute}
+              variant="stroke"
+              strokeWidth={viewMode === "grid" ? 2.2 : 1.7}
+            />
+          </View>
+        </TouchableWithoutFeedback>
 
-    return <View style={{ height: 8 }} />;
-  };
+        <TouchableWithoutFeedback onPress={() => setViewMode("list")}>
+          <View
+            style={[
+              styles.switchBtn,
+              viewMode === "list" && {
+                backgroundColor: theme.activeSwitchBg,
+                borderColor: theme.borderColor,
+              },
+            ]}
+          >
+            <ListViewIcon
+              size={18}
+              color={viewMode === "list" ? theme.primary : theme.textMute}
+              variant="stroke"
+              strokeWidth={viewMode === "list" ? 2.2 : 1.7}
+            />
+          </View>
+        </TouchableWithoutFeedback>
+      </View>
 
-  const isAnyFilterActive =
-    !!appliedGroupCode || !!appliedKod1 || !!appliedKod2 || !!appliedKod3;
-
-  const selectedGroupName =
-    stockGroups.find((g: StockGroupDto) => g.grupKodu === tempGroupCode)?.grupAdi ||
-    tempGroupCode ||
-    t("stock.allGroups");
+      <TouchableOpacity
+        style={[
+          styles.sortToolbarBtn,
+          {
+            backgroundColor: theme.surfaceBgSoft,
+            borderColor: theme.softBorder,
+          },
+        ]}
+        onPress={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
+      >
+        {sortOrder === "desc" ? (
+          <ArrowDown01Icon size={18} color={theme.primary} strokeWidth={2.2} />
+        ) : (
+          <ArrowUp01Icon size={18} color={theme.primary} strokeWidth={2.2} />
+        )}
+      </TouchableOpacity>
+    </>
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: mainBg }]}>
@@ -339,476 +316,94 @@ export function StockListScreen() {
         <ScreenHeader title={t("stock.list")} showBackButton />
 
         <View style={styles.listContainer}>
-          <View style={styles.controlsArea}>
-            <View style={{ flex: 1, marginRight: 10 }}>
-              <SearchInput value={searchText} onSearch={setSearchText} />
-            </View>
-
-            <View
-              style={[
-                styles.viewSwitcher,
-                {
-                  backgroundColor: theme.switchBg,
-                  borderColor: theme.softBorder,
-                },
-              ]}
-            >
-              <TouchableWithoutFeedback onPress={() => setViewMode("grid")}>
+          <PagedFlatList
+            listKey={viewMode}
+            data={stocks}
+            renderItem={renderItem}
+            keyExtractor={(item) => String(item.id)}
+            searchValue={searchText}
+            onSearchChange={setSearchText}
+            searchPlaceholder={t("common.search")}
+            onOpenFilters={openFilterModal}
+            activeFilterCount={apiFilters.length}
+            toolbarActions={toolbarActions}
+            metaContent={
+              <View style={styles.metaRow}>
+                <Text style={[styles.metaText, { color: theme.textMute }]}>
+                  {typeof t("stock.foundCount", { count: totalCount }) === "string"
+                    ? t("stock.foundCount", { count: totalCount })
+                    : `${totalCount}`}
+                </Text>
+              </View>
+            }
+            isLoading={Boolean(isPending && !data)}
+            refreshing={isRefetching}
+            onRefresh={refetch}
+            numColumns={viewMode === "grid" ? 2 : 1}
+            columnWrapperStyle={viewMode === "grid" ? { gap: GAP } : undefined}
+            contentContainerStyle={{
+              paddingHorizontal: PADDING,
+              paddingTop: 12,
+              paddingBottom: 24,
+              gap: GAP,
+            }}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.5}
+            isFetchingNextPage={isFetchingNextPage}
+            removeClippedSubviews={true}
+            initialNumToRender={10}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            emptyComponent={
+              <View style={styles.center}>
                 <View
                   style={[
-                    styles.switchBtn,
-                    viewMode === "grid" && {
-                      backgroundColor: theme.activeSwitchBg,
-                      borderColor: theme.borderColor,
-                    },
-                  ]}
-                >
-                  <LayoutGridIcon
-                    size={18}
-                    color={viewMode === "grid" ? theme.primary : theme.textMute}
-                    variant="stroke"
-                    strokeWidth={viewMode === "grid" ? 2.2 : 1.7}
-                  />
-                </View>
-              </TouchableWithoutFeedback>
-
-              <TouchableWithoutFeedback onPress={() => setViewMode("list")}>
-                <View
-                  style={[
-                    styles.switchBtn,
-                    viewMode === "list" && {
-                      backgroundColor: theme.activeSwitchBg,
-                      borderColor: theme.borderColor,
-                    },
-                  ]}
-                >
-                  <ListViewIcon
-                    size={18}
-                    color={viewMode === "list" ? theme.primary : theme.textMute}
-                    variant="stroke"
-                    strokeWidth={viewMode === "list" ? 2.2 : 1.7}
-                  />
-                </View>
-              </TouchableWithoutFeedback>
-            </View>
-          </View>
-
-          {(!isPending || data) && (
-            <View style={styles.metaRow}>
-              <Text style={[styles.metaText, { color: theme.textMute }]}>
-                {typeof t("stock.foundCount", { count: totalCount }) === "string"
-                  ? t("stock.foundCount", { count: totalCount })
-                  : `${totalCount}`}
-              </Text>
-
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <TouchableOpacity
-                  style={[
-                    styles.sortBtn,
-                    styles.metaActionChip,
-                    {
-                      backgroundColor: theme.surfaceBgSoft,
-                      borderColor: isAnyFilterActive ? theme.borderColor : theme.softBorder,
-                      marginRight: 10,
-                    },
-                  ]}
-                  onPress={openFilterModal}
-                >
-                  <Text
-                    style={[
-                      styles.sortText,
-                      { color: isAnyFilterActive ? theme.primary : theme.textMute },
-                    ]}
-                  >
-                    {t("common.filter")}
-                  </Text>
-                  <FilterIcon
-                    size={15}
-                    color={isAnyFilterActive ? theme.primary : theme.textMute}
-                    strokeWidth={2.2}
-                    style={{ marginLeft: 4 }}
-                  />
-                  {isAnyFilterActive && (
-                    <View style={[styles.activeFilterDot, { backgroundColor: theme.primary }]} />
-                  )}
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.sortBtn,
-                    styles.metaActionChip,
+                    styles.emptyIconWrap,
                     {
                       backgroundColor: theme.surfaceBgSoft,
                       borderColor: theme.softBorder,
                     },
                   ]}
-                  onPress={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
                 >
-                  <Text style={[styles.sortText, { color: theme.primary }]}>
-                    {sortOrder === "desc" ? t("common.newest") : t("common.oldest")}
-                  </Text>
-                  {sortOrder === "desc" ? (
-                    <ArrowDown01Icon
-                      size={15}
-                      color={theme.primary}
-                      strokeWidth={2.2}
-                      style={{ marginLeft: 4 }}
-                    />
-                  ) : (
-                    <ArrowUp01Icon
-                      size={15}
-                      color={theme.primary}
-                      strokeWidth={2.2}
-                      style={{ marginLeft: 4 }}
-                    />
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-
-          {isPending && !data ? (
-            <View style={styles.center}>
-              <ActivityIndicator size="large" color={theme.primary} />
-            </View>
-          ) : isError ? (
-            <View style={styles.center}>
-              <Text style={{ color: "red" }}>{t("common.error")}</Text>
-            </View>
-          ) : (
-            <FlatList
-              key={viewMode}
-              data={stocks}
-              renderItem={renderItem}
-              keyExtractor={(item) => String(item.id)}
-              numColumns={viewMode === "grid" ? 2 : 1}
-              columnWrapperStyle={viewMode === "grid" ? { gap: GAP } : undefined}
-              contentContainerStyle={{
-                paddingHorizontal: PADDING,
-                paddingTop: 12,
-                paddingBottom: listBottomPadding,
-                gap: GAP,
-              }}
-              keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="on-drag"
-              onEndReached={handleLoadMore}
-              onEndReachedThreshold={0.5}
-              ListFooterComponent={renderFooter}
-              removeClippedSubviews={true}
-              initialNumToRender={10}
-              maxToRenderPerBatch={10}
-              windowSize={5}
-              refreshing={isRefetching}
-              onRefresh={refetch}
-              ListEmptyComponent={
-                <View style={styles.center}>
-                  <View
-                    style={[
-                      styles.emptyIconWrap,
-                      {
-                        backgroundColor: theme.surfaceBgSoft,
-                        borderColor: theme.softBorder,
-                      },
-                    ]}
-                  >
-                    <PackageIcon size={28} color={theme.textMute} variant="stroke" />
-                  </View>
-                  <Text style={[styles.emptyText, { color: theme.textMute }]}>
-                    {normalizedDebouncedQuery.length > 0
-                      ? t("common.noResults")
-                      : t("stock.emptyState")}
-                  </Text>
+                  <PackageIcon size={28} color={theme.textMute} variant="stroke" />
                 </View>
-              }
-            />
-          )}
+                <Text style={[styles.emptyText, { color: theme.textMute }]}>
+                  {debouncedQuery.length > 0 ? t("common.noResults") : t("stock.emptyState")}
+                </Text>
+              </View>
+            }
+          />
         </View>
       </View>
 
-      <Modal
+      <PagedAdvancedFilterModal
         visible={isFilterModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setIsFilterModalVisible(false)}
+        title={t("common.filter")}
+        filterLogic={tempFilterLogic}
+        onFilterLogicChange={setTempFilterLogic}
+        onClose={() => setIsFilterModalVisible(false)}
+        onClear={() => {
+          setDraftFilterRows([]);
+          setAppliedFilterRows([]);
+          setTempFilterLogic("and");
+          setAppliedFilterLogic("and");
+        }}
+        onApply={() => {
+          setAppliedFilterRows(draftFilterRows);
+          setAppliedFilterLogic(tempFilterLogic);
+          setIsFilterModalVisible(false);
+        }}
+        bottomInset={insets.bottom + 20}
       >
-        <View style={[styles.modalOverlay, { backgroundColor: theme.modalOverlay }]}>
-          <View
-            style={[
-              styles.modalContent,
-              {
-                backgroundColor: theme.modalBg,
-                paddingBottom: insets.bottom + 20 + (keyboardHeight > 0 ? keyboardHeight * 0.15 : 0),
-              },
-            ]}
-          >
-            <View style={[styles.modalHandle, { backgroundColor: theme.handle }]} />
-
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ paddingBottom: 8 }}
-            >
-              <View style={styles.modalHeader}>
-                <Text style={[styles.modalTitle, { color: theme.textSoft }]}>
-                  {t("common.filter")}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => setIsFilterModalVisible(false)}
-                  style={styles.closeBtn}
-                >
-                  <Cancel01Icon size={24} color={theme.textMute} variant="stroke" />
-                </TouchableOpacity>
-              </View>
-
-              <Text style={[styles.modalLabel, { color: theme.textMute }]}>
-                {t("stock.group")}
-              </Text>
-
-              <TouchableOpacity
-                style={[
-                  styles.dropdownBtn,
-                  {
-                    backgroundColor: theme.filterBg,
-                    borderColor: isGroupDropdownOpen ? theme.borderColor : theme.softBorder,
-                  },
-                ]}
-                onPress={() => {
-                  setIsGroupDropdownOpen(!isGroupDropdownOpen);
-                  setGroupSearchText("");
-                }}
-                activeOpacity={0.72}
-              >
-                <Text
-                  style={[
-                    styles.dropdownBtnText,
-                    { color: tempGroupCode ? theme.textSoft : theme.filterText, fontWeight: "500" },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {selectedGroupName}
-                </Text>
-                <ArrowDown01Icon
-                  size={18}
-                  color={tempGroupCode ? theme.primary : theme.textMute}
-                  style={{ transform: [{ rotate: isGroupDropdownOpen ? "180deg" : "0deg" }] }}
-                />
-              </TouchableOpacity>
-
-              {isGroupDropdownOpen && (
-                <View
-                  style={[
-                    styles.dropdownListContainer,
-                    { backgroundColor: theme.surfaceBg, borderColor: theme.softBorder },
-                  ]}
-                >
-                  <View style={[styles.searchInputContainer, { borderBottomColor: theme.softBorder }]}>
-                    <TextInput
-                      style={[
-                        styles.dropdownSearchInput,
-                        {
-                          color: theme.filterText,
-                          backgroundColor: theme.filterBg,
-                          borderColor: theme.softBorder,
-                        },
-                      ]}
-                      placeholder={t("stock.searchGroup")}
-                      placeholderTextColor={theme.textMute}
-                      value={groupSearchText}
-                      onChangeText={setGroupSearchText}
-                    />
-                  </View>
-
-                  <ScrollView
-                    style={{ maxHeight: 200 }}
-                    nestedScrollEnabled
-                    keyboardShouldPersistTaps="handled"
-                  >
-                    <TouchableOpacity
-                      style={[styles.dropdownItem, { borderBottomColor: theme.softBorder }]}
-                      onPress={() => {
-                        setTempGroupCode("");
-                        setIsGroupDropdownOpen(false);
-                      }}
-                    >
-                      <View
-                        style={[
-                          styles.dropdownItemInner,
-                          !tempGroupCode && {
-                            backgroundColor: theme.selectedRowBg,
-                            borderColor: theme.selectedRowBorder,
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.dropdownItemText,
-                            {
-                              color: !tempGroupCode ? theme.primary : theme.textMute,
-                              fontWeight: "500",
-                            },
-                          ]}
-                        >
-                          {t("stock.allGroups")}
-                        </Text>
-                        {!tempGroupCode ? (
-                          <CheckmarkCircle02Icon size={16} color={theme.primary} variant="stroke" />
-                        ) : null}
-                      </View>
-                    </TouchableOpacity>
-
-                    {filteredGroups.map((group: StockGroupDto, index: number) => {
-                      const isSelected = tempGroupCode === (group.grupKodu ?? "");
-                      return (
-                        <TouchableOpacity
-                          key={`${group.grupKodu}-${index}`}
-                          style={[styles.dropdownItem, { borderBottomColor: theme.softBorder }]}
-                          onPress={() => {
-                            setTempGroupCode(group.grupKodu ?? "");
-                            setIsGroupDropdownOpen(false);
-                          }}
-                        >
-                          <View
-                            style={[
-                              styles.dropdownItemInner,
-                              isSelected && {
-                                backgroundColor: theme.selectedRowBg,
-                                borderColor: theme.selectedRowBorder,
-                              },
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.dropdownItemText,
-                                {
-                                  color: isSelected ? theme.primary : theme.textMute,
-                                  fontWeight: "500",
-                                },
-                              ]}
-                            >
-                              {group.grupKodu
-                                ? `${group.grupKodu} - ${group.grupAdi ?? ""}`
-                                : group.grupAdi ?? "-"}
-                            </Text>
-                            {isSelected ? (
-                              <CheckmarkCircle02Icon size={16} color={theme.primary} variant="stroke" />
-                            ) : null}
-                          </View>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                </View>
-              )}
-
-              <Text style={[styles.modalLabel, { color: theme.textMute, marginTop: 18 }]}>
-                Kod 1
-              </Text>
-              <TextInput
-                value={tempKod1}
-                onChangeText={setTempKod1}
-                placeholder="Kod 1"
-                placeholderTextColor={theme.textMute}
-                style={[
-                  styles.textFilterInput,
-                  {
-                    color: theme.filterText,
-                    backgroundColor: theme.filterBg,
-                    borderColor: theme.softBorder,
-                  },
-                ]}
-              />
-
-              <Text style={[styles.modalLabel, { color: theme.textMute, marginTop: 18 }]}>
-                Kod 2
-              </Text>
-              <TextInput
-                value={tempKod2}
-                onChangeText={setTempKod2}
-                placeholder="Kod 2"
-                placeholderTextColor={theme.textMute}
-                style={[
-                  styles.textFilterInput,
-                  {
-                    color: theme.filterText,
-                    backgroundColor: theme.filterBg,
-                    borderColor: theme.softBorder,
-                  },
-                ]}
-              />
-
-              <Text style={[styles.modalLabel, { color: theme.textMute, marginTop: 18 }]}>
-                Kod 3
-              </Text>
-              <TextInput
-                value={tempKod3}
-                onChangeText={setTempKod3}
-                placeholder="Kod 3"
-                placeholderTextColor={theme.textMute}
-                style={[
-                  styles.textFilterInput,
-                  {
-                    color: theme.filterText,
-                    backgroundColor: theme.filterBg,
-                    borderColor: theme.softBorder,
-                  },
-                ]}
-              />
-
-              <View style={styles.modalFooter}>
-                <TouchableOpacity
-                  style={[
-                    styles.modalActionBtn,
-                    {
-                      backgroundColor: theme.switchBg,
-                      borderColor: theme.softBorder,
-                      flex: 1,
-                      marginRight: 10,
-                    },
-                  ]}
-                  onPress={() => {
-                    setTempGroupCode("");
-                    setTempKod1("");
-                    setTempKod2("");
-                    setTempKod3("");
-                    setGroupSearchText("");
-                    setIsGroupDropdownOpen(false);
-                    setAppliedGroupCode("");
-                    setAppliedKod1("");
-                    setAppliedKod2("");
-                    setAppliedKod3("");
-                  }}
-                >
-                  <Text style={[styles.modalActionText, { color: theme.textMute }]}>
-                    {t("common.clear")}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.modalActionBtn,
-                    {
-                      backgroundColor: theme.primary,
-                      borderColor: theme.primary,
-                      flex: 2,
-                    },
-                  ]}
-                  onPress={() => {
-                    setAppliedGroupCode(tempGroupCode);
-                    setAppliedKod1(tempKod1);
-                    setAppliedKod2(tempKod2);
-                    setAppliedKod3(tempKod3);
-                    setIsFilterModalVisible(false);
-                  }}
-                >
-                  <Text style={[styles.modalActionText, { color: "#FFF" }]}>
-                    {t("common.apply")}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+        <PagedAdvancedFilterBuilder
+          fields={stockFilterFields}
+          rows={draftFilterRows}
+          onRowsChange={setDraftFilterRows}
+          defaultField="GrupKodu"
+        />
+      </PagedAdvancedFilterModal>
     </View>
   );
 }
@@ -839,6 +434,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     height: 48,
     borderWidth: 1,
+  },
+
+  sortToolbarBtn: {
+    height: 48,
+    width: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 8,
   },
 
   switchBtn: {
