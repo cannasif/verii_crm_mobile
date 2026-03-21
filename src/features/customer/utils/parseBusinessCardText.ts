@@ -3,9 +3,9 @@ import type { BusinessCardOcrResult } from "../types/businessCard";
 const EMAIL_REGEX =
   /[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*/g;
 const PHONE_REGEX =
-  /(?:\+90|0)?[\s.-]?\(?[0-9]{3}\)?[\s.-]?[0-9]{3}[\s.-]?[0-9]{2}[\s.-]?[0-9]{2}|\+\d{1,3}[\s.-]?\d{2,4}[\s.-]?\d{2,4}[\s.-]?\d{2,4}/g;
+  /(?:\+|00)?\d{1,3}[\s().-]*(?:\d[\s().-]*){6,14}(?:\s*\/\s*\d{1,6}|\s*\(\d{1,6}\))?/g;
 const URL_REGEX = /https?:\/\/[^\s]+/g;
-const WEBSITE_REGEX = /(?:https?:\/\/)?(?:www\.)?[a-zA-Z0-9][-a-zA-Z0-9.]*\.[a-zA-Z]{2,}(?:\/[^\s]*)?/g;
+const WEBSITE_REGEX = /(?:https?:\/\/)?(?:www\.)?[a-zA-Z0-9][-a-zA-Z0-9.]*\.(?:[a-z]{2,}|com\.[a-z]{2})(?:\/[^\s]*)?/gi;
 
 function trimAndClean(value: string): string {
   return value.replace(/\s+/g, " ").trim();

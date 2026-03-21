@@ -52,30 +52,30 @@ const EMPTY_ADDRESS_PARTS: AddressParts = {
   country: null,
 };
 
-const PHONE_E164_TR_REGEX = /^\+90\d{10}$/;
+const PHONE_E164_GENERIC_REGEX = /^\+\d{7,15}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const CONTACT_TOKEN_REGEX = /@|www\.|https?:\/\/|e-?mail|email|tel\.?|telefon|gsm|mobile|fax|faks/i;
+const CONTACT_TOKEN_REGEX = /@|www\.|https?:\/\/|e-?mail|email|tel\.?|telefon|gsm|mobile|mob\.?|cell|office|fax|faks/i;
 const ADDRESS_HINT_REGEX =
-  /\b(mah(?:\.|alle(?:si)?)?|cad(?:\.|de(?:si)?)?|sok(?:\.|ak|ağı)?|sk\.?|bulvar[ıi]?|bulv\.?|blv\.?|blok|kat\b|daire|apt|plaza|han|merkez(?:i)?|san\.?\s*sit\.?|sit\.?|osb|bölge(?:si)?|organize|posta|pk)\b/i;
+  /\b(mah(?:\.|alle(?:si)?)?|cad(?:\.|de(?:si)?)?|sok(?:\.|ak|ağı)?|sk\.?|bulvar[ıi]?|bulv\.?|blv\.?|blok|kat\b|daire|apt|plaza|han|merkez(?:i)?|san\.?\s*sit\.?|sit\.?|osb|bölge(?:si)?|organize|posta|pk|calle|nave|parque|business\s*park|parku|zona|street|st\.?|road|rd\.?|avenida|av\.?)\b/i;
 const ADDRESS_NO_REGEX = /\b(?:no|numara)\s*[:.]?\s*\d{1,5}(?:\s*[-/]\s*\w{1,5})?|\bn\s*[:.]\s*\d{1,5}(?:\s*[-/]\s*\w{1,5})?/i;
-const POSTAL_CODE_REGEX = /\b\d{5}\b/;
+const POSTAL_CODE_REGEX = /\b\d{4,6}\b/;
 const ADDRESS_EXCLUDE_REGEX =
-  /@|www\.|https?:\/\/|\.com|\.net|\.org|\.tr|e-?mail|email|tel\.?|telefon|gsm|mobile|fax|faks|linkedin|instagram|facebook|x\.com|twitter|\+?\s*90[\s().-]*\d{3}[\s().-]*\d{3}[\s().-]*\d{2}[\s().-]*\d{2}|(?:^|\D)0[\s().-]*\d{3}[\s().-]*\d{3}[\s().-]*\d{2}[\s().-]*\d{2}(?:\D|$)/i;
+  /@|www\.|https?:\/\/|\.com|\.net|\.org|\.tr|\.es|\.ru|\.de|\.al|e-?mail|email|tel\.?|telefon|gsm|mobile|mob\.?|cell|office|fax|faks|linkedin|instagram|facebook|x\.com|twitter|(?:\+|00)?\d{1,3}[\s().-]*(?:\d[\s().-]*){6,14}/i;
 const COUNTRY_SUFFIX_REGEX = /\s*[-/–,]\s*(?:türkiye|turkey|turkiye)\s*$/i;
 const COUNTRY_LINE_REGEX = /^\s*(?:türkiye|turkey|turkiye|tr)\s*$/i;
 const WEBSITE_CANDIDATE_REGEX =
-  /(?:https?:\/\/)?(?:www\.)?[a-z0-9][a-z0-9.-]*\.(?:com(?:\.tr)?|net|org|tr|edu(?:\.tr)?|gov(?:\.tr)?|io|biz|info|me|tv)(?:\/[^\s]*)?/gi;
-const WEBSITE_TLD_REGEX = /\.(?:com(?:\.tr)?|net|org|tr|edu(?:\.tr)?|gov(?:\.tr)?|io|biz|info|me|tv)(?:\/|$)/i;
+  /(?:https?:\/\/)?(?:www\.)?[a-z0-9][a-z0-9.-]*\.(?:com(?:\.[a-z]{2})?|net|org|tr|edu(?:\.tr)?|gov(?:\.tr)?|io|biz|info|me|tv|es|ru|de|al|eu|fr|it|co\.uk)(?:\/[^\s]*)?/gi;
+const WEBSITE_TLD_REGEX = /\.(?:com(?:\.[a-z]{2})?|net|org|tr|edu(?:\.tr)?|gov(?:\.tr)?|io|biz|info|me|tv|es|ru|de|al|eu|fr|it|co\.uk)(?:\/|$)/i;
 const WEBSITE_BLACKLIST_REGEX = /\b(A\.?\s?Ş|AŞ|LTD|ŞT[İI]|SAN|T[İI]C|DIŞ|AKS|ORTAKLIĞI)\b/i;
-const COMPANY_MARKER_REGEX = /\b(A\.?\s?Ş|AŞ|LTD|ŞT[İI]|SAN|T[İI]C|ORTAKLIĞI)\b/i;
+const COMPANY_MARKER_REGEX = /\b(A\.?\s?Ş|AŞ|LTD|ŞT[İI]|SAN|T[İI]C|ORTAKLIĞI|S\.?L\.?|S\.?A\.?|LLC|L\.?L\.?C\.?|SH\.?P\.?K\.?|GMBH)\b/i;
 const COMPANY_MARKER_BOUNDARY_REGEX =
-  /(^|[^A-Za-zÇĞİÖŞÜçğıöşüÂâÎîÛû])(A\.?\s?Ş|AŞ|LTD|ŞT[İI]|SAN|T[İI]C|ORTAKLIĞI)(?=$|[^A-Za-zÇĞİÖŞÜçğıöşüÂâÎîÛû])/i;
+  /(^|[^A-Za-zÇĞİÖŞÜçğıöşüÂâÎîÛû])(A\.?\s?Ş|AŞ|LTD|ŞT[İI]|SAN|T[İI]C|ORTAKLIĞI|S\.?L\.?|S\.?A\.?|LLC|L\.?L\.?C\.?|SH\.?P\.?K\.?|GMBH)(?=$|[^A-Za-zÇĞİÖŞÜçğıöşüÂâÎîÛû])/i;
 const INDUSTRY_KEYWORD_REGEX =
-  /\b(makine|makina|tekstil|otomotiv|gıda|inşaat|mobilya|lojistik|logistics|trading|solutions|import|export|mühendislik|danışmanlık|turizm|enerji|group|grup|holding|plastik|metal|kimya|elektrik|elektronik|yazılım|software|bilişim|otomasyon|otomasyonu|pvc|alüminyum|nakliyat|gayrimenkul|sigorta|reklam|medya|ambalaj|demir|çelik|cam|pencere|kapı|vinç|maden|lines|teknoloji|technology|iletişim|hizmet|hizmetleri|services|marin|marine|denizcilik|hafriyat|peyzaj|tarım|mimarlık|müteahhit|depolama|soğutma|jeneratör|asansör|matbaa|ajans|eczane|optik|kozmetik|giyim|konfeksiyon|ayakkabı|deri|kuyumculuk|mücevher|oto|otobüs|araç|lastik|akü|yedek\s*parça|rulman|conta|boya|hırdavat|nalburiye|seramik|mermer|parke|halı|perde|aydınlatma|mutfak|banyo|beyaz\s*eşya|klima|kombi|doğalgaz|ısıtma|iklimlendirme|havalandırma|yangın|güvenlik|temizlik|catering|gümrük|antrepo|freight|cargo|kargo|kurye|taşımacılık|profil)\b/i;
+  /\b(makine|makina|tekstil|otomotiv|gıda|inşaat|mobilya|lojistik|logistics|trading|solutions|import|export|mühendislik|danışmanlık|turizm|enerji|group|grup|holding|plastik|metal|kimya|elektrik|elektronik|yazılım|software|bilişim|otomasyon|otomasyonu|pvc|alüminyum|nakliyat|gayrimenkul|sigorta|reklam|medya|ambalaj|demir|çelik|cam|pencere|kapı|vinç|maden|lines|teknoloji|technology|iletişim|hizmet|hizmetleri|services|marin|marine|denizcilik|hafriyat|peyzaj|tarım|mimarlık|müteahhit|depolama|soğutma|jeneratör|asansör|matbaa|ajans|eczane|optik|kozmetik|giyim|konfeksiyon|ayakkabı|deri|kuyumculuk|mücevher|oto|otobüs|araç|lastik|akü|yedek\s*parça|rulman|conta|boya|hırdavat|nalburiye|seramik|mermer|parke|halı|perde|aydınlatma|mutfak|banyo|beyaz\s*eşya|klima|kombi|doğalgaz|ısıtma|iklimlendirme|havalandırma|yangın|güvenlik|temizlik|catering|gümrük|antrepo|freight|cargo|kargo|kurye|taşımacılık|profil|security|locks|hardware|construction|managerial)\b/i;
 const PHONE_CANDIDATE_REGEX =
-  /(?:\+?\s*90[\s().-]*)?(?:0[\s().-]*)?\(?\d{3}\)?[\s().-]*\d{3}[\s().-]*\d{2}[\s().-]*\d{2}(?:\s*\/\s*\d{1,6}|\s*\(\d{1,6}\))?/gi;
+  /(?:\+|00)?\d{1,3}[\s().-]*(?:\d[\s().-]*){6,14}(?:\b(?:ext|ext\.|dahili|int\.?|pbx)\s*[:.]?\s*\d{1,6}\b|\s*\/\s*\d{1,6}|\s*\(\d{1,6}\))?/gi;
 const PHONE_IN_TEXT_REGEX =
-  /(?:\+?\s*90[\s().-]*)?(?:0[\s().-]*)?\(?\d{3}\)?[\s().-]*\d{3}[\s().-]*\d{2}[\s().-]*\d{2}(?:\s*\/\s*\d{1,6}|\s*\(\d{1,6}\))?/i;
+  /(?:\+|00)?\d{1,3}[\s().-]*(?:\d[\s().-]*){6,14}(?:\b(?:ext|ext\.|dahili|int\.?|pbx)\s*[:.]?\s*\d{1,6}\b|\s*\/\s*\d{1,6}|\s*\(\d{1,6}\))?/i;
 const TITLE_KEYWORDS = [
   "sales",
   "marketing",
@@ -113,6 +113,11 @@ const TITLE_KEYWORDS = [
   "koordinatorlugu",
   "koordinatör",
   "koordinator",
+  "export",
+  "ventas",
+  "managerial",
+  "division",
+  "office",
 ] as const;
 const LETTER_CHAR_REGEX = /[A-Za-zÇĞİÖŞÜçğıöşüÂâÎîÛû]/;
 const LETTER_GLOBAL_REGEX = /[A-Za-zÇĞİÖŞÜçğıöşüÂâÎîÛû]/g;
@@ -129,6 +134,8 @@ const SAFE_PROVINCES = new Set([
   "kırklareli", "osmaniye", "batman", "mardin", "bingöl", "elazığ",
   "afyonkarahisar", "kütahya", "zonguldak", "bartın", "karabük",
   "tokat", "amasya", "giresun", "rize", "artvin", "niğde", "nevşehir",
+  "trazo", "coruna", "moscow", "prishtina", "drenas", "bushat",
+  "kosovo", "spain", "espana", "españa", "russia",
 ]);
 
 const KNOWN_DISTRICTS = new Set([
@@ -149,6 +156,7 @@ const KNOWN_DISTRICTS = new Set([
   "melikgazi", "kocasinan", "talas",
   "kepez", "muratpaşa", "konyaaltı", "alanya",
   "selçuklu", "meram", "karatay",
+  "chayán", "chayan", "eyüp", "eyup",
 ]);
 
 function normalizeNullable(value: string | null | undefined): string | null {
@@ -212,9 +220,10 @@ function stripContactFragments(value: string): string {
   return parts[parts.length - 1]!;
 }
 
-function normalizePhone(raw: string): { phone: string | null; note?: string } {
+function normalizePhone(raw: string): { phone: string | null; note?: string; priority?: number } {
   const source = raw.replace(/\s+/g, " ").trim();
   if (!source) return { phone: null };
+  const isPreferredMobileLabel = /\b(gsm|mobile|mob\.?|cell|cep)\b/i.test(source);
 
   const digitsOnly = source.replace(/[^\d]/g, "");
   if (/^444\d{4,5}$/.test(digitsOnly)) {
@@ -242,7 +251,7 @@ function normalizePhone(raw: string): { phone: string | null; note?: string } {
   }
 
   const phoneLikeMatch = baseSource.match(
-    /(?:\+?\s*90[\s().-]*)?(?:0[\s().-]*)?\(?\d{3}\)?[\s().-]*\d{3}[\s().-]*\d{2}[\s().-]*\d{2}/
+    /(?:\+|00)?\d{1,3}[\s().-]*(?:\d[\s().-]*){6,14}/
   );
   const sourceForNormalization = phoneLikeMatch?.[0] ?? baseSource;
 
@@ -265,19 +274,16 @@ function normalizePhone(raw: string): { phone: string | null; note?: string } {
   }
 
   let digits = compact.startsWith("+") ? compact.slice(1) : compact;
-  if (digits.startsWith("0")) {
+  if (digits.startsWith("0") && digits.length === 11) {
     digits = `90${digits.slice(1)}`;
   } else if (digits.length === 10) {
     digits = `90${digits}`;
-  } else if (!digits.startsWith("90")) {
-    if (extension) {
-      return { phone: null, note: isFax ? `Fax Dahili: ${extension}` : `Dahili: ${extension}` };
-    }
-    return { phone: null, note: `Şüpheli telefon: ${source}` };
+  } else if (digits.startsWith("00")) {
+    digits = digits.slice(2);
   }
 
   const normalized = `+${digits}`;
-  if (!PHONE_E164_TR_REGEX.test(normalized)) {
+  if (!PHONE_E164_GENERIC_REGEX.test(normalized)) {
     if (extension) {
       return { phone: null, note: isFax ? `Fax Dahili: ${extension}` : `Dahili: ${extension}` };
     }
@@ -290,23 +296,54 @@ function normalizePhone(raw: string): { phone: string | null; note?: string } {
   }
 
   const note = extension ? `Dahili: ${extension}` : undefined;
-  return { phone: normalized, note };
+  const priority = isPreferredMobileLabel || /^\+905\d{9}$/.test(normalized) ? 0 : 1;
+  return { phone: normalized, note, priority };
 }
 
 function normalizePhones(values: string[], notes: string[]): string[] {
-  const normalized: string[] = [];
+  const normalized: Array<{ phone: string; priority: number }> = [];
   for (const value of values) {
     const result = normalizePhone(value);
-    if (result.phone && !normalized.includes(result.phone)) {
-      normalized.push(result.phone);
+    if (result.phone && !normalized.some((item) => item.phone === result.phone)) {
+      normalized.push({ phone: result.phone, priority: result.priority ?? 1 });
     }
     if (result.note) {
       pushNote(notes, result.note);
     }
   }
-  const mobile = normalized.filter((x) => /^\+905\d{9}$/.test(x));
-  const landline = normalized.filter((x) => !/^\+905\d{9}$/.test(x));
-  return [...mobile, ...landline];
+  return normalized
+    .sort((a, b) => a.priority - b.priority || a.phone.localeCompare(b.phone, "tr"))
+    .map((item) => item.phone);
+}
+
+function digitsTail(value: string, size = 5): string {
+  const digits = value.replace(/\D/g, "");
+  return digits.slice(-size);
+}
+
+function sortPhonesByRawContext(phones: string[], rawText?: string): string[] {
+  if (!rawText || phones.length <= 1) return phones;
+
+  const lines = rawText
+    .split(/\r?\n/)
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+
+  return [...phones].sort((left, right) => {
+    const findPriority = (phone: string): number => {
+      const tail = digitsTail(phone);
+      const line = lines.find((candidate) => candidate.replace(/\D/g, "").includes(tail));
+      const defaultPriority = /^\+905\d{9}$/.test(phone) ? 0 : 1;
+      if (!line) return defaultPriority;
+      if (/\b(gsm|mobile|mob\.?|cell|cep)\b/i.test(line)) return 0;
+      return defaultPriority;
+    };
+
+    const leftPriority = findPriority(left);
+    const rightPriority = findPriority(right);
+    if (leftPriority !== rightPriority) return leftPriority - rightPriority;
+    return left.localeCompare(right, "tr");
+  });
 }
 
 function normalizeEmails(values: string[], notes: string[]): string[] {
@@ -503,7 +540,7 @@ function normalizeAddressParts(raw: z.infer<typeof AddressPartsSchema> | undefin
 function validatePostalCode(value: string | null): string | null {
   if (!value) return null;
   const digits = value.replace(/\D/g, "");
-  if (/^\d{5}$/.test(digits)) return digits;
+  if (/^\d{4,6}$/.test(digits)) return digits;
   return null;
 }
 
@@ -533,6 +570,10 @@ function assembleAddressFromParts(parts: AddressParts): string | null {
     segments.push(parts.province);
   } else if (parts.district) {
     segments.push(parts.district);
+  }
+
+  if (parts.country && !/^(türkiye|turkey|turkiye|tr)$/i.test(parts.country)) {
+    segments.push(parts.country);
   }
 
   if (segments.length === 0) return null;
@@ -933,6 +974,7 @@ export function validateAndNormalizeBusinessCardExtraction(
   if (emails.length === 0 && rawText) {
     emails = normalizeEmails(extractEmailCandidatesFromRawText(rawText), notes);
   }
+  phones = sortPhonesByRawContext(phones, rawText);
   const website =
     normalizeWebsite(normalizeNullable(parsed.data.website), notes) ??
     pickWebsiteFromRawText(rawText, emails, notes);

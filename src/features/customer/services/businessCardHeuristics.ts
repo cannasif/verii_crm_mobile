@@ -1,16 +1,16 @@
 const PHONE_CANDIDATE_REGEX =
-  /(?:\+?\s*90[\s().-]*)?(?:0[\s().-]*)?\(?\d{3}\)?[\s().-]*\d{3}[\s().-]*\d{2}[\s().-]*\d{2}(?:\s*\/\s*\d{1,6}|\s*\(\d{1,6}\))?/gi;
+  /(?:\+|00)?\d{1,3}[\s().-]*(?:\d[\s().-]*){6,14}(?:\b(?:ext|ext\.|dahili|int\.?|pbx)\s*[:.]?\s*\d{1,6}\b|\s*\/\s*\d{1,6}|\s*\(\d{1,6}\))?/gi;
 const EMAIL_CANDIDATE_REGEX = /[^\s@]+@[^\s@]+\.[^\s@]+/g;
 const WEBSITE_CANDIDATE_REGEX =
-  /(?:https?:\/\/)?(?:www\.)?[a-z0-9][a-z0-9.-]*\.(?:com(?:\.tr)?|net|org|tr|edu(?:\.tr)?|gov(?:\.tr)?|io|biz|info|me|tv)(?:\/[^\s]*)?/gi;
+  /(?:https?:\/\/)?(?:www\.)?[a-z0-9][a-z0-9.-]*\.(?:com(?:\.[a-z]{2})?|net|org|tr|edu(?:\.tr)?|gov(?:\.tr)?|io|biz|info|me|tv|es|ru|de|al|eu|fr|it|co\.uk)(?:\/[^\s]*)?/gi;
 const CONTACT_TOKEN_REGEX =
-  /@|www\.|https?:\/\/|e-?mail|email|tel\.?|telefon|gsm|mobile|fax|faks|linkedin|instagram|facebook|x\.com|twitter/i;
+  /@|www\.|https?:\/\/|e-?mail|email|tel\.?|telefon|gsm|mobile|mob\.?|cell|office|fax|faks|linkedin|instagram|facebook|x\.com|twitter/i;
 const ADDRESS_HINT_REGEX =
-  /\b(mah(?:\.|alle(?:si)?)?|cad(?:\.|de(?:si)?)?|sok(?:\.|ak|ağı)?|sk\.?|bulvar[ıi]?|bulv\.?|blv\.?|blok|kat\b|daire|apt|plaza|han|merkez(?:i)?|san\.?\s*sit\.?|sit\.?|osb|bölge(?:si)?|organize|posta|pk|no|numara)\b/i;
-const POSTAL_CODE_REGEX = /\b\d{5}\b/;
+  /\b(mah(?:\.|alle(?:si)?)?|cad(?:\.|de(?:si)?)?|sok(?:\.|ak|ağı)?|sk\.?|bulvar[ıi]?|bulv\.?|blv\.?|blok|kat\b|daire|apt|plaza|han|merkez(?:i)?|san\.?\s*sit\.?|sit\.?|osb|bölge(?:si)?|organize|posta|pk|no|numara|calle|nave|parque|business\s*park|parku|zona|street|st\.?|road|rd\.?|avenida|av\.?)\b/i;
+const POSTAL_CODE_REGEX = /\b\d{4,6}\b/;
 const PHONE_IN_TEXT_REGEX =
-  /(?:\+?\s*90[\s().-]*)?(?:0[\s().-]*)?\(?\d{3}\)?[\s().-]*\d{3}[\s().-]*\d{2}[\s().-]*\d{2}/i;
-const COUNTRY_ONLY_REGEX = /^\s*(?:türkiye|turkey|tr)\s*$/i;
+  /(?:\+|00)?\d{1,3}[\s().-]*(?:\d[\s().-]*){6,14}/i;
+const COUNTRY_ONLY_REGEX = /^\s*(?:türkiye|turkey|tr|spain|españa|espana|kosovo|kosov[eë]s|albania|russia)\s*$/i;
 
 const COMMON_PROVINCES = [
   "istanbul",
@@ -27,6 +27,17 @@ const COMMON_PROVINCES = [
   "trabzon",
   "samsun",
   "kayseri",
+  "ankara",
+  "trazo",
+  "coruna",
+  "prishtina",
+  "drenas",
+  "bushat",
+  "moscow",
+  "espana",
+  "españa",
+  "kosovo",
+  "russia",
 ];
 
 export interface BusinessCardCandidateHints {

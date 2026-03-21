@@ -330,7 +330,7 @@ function renderContextSection(context?: BusinessCardPromptContext): string {
 
 export function buildBusinessCardUserPrompt(rawText: string, context?: BusinessCardPromptContext): string {
   const contextSection = renderContextSection(context);
-  return `Türkiye kartviziti OCR metninden alanları çıkar. Çıktı SADECE aşağıdaki şemaya uyan TEK bir JSON object olacak. JSON dışında hiçbir şey yazma.
+  return `Kartvizit OCR metninden alanları çıkar. Kart Türkiye'den veya yabancı bir ülkeden gelebilir. Çıktı SADECE aşağıdaki şemaya uyan TEK bir JSON object olacak. JSON dışında hiçbir şey yazma.
 
 ŞEMA:
 ${SCHEMA_EXAMPLE_JSON}
@@ -344,7 +344,11 @@ KURALLAR (HARFİYEN UYGULA):
 - name null ise contactNameAndSurname da null.
 
 1) PHONES — Telefon Numaraları:
-- Çıktı formatı KESİN: "+90XXXXXXXXXX" (+ işareti, 90, ardından 10 rakam = toplam 13 karakter).
+- Çıktı formatı E.164 olmalı: "+<ülkeKodu><numara>".
+- TÜRKİYE için normalize kuralı KESİN: "+90XXXXXXXXXX" (+ işareti, 90, ardından 10 rakam = toplam 13 karakter).
+- Yabancı kartvizitlerde ülke kodu açıkça yazıyorsa koru: ör. +34..., +383..., +7...
+- "0034..." gibi başlıyorsa "+34..." yap.
+- Yabancı numarada ülke kodu AÇIKÇA yoksa uydurma yapma; emin değilsen phones'a koyma, notes'a "Şüpheli telefon: ..." yaz.
 - Tüm boşluk, parantez, tire, nokta ayırıcıları sil.
 - Dönüştürme:
   0XXXXXXXXXX → +90XXXXXXXXXX
@@ -378,7 +382,7 @@ KURALLAR (HARFİYEN UYGULA):
 - Bozuk/şüpheli email'i UYDURMA. Emin değilsen ekleme.
 
 3) WEBSITE:
-- Gerçek domain/URL: www. veya http ile başlar VEYA en az bir nokta + TLD (.com, .com.tr, .net, .org, .tr, .org.tr vb.)
+- Gerçek domain/URL: www. veya http ile başlar VEYA en az bir nokta + TLD (.com, .com.tr, .net, .org, .tr, .org.tr, .es, .ru, .de, .al vb.)
 - ŞİRKET ADI/KISALTMA OLAN STRING website OLAMAZ: A.Ş, AŞ, LTD, ŞTİ, SAN, TİC, DIŞ, AKS, ORTAKLIĞI, GAYRİMENKUL
 - "@" içeriyorsa website OLAMAZ (email'dir).
 - Yoksa null.
@@ -415,6 +419,8 @@ KURALLAR (HARFİYEN UYGULA):
     "TURKEY", "TÜRKİYE", "TR" → addressParts.country = "Türkiye"
     FAKAT address string'e EKLENMEMELİ (TR CRM için gereksiz).
     Tek satır "Türkiye" / "TURKEY" / "TR" ise → address'ten çıkar, country'ye yaz.
+    Türkiye DIŞINDA ülke adı varsa (Spain, España, Kosovo, Russia vb.) → addressParts.country'ye yaz.
+    Yabancı kartlarda country address string içinde KALABİLİR.
 
   4.4) address — BİRLEŞTİRME KURALI (PTT sırası):
     address = neighborhood + avenue/street/boulevard + sitePlaza + block + buildingNo + floor + apartment + postalCode + district/province
