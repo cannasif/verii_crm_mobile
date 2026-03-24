@@ -18,8 +18,8 @@
       "bundleIdentifier": "com.crmv3rii.v3riioctopus",
       "buildNumber": "2",
       "infoPlist": {
-        "NSCameraUsageDescription": "This app uses the camera to scan business cards and automatically extract contact information. For example, users can scan a business card to quickly save contact details into the app.",
-        "NSMicrophoneUsageDescription": "This app uses the microphone to enable voice search. For example, users can speak a contact name to quickly find it within the app."
+        "NSCameraUsageDescription": "Camera access is used to capture business card photos so contact details can be extracted and saved as CRM customer records.",
+        "NSPhotoLibraryUsageDescription": "Photo Library access is used to select existing business card or document images and attach them to CRM customer and activity records."
       }
     },
     "android": {
@@ -40,7 +40,14 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Yakındaki müşterileri ve mekanları haritada göstermek için konumunuza erişim gerekiyor."
+          "locationWhenInUsePermission": "Location is used while using the app to show nearby customers and places on the map and support route planning."
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Microphone access is used for voice search so users can speak customer, product, and document names in CRM forms.",
+          "speechRecognitionPermission": "Speech recognition is used to convert spoken search and input text into CRM form fields."
         }
       ],
       [

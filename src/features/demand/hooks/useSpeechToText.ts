@@ -2,6 +2,10 @@ import { useCallback, useRef, useState } from "react";
 import { Platform } from "react-native";
 import { useToastStore } from "../../../store/toast";
 import { useTranslation } from "react-i18next";
+import {
+  ExpoSpeechRecognitionModule,
+  useSpeechRecognitionEvent,
+} from "expo-speech-recognition";
 
 interface UseSpeechToTextResult {
   startListening: (onResultText: (text: string) => void) => Promise<void>;
@@ -29,8 +33,36 @@ interface SpeechRecognitionInstance {
 export function useSpeechToText(): UseSpeechToTextResult {
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
+  const onResultTextRef = useRef<((text: string) => void) | null>(null);
   const showToast = useToastStore((s) => s.showToast);
   const { t } = useTranslation();
+
+  useSpeechRecognitionEvent("start", () => {
+    if (Platform.OS !== "web") {
+      setIsListening(true);
+    }
+  });
+
+  useSpeechRecognitionEvent("end", () => {
+    if (Platform.OS !== "web") {
+      setIsListening(false);
+    }
+  });
+
+  useSpeechRecognitionEvent("result", (event) => {
+    if (Platform.OS === "web") return;
+    const transcript = event.results?.[0]?.transcript?.trim();
+    if (transcript && onResultTextRef.current) {
+      onResultTextRef.current(transcript);
+    }
+  });
+
+  useSpeechRecognitionEvent("error", () => {
+    if (Platform.OS !== "web") {
+      setIsListening(false);
+      showToast("error", t("common.voiceSearchStartError"));
+    }
+  });
 
   const startListening = useCallback(
     async (onResultText: (text: string) => void) => {
@@ -60,12 +92,26 @@ export function useSpeechToText(): UseSpeechToTextResult {
         }
       }
 
-      showToast(
-        "info",
-        t("common.voiceSearchSupportInfo")
-      );
+      try {
+        onResultTextRef.current = onResultText;
+        const permissionResult = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+        if (!permissionResult.granted) {
+          showToast("info", t("common.voiceSearchPermissionRequired"));
+          return;
+        }
+
+        ExpoSpeechRecognitionModule.start({
+          lang: "tr-TR",
+          interimResults: false,
+          continuous: false,
+          requiresOnDeviceRecognition: false,
+        });
+      } catch {
+        setIsListening(false);
+        showToast("error", t("common.voiceSearchStartError"));
+      }
     },
-    [showToast]
+    [showToast, t]
   );
 
   return { startListening, isListening };
