@@ -5,7 +5,7 @@ const EMAIL_REGEX =
 const PHONE_REGEX =
   /(?:\+|00)?\d{1,3}[\s().-]*(?:\d[\s().-]*){6,14}(?:\s*\/\s*\d{1,6}|\s*\(\d{1,6}\))?/g;
 const URL_REGEX = /https?:\/\/[^\s]+/g;
-const WEBSITE_REGEX = /(?:https?:\/\/)?(?:www\.)?[a-zA-Z0-9][-a-zA-Z0-9.]*\.(?:[a-z]{2,}|com\.[a-z]{2})(?:\/[^\s]*)?/gi;
+const WEBSITE_REGEX = /(?:https?:\/\/)?(?:www\.)?[a-zA-Z0-9][-a-zA-Z0-9.]*\.(?:[a-z]{2,}|com\.[a-z]{2}|cn)(?:\/[^\s]*)?/gi;
 
 function trimAndClean(value: string): string {
   return value.replace(/\s+/g, " ").trim();

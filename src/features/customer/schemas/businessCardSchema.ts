@@ -54,24 +54,28 @@ const EMPTY_ADDRESS_PARTS: AddressParts = {
 
 const PHONE_E164_GENERIC_REGEX = /^\+\d{7,15}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const UNICODE_LETTER_REGEX = /\p{L}/u;
+const UNICODE_LETTER_GLOBAL_REGEX = /\p{L}/gu;
+const UNICODE_UPPERCASE_GLOBAL_REGEX = /\p{Lu}/gu;
+const CYRILLIC_REGEX = /\p{Script=Cyrillic}/u;
 const CONTACT_TOKEN_REGEX = /@|www\.|https?:\/\/|e-?mail|email|tel\.?|telefon|gsm|mobile|mob\.?|cell|office|fax|faks/i;
 const ADDRESS_HINT_REGEX =
-  /\b(mah(?:\.|alle(?:si)?)?|cad(?:\.|de(?:si)?)?|sok(?:\.|ak|ağı)?|sk\.?|bulvar[ıi]?|bulv\.?|blv\.?|blok|kat\b|daire|apt|plaza|han|merkez(?:i)?|san\.?\s*sit\.?|sit\.?|osb|bölge(?:si)?|organize|posta|pk|calle|nave|parque|business\s*park|parku|zona|street|st\.?|road|rd\.?|avenida|av\.?)\b/i;
+  /\b(mah(?:\.|alle(?:si)?)?|cad(?:\.|de(?:si)?)?|sok(?:\.|ak|ağı)?|sk\.?|bulvar[ıi]?|bulv\.?|blv\.?|blok|kat\b|daire|apt|plaza|han|merkez(?:i)?|san\.?\s*sit\.?|sit\.?|osb|bölge(?:si)?|organize|posta|pk|calle|nave|parque|business\s*park|parku|zona|street|st\.?|road|rd\.?|avenida|av\.?|ulitsa|ul\.?|ulica|prospekt|pr-?t|pr\.?|dom|d\.?|stroenie|str\.?|ofis|office|офис|ул\.?|улица|проспект|д\.?|дом|стр\.?)\b/i;
 const ADDRESS_NO_REGEX = /\b(?:no|numara)\s*[:.]?\s*\d{1,5}(?:\s*[-/]\s*\w{1,5})?|\bn\s*[:.]\s*\d{1,5}(?:\s*[-/]\s*\w{1,5})?/i;
 const POSTAL_CODE_REGEX = /\b\d{4,6}\b/;
 const ADDRESS_EXCLUDE_REGEX =
-  /@|www\.|https?:\/\/|\.com|\.net|\.org|\.tr|\.es|\.ru|\.de|\.al|e-?mail|email|tel\.?|telefon|gsm|mobile|mob\.?|cell|office|fax|faks|linkedin|instagram|facebook|x\.com|twitter|(?:\+|00)?\d{1,3}[\s().-]*(?:\d[\s().-]*){6,14}/i;
+  /@|www\.|https?:\/\/|\.com|\.net|\.org|\.tr|\.es|\.ru|\.de|\.al|\.cn|e-?mail|email|tel\.?|telefon|gsm|mobile|mob\.?|cell|office|fax|faks|linkedin|instagram|facebook|x\.com|twitter|(?:\+|00)?\d{1,3}[\s().-]*(?:\d[\s().-]*){6,14}/i;
 const COUNTRY_SUFFIX_REGEX = /\s*[-/–,]\s*(?:türkiye|turkey|turkiye)\s*$/i;
-const COUNTRY_LINE_REGEX = /^\s*(?:türkiye|turkey|turkiye|tr)\s*$/i;
+const COUNTRY_LINE_REGEX = /^\s*(?:türkiye|turkey|turkiye|tr|españa|espana|spain|russia|россия|china|çin|китай|kosovo|kosov[eë]s)\s*$/i;
 const WEBSITE_CANDIDATE_REGEX =
-  /(?:https?:\/\/)?(?:www\.)?[a-z0-9][a-z0-9.-]*\.(?:com(?:\.[a-z]{2})?|net|org|tr|edu(?:\.tr)?|gov(?:\.tr)?|io|biz|info|me|tv|es|ru|de|al|eu|fr|it|co\.uk)(?:\/[^\s]*)?/gi;
-const WEBSITE_TLD_REGEX = /\.(?:com(?:\.[a-z]{2})?|net|org|tr|edu(?:\.tr)?|gov(?:\.tr)?|io|biz|info|me|tv|es|ru|de|al|eu|fr|it|co\.uk)(?:\/|$)/i;
-const WEBSITE_BLACKLIST_REGEX = /\b(A\.?\s?Ş|AŞ|LTD|ŞT[İI]|SAN|T[İI]C|DIŞ|AKS|ORTAKLIĞI)\b/i;
-const COMPANY_MARKER_REGEX = /\b(A\.?\s?Ş|AŞ|LTD|ŞT[İI]|SAN|T[İI]C|ORTAKLIĞI|S\.?L\.?|S\.?A\.?|LLC|L\.?L\.?C\.?|SH\.?P\.?K\.?|GMBH)\b/i;
+  /(?:https?:\/\/)?(?:www\.)?[a-z0-9][a-z0-9.-]*\.(?:com(?:\.[a-z]{2})?|net|org|tr|edu(?:\.tr)?|gov(?:\.tr)?|io|biz|info|me|tv|es|ru|de|al|eu|fr|it|cn|co\.uk)(?:\/[^\s]*)?/gi;
+const WEBSITE_TLD_REGEX = /\.(?:com(?:\.[a-z]{2})?|net|org|tr|edu(?:\.tr)?|gov(?:\.tr)?|io|biz|info|me|tv|es|ru|de|al|eu|fr|it|cn|co\.uk)(?:\/|$)/i;
+const WEBSITE_BLACKLIST_REGEX = /\b(A\.?\s?Ş|AŞ|LTD|ŞT[İI]|SAN|T[İI]C|DIŞ|AKS|ORTAKLIĞI|ООО|ЗАО|ОАО)\b/i;
+const COMPANY_MARKER_REGEX = /\b(A\.?\s?Ş|AŞ|LTD|ŞT[İI]|SAN|T[İI]C|ORTAKLIĞI|S\.?L\.?|S\.?A\.?|LLC|L\.?L\.?C\.?|SH\.?P\.?K\.?|GMBH|CO\.?\s?LTD|ООО|ЗАО|ОАО)\b/i;
 const COMPANY_MARKER_BOUNDARY_REGEX =
-  /(^|[^A-Za-zÇĞİÖŞÜçğıöşüÂâÎîÛû])(A\.?\s?Ş|AŞ|LTD|ŞT[İI]|SAN|T[İI]C|ORTAKLIĞI|S\.?L\.?|S\.?A\.?|LLC|L\.?L\.?C\.?|SH\.?P\.?K\.?|GMBH)(?=$|[^A-Za-zÇĞİÖŞÜçğıöşüÂâÎîÛû])/i;
+  /(^|[^\p{L}])(A\.?\s?Ş|AŞ|LTD|ŞT[İI]|SAN|T[İI]C|ORTAKLIĞI|S\.?L\.?|S\.?A\.?|LLC|L\.?L\.?C\.?|SH\.?P\.?K\.?|GMBH|CO\.?\s?LTD|ООО|ЗАО|ОАО)(?=$|[^\p{L}])/iu;
 const INDUSTRY_KEYWORD_REGEX =
-  /\b(makine|makina|tekstil|otomotiv|gıda|inşaat|mobilya|lojistik|logistics|trading|solutions|import|export|mühendislik|danışmanlık|turizm|enerji|group|grup|holding|plastik|metal|kimya|elektrik|elektronik|yazılım|software|bilişim|otomasyon|otomasyonu|pvc|alüminyum|nakliyat|gayrimenkul|sigorta|reklam|medya|ambalaj|demir|çelik|cam|pencere|kapı|vinç|maden|lines|teknoloji|technology|iletişim|hizmet|hizmetleri|services|marin|marine|denizcilik|hafriyat|peyzaj|tarım|mimarlık|müteahhit|depolama|soğutma|jeneratör|asansör|matbaa|ajans|eczane|optik|kozmetik|giyim|konfeksiyon|ayakkabı|deri|kuyumculuk|mücevher|oto|otobüs|araç|lastik|akü|yedek\s*parça|rulman|conta|boya|hırdavat|nalburiye|seramik|mermer|parke|halı|perde|aydınlatma|mutfak|banyo|beyaz\s*eşya|klima|kombi|doğalgaz|ısıtma|iklimlendirme|havalandırma|yangın|güvenlik|temizlik|catering|gümrük|antrepo|freight|cargo|kargo|kurye|taşımacılık|profil|security|locks|hardware|construction|managerial)\b/i;
+  /\b(makine|makina|tekstil|otomotiv|gıda|inşaat|mobilya|lojistik|logistics|trading|solutions|import|export|mühendislik|danışmanlık|turizm|enerji|group|grup|holding|plastik|metal|kimya|elektrik|elektronik|yazılım|software|bilişim|otomasyon|otomasyonu|pvc|alüminyum|nakliyat|gayrimenkul|sigorta|reklam|medya|ambalaj|demir|çelik|cam|pencere|kapı|vinç|maden|lines|teknoloji|technology|iletişim|hizmet|hizmetleri|services|marin|marine|denizcilik|hafriyat|peyzaj|tarım|mimarlık|müteahhit|depolama|soğutma|jeneratör|asansör|matbaa|ajans|eczane|optik|kozmetik|giyim|konfeksiyon|ayakkabı|deri|kuyumculuk|mücevher|oto|otobüs|araç|lastik|akü|yedek\s*parça|rulman|conta|boya|hırdavat|nalburiye|seramik|mermer|parke|halı|perde|aydınlatma|mutfak|banyo|beyaz\s*eşya|klima|kombi|doğalgaz|ısıtma|iklimlendirme|havalandırma|yangın|güvenlik|temizlik|catering|gümrük|antrepo|freight|cargo|kargo|kurye|taşımacılık|profil|security|locks|hardware|construction|managerial|biotech|agriculture|ecological|maquinaria|security\s*systems|машиностроение|металл|торговля|био|security)\b/i;
 const PHONE_CANDIDATE_REGEX =
   /(?:\+|00)?\d{1,3}[\s().-]*(?:\d[\s().-]*){6,14}(?:\b(?:ext|ext\.|dahili|int\.?|pbx)\s*[:.]?\s*\d{1,6}\b|\s*\/\s*\d{1,6}|\s*\(\d{1,6}\))?/gi;
 const PHONE_IN_TEXT_REGEX =
@@ -118,11 +122,20 @@ const TITLE_KEYWORDS = [
   "managerial",
   "division",
   "office",
+  "chairman",
+  "vice chairman",
+  "executive vice president",
+  "manager",
+  "менеджер",
+  "директор",
+  "руководитель",
+  "председатель",
+  "chairman",
 ] as const;
-const LETTER_CHAR_REGEX = /[A-Za-zÇĞİÖŞÜçğıöşüÂâÎîÛû]/;
-const LETTER_GLOBAL_REGEX = /[A-Za-zÇĞİÖŞÜçğıöşüÂâÎîÛû]/g;
-const UPPER_LETTER_GLOBAL_REGEX = /[A-ZÇĞİÖŞÜÂÎÛ]/g;
-const PERSON_TOKEN_REGEX = /^[A-Za-zÇĞİÖŞÜçğıöşüÂâÎîÛû'.-]{2,}$/;
+const LETTER_CHAR_REGEX = UNICODE_LETTER_REGEX;
+const LETTER_GLOBAL_REGEX = UNICODE_LETTER_GLOBAL_REGEX;
+const UPPER_LETTER_GLOBAL_REGEX = UNICODE_UPPERCASE_GLOBAL_REGEX;
+const PERSON_TOKEN_REGEX = /^[\p{L}'.-]{2,}$/u;
 
 const SAFE_PROVINCES = new Set([
   "istanbul", "ankara", "izmir", "bursa", "kocaeli", "antalya", "konya",
@@ -135,7 +148,8 @@ const SAFE_PROVINCES = new Set([
   "afyonkarahisar", "kütahya", "zonguldak", "bartın", "karabük",
   "tokat", "amasya", "giresun", "rize", "artvin", "niğde", "nevşehir",
   "trazo", "coruna", "moscow", "prishtina", "drenas", "bushat",
-  "kosovo", "spain", "espana", "españa", "russia",
+  "kosovo", "spain", "espana", "españa", "russia", "россия", "москва",
+  "china", "çin", "xian", "xi'an", "ya'an",
 ]);
 
 const KNOWN_DISTRICTS = new Set([
@@ -223,7 +237,7 @@ function stripContactFragments(value: string): string {
 function normalizePhone(raw: string): { phone: string | null; note?: string; priority?: number } {
   const source = raw.replace(/\s+/g, " ").trim();
   if (!source) return { phone: null };
-  const isPreferredMobileLabel = /\b(gsm|mobile|mob\.?|cell|cep)\b/i.test(source);
+  const isPreferredMobileLabel = /(gsm|mobile|mob\.?|cell|cep|моб\.?|мобильн)/i.test(source);
 
   const digitsOnly = source.replace(/[^\d]/g, "");
   if (/^444\d{4,5}$/.test(digitsOnly)) {
@@ -335,7 +349,7 @@ function sortPhonesByRawContext(phones: string[], rawText?: string): string[] {
       const line = lines.find((candidate) => candidate.replace(/\D/g, "").includes(tail));
       const defaultPriority = /^\+905\d{9}$/.test(phone) ? 0 : 1;
       if (!line) return defaultPriority;
-      if (/\b(gsm|mobile|mob\.?|cell|cep)\b/i.test(line)) return 0;
+      if (/(gsm|mobile|mob\.?|cell|cep|моб\.?|мобильн)/i.test(line)) return 0;
       return defaultPriority;
     };
 
@@ -492,7 +506,7 @@ function isStrongAddressLine(line: string): boolean {
   if (PHONE_IN_TEXT_REGEX.test(line)) return false;
   if (ADDRESS_HINT_REGEX.test(line)) return true;
   if (ADDRESS_NO_REGEX.test(line)) return true;
-  if (POSTAL_CODE_REGEX.test(line) && /[A-Za-zÇĞİÖŞÜçğıöşü]{2,}/.test(line)) return true;
+  if (POSTAL_CODE_REGEX.test(line) && /[\p{L}]{2,}/u.test(line)) return true;
   if (containsKnownLocation(line)) return true;
   return false;
 }
@@ -502,7 +516,7 @@ function stripCountrySuffix(line: string): string {
 }
 
 function extractProvinceDistrict(text: string): { district: string | null; province: string | null } {
-  const match = text.match(/([A-Za-zÇĞİÖŞÜçğıöşüâîûÂÎÛ]+)\s*[/\-–]\s*([A-Za-zÇĞİÖŞÜçğıöşüâîûÂÎÛ]+)/);
+  const match = text.match(/([\p{L}]+)\s*[/\-–]\s*([\p{L}]+)/u);
   if (!match) return { district: null, province: null };
 
   const left = match[1]!.trim();
@@ -744,7 +758,7 @@ function sanitizeName(value: string | null): string | null {
 
 function sanitizeTitle(value: string | null): string | null {
   if (!value) return null;
-  if (hasCompanyMarker(value) && !/\b(manager|müdür|architect|satın|export|purchasing|logistics|chief|yönetmeni|director|sales)\b/i.test(value)) {
+  if (hasCompanyMarker(value) && !/\b(manager|müdür|architect|satın|export|purchasing|logistics|chief|yönetmeni|director|sales|менеджер|директор)\b/i.test(value)) {
     return null;
   }
   if (CONTACT_TOKEN_REGEX.test(value)) return null;
@@ -805,11 +819,11 @@ function isLikelyPersonNameLine(line: string): boolean {
   if (looksLikeCompany(line)) return false;
   if (isLikelyTitleLine(line)) return false;
 
-  const clean = line.replace(/[^A-Za-zÇĞİÖŞÜçğıöşüÂâÎîÛû\s'.-]/g, " ");
+  const clean = line.replace(/[^\p{L}\s'.-]/gu, " ");
   const tokens = clean.split(/\s+/).filter(Boolean);
   if (tokens.length < 2 || tokens.length > 4) return false;
   if (!tokens.every((token) => PERSON_TOKEN_REGEX.test(token))) return false;
-  const hasLower = /[a-zçğıöşüâîû]/.test(clean);
+  const hasLower = /\p{Ll}/u.test(clean);
   const allUpperLike = uppercaseRatio(clean) >= 0.9 && tokens.length === 2;
   if (!hasLower && !allUpperLike) return false;
 
@@ -831,9 +845,9 @@ function isLikelyCompanyLine(line: string, index: number): boolean {
   const tokens = line.split(/\s+/).filter(Boolean);
   const ratio = uppercaseRatio(line);
 
-  if (index <= 1 && tokens.length === 1 && /^[A-Za-zÇĞİÖŞÜçğıöşüÂâÎîÛû]{2,12}$/.test(line.trim())) return true;
+  if (index <= 1 && tokens.length === 1 && /^[\p{L}]{2,12}$/u.test(line.trim())) return true;
   if (ratio >= 0.72 && tokens.length <= 6) return true;
-  if (index <= 2 && tokens.length <= 2 && /[A-ZÇĞİÖŞÜ]/.test(line)) return true;
+  if (index <= 2 && tokens.length <= 2 && /\p{Lu}/u.test(line)) return true;
   return false;
 }
 
@@ -863,7 +877,7 @@ function inferIdentityFromRawText(
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i]!;
     if (isLikelyPersonNameLine(line)) {
-      const normalized = line.replace(/[^A-Za-zÇĞİÖŞÜçğıöşüÂâÎîÛû\s'.-]/g, " ").trim();
+      const normalized = line.replace(/[^\p{L}\s'.-]/gu, " ").trim();
       const tokens = normalized.split(/\s+/).filter(Boolean);
       const isAllUpperCandidate = uppercaseRatio(normalized) >= 0.9 && tokens.length === 2;
       if (isAllUpperCandidate) {

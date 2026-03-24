@@ -347,6 +347,7 @@ KURALLAR (HARFİYEN UYGULA):
 - Çıktı formatı E.164 olmalı: "+<ülkeKodu><numara>".
 - TÜRKİYE için normalize kuralı KESİN: "+90XXXXXXXXXX" (+ işareti, 90, ardından 10 rakam = toplam 13 karakter).
 - Yabancı kartvizitlerde ülke kodu açıkça yazıyorsa koru: ör. +34..., +383..., +7...
+- Kart Kiril/Rusça veya başka Latin dışı karakterler içerebilir. Orijinal yazımı koru; Latin'e zorlama yapma.
 - "0034..." gibi başlıyorsa "+34..." yap.
 - Yabancı numarada ülke kodu AÇIKÇA yoksa uydurma yapma; emin değilsen phones'a koyma, notes'a "Şüpheli telefon: ..." yaz.
 - Tüm boşluk, parantez, tire, nokta ayırıcıları sil.
@@ -383,6 +384,7 @@ KURALLAR (HARFİYEN UYGULA):
 
 3) WEBSITE:
 - Gerçek domain/URL: www. veya http ile başlar VEYA en az bir nokta + TLD (.com, .com.tr, .net, .org, .tr, .org.tr, .es, .ru, .de, .al vb.)
+- `.cn` gibi ülke uzantılı domainleri de website olarak kabul et.
 - ŞİRKET ADI/KISALTMA OLAN STRING website OLAMAZ: A.Ş, AŞ, LTD, ŞTİ, SAN, TİC, DIŞ, AKS, ORTAKLIĞI, GAYRİMENKUL
 - "@" içeriyorsa website OLAMAZ (email'dir).
 - Yoksa null.
@@ -402,9 +404,11 @@ KURALLAR (HARFİYEN UYGULA):
     floor: Kat — ör: "Kat:3", "K:3", "3. Kat"
     apartment: Daire — ör: "Daire:5", "D:5", "Daire 12"
     postalCode: Posta kodu (5 haneli) — ör: "34349", "16140"
+      Yabancı kartlarda 4-6 hane olabilir — ör: "13000", "109428"
     district: İlçe — ör: "Kadıköy", "Esenyurt", "Nilüfer", "Beşiktaş"
     province: İl — ör: "İstanbul", "Bursa", "Ankara", "İzmir"
     country: Ülke — ör: "Türkiye"
+    Rusça adres ipuçları: "ул.", "улица", "проспект", "дом", "д.", "стр.", "офис"
 
   4.2) İL / İLÇE AYIRMA (ÇOK KRİTİK DESEN):
     "Kadıköy/İstanbul" → district="Kadıköy", province="İstanbul"
@@ -420,6 +424,7 @@ KURALLAR (HARFİYEN UYGULA):
     FAKAT address string'e EKLENMEMELİ (TR CRM için gereksiz).
     Tek satır "Türkiye" / "TURKEY" / "TR" ise → address'ten çıkar, country'ye yaz.
     Türkiye DIŞINDA ülke adı varsa (Spain, España, Kosovo, Russia vb.) → addressParts.country'ye yaz.
+    "Россия", "Китай", "China", "Çin" gibi yabancı ülke adlarını gördüğün gibi koru ya da güvenliyse normalize et.
     Yabancı kartlarda country address string içinde KALABİLİR.
 
   4.4) address — BİRLEŞTİRME KURALI (PTT sırası):

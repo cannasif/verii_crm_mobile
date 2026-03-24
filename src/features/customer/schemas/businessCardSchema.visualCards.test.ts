@@ -322,13 +322,109 @@ www.vbh-kosovo.de | www.vbh24.de`,
       assert.ok(result.notes.some((note) => note.includes("vbh24.de")));
     },
   },
+  {
+    name: "Russian Cyrillic / multi-script",
+    rawText: `РОБ ЛОКС
+Дмитрий А. Холодков
+Менеджер по продажам
+ООО Роб Локс Секьюрити Системс
+офис: +7 495 223 80 03 доб. 200
+моб.: +7 917 507 33 17
+hd@rob-locks.ru
+109428, Россия, Москва,
+Рязанский проспект, д. 24, стр. 1
+www.rob-locks.ru`,
+    input: {
+      contactNameAndSurname: "Дмитрий А. Холодков",
+      name: "Дмитрий А. Холодков",
+      title: "Менеджер по продажам",
+      company: "ООО Роб Локс Секьюрити Системс",
+      phones: ["+7 495 223 80 03 ext. 200", "+7 917 507 33 17"],
+      emails: ["hd@rob-locks.ru"],
+      website: "www.rob-locks.ru",
+      address: "109428, Россия, Москва, Рязанский проспект, д. 24, стр. 1",
+      addressParts: {
+        neighborhood: null,
+        street: "Рязанский проспект",
+        avenue: null,
+        boulevard: null,
+        sitePlaza: null,
+        block: null,
+        buildingNo: "24",
+        floor: null,
+        apartment: "стр. 1",
+        postalCode: "109428",
+        district: null,
+        province: "Москва",
+        country: "Россия",
+      },
+      social: emptySocial,
+      notes: ["Dahili: 200"],
+    },
+    assertResult: (result) => {
+      assert.equal(result.name, "Дмитрий А. Холодков");
+      assert.equal(result.title, "Менеджер по продажам");
+      assert.equal(result.company, "ООО Роб Локс Секьюрити Системс");
+      assert.equal(result.phones[0], "+79175073317");
+      assert.equal(result.addressParts.country, "Россия");
+    },
+  },
+  {
+    name: "Times Bio / China multi-language",
+    rawText: `TIMES
+Bin Chen
+Chairman
+Ya'an Times Biotech Co. Ltd
+Tel: 0835-2246888 0835-2323798
+Fax: 0835-2323799
+Phone: 13808178499
+P.C. 625000
+Http: www.times-bio.com
+E-mail: gm@timesbio.net
+Add: Ya'an Agricultural Hi-Tech Ecological Park, Ya'an City, China`,
+    input: {
+      contactNameAndSurname: "Bin Chen",
+      name: "Bin Chen",
+      title: "Chairman",
+      company: "Ya'an Times Biotech Co. Ltd",
+      phones: ["13808178499", "0835-2246888"],
+      emails: ["gm@timesbio.net"],
+      website: "www.times-bio.com",
+      address: "Ya'an Agricultural Hi-Tech Ecological Park, 625000, Ya'an City, China",
+      addressParts: {
+        neighborhood: null,
+        street: null,
+        avenue: null,
+        boulevard: null,
+        sitePlaza: "Ya'an Agricultural Hi-Tech Ecological Park",
+        block: null,
+        buildingNo: null,
+        floor: null,
+        apartment: null,
+        postalCode: "625000",
+        district: null,
+        province: "Ya'an",
+        country: "China",
+      },
+      social: emptySocial,
+      notes: ["Fax: 0835-2323799"],
+    },
+    assertResult: (result) => {
+      assert.equal(result.name, "Bin Chen");
+      assert.equal(result.title, "Chairman");
+      assert.equal(result.website, "www.times-bio.com");
+      assert.equal(result.addressParts.country, "China");
+      assert.ok(result.notes.some((note) => note.includes("Fax")));
+    },
+  },
 ];
 
 const failures: string[] = [];
 
 for (const testCase of cases) {
   try {
-    const result = validateAndNormalizeBusinessCardExtraction(testCase.input, testCase.rawText);
+    const isolatedInput = JSON.parse(JSON.stringify(testCase.input));
+    const result = validateAndNormalizeBusinessCardExtraction(isolatedInput, testCase.rawText);
     testCase.assertResult(result);
     console.log(`PASS: ${testCase.name}`);
   } catch (error) {
