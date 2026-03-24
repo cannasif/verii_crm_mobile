@@ -11,6 +11,8 @@ Uygulama aşağıdaki veri türlerini işleyebilir:
 - Kullanıcı hesabı/kullanıcı kimliği (User ID)
 - Kullanıcı tarafından girilen içerikler (ör. notlar, mesaj içerikleri, eklenen görseller/dosyalar)
 - Uygulama içi etkileşim/kullanım verileri (Product Interaction)
+- Yaklaşık konum verisi (yalnızca kullanıcı izin verdiğinde ve uygulama kullanımında)
+- Ses girdisi ve konuşmadan metne dönüştürülen metin (yalnızca kullanıcı sesli aramayı başlattığında)
 
 Verilerin Kullanım Amaçları
 Bu veriler şu amaçlarla kullanılır:
@@ -18,6 +20,18 @@ Bu veriler şu amaçlarla kullanılır:
 - Uygulama işlevlerinin sağlanması (CRM süreçleri)
 - Güvenlik, yetkilendirme ve kötüye kullanımın önlenmesi
 - Teknik destek ve hata giderme
+
+İzinler ve Kullanım Amaçları
+Uygulama aşağıdaki izinleri yalnızca ilgili özelliği kullandığınızda ister:
+- Kamera izni: Kartvizit fotoğrafı çekerek müşteri/iletişim bilgilerini CRM kaydına hızlı aktarmak için kullanılır.
+- Fotoğraf galerisi izni: Mevcut kartvizit veya belge görsellerini seçip müşteri/aktivite kayıtlarına eklemek için kullanılır.
+- Mikrofon izni: Sesli arama ve sesli metin girişi için kullanılır.
+- Konuşma tanıma izni: Söylenen metni arama veya form alanlarına yazıya çevirmek için kullanılır.
+- Konum (uygulama kullanımında) izni: Harita ekranlarında yakındaki müşteri ve noktaları göstermek ve rota planlamasını desteklemek için kullanılır.
+
+Konum Verisi Hakkında
+- Arka planda konum takibi yapılmaz.
+- Konum verisi, yalnızca uygulama açıkken ve ilgili harita/rota özelliği kullanılırken işlenir.
 
 Reklam / Takip (Tracking)
 Uygulama, kullanıcı verilerini üçüncü taraf reklam amaçlarıyla kullanmaz veya satmaz. Uygulama, Apple’ın tanımladığı anlamda "tracking" yapmaz.
@@ -38,3 +52,60 @@ Kullanıcılar; erişim, düzeltme, silme ve itiraz hakları için bizimle ileti
 - E-posta: can.nasif@v3rii.com
 - Gizlilik Politikası URL (EN): https://v3rii.com/privacy-policy
 - Gizlilik Politikası URL (TR): https://v3rii.com/gizlilik-politikasi
+
+------------------------------------------------------------
+
+Privacy Policy (v3rii.com)
+
+Privacy Policy
+This privacy policy explains how data is processed within v3rii (the "App"). The App is provided to manage company-based CRM workflows.
+
+Collected Data
+The App may process the following data types:
+- Name/Surname
+- Email address
+- Phone number
+- User account/user identifier (User ID)
+- User-provided content (for example notes, message content, uploaded images/files)
+- In-app interaction/usage data (Product Interaction)
+- Approximate location data (only when permission is granted and while using the app)
+- Voice input and speech-to-text output (only when the user starts voice search)
+
+Purposes of Data Use
+This data is used for:
+- User authentication and session management
+- Providing app functionality (CRM workflows)
+- Security, authorization, and prevention of abuse
+- Technical support and troubleshooting
+
+Permissions and Purpose of Use
+The App requests the following permissions only when you use the related feature:
+- Camera permission: Used to capture business card photos and quickly transfer customer/contact information into CRM records.
+- Photo library permission: Used to select existing business card or document images and attach them to customer/activity records.
+- Microphone permission: Used for voice search and voice text input.
+- Speech recognition permission: Used to convert spoken input into text for search and form fields.
+- Location (When In Use) permission: Used to show nearby customers and places on map screens and support route planning.
+
+About Location Data
+- The App does not perform background location tracking.
+- Location data is processed only while the app is open and the related map/route feature is actively used.
+
+Advertising / Tracking
+The App does not sell user data and does not use user data for third-party advertising purposes. The App does not perform "tracking" as defined by Apple.
+
+Data Sharing
+Data is not shared with third parties except technical service providers required for app operation. Data may be shared with authorized authorities when required by law.
+
+Data Security
+Data is protected with reasonable technical and administrative safeguards against unauthorized access.
+
+Retention Period
+Data is retained while the account is active or as long as required for the service; upon request, data is deleted/anonymized subject to legal obligations.
+
+User Rights
+Users may contact us to exercise their rights of access, correction, deletion, and objection.
+
+Contact
+- Email: can.nasif@v3rii.com
+- Privacy Policy URL (EN): https://v3rii.com/privacy-policy
+- Privacy Policy URL (TR): https://v3rii.com/gizlilik-politikasi
