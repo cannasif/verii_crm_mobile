@@ -61,7 +61,7 @@
     "exchangeRatesUpdated": "Wechselkurse wurden aktualisiert.",
     "demandCreatedAndSentForApproval": "Die Anfrage wurde erfolgreich erstellt und an den Genehmigungsprozess gesendet.",
     "quotationCreatedAndSentForApproval": "Das Angebot wurde erfolgreich erstellt und an den Genehmigungsprozess gesendet.",
-    "voiceSearchStartError": "Sprachanruf konnte nicht gestartet werden.",
+    "voiceSearchStartError": "Die Sprachsuche konnte nicht gestartet werden.",
     "lineDeleted": "Die Zeile wurde gelöscht.",
     "selectCustomerRepresentativeCurrency": "Bitte wählen Sie Kunde, Vertreter und Währung aus.",
     "approvalFlowStartError": "Der Genehmigungsprozess konnte nicht gestartet werden",
@@ -78,14 +78,15 @@
     "quotationCreateFailed": "Angebot konnte nicht erstellt werden",
     "quotationCreateFailedGeneric": "Beim Erstellen des Angebots ist ein Fehler aufgetreten.",
     "lineDeleteFailed": "Zeile konnte nicht gelöscht werden",
-    "voiceSearchSupportInfo": "Sprachsuche: Funktioniert, wenn der Webbrowser dies unterstützt. Für Mobilgeräte: npx expo install expo-speech-recognition",
+    "voiceSearchSupportInfo": "Die Sprachsuche wird auf diesem Gerät nicht unterstützt.",
     "all": "Alle",  
     "filter": "Filtern",
     "logic": "Filterlogik",
     "and": "UND",
     "or": "ODER",
     "newest": "Neueste",
-    "oldest": "Älteste"
+    "oldest": "Älteste",
+    "voiceSearchPermissionRequired": "Für die Sprachsuche sind Mikrofon- und Spracherkennungsberechtigungen erforderlich."
   },
   "home": {
     "greeting": "Hallo",

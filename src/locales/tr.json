@@ -83,14 +83,15 @@
     "quotationCreateFailed": "Teklif oluşturulamadı",
     "quotationCreateFailedGeneric": "Teklif oluşturulurken bir hata oluştu.",
     "lineDeleteFailed": "Satır silinemedi",
-    "voiceSearchSupportInfo": "Sesli arama: Web'de tarayıcı destekliyorsa çalışır. Mobil için: npx expo install expo-speech-recognition",
+    "voiceSearchSupportInfo": "Bu cihazda sesli arama desteklenmiyor.",
     "all": "Tümü",
     "filter": "Filtrele",
     "logic": "Filtre Mantığı",
     "and": "VE",
     "or": "VEYA",
     "newest": "En Yeniler", 
-    "oldest": "En Eskiler"
+    "oldest": "En Eskiler",
+    "voiceSearchPermissionRequired": "Sesli arama için mikrofon ve konuşma tanıma izinleri gereklidir."
   },
   "home": {
     "greeting": "Merhaba",
