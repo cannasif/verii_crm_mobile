@@ -265,30 +265,23 @@ export function ActivityFormScreen(): React.ReactElement {
     return `${getApiBaseUrl()}${normalized}`;
   }, []);
 
-  const buildAutoSubject = useCallback(
-    (customerDisplayName?: string | null, startDateTime?: string | null) => {
-      const safeCustomerName =
-        customerDisplayName?.trim() ||
-        selectedCustomer?.name?.trim() ||
-        customerName?.trim() ||
-        "";
+  const buildAutoSubject = useCallback((customerDisplayName?: string | null, startDateTime?: string | null) => {
+    const safeCustomerName = customerDisplayName?.trim() || "";
 
-      if (!safeCustomerName) return "";
+    if (!safeCustomerName) return "";
 
-      const subjectDate = startDateTime ? new Date(startDateTime) : new Date();
+    const subjectDate = startDateTime ? new Date(startDateTime) : new Date();
 
-      const formattedDate = Number.isNaN(subjectDate.getTime())
-        ? new Date().toLocaleDateString("tr-TR")
-        : subjectDate.toLocaleDateString("tr-TR", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-          });
+    const formattedDate = Number.isNaN(subjectDate.getTime())
+      ? new Date().toLocaleDateString("tr-TR")
+      : subjectDate.toLocaleDateString("tr-TR", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        });
 
-      return `${safeCustomerName} carisine ait ${formattedDate} tarihli aktivite`;
-    },
-    [customerName, selectedCustomer?.name]
-  );
+    return `${safeCustomerName} carisine ait ${formattedDate} tarihli aktivite`;
+  }, []);
 
   useEffect(() => {
     if (existingActivity) {
