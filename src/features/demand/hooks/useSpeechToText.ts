@@ -2,10 +2,20 @@ import { useCallback, useRef, useState } from "react";
 import { Platform } from "react-native";
 import { useToastStore } from "../../../store/toast";
 import { useTranslation } from "react-i18next";
-import {
-  ExpoSpeechRecognitionModule,
-  useSpeechRecognitionEvent,
-} from "expo-speech-recognition";
+
+type SpeechRecognitionModuleType = typeof import("expo-speech-recognition");
+
+let speechRecognitionModule: SpeechRecognitionModuleType | null = null;
+
+try {
+  speechRecognitionModule = require("expo-speech-recognition") as SpeechRecognitionModuleType;
+} catch {
+  speechRecognitionModule = null;
+}
+
+const ExpoSpeechRecognitionModule = speechRecognitionModule?.ExpoSpeechRecognitionModule;
+const useSafeSpeechRecognitionEvent =
+  speechRecognitionModule?.useSpeechRecognitionEvent ?? (() => {});
 
 interface UseSpeechToTextResult {
   startListening: (onResultText: (text: string) => void) => Promise<void>;
@@ -37,19 +47,19 @@ export function useSpeechToText(): UseSpeechToTextResult {
   const showToast = useToastStore((s) => s.showToast);
   const { t } = useTranslation();
 
-  useSpeechRecognitionEvent("start", () => {
+  useSafeSpeechRecognitionEvent("start", () => {
     if (Platform.OS !== "web") {
       setIsListening(true);
     }
   });
 
-  useSpeechRecognitionEvent("end", () => {
+  useSafeSpeechRecognitionEvent("end", () => {
     if (Platform.OS !== "web") {
       setIsListening(false);
     }
   });
 
-  useSpeechRecognitionEvent("result", (event) => {
+  useSafeSpeechRecognitionEvent("result", (event) => {
     if (Platform.OS === "web") return;
     const transcript = event.results?.[0]?.transcript?.trim();
     if (transcript && onResultTextRef.current) {
@@ -57,7 +67,7 @@ export function useSpeechToText(): UseSpeechToTextResult {
     }
   });
 
-  useSpeechRecognitionEvent("error", () => {
+  useSafeSpeechRecognitionEvent("error", () => {
     if (Platform.OS !== "web") {
       setIsListening(false);
       showToast("error", t("common.voiceSearchStartError"));
@@ -93,6 +103,10 @@ export function useSpeechToText(): UseSpeechToTextResult {
       }
 
       try {
+        if (!ExpoSpeechRecognitionModule) {
+          showToast("info", t("common.voiceSearchStartError"));
+          return;
+        }
         onResultTextRef.current = onResultText;
         const permissionResult = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
         if (!permissionResult.granted) {
