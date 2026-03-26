@@ -250,13 +250,19 @@ export function ActivityFormScreen(): React.ReactElement {
     return value ? String(value) : "Medium";
   }, []);
 
-  const normalizeActivityType = useCallback((activityType: ActivityDto["activityType"]): string => {
+  const normalizeActivityType = useCallback(
+    (
+      activityType: ActivityDto["activityType"],
+      activityTypeName?: string | null
+    ): string => {
     if (typeof activityType === "string") return activityType;
     if (activityType && typeof activityType === "object" && typeof activityType.name === "string") {
       return activityType.name;
     }
-    return "";
-  }, []);
+      return activityTypeName ?? "";
+    },
+    []
+  );
 
   const toAbsoluteImageUrl = useCallback((path: string | null | undefined): string | undefined => {
     if (!path) return undefined;
@@ -288,14 +294,20 @@ export function ActivityFormScreen(): React.ReactElement {
       reset({
         subject: existingActivity.subject,
         description: existingActivity.description || "",
-        activityType: normalizeActivityType(existingActivity.activityType),
+        activityType: normalizeActivityType(
+          existingActivity.activityType,
+          existingActivity.activityTypeName
+        ),
         activityTypeId: existingActivity.activityTypeId,
         potentialCustomerId: existingActivity.potentialCustomerId,
         erpCustomerCode: existingActivity.erpCustomerCode || "",
         productCode: existingActivity.productCode || "",
         productName: existingActivity.productName || "",
         status: normalizeStatus(existingActivity.status),
-        isCompleted: existingActivity.isCompleted,
+        isCompleted:
+          typeof existingActivity.isCompleted === "boolean"
+            ? existingActivity.isCompleted
+            : normalizeStatus(existingActivity.status) === "Completed",
         priority: normalizePriority(existingActivity.priority),
         paymentTypeId: existingActivity.paymentTypeId ?? undefined,
         activityMeetingTypeId: existingActivity.activityMeetingTypeId ?? undefined,
