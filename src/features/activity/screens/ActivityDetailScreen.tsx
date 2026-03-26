@@ -20,6 +20,7 @@ import { useUIStore } from "../../../store/ui";
 import { useActivity, useDeleteActivity, useUpdateActivity } from "../hooks";
 import type { ActivityDto } from "../types";
 import { ACTIVITY_STATUS_NUMERIC, ACTIVITY_PRIORITY_NUMERIC } from "../types";
+import { ReportTab, DocumentRuleType } from "../../quotation";
 import {
   Calendar03Icon,
   Clock01Icon,
@@ -307,6 +308,10 @@ export function ActivityDetailScreen(): React.ReactElement {
                 (typeof activity.activityType === "string"
                   ? activity.activityType
                   : activity.activityType?.name),
+              paymentTypeId: activity.paymentTypeId,
+              activityMeetingTypeId: activity.activityMeetingTypeId,
+              activityTopicPurposeId: activity.activityTopicPurposeId,
+              activityShippingId: activity.activityShippingId,
               startDateTime:
                 activity.startDateTime || activity.activityDate || new Date().toISOString(),
               endDateTime:
@@ -707,8 +712,63 @@ export function ActivityDetailScreen(): React.ReactElement {
                 value={getPriorityText(activity.priority)}
                 palette={palette}
                 icon={<Flag03Icon size={13} color={priorityColor} variant="stroke" />}
-                isLast={!activity.description}
+                isLast={
+                  !activity.paymentTypeName &&
+                  !activity.activityMeetingTypeName &&
+                  !activity.activityTopicPurposeName &&
+                  !activity.activityShippingName &&
+                  !activity.description
+                }
               />
+
+              {activity.paymentTypeName ? (
+                <DetailRow
+                  label={t("activity.paymentType")}
+                  value={activity.paymentTypeName}
+                  palette={palette}
+                  icon={<Briefcase01Icon size={13} color={palette.textMuted} variant="stroke" />}
+                  isLast={
+                    !activity.activityMeetingTypeName &&
+                    !activity.activityTopicPurposeName &&
+                    !activity.activityShippingName &&
+                    !activity.description
+                  }
+                />
+              ) : null}
+
+              {activity.activityMeetingTypeName ? (
+                <DetailRow
+                  label={t("activity.activityMeetingType")}
+                  value={activity.activityMeetingTypeName}
+                  palette={palette}
+                  icon={<Task01Icon size={13} color={palette.textMuted} variant="stroke" />}
+                  isLast={
+                    !activity.activityTopicPurposeName &&
+                    !activity.activityShippingName &&
+                    !activity.description
+                  }
+                />
+              ) : null}
+
+              {activity.activityTopicPurposeName ? (
+                <DetailRow
+                  label={t("activity.activityTopicPurpose")}
+                  value={activity.activityTopicPurposeName}
+                  palette={palette}
+                  icon={<Note01Icon size={13} color={palette.textMuted} variant="stroke" />}
+                  isLast={!activity.activityShippingName && !activity.description}
+                />
+              ) : null}
+
+              {activity.activityShippingName ? (
+                <DetailRow
+                  label={t("activity.activityShipping")}
+                  value={activity.activityShippingName}
+                  palette={palette}
+                  icon={<Briefcase01Icon size={13} color={palette.textMuted} variant="stroke" />}
+                  isLast={!activity.description}
+                />
+              ) : null}
 
               {activity.description ? (
                 <View
@@ -889,6 +949,26 @@ export function ActivityDetailScreen(): React.ReactElement {
                 />
               ) : null}
             </View>
+
+            {activityId != null ? (
+              <View
+                style={[
+                  styles.section,
+                  {
+                    backgroundColor: palette.card,
+                    borderColor: palette.cardBorder,
+                    shadowColor: palette.shadow,
+                  },
+                ]}
+              >
+                <SectionHeader
+                  title={t("common.tabReport")}
+                  accent={colors.accent}
+                  textColor={palette.text}
+                />
+                <ReportTab entityId={activityId} ruleType={DocumentRuleType.Activity} />
+              </View>
+            ) : null}
 
             {!activity.isCompleted && (
               <TouchableOpacity style={styles.completeButtonWrap} onPress={handleMarkComplete} activeOpacity={0.9}>

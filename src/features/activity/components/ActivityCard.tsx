@@ -31,6 +31,7 @@ import {
 interface ActivityCardProps {
   activity: ActivityDto;
   onPress: () => void;
+  onReportPress?: () => void;
 }
 
 
@@ -39,7 +40,7 @@ const getLocText = (t: any, key: string, fallback: string) => {
   return res === key || !res ? fallback : res;
 };
 
-function ActivityCardComponent({ activity, onPress }: ActivityCardProps): React.ReactElement {
+function ActivityCardComponent({ activity, onPress, onReportPress }: ActivityCardProps): React.ReactElement {
   const { colors, themeMode } = useUIStore();
   const { t } = useTranslation();
   const isDark = themeMode === "dark";
@@ -135,6 +136,20 @@ function ActivityCardComponent({ activity, onPress }: ActivityCardProps): React.
   const assignedUserName = activity.assignedUser?.fullName;
   const hasAssignedUser = !!assignedUserName;
   const hasReminder = activity.reminders && activity.reminders.length > 0;
+  const detailChips = [
+    activity.paymentTypeName
+      ? { key: "payment", label: getLocText(t, "activity.paymentType", "Odeme"), value: activity.paymentTypeName, icon: <Invoice01Icon size={12} color={primaryColor} variant="stroke" /> }
+      : null,
+    activity.activityMeetingTypeName
+      ? { key: "meeting", label: getLocText(t, "activity.activityMeetingType", "Gorusme"), value: activity.activityMeetingTypeName, icon: <UserGroupIcon size={12} color={primaryColor} variant="stroke" /> }
+      : null,
+    activity.activityTopicPurposeName
+      ? { key: "topic", label: getLocText(t, "activity.activityTopicPurpose", "Ilgilenilen Konular"), value: activity.activityTopicPurposeName, icon: <Note01Icon size={12} color={primaryColor} variant="stroke" /> }
+      : null,
+    activity.activityShippingName
+      ? { key: "shipping", label: getLocText(t, "activity.activityShipping", "Teslimat"), value: activity.activityShippingName, icon: <RefreshIcon size={12} color={primaryColor} variant="stroke" /> }
+      : null,
+  ].filter(Boolean) as Array<{ key: string; label: string; value: string; icon: React.ReactNode }>;
 
   const getRemainingTimeText = () => {
     const targetDateStr = activity.startDateTime || activity.endDateTime;
@@ -273,6 +288,31 @@ function ActivityCardComponent({ activity, onPress }: ActivityCardProps): React.
                 {hasCustomer ? customerName : getLocText(t, "activity.noCustomer", "Kişi / Firma Yok")}
               </Text>
             </View>
+
+            {detailChips.length > 0 && (
+              <View style={styles.detailChipsWrap}>
+                {detailChips.map((chip) => (
+                  <View
+                    key={chip.key}
+                    style={[
+                      styles.detailChip,
+                      {
+                        backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "#F8FAFC",
+                        borderColor: isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.08)",
+                      },
+                    ]}
+                  >
+                    {chip.icon}
+                    <Text style={[styles.detailChipLabel, { color: colors.textMuted }]}>
+                      {chip.label}:
+                    </Text>
+                    <Text style={[styles.detailChipValue, { color: colors.textSecondary }]} numberOfLines={1}>
+                      {chip.value}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
 
           {/* İNCE AYIRICI ÇİZGİ (Divider) - Alt bölümü üstten şıkça ayırır */}
@@ -309,6 +349,29 @@ function ActivityCardComponent({ activity, onPress }: ActivityCardProps): React.
                 {hasAssignedUser ? assignedUserName?.split(' ')[0] : getLocText(t, "activity.unassigned", "Atanmadı")}
               </Text>
             </View>
+
+            {onReportPress ? (
+              <TouchableOpacity
+                onPress={(event) => {
+                  event.stopPropagation?.();
+                  onReportPress();
+                }}
+                activeOpacity={0.82}
+                style={[
+                  styles.pill,
+                  styles.reportPill,
+                  {
+                    backgroundColor: primaryColor + "12",
+                    borderColor: primaryColor + "32",
+                  },
+                ]}
+              >
+                <Invoice01Icon size={12} color={primaryColor} variant="stroke" strokeWidth={2} />
+                <Text style={[styles.pillText, styles.reportPillText, { color: primaryColor }]}>
+                  PDF
+                </Text>
+              </TouchableOpacity>
+            ) : null}
 
           </View>
 
@@ -406,6 +469,32 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     flex: 1,
   },
+  detailChipsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+  },
+  detailChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    maxWidth: '100%',
+  },
+  detailChipLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    marginLeft: 4,
+    marginRight: 4,
+  },
+  detailChipValue: {
+    fontSize: 11,
+    fontWeight: '600',
+    maxWidth: 150,
+  },
 
   divider: {
     height: 1,
@@ -417,6 +506,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexWrap: 'wrap',
     gap: 8,
+  },
+  reportPill: {
+    marginLeft: 0,
+  },
+  reportPillText: {
+    fontWeight: '800',
   },
   pill: {
     flexDirection: 'row',

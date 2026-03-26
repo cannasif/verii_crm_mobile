@@ -150,6 +150,14 @@ export function ActivityListScreen(): React.ReactElement {
     [router]
   );
 
+  const handleActivityReportPress = useCallback(
+    (activity: ActivityDto) => {
+      if (!activity?.id) return;
+      router.push(`/(tabs)/activities/${activity.id}`);
+    },
+    [router]
+  );
+
   const handleCreatePress = useCallback(() => {
     router.push("/(tabs)/activities/create");
   }, [router]);
@@ -173,12 +181,13 @@ export function ActivityListScreen(): React.ReactElement {
         ]}>
              <ActivityCard 
                 activity={item} 
-                onPress={() => handleActivityPress(item)} 
+                onPress={() => handleActivityPress(item)}
+                onReportPress={() => handleActivityReportPress(item)}
              />
         </View>
       );
     },
-    [handleActivityPress, theme]
+    [handleActivityPress, handleActivityReportPress, theme]
   );
 
   const renderFooter = useCallback(() => {

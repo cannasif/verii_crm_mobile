@@ -396,6 +396,7 @@ export const DocumentRuleType = {
   Quotation: 1,
   Order: 2,
   FastQuotation: 3,
+  Activity: 4,
 } as const;
 
 export type DocumentRuleTypeValue = (typeof DocumentRuleType)[keyof typeof DocumentRuleType];
