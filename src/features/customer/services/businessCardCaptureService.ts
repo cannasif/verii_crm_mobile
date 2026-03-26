@@ -1,43 +1,17 @@
 import * as ImagePicker from "expo-image-picker";
-import * as FileSystem from "expo-file-system/legacy";
 import { Platform } from "react-native";
+import { normalizeLocalMediaUri } from "../../../lib/mediaUri";
 
-async function normalizePickedImageAsset(asset: ImagePicker.ImagePickerAsset): Promise<string> {
-  const imageUri = asset?.uri;
+async function normalizeImageUri(imageUri: string, mimeType?: string | null): Promise<string> {
   if (!imageUri) {
     throw new Error("Selected image could not be found.");
   }
-  if (imageUri.startsWith("file://")) return imageUri;
+  void mimeType;
+  return normalizeLocalMediaUri(imageUri);
+}
 
-  const persistentBase = FileSystem.documentDirectory ?? FileSystem.cacheDirectory;
-  if (!persistentBase) {
-    throw new Error("Selected image could not be converted to a valid file.");
-  }
-
-  const extensionByMime: Record<string, string> = {
-    "image/jpeg": "jpg",
-    "image/jpg": "jpg",
-    "image/png": "png",
-    "image/webp": "webp",
-    "image/heic": "heic",
-    "image/heif": "heif",
-  };
-  const ext = extensionByMime[asset.mimeType ?? ""] ?? "jpg";
-  const target = `${persistentBase}picked_card_${Date.now()}.${ext}`;
-
-  if (imageUri.startsWith("content://")) {
-    try {
-      await FileSystem.copyAsync({ from: imageUri, to: target });
-      const info = await FileSystem.getInfoAsync(target);
-      if (info.exists) {
-        return target;
-      }
-    } catch {
-      return imageUri;
-    }
-  }
-
-  return imageUri;
+async function normalizePickedImageAsset(asset: ImagePicker.ImagePickerAsset): Promise<string> {
+  return normalizeImageUri(asset?.uri, asset?.mimeType);
 }
 
 type ScannerModule = {
@@ -72,9 +46,12 @@ export async function captureBusinessCardFromCamera(): Promise<{ imageUri: strin
         croppedImageQuality: 100,
         responseType: "imageFilePath",
       });
+      if (result.status === "cancel") {
+        return { imageUri: null, usedScanner: true };
+      }
       const imageUri = result.scannedImages?.[0] ?? result.images?.[0] ?? null;
       if (imageUri) {
-        return { imageUri, usedScanner: true };
+        return { imageUri: await normalizeImageUri(imageUri), usedScanner: true };
       }
     } catch {
       // Fall back to plain camera capture below.

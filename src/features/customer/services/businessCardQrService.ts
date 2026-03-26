@@ -4,10 +4,11 @@ type BarcodeRecord = {
   rawValue?: string;
   displayValue?: string;
   value?: string;
+  format?: number | string;
 };
 
 type BarcodeModule = {
-  scan?: (imageUri: string, formats?: string[]) => Promise<BarcodeRecord[] | { barcodes?: BarcodeRecord[] }>;
+  scan?: (imageUri: string) => Promise<BarcodeRecord[] | { barcodes?: BarcodeRecord[] }>;
   detect?: (imageUri: string) => Promise<BarcodeRecord[] | { barcodes?: BarcodeRecord[] }>;
 };
 
@@ -143,7 +144,7 @@ export async function detectQrFromImage(imageUri: string): Promise<{ rawValue: s
 
   try {
     const rawResult = barcodeModule.scan
-      ? await barcodeModule.scan(imageUri, ["QR_CODE"])
+      ? await barcodeModule.scan(imageUri)
       : barcodeModule.detect
         ? await barcodeModule.detect(imageUri)
         : [];
