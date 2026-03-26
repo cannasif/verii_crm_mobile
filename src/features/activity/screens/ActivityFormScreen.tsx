@@ -1345,7 +1345,7 @@ export function ActivityFormScreen(): React.ReactElement {
                         >
                           {selectedTopicPurposeLabel}
                         </Text>
-                      </TouchableOpacity>
+                      </View>
                       <ArrowDown01Icon size={15} color={softText} variant="stroke" />
                     </TouchableOpacity>
                   </View>
