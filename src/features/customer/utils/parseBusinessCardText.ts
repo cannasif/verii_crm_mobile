@@ -77,12 +77,21 @@ function extractPhones(text: string): string[] {
 
 function extractWebsites(text: string): string[] {
   const websites: string[] = [];
+  const textWithoutEmails = extractEmails(text).reduce(
+    (current, email) => current.replace(new RegExp(email.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"), " "),
+    text
+  );
   let match: RegExpExecArray | null;
   const websiteRegex = new RegExp(WEBSITE_REGEX.source, "g");
-  while ((match = websiteRegex.exec(text)) !== null) {
+  while ((match = websiteRegex.exec(textWithoutEmails)) !== null) {
     const w = trimAndClean(match[0]);
-    if (w && !websites.includes(w)) websites.push(w);
+    if (w && !w.includes("@") && !websites.includes(w)) websites.push(w);
   }
+  websites.sort((left, right) => {
+    const leftPriority = /^(https?:\/\/|www\.)/i.test(left) ? 0 : 1;
+    const rightPriority = /^(https?:\/\/|www\.)/i.test(right) ? 0 : 1;
+    return leftPriority - rightPriority || left.localeCompare(right);
+  });
   return websites;
 }
 

@@ -1,11 +1,16 @@
 import { useCallback, useState } from "react";
-import * as ImagePicker from "expo-image-picker";
-import * as FileSystem from "expo-file-system/legacy";
-import { Platform } from "react-native";
+import { Alert } from "react-native";
+import { useTranslation } from "react-i18next";
 import { runOCR } from "../services/ocrService";
 import { extractBusinessCardViaLLM } from "../services/businessCardLlmService";
 import { buildBusinessCardCandidateHints } from "../services/businessCardHeuristics";
+import { captureBusinessCardFromCamera, pickBusinessCardImageFromGallery } from "../services/businessCardCaptureService";
+import { assessBusinessCardImageQuality } from "../services/businessCardImageQualityService";
+import { assessBusinessCardOcrQuality, mergeReviewWithQualityAssessment } from "../services/businessCardQualityService";
+import { detectQrFromImage } from "../services/businessCardQrService";
+import { trackBusinessCardTelemetry } from "../services/businessCardTelemetryService";
 import {
+  pickBestBusinessCardExtraction,
   repairJsonString,
   toBusinessCardOcrResult,
   validateAndNormalizeBusinessCardExtraction,
@@ -42,6 +47,28 @@ function fallbackToStructuredInput(parsed: BusinessCardOcrResult): {
   };
 }
 
+type SourceChoice = "businessCard" | "qr" | "cancel";
+type QualityGateChoice = "continue" | "retry" | "cancel";
+
+function mergeQrNotes(current: string | undefined, qrNote: string): string {
+  if (!current) return qrNote;
+  if (current.includes(qrNote)) return current;
+  return `${current}\n${qrNote}`;
+}
+
+function applyQualityReview(
+  result: BusinessCardOcrResult,
+  rawText: string,
+  lines: string[],
+  lineItems: import("../services/ocrService").OcrLineItem[]
+): BusinessCardOcrResult {
+  const quality = assessBusinessCardOcrQuality(rawText, lines, lineItems);
+  return {
+    ...result,
+    review: mergeReviewWithQualityAssessment(result.review, quality),
+  };
+}
+
 export function useBusinessCardScan(): {
   scanBusinessCard: () => Promise<BusinessCardOcrResult | null>;
   pickBusinessCardFromGallery: () => Promise<BusinessCardOcrResult | null>;
@@ -49,63 +76,32 @@ export function useBusinessCardScan(): {
   isScanning: boolean;
   error: string | null;
 } {
+  const { t } = useTranslation();
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const normalizePickedImageAsset = useCallback(
-    async (asset: ImagePicker.ImagePickerAsset): Promise<string> => {
-      const imageUri = asset?.uri;
-      if (!imageUri) {
-        throw new Error("Seçilen görsel bulunamadı.");
-      }
-      if (imageUri.startsWith("file://")) return imageUri;
-
-      const persistentBase = FileSystem.documentDirectory ?? FileSystem.cacheDirectory;
-      if (!persistentBase) {
-        throw new Error("Seçilen görsel geçerli bir dosyaya dönüştürülemedi.");
-      }
-
-      const extensionByMime: Record<string, string> = {
-        "image/jpeg": "jpg",
-        "image/jpg": "jpg",
-        "image/png": "png",
-        "image/webp": "webp",
-        "image/heic": "heic",
-        "image/heif": "heif",
-      };
-      const ext = extensionByMime[asset.mimeType ?? ""] ?? "jpg";
-      const target = `${persistentBase}picked_card_${Date.now()}.${ext}`;
-
-      if (imageUri.startsWith("content://")) {
-        try {
-          await FileSystem.copyAsync({ from: imageUri, to: target });
-          const info = await FileSystem.getInfoAsync(target);
-          if (info.exists) {
-            return target;
-          }
-        } catch {
-          // Some Android content providers block direct copy.
-        }
-
-        // Fallback: continue with original content URI.
-        return imageUri;
-      }
-
-      return imageUri;
-    },
-    []
-  );
 
   const processImage = useCallback(
     async (imageUri: string): Promise<BusinessCardOcrResult | null> => {
       const ocr = await runOCR(imageUri);
       const rawText = (ocr.rawText || ocr.lines.join("\n")).trim();
       if (!rawText) {
-        setError("Kartvizitten metin alınamadı. Görüntüyü net çekip tekrar deneyin.");
+        setError(t("customer.noTextExtracted"));
         return null;
       }
 
-      const candidateHints = buildBusinessCardCandidateHints(rawText, ocr.lines);
+      const candidateHints = buildBusinessCardCandidateHints(rawText, ocr.lines, ocr.lineItems);
+      const parsedFallback = parseBusinessCardText(rawText);
+      const normalizedFallback = validateAndNormalizeBusinessCardExtraction(
+        fallbackToStructuredInput(parsedFallback),
+        rawText,
+        ocr.lines,
+        candidateHints.addressLines,
+        {
+          preferredNameLines: candidateHints.layoutProfile.preferredNameLines,
+          preferredTitleLines: candidateHints.layoutProfile.preferredTitleLines,
+          preferredCompanyLines: candidateHints.layoutProfile.preferredCompanyLines,
+        }
+      );
 
       try {
         const llmRawOutput = await extractBusinessCardViaLLM({
@@ -123,117 +119,237 @@ export function useBusinessCardScan(): {
           parsedJson,
           rawText,
           ocr.lines,
-          candidateHints.addressLines
+          candidateHints.addressLines,
+          {
+            preferredNameLines: candidateHints.layoutProfile.preferredNameLines,
+            preferredTitleLines: candidateHints.layoutProfile.preferredTitleLines,
+            preferredCompanyLines: candidateHints.layoutProfile.preferredCompanyLines,
+          }
         );
-        return {
-          ...toBusinessCardOcrResult(normalized),
+        const best = pickBestBusinessCardExtraction(normalized, normalizedFallback);
+        return applyQualityReview({
+          ...toBusinessCardOcrResult(best),
           imageUri,
-        };
+        }, rawText, ocr.lines, ocr.lineItems);
       } catch {
         if (__DEV__) {
           console.log("[BusinessCardScan] LLM extraction failed, regex fallback used.");
         }
-        const parsed = parseBusinessCardText(rawText);
-        const normalizedFallback = validateAndNormalizeBusinessCardExtraction(
-          fallbackToStructuredInput(parsed),
-          rawText,
-          ocr.lines,
-          candidateHints.addressLines
-        );
-        return {
+        void trackBusinessCardTelemetry({ type: "llm_fallback_used" });
+        return applyQualityReview({
           ...toBusinessCardOcrResult(normalizedFallback),
           imageUri,
-        };
+        }, rawText, ocr.lines, ocr.lineItems);
       }
     },
-    []
+    [t]
   );
 
-  const pickImageFromSource = useCallback(async (source: "camera" | "gallery"): Promise<string | null> => {
-    if (source === "camera") {
-      let status = await ImagePicker.getCameraPermissionsAsync();
-      if (!status.granted) {
-        status = await ImagePicker.requestCameraPermissionsAsync();
-      }
-      if (!status.granted) {
-        setError("Kamera erişim izni verilmedi.");
-        return null;
+  const askDetectedSourceChoice = useCallback(async (): Promise<SourceChoice> => {
+    return await new Promise((resolve) => {
+      Alert.alert(
+        t("customer.qrDetectedTitle"),
+        t("customer.qrDetectedMessage"),
+        [
+          {
+            text: t("common.cancel"),
+            style: "cancel",
+            onPress: () => resolve("cancel"),
+          },
+          {
+            text: t("customer.processAsQr"),
+            onPress: () => resolve("qr"),
+          },
+          {
+            text: t("customer.processAsBusinessCard"),
+            onPress: () => resolve("businessCard"),
+          },
+        ],
+        { cancelable: true, onDismiss: () => resolve("cancel") }
+      );
+    });
+  }, [t]);
+
+  const askImageQualityChoice = useCallback(
+    async (assessment: Awaited<ReturnType<typeof assessBusinessCardImageQuality>>): Promise<QualityGateChoice> => {
+      const messageLines = [
+        t("customer.ocrImageQualityWarning", { score: assessment.score }),
+        ...assessment.flags.slice(0, 3).map((flag) => `• ${t(flag.reasonKey)}`),
+      ];
+
+      return await new Promise((resolve) => {
+        Alert.alert(
+          t("customer.ocrImageQualityTitle"),
+          messageLines.join("\n"),
+          [
+            {
+              text: t("common.cancel"),
+              style: "cancel",
+              onPress: () => resolve("cancel"),
+            },
+            {
+              text: t("common.retry"),
+              onPress: () => resolve("retry"),
+            },
+            {
+              text: t("customer.ocrImageQualityContinue"),
+              onPress: () => resolve("continue"),
+            },
+          ],
+          { cancelable: true, onDismiss: () => resolve("cancel") }
+        );
+      });
+    },
+    [t]
+  );
+
+  const runImageQualityGate = useCallback(
+    async (imageUri: string, usedScanner: boolean): Promise<QualityGateChoice> => {
+      const assessment = await assessBusinessCardImageQuality(imageUri, { usedScanner });
+      if (!assessment.shouldWarn) {
+        return "continue";
       }
 
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ["images"],
-        // Cropping produced invalid JPEG payloads on some devices (tiny ~600B files).
-        allowsEditing: false,
-        quality: 0.85,
+      void trackBusinessCardTelemetry({
+        type: "image_quality_warned",
+        details: {
+          score: assessment.score,
+          usedScanner,
+          width: assessment.width,
+          height: assessment.height,
+          flagCount: assessment.flags.length,
+        },
       });
 
-      if (result.canceled || !result.assets?.[0]?.uri) {
-        return null;
+      return await askImageQualityChoice(assessment);
+    },
+    [askImageQualityChoice]
+  );
+
+  const resolveImageInput = useCallback(
+    async (
+      imageUri: string
+    ): Promise<{ shouldContinueWithOcr: boolean; qrResult: BusinessCardOcrResult | null }> => {
+      const qrDetection = await detectQrFromImage(imageUri);
+      if (!qrDetection.rawValue) {
+        return { shouldContinueWithOcr: true, qrResult: null };
+      }
+      void trackBusinessCardTelemetry({ type: "qr_detected", details: { hasStructuredPayload: Boolean(qrDetection.parsedCard) } });
+
+      const choice = await askDetectedSourceChoice();
+      if (choice === "cancel") {
+        void trackBusinessCardTelemetry({ type: "qr_cancelled" });
+        return { shouldContinueWithOcr: false, qrResult: null };
       }
 
-      return await normalizePickedImageAsset(result.assets[0]);
-    }
+      if (choice === "businessCard") {
+        return { shouldContinueWithOcr: true, qrResult: null };
+      }
 
-    let status = await ImagePicker.getMediaLibraryPermissionsAsync();
-    if (!status.granted) {
-      status = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    }
-    if (!status.granted) {
-      setError("Galeri erişim izni verilmedi.");
-      return null;
-    }
+      if (!qrDetection.parsedCard) {
+        setError(t("customer.unsupportedQrPayload"));
+        return { shouldContinueWithOcr: false, qrResult: null };
+      }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      // Android Photo Picker content:// Uris can be unreadable in some release/device combos.
-      // Legacy mode returns direct file paths and is more stable for OCR+upload.
-      legacy: Platform.OS === "android",
-      // Keep original file to avoid broken image payloads from editor output.
-      allowsEditing: false,
-      quality: 0.85,
-    });
+      void trackBusinessCardTelemetry({ type: "qr_processed", details: { hasStructuredPayload: true } });
 
-    if (result.canceled || !result.assets?.[0]?.uri) {
-      return null;
-    }
-
-    return await normalizePickedImageAsset(result.assets[0]);
-  }, [normalizePickedImageAsset]);
+      return {
+        shouldContinueWithOcr: false,
+        qrResult: {
+          ...qrDetection.parsedCard,
+          imageUri,
+          notes: mergeQrNotes(qrDetection.parsedCard.notes, t("customer.qrImportedNote")),
+        },
+      };
+    },
+    [askDetectedSourceChoice, t]
+  );
 
   const scanBusinessCard = useCallback(
     async (): Promise<BusinessCardOcrResult | null> => {
       setError(null);
       setIsScanning(true);
+      void trackBusinessCardTelemetry({ type: "scan_started", details: { source: "camera" } });
       try {
-        const imageUri = await pickImageFromSource("camera");
-        if (!imageUri) return null;
-        return await processImage(imageUri);
+        for (;;) {
+          const { imageUri, usedScanner } = await captureBusinessCardFromCamera();
+          void trackBusinessCardTelemetry({ type: usedScanner ? "scanner_used" : "camera_fallback_used" });
+          if (!imageUri) return null;
+
+          const resolution = await resolveImageInput(imageUri);
+          if (resolution.qrResult) return resolution.qrResult;
+          if (!resolution.shouldContinueWithOcr) return null;
+
+          const qualityChoice = await runImageQualityGate(imageUri, usedScanner);
+          if (qualityChoice === "cancel") return null;
+          if (qualityChoice === "retry") {
+            void trackBusinessCardTelemetry({ type: "image_quality_retry_selected", details: { source: "camera" } });
+            continue;
+          }
+
+          const result = await processImage(imageUri);
+          if (result) {
+            void trackBusinessCardTelemetry({ type: "scan_completed", details: { source: "camera", reviewConfidence: result.review?.overallConfidence ?? null } });
+          }
+          return result;
+        }
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Kartvizit tarama başarısız.");
+        const message = e instanceof Error ? e.message : "";
+        if (message === "CAMERA_PERMISSION_REQUIRED") {
+          setError(t("customer.cameraPermissionError"));
+        } else {
+          setError(message || t("customer.scanFailed"));
+        }
+        void trackBusinessCardTelemetry({ type: "scan_failed", details: { source: "camera", reason: message || "unknown" } });
         return null;
       } finally {
         setIsScanning(false);
       }
     },
-    [pickImageFromSource, processImage]
+    [processImage, resolveImageInput, runImageQualityGate, t]
   );
 
   const pickBusinessCardFromGallery = useCallback(
     async (): Promise<BusinessCardOcrResult | null> => {
       setError(null);
       setIsScanning(true);
+      void trackBusinessCardTelemetry({ type: "scan_started", details: { source: "gallery" } });
       try {
-        const imageUri = await pickImageFromSource("gallery");
-        if (!imageUri) return null;
-        return await processImage(imageUri);
+        void trackBusinessCardTelemetry({ type: "gallery_used" });
+        for (;;) {
+          const imageUri = await pickBusinessCardImageFromGallery();
+          if (!imageUri) return null;
+          const resolution = await resolveImageInput(imageUri);
+          if (resolution.qrResult) return resolution.qrResult;
+          if (!resolution.shouldContinueWithOcr) return null;
+
+          const qualityChoice = await runImageQualityGate(imageUri, false);
+          if (qualityChoice === "cancel") return null;
+          if (qualityChoice === "retry") {
+            void trackBusinessCardTelemetry({ type: "image_quality_retry_selected", details: { source: "gallery" } });
+            continue;
+          }
+
+          const result = await processImage(imageUri);
+          if (result) {
+            void trackBusinessCardTelemetry({ type: "scan_completed", details: { source: "gallery", reviewConfidence: result.review?.overallConfidence ?? null } });
+          }
+          return result;
+        }
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Kartvizit seçimi başarısız.");
+        const message = e instanceof Error ? e.message : "";
+        if (message === "MEDIA_LIBRARY_PERMISSION_REQUIRED") {
+          setError(t("customer.imagePermissionRequired"));
+        } else {
+          setError(message || t("customer.galleryPickFailed"));
+        }
+        void trackBusinessCardTelemetry({ type: "scan_failed", details: { source: "gallery", reason: message || "unknown" } });
         return null;
       } finally {
         setIsScanning(false);
       }
     },
-    [pickImageFromSource, processImage]
+    [processImage, resolveImageInput, runImageQualityGate, t]
   );
 
   const retryBusinessCardExtraction = useCallback(
@@ -243,13 +359,13 @@ export function useBusinessCardScan(): {
       try {
         return await processImage(imageUri);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Kartvizit tekrar işleme başarısız.");
+        setError(e instanceof Error ? e.message : t("customer.retryScanFailed"));
         return null;
       } finally {
         setIsScanning(false);
       }
     },
-    [processImage]
+    [processImage, t]
   );
 
   return { scanBusinessCard, pickBusinessCardFromGallery, retryBusinessCardExtraction, isScanning, error };

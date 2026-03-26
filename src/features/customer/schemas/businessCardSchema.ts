@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { AddressParts, BusinessCardExtraction, BusinessCardOcrResult } from "../types/businessCard";
+import type { AddressParts, BusinessCardExtraction, BusinessCardOcrResult, BusinessCardReviewFlag, BusinessCardReviewSummary } from "../types/businessCard";
 
 const AddressPartsSchema = z.object({
   neighborhood: z.string().nullable(),
@@ -851,6 +851,52 @@ function isLikelyCompanyLine(line: string, index: number): boolean {
   return false;
 }
 
+type ScoredIdentityCandidate = {
+  line: string;
+  score: number;
+  index: number;
+};
+
+type BusinessCardNormalizationHints = {
+  preferredNameLines?: string[];
+  preferredTitleLines?: string[];
+  preferredCompanyLines?: string[];
+};
+
+function scoreNameCandidate(line: string, index: number, hints?: BusinessCardNormalizationHints): number {
+  if (!isLikelyPersonNameLine(line)) return -1;
+  let score = 4;
+  if (index >= 1 && index <= 5) score += 2;
+  if (uppercaseRatio(line) >= 0.85) score += 1;
+  if (hints?.preferredNameLines?.includes(line)) score += 3;
+  return score;
+}
+
+function scoreTitleCandidate(line: string, index: number, nameIndex: number, hints?: BusinessCardNormalizationHints): number {
+  if (!isLikelyTitleLine(line)) return -1;
+  let score = 4;
+  if (nameIndex >= 0 && Math.abs(index - nameIndex) <= 2) score += 2;
+  if (index <= 6) score += 1;
+  if (hints?.preferredTitleLines?.includes(line)) score += 2;
+  return score;
+}
+
+function scoreCompanyCandidate(line: string, index: number, nameIndex: number, hints?: BusinessCardNormalizationHints): number {
+  if (!isLikelyCompanyLine(line, index)) return -1;
+  let score = 4;
+  if (index <= 2) score += 2;
+  if (nameIndex > 0 && index < nameIndex) score += 1;
+  if (hasCompanyMarker(line)) score += 1;
+  if (hints?.preferredCompanyLines?.includes(line)) score += 3;
+  return score;
+}
+
+function pickBestCandidate(candidates: ScoredIdentityCandidate[]): string | null {
+  if (candidates.length === 0) return null;
+  return candidates
+    .sort((a, b) => b.score - a.score || a.index - b.index || a.line.length - b.line.length)[0]?.line ?? null;
+}
+
 function mergeCompanyLines(lines: string[], startIndex: number): string {
   const base = lines[startIndex];
   if (!base) return "";
@@ -865,7 +911,8 @@ function mergeCompanyLines(lines: string[], startIndex: number): string {
 
 function inferIdentityFromRawText(
   rawText?: string,
-  rawLines?: string[]
+  rawLines?: string[],
+  hints?: BusinessCardNormalizationHints
 ): { inferredName: string | null; inferredTitle: string | null; inferredCompany: string | null } {
   const lines = collectIdentitySourceLines(rawText, rawLines);
   if (lines.length === 0) {
@@ -874,62 +921,48 @@ function inferIdentityFromRawText(
 
   let inferredName: string | null = null;
   let nameIndex = -1;
+  const nameCandidates: ScoredIdentityCandidate[] = [];
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i]!;
-    if (isLikelyPersonNameLine(line)) {
-      const normalized = line.replace(/[^\p{L}\s'.-]/gu, " ").trim();
-      const tokens = normalized.split(/\s+/).filter(Boolean);
-      const isAllUpperCandidate = uppercaseRatio(normalized) >= 0.9 && tokens.length === 2;
-      if (isAllUpperCandidate) {
-        const hasNearbyTitle = [i + 1, i + 2].some(
-          (idx) => idx < lines.length && isLikelyTitleLine(lines[idx]!)
-        );
-        if (!hasNearbyTitle) continue;
-      }
-      inferredName = line;
-      nameIndex = i;
-      break;
+    const normalized = line.replace(/[^\p{L}\s'.-]/gu, " ").trim();
+    const tokens = normalized.split(/\s+/).filter(Boolean);
+    const isAllUpperCandidate = uppercaseRatio(normalized) >= 0.9 && tokens.length === 2;
+    const score = scoreNameCandidate(line, i, hints);
+    if (score < 0) continue;
+    if (isAllUpperCandidate) {
+      const hasNearbyTitle = [i + 1, i + 2].some(
+        (idx) => idx < lines.length && isLikelyTitleLine(lines[idx]!)
+      );
+      if (!hasNearbyTitle) continue;
     }
+    nameCandidates.push({ line, score, index: i });
+  }
+  inferredName = pickBestCandidate(nameCandidates);
+  if (inferredName) {
+    nameIndex = lines.findIndex((line) => line === inferredName);
   }
 
   let inferredTitle: string | null = null;
-  if (nameIndex >= 0) {
-    for (let i = nameIndex + 1; i <= Math.min(nameIndex + 2, lines.length - 1); i += 1) {
-      const line = lines[i]!;
-      if (isLikelyTitleLine(line)) {
-        inferredTitle = line;
-        break;
-      }
-    }
+  const titleCandidates: ScoredIdentityCandidate[] = [];
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i]!;
+    const score = scoreTitleCandidate(line, i, nameIndex, hints);
+    if (score < 0) continue;
+    if (nameIndex >= 0 && Math.abs(i - nameIndex) > 3) continue;
+    titleCandidates.push({ line, score, index: i });
   }
-  if (!inferredTitle) {
-    for (let i = 0; i < lines.length; i += 1) {
-      const line = lines[i]!;
-      if (!isLikelyTitleLine(line)) continue;
-      if (nameIndex >= 0 && Math.abs(i - nameIndex) > 2) continue;
-      inferredTitle = line;
-      break;
-    }
-  }
+  inferredTitle = pickBestCandidate(titleCandidates);
 
   let inferredCompany: string | null = null;
-  if (nameIndex > 0) {
-    for (let i = 0; i < nameIndex; i += 1) {
-      const line = lines[i]!;
-      if (!isLikelyCompanyLine(line, i)) continue;
-      inferredCompany = mergeCompanyLines(lines, i);
-      break;
-    }
+  const companyCandidates: ScoredIdentityCandidate[] = [];
+  const companySearchLimit = Math.min(lines.length, Math.max(6, nameIndex > 0 ? nameIndex + 1 : 6));
+  for (let i = 0; i < companySearchLimit; i += 1) {
+    const line = lines[i]!;
+    const score = scoreCompanyCandidate(line, i, nameIndex, hints);
+    if (score < 0) continue;
+    companyCandidates.push({ line: mergeCompanyLines(lines, i), score, index: i });
   }
-
-  if (!inferredCompany) {
-    for (let i = 0; i < Math.min(lines.length, 4); i += 1) {
-      const line = lines[i]!;
-      if (!isLikelyCompanyLine(line, i)) continue;
-      inferredCompany = mergeCompanyLines(lines, i);
-      break;
-    }
-  }
+  inferredCompany = pickBestCandidate(companyCandidates);
 
   return {
     inferredName: sanitizeName(normalizeNullable(inferredName)),
@@ -972,7 +1005,8 @@ export function validateAndNormalizeBusinessCardExtraction(
   input: unknown,
   rawText?: string,
   rawLines?: string[],
-  preferredAddressLines?: string[]
+  preferredAddressLines?: string[],
+  normalizationHints?: BusinessCardNormalizationHints
 ): BusinessCardExtraction {
   const parsed = BusinessCardExtractionSchema.safeParse(input);
   if (!parsed.success) {
@@ -1004,7 +1038,7 @@ export function validateAndNormalizeBusinessCardExtraction(
 
   const rawName = normalizeNullable(parsed.data.name);
   const rawCompany = normalizeNullable(parsed.data.company);
-  const inferredIdentity = inferIdentityFromRawText(rawText, rawLines);
+  const inferredIdentity = inferIdentityFromRawText(rawText, rawLines, normalizationHints);
 
   let name = sanitizeName(rawName);
   let company = sanitizeCompany(rawCompany);
@@ -1072,6 +1106,230 @@ export function validateAndNormalizeBusinessCardExtraction(
   };
 }
 
+function pickPreferredAddress(primary: string | null, secondary: string | null): string | null {
+  if (primary && secondary) {
+    const primaryLen = primary.replace(/\s+/g, " ").trim().length;
+    const secondaryLen = secondary.replace(/\s+/g, " ").trim().length;
+    return secondaryLen > primaryLen + 8 ? secondary : primary;
+  }
+  return primary ?? secondary;
+}
+
+function pickPreferredScalar(primary: string | null, secondary: string | null): string | null {
+  return primary ?? secondary;
+}
+
+function mergeAddressParts(primary: AddressParts, secondary: AddressParts): AddressParts {
+  return {
+    neighborhood: primary.neighborhood ?? secondary.neighborhood,
+    street: primary.street ?? secondary.street,
+    avenue: primary.avenue ?? secondary.avenue,
+    boulevard: primary.boulevard ?? secondary.boulevard,
+    sitePlaza: primary.sitePlaza ?? secondary.sitePlaza,
+    block: primary.block ?? secondary.block,
+    buildingNo: primary.buildingNo ?? secondary.buildingNo,
+    floor: primary.floor ?? secondary.floor,
+    apartment: primary.apartment ?? secondary.apartment,
+    postalCode: primary.postalCode ?? secondary.postalCode,
+    district: primary.district ?? secondary.district,
+    province: primary.province ?? secondary.province,
+    country: primary.country ?? secondary.country,
+  };
+}
+
+function scoreExtractionCompleteness(extraction: BusinessCardExtraction): number {
+  let score = 0;
+  if (extraction.name) score += 3;
+  if (extraction.company) score += 4;
+  if (extraction.title) score += 2;
+  if (extraction.website) score += 1;
+  if (extraction.address) score += 2;
+  score += Math.min(extraction.phones.length, 2) * 2;
+  score += Math.min(extraction.emails.length, 2) * 2;
+  if (extraction.addressParts.district) score += 1;
+  if (extraction.addressParts.province) score += 1;
+  return score;
+}
+
+function clampConfidence(value: number): number {
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function buildBusinessCardReviewSummary(extraction: BusinessCardExtraction): BusinessCardReviewSummary {
+  const flags: BusinessCardReviewFlag[] = [];
+  const fieldConfidence: BusinessCardReviewSummary["fieldConfidence"] = {};
+
+  const setField = (
+    field: keyof BusinessCardReviewSummary["fieldConfidence"],
+    confidence: number,
+    reason?: string,
+    severity: BusinessCardReviewFlag["severity"] = "medium"
+  ): void => {
+    fieldConfidence[field] = clampConfidence(confidence);
+    if (reason) {
+      flags.push({ field, reason, severity });
+    }
+  };
+
+  if (extraction.company) {
+    let confidence = 86;
+    if (hasCompanyMarker(extraction.company)) confidence += 8;
+    else if (INDUSTRY_KEYWORD_REGEX.test(extraction.company)) confidence += 5;
+    if (extraction.company.length < 4) confidence -= 25;
+    setField(
+      "customerName",
+      confidence,
+      confidence < 70 ? "Firma adı kısa veya belirsiz görünüyor." : undefined,
+      confidence < 55 ? "high" : "medium"
+    );
+  } else {
+    setField("customerName", 15, "Firma adı bulunamadı.", "high");
+  }
+
+  if (extraction.contactNameAndSurname) {
+    const tokenCount = extraction.contactNameAndSurname.split(/\s+/).filter(Boolean).length;
+    let confidence = tokenCount >= 2 ? 84 : 48;
+    if (looksLikeCompany(extraction.contactNameAndSurname)) confidence -= 35;
+    setField(
+      "contactNameAndSurname",
+      confidence,
+      confidence < 70 ? "Kişi adı firma satırı ile karışmış olabilir." : undefined,
+      confidence < 50 ? "high" : "medium"
+    );
+  } else {
+    setField("contactNameAndSurname", 20, "Kişi adı bulunamadı.", "high");
+  }
+
+  if (extraction.title) {
+    const confidence = hasTitleKeyword(extraction.title) ? 84 : 56;
+    setField(
+      "title",
+      confidence,
+      confidence < 70 ? "Ünvan satırı net görünmüyor olabilir." : undefined,
+      "medium"
+    );
+  } else {
+    setField("title", 30, "Ünvan bulunamadı.", "low");
+  }
+
+  const phoneValues = [extraction.phones[0], extraction.phones[1]] as const;
+  (["phone1", "phone2"] as const).forEach((field, index) => {
+    const phone = phoneValues[index];
+    if (!phone) {
+      setField(field, index === 0 ? 25 : 0, index === 0 ? "Telefon bulunamadı." : undefined, index === 0 ? "medium" : "low");
+      return;
+    }
+    const confidence = PHONE_E164_GENERIC_REGEX.test(phone) ? 92 : 52;
+    setField(
+      field,
+      confidence,
+      confidence < 70 ? "Telefon formatı şüpheli görünüyor." : undefined,
+      confidence < 55 ? "high" : "medium"
+    );
+  });
+
+  if (extraction.emails[0]) {
+    const confidence = EMAIL_REGEX.test(extraction.emails[0]) ? 94 : 45;
+    setField(
+      "email",
+      confidence,
+      confidence < 70 ? "E-posta adresi doğrulanamadı." : undefined,
+      confidence < 55 ? "high" : "medium"
+    );
+  } else {
+    setField("email", 25, "E-posta bulunamadı.", "low");
+  }
+
+  if (extraction.website) {
+    const confidence = isValidWebsite(extraction.website) ? 88 : 48;
+    setField(
+      "website",
+      confidence,
+      confidence < 70 ? "Web sitesi alanı şirket satırı ile karışmış olabilir." : undefined,
+      confidence < 55 ? "high" : "medium"
+    );
+  } else {
+    setField("website", 25, "Web sitesi bulunamadı.", "low");
+  }
+
+  if (extraction.address) {
+    const strongSegments = extraction.address
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .filter((segment) => isStrongAddressLine(segment)).length;
+    const confidence = strongSegments >= 2 ? 84 : strongSegments === 1 ? 64 : 40;
+    setField(
+      "address",
+      confidence,
+      confidence < 70 ? "Adres satırı iletişim bilgileriyle karışmış olabilir." : undefined,
+      confidence < 55 ? "high" : "medium"
+    );
+  } else {
+    setField("address", 20, "Adres bulunamadı.", "medium");
+  }
+
+  const confidenceValues = Object.values(fieldConfidence);
+  const overallConfidence = confidenceValues.length > 0
+    ? clampConfidence(confidenceValues.reduce((sum, value) => sum + value, 0) / confidenceValues.length)
+    : 0;
+
+  return {
+    overallConfidence,
+    fieldConfidence,
+    flags,
+  };
+}
+
+export function mergeBusinessCardExtractions(
+  primary: BusinessCardExtraction,
+  secondary: BusinessCardExtraction
+): BusinessCardExtraction {
+  const mergedPhones = uniqueStrings([...primary.phones, ...secondary.phones]);
+  const mergedEmails = uniqueStrings([...primary.emails, ...secondary.emails]);
+  const mergedNotes = uniqueStrings([...primary.notes, ...secondary.notes]);
+  const mergedAddressParts = mergeAddressParts(primary.addressParts, secondary.addressParts);
+
+  const merged: BusinessCardExtraction = {
+    contactNameAndSurname: pickPreferredScalar(primary.contactNameAndSurname, secondary.contactNameAndSurname),
+    name: pickPreferredScalar(primary.name, secondary.name),
+    title: pickPreferredScalar(primary.title, secondary.title),
+    company: pickPreferredScalar(primary.company, secondary.company),
+    phones: mergedPhones,
+    emails: mergedEmails,
+    website: pickPreferredScalar(primary.website, secondary.website),
+    address: pickPreferredAddress(primary.address, secondary.address),
+    addressParts: mergedAddressParts,
+    social: {
+      linkedin: pickPreferredScalar(primary.social.linkedin, secondary.social.linkedin),
+      instagram: pickPreferredScalar(primary.social.instagram, secondary.social.instagram),
+      x: pickPreferredScalar(primary.social.x, secondary.social.x),
+      facebook: pickPreferredScalar(primary.social.facebook, secondary.social.facebook),
+    },
+    notes: mergedNotes,
+  };
+
+  if (!merged.contactNameAndSurname && merged.name) {
+    merged.contactNameAndSurname = merged.name;
+  }
+
+  return merged;
+}
+
+export function pickBestBusinessCardExtraction(
+  primary: BusinessCardExtraction,
+  secondary: BusinessCardExtraction
+): BusinessCardExtraction {
+  const primaryScore = scoreExtractionCompleteness(primary);
+  const secondaryScore = scoreExtractionCompleteness(secondary);
+
+  if (primaryScore >= secondaryScore) {
+    return mergeBusinessCardExtractions(primary, secondary);
+  }
+
+  return mergeBusinessCardExtractions(secondary, primary);
+}
+
 export function toBusinessCardOcrResult(extraction: BusinessCardExtraction): BusinessCardOcrResult {
   const noteParts: string[] = [];
   if (extraction.company && extraction.name) {
@@ -1083,6 +1341,8 @@ export function toBusinessCardOcrResult(extraction: BusinessCardExtraction): Bus
   for (const note of extraction.notes) {
     noteParts.push(note);
   }
+
+  const review = buildBusinessCardReviewSummary(extraction);
 
   return {
     customerName: extraction.company ?? extraction.name ?? undefined,
@@ -1097,5 +1357,6 @@ export function toBusinessCardOcrResult(extraction: BusinessCardExtraction): Bus
     address: extraction.address ?? undefined,
     website: extraction.website ?? undefined,
     notes: noteParts.length > 0 ? noteParts.join(", ") : undefined,
+    review,
   };
 }

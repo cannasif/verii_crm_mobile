@@ -35,13 +35,15 @@ import {
   useUpdateCustomer,
   useDeleteCustomer,
   useCustomerTypes,
-  useBusinessCardScan
+  useBusinessCardScan,
+  useBusinessCardPotentialMatches
 } from "../hooks";
 import { useCustomerShippingAddresses } from "../../shipping-address/hooks/useShippingAddresses";
 import { FormField, LocationPicker, PremiumPicker } from "../components";
 import { createCustomerSchema, type CustomerFormData } from "../schemas";
 import type { CountryDto, CityDto, DistrictDto } from "../types";
 import type { BusinessCardOcrResult } from "../types/businessCard";
+import { trackBusinessCardTelemetry } from "../services/businessCardTelemetryService";
 import { 
   Camera01Icon, 
   Image01Icon, 
@@ -127,6 +129,7 @@ export function CustomerFormScreen(): React.ReactElement {
   const createCustomerFromMobile = useCreateCustomerFromMobile();
   const updateCustomer = useUpdateCustomer();
   const { scanBusinessCard, pickBusinessCardFromGallery, retryBusinessCardExtraction, isScanning, error: scanError } = useBusinessCardScan();
+  const potentialMatchesQuery = useBusinessCardPotentialMatches(pendingBusinessCardResult, isBusinessCardReviewOpen);
 
   const schema = useMemo(() => createCustomerSchema(), []);
 
@@ -401,8 +404,8 @@ export function CustomerFormScreen(): React.ReactElement {
   }, [showToast]);
 
   useEffect(() => {
-    if (scanError) Alert.alert("Kartvizit Tarama", scanError);
-  }, [scanError]);
+    if (scanError) Alert.alert(t("customer.scanCard"), scanError);
+  }, [scanError, t]);
 
   useEffect(() => {
     if (!ocrCountryName) return;
@@ -486,6 +489,10 @@ export function CustomerFormScreen(): React.ReactElement {
 
   const handleConfirmBusinessCardReview = useCallback(() => {
     if (pendingBusinessCardResult) {
+      void trackBusinessCardTelemetry({
+        type: "review_confirmed",
+        details: { overallConfidence: pendingBusinessCardResult.review?.overallConfidence ?? null },
+      });
       applyBusinessCardResult(pendingBusinessCardResult);
     }
     setIsBusinessCardReviewOpen(false);
@@ -494,14 +501,30 @@ export function CustomerFormScreen(): React.ReactElement {
 
   const handleRetryBusinessCardReview = useCallback(async () => {
     if (!pendingBusinessCardResult?.imageUri) {
-      Alert.alert("Kartvizit Tarama", "Tekrar deneme için kartvizit görseli bulunamadı.");
+      Alert.alert(t("customer.scanCard"), t("customer.retryImageMissing"));
       return;
     }
+    void trackBusinessCardTelemetry({
+      type: "review_retry",
+      details: { overallConfidence: pendingBusinessCardResult.review?.overallConfidence ?? null },
+    });
     const retriedResult = await retryBusinessCardExtraction(pendingBusinessCardResult.imageUri);
     if (retriedResult) {
       setPendingBusinessCardResult(retriedResult);
     }
-  }, [pendingBusinessCardResult, retryBusinessCardExtraction]);
+  }, [pendingBusinessCardResult, retryBusinessCardExtraction, t]);
+
+  const reviewFieldLabels = useMemo(() => ({
+    general: t("customer.ocrGeneral"),
+    customerName: t("customer.name"),
+    contactNameAndSurname: t("customer.contactPerson"),
+    title: t("customer.contactTitle"),
+    phone1: t("customer.phone"),
+    phone2: t("customer.phone2"),
+    email: t("customer.email"),
+    website: t("customer.website"),
+    address: t("customer.address"),
+  }), [t]);
 
   const FormSection = ({ title, icon, children }: { title: string, icon?: React.ReactNode, children: React.ReactNode }) => {
     const hasChildren = React.Children.count(children) > 0;
@@ -928,24 +951,71 @@ export function CustomerFormScreen(): React.ReactElement {
         <View style={styles.modalOverlay}>
           <TouchableOpacity style={styles.modalBackdrop} onPress={handleCancelBusinessCardReview} />
           <View style={[styles.ocrReviewContent, { backgroundColor: THEME.cardBg, borderColor: THEME.border }]}>
-            <Text style={[styles.ocrReviewTitle, { color: THEME.text }]}>Kartvizit Önizleme</Text>
+            <Text style={[styles.ocrReviewTitle, { color: THEME.text }]}>{t("customer.ocrReviewTitle")}</Text>
             <Text style={[styles.ocrReviewSubtitle, { color: THEME.textMute }]}>
-              Alanları kontrol edin. Onaylarsanız form otomatik doldurulacak.
+              {t("customer.ocrReviewSubtitle")}
             </Text>
+
+            {pendingBusinessCardResult?.review ? (
+              <View style={[styles.ocrConfidenceCard, { backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: THEME.border }]}>
+                <Text style={[styles.ocrConfidenceTitle, { color: THEME.text }]}>
+                  {t("customer.ocrConfidenceTitle", { score: pendingBusinessCardResult.review.overallConfidence })}
+                </Text>
+                {pendingBusinessCardResult.review.flags.length > 0 ? (
+                  <View style={styles.ocrFlagList}>
+                    {pendingBusinessCardResult.review.flags.slice(0, 4).map((flag, index) => (
+                      <Text key={`${flag.field}-${index}`} style={[styles.ocrFlagText, { color: flag.severity === "high" ? "#ef4444" : THEME.textMute }]}>
+                        • {reviewFieldLabels[flag.field]}: {flag.reason}
+                      </Text>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={[styles.ocrFlagText, { color: THEME.textMute }]}>
+                    {t("customer.ocrNoFlagMessage")}
+                  </Text>
+                )}
+              </View>
+            ) : null}
+
+            {potentialMatchesQuery.data && potentialMatchesQuery.data.length > 0 ? (
+              <View style={[styles.ocrConfidenceCard, { backgroundColor: isDark ? "rgba(251,191,36,0.08)" : "#FFF7ED", borderColor: "#f59e0b" }]}>
+                <Text style={[styles.ocrConfidenceTitle, { color: THEME.text }]}>
+                  {t("customer.ocrPotentialMatchesTitle", { count: potentialMatchesQuery.data.length })}
+                </Text>
+                <View style={styles.ocrFlagList}>
+                  {potentialMatchesQuery.data.slice(0, 3).map((match) => (
+                    <Text key={match.customer.id} style={[styles.ocrFlagText, { color: THEME.textMute }]}>
+                      • {match.customer.name} ({match.score}) - {match.reasons.join(", ")}
+                    </Text>
+                  ))}
+                </View>
+              </View>
+            ) : null}
 
             {pendingBusinessCardResult?.imageUri ? (
               <Image source={{ uri: pendingBusinessCardResult.imageUri }} style={styles.ocrPreviewImage} resizeMode="cover" />
             ) : null}
 
             <View style={styles.ocrFieldsWrap}>
-              <Text style={[styles.ocrFieldLine, { color: THEME.text }]}>Firma: {pendingBusinessCardResult?.customerName || "-"}</Text>
-              <Text style={[styles.ocrFieldLine, { color: THEME.text }]}>İsim: {pendingBusinessCardResult?.contactNameAndSurname || "-"}</Text>
-              <Text style={[styles.ocrFieldLine, { color: THEME.text }]}>Ünvan: {pendingBusinessCardResult?.title || "-"}</Text>
-              <Text style={[styles.ocrFieldLine, { color: THEME.text }]}>Telefon 1: {pendingBusinessCardResult?.phone1 || "-"}</Text>
-              <Text style={[styles.ocrFieldLine, { color: THEME.text }]}>Telefon 2: {pendingBusinessCardResult?.phone2 || "-"}</Text>
-              <Text style={[styles.ocrFieldLine, { color: THEME.text }]}>E-posta: {pendingBusinessCardResult?.email || "-"}</Text>
-              <Text style={[styles.ocrFieldLine, { color: THEME.text }]}>Web: {pendingBusinessCardResult?.website || "-"}</Text>
-              <Text style={[styles.ocrFieldLine, { color: THEME.text }]}>Adres: {pendingBusinessCardResult?.address || "-"}</Text>
+              {([
+                ["customerName", pendingBusinessCardResult?.customerName || "-"],
+                ["contactNameAndSurname", pendingBusinessCardResult?.contactNameAndSurname || "-"],
+                ["title", pendingBusinessCardResult?.title || "-"],
+                ["phone1", pendingBusinessCardResult?.phone1 || "-"],
+                ["phone2", pendingBusinessCardResult?.phone2 || "-"],
+                ["email", pendingBusinessCardResult?.email || "-"],
+                ["website", pendingBusinessCardResult?.website || "-"],
+                ["address", pendingBusinessCardResult?.address || "-"],
+              ] as const).map(([field, value]) => {
+                const confidence = pendingBusinessCardResult?.review?.fieldConfidence[field];
+                const isLowConfidence = typeof confidence === "number" && confidence < 70;
+                return (
+                  <Text key={field} style={[styles.ocrFieldLine, { color: isLowConfidence ? "#ef4444" : THEME.text }]}>
+                    {reviewFieldLabels[field]}: {value}
+                    {typeof confidence === "number" ? ` (${confidence}%)` : ""}
+                  </Text>
+                );
+              })}
             </View>
 
             <View style={styles.ocrActionRow}>
@@ -954,21 +1024,21 @@ export function CustomerFormScreen(): React.ReactElement {
                 onPress={handleCancelBusinessCardReview}
                 disabled={isScanning}
               >
-                <Text style={[styles.ocrActionText, { color: THEME.text }]}>İptal</Text>
+                <Text style={[styles.ocrActionText, { color: THEME.text }]}>{t("common.cancel")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.ocrActionBtn, { borderColor: THEME.primary, backgroundColor: `${THEME.primary}14` }]}
                 onPress={handleRetryBusinessCardReview}
                 disabled={isScanning}
               >
-                {isScanning ? <ActivityIndicator size="small" color={THEME.primary} /> : <Text style={[styles.ocrActionText, { color: THEME.primary }]}>Tekrar Dene</Text>}
+                {isScanning ? <ActivityIndicator size="small" color={THEME.primary} /> : <Text style={[styles.ocrActionText, { color: THEME.primary }]}>{t("common.retry")}</Text>}
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.ocrActionBtn, { borderColor: THEME.primary, backgroundColor: THEME.primary }]}
                 onPress={handleConfirmBusinessCardReview}
                 disabled={isScanning}
               >
-                <Text style={[styles.ocrActionText, { color: "#ffffff" }]}>Onayla</Text>
+                <Text style={[styles.ocrActionText, { color: "#ffffff" }]}>{t("common.confirm")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1206,6 +1276,24 @@ const styles = StyleSheet.create({
   ocrReviewSubtitle: {
     marginTop: 4,
     fontSize: 12,
+  },
+  ocrConfidenceCard: {
+    marginTop: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 10,
+    gap: 6,
+  },
+  ocrConfidenceTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  ocrFlagList: {
+    gap: 4,
+  },
+  ocrFlagText: {
+    fontSize: 11,
+    fontWeight: "500",
   },
   ocrPreviewImage: {
     marginTop: 10,

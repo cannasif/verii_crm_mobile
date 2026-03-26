@@ -52,7 +52,42 @@ export interface BusinessCardCandidateHints {
   emails: string[];
   websites: string[];
   addressLines: string[];
+  scriptProfile: {
+    dominantScript: "latin" | "cyrillic" | "mixed" | "unknown";
+    suggestedLocale: "tr" | "ru" | "intl";
+    confidence: number;
+  };
+  topCandidates: {
+    names: string[];
+    titles: string[];
+    companies: string[];
+  };
+  layoutProfile: {
+    orderedLines: string[];
+    topZoneLines: string[];
+    middleZoneLines: string[];
+    bottomZoneLines: string[];
+    preferredNameLines: string[];
+    preferredTitleLines: string[];
+    preferredCompanyLines: string[];
+    contactClusterLines: string[];
+  };
 }
+
+const COMPANY_HINT_REGEX =
+  /\b(a\.?\s?ş|aş|ltd|şti|san|tic|holding|group|llc|gmbh|co\.?\s?ltd|ooo|ооо|zao|зао|oao|оао|solutions|security|locks|metal|makine|machine|bio|biotech|trade|lines|construction|profile|pvc)\b/i;
+const TITLE_HINT_REGEX =
+  /\b(manager|director|chief|architect|engineer|sales|marketing|export|purchasing|logistics|managerial|chairman|vice chairman|president|müdür|yönetici|uzmanı|sorumlu|manager|менеджер|директор|руководитель|председатель)\b/i;
+const LETTER_LINE_REGEX = /\p{L}/u;
+const PERSON_TOKEN_REGEX = /^[\p{L}'.-]{2,}$/u;
+
+type IdentityBucket = "name" | "title" | "company";
+
+type ScoredIdentityLine = {
+  line: string;
+  bucket: IdentityBucket;
+  score: number;
+};
 
 function uniqueStrings(values: string[]): string[] {
   const out: string[] = [];
@@ -101,6 +136,18 @@ function extractSourceLines(rawText: string, lines?: string[]): string[] {
     .filter(Boolean);
 }
 
+function extractOrderedLines(rawText: string, lines?: string[], lineItems?: OcrLineItem[]): string[] {
+  if (lineItems && lineItems.length > 0) {
+    return uniqueStrings(
+      [...lineItems]
+        .sort((left, right) => left.blockIndex - right.blockIndex || left.lineIndex - right.lineIndex)
+        .map((item) => item.text)
+    );
+  }
+
+  return extractSourceLines(rawText, lines);
+}
+
 function extractAddressLines(rawText: string, lines?: string[]): string[] {
   const sourceLines = extractSourceLines(rawText, lines);
   const addressLines: string[] = [];
@@ -122,11 +169,157 @@ function extractAddressLines(rawText: string, lines?: string[]): string[] {
   return uniqueStrings(addressLines);
 }
 
-export function buildBusinessCardCandidateHints(rawText: string, lines?: string[]): BusinessCardCandidateHints {
+function detectScriptProfile(rawText: string): BusinessCardCandidateHints["scriptProfile"] {
+  const letters = Array.from(rawText.matchAll(/\p{L}/gu)).length;
+  if (letters === 0) {
+    return { dominantScript: "unknown", suggestedLocale: "intl", confidence: 0 };
+  }
+
+  const cyrillic = Array.from(rawText.matchAll(/\p{Script=Cyrillic}/gu)).length;
+  const latin = Array.from(rawText.matchAll(/\p{Script=Latin}/gu)).length;
+  const dominantRatio = Math.max(cyrillic, latin) / letters;
+
+  if (cyrillic > 0 && latin > 0) {
+    return {
+      dominantScript: dominantRatio < 0.85 ? "mixed" : cyrillic > latin ? "cyrillic" : "latin",
+      suggestedLocale: cyrillic > latin ? "ru" : "tr",
+      confidence: Number(dominantRatio.toFixed(2)),
+    };
+  }
+
+  if (cyrillic > 0) {
+    return { dominantScript: "cyrillic", suggestedLocale: "ru", confidence: Number((cyrillic / letters).toFixed(2)) };
+  }
+
+  return { dominantScript: "latin", suggestedLocale: "tr", confidence: Number((latin / letters).toFixed(2)) };
+}
+
+function isLikelyNameLine(line: string): boolean {
+  if (CONTACT_TOKEN_REGEX.test(line) || TITLE_HINT_REGEX.test(line) || COMPANY_HINT_REGEX.test(line)) return false;
+  const tokens = line.replace(/[^\p{L}\s'.-]/gu, " ").split(/\s+/).filter(Boolean);
+  return tokens.length >= 2 && tokens.length <= 4 && tokens.every((token) => PERSON_TOKEN_REGEX.test(token));
+}
+
+function isLikelyCompanyZoneLine(line: string, index: number): boolean {
+  if (CONTACT_TOKEN_REGEX.test(line) || TITLE_HINT_REGEX.test(line)) return false;
+  if (COMPANY_HINT_REGEX.test(line)) return true;
+  if (index <= 1 && /^[\p{Lu}\s.&'-]{2,}$/u.test(line.trim())) return true;
+  return false;
+}
+
+function scoreIdentityLines(rawText: string, lines?: string[]): ScoredIdentityLine[] {
+  const sourceLines = extractSourceLines(rawText, lines);
+  const scored: ScoredIdentityLine[] = [];
+
+  sourceLines.forEach((line, index) => {
+    if (!LETTER_LINE_REGEX.test(line) || line.length > 120) return;
+
+    let companyScore = 0;
+    let titleScore = 0;
+    let nameScore = 0;
+
+    if (COMPANY_HINT_REGEX.test(line)) companyScore += 4;
+    if (TITLE_HINT_REGEX.test(line)) titleScore += 4;
+    if (isLikelyNameLine(line)) nameScore += 4;
+    if (index <= 1 && COMPANY_HINT_REGEX.test(line)) companyScore += 2;
+    if (index >= 1 && index <= 4 && isLikelyNameLine(line)) nameScore += 2;
+    if (index >= 1 && index <= 5 && TITLE_HINT_REGEX.test(line)) titleScore += 1;
+    if (/^[\p{Lu}\s.&'-]{2,}$/u.test(line) && !TITLE_HINT_REGEX.test(line)) companyScore += 1;
+    if (/^[\p{Lu}\s'.-]{2,}$/u.test(line) && isLikelyNameLine(line)) nameScore += 1;
+
+    const best = Math.max(companyScore, titleScore, nameScore);
+    if (best < 3) return;
+
+    const bucket: IdentityBucket =
+      companyScore >= titleScore && companyScore >= nameScore
+        ? "company"
+        : titleScore >= nameScore
+          ? "title"
+          : "name";
+
+    scored.push({ line, bucket, score: best });
+  });
+
+  return scored.sort((a, b) => b.score - a.score || a.line.length - b.line.length);
+}
+
+function buildTopIdentityCandidates(rawText: string, lines?: string[]): BusinessCardCandidateHints["topCandidates"] {
+  const scored = scoreIdentityLines(rawText, lines);
+  const takeBucket = (bucket: IdentityBucket): string[] =>
+    scored
+      .filter((item) => item.bucket === bucket)
+      .map((item) => item.line)
+      .filter((line, index, arr) => arr.indexOf(line) === index)
+      .slice(0, 3);
+
+  return {
+    names: takeBucket("name"),
+    titles: takeBucket("title"),
+    companies: takeBucket("company"),
+  };
+}
+
+function buildLayoutProfile(rawText: string, lines?: string[], lineItems?: OcrLineItem[]): BusinessCardCandidateHints["layoutProfile"] {
+  const orderedLines = extractOrderedLines(rawText, lines, lineItems)
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter((line) => line.length >= 2 && line.length <= 140);
+
+  if (orderedLines.length === 0) {
+    return {
+      orderedLines: [],
+      topZoneLines: [],
+      middleZoneLines: [],
+      bottomZoneLines: [],
+      preferredNameLines: [],
+      preferredTitleLines: [],
+      preferredCompanyLines: [],
+      contactClusterLines: [],
+    };
+  }
+
+  const topEnd = Math.max(1, Math.ceil(orderedLines.length / 3));
+  const middleEnd = Math.max(topEnd + 1, Math.ceil((orderedLines.length * 2) / 3));
+
+  const topZoneLines = orderedLines.slice(0, topEnd);
+  const middleZoneLines = orderedLines.slice(topEnd, middleEnd);
+  const bottomZoneLines = orderedLines.slice(middleEnd);
+
+  const preferredCompanyLines = uniqueStrings(
+    topZoneLines.filter((line, index) => isLikelyCompanyZoneLine(line, index)).slice(0, 3)
+  );
+  const preferredNameLines = uniqueStrings(
+    [...topZoneLines.slice(-2), ...middleZoneLines].filter((line) => isLikelyNameLine(line)).slice(0, 3)
+  );
+  const preferredTitleLines = uniqueStrings(
+    [...topZoneLines.slice(-2), ...middleZoneLines, ...bottomZoneLines.slice(0, 1)]
+      .filter((line) => TITLE_HINT_REGEX.test(line))
+      .slice(0, 3)
+  );
+  const contactClusterLines = uniqueStrings(
+    bottomZoneLines.filter((line) => CONTACT_TOKEN_REGEX.test(line) || ADDRESS_HINT_REGEX.test(line) || POSTAL_CODE_REGEX.test(line))
+  );
+
+  return {
+    orderedLines,
+    topZoneLines,
+    middleZoneLines,
+    bottomZoneLines,
+    preferredNameLines,
+    preferredTitleLines,
+    preferredCompanyLines,
+    contactClusterLines,
+  };
+}
+
+export function buildBusinessCardCandidateHints(rawText: string, lines?: string[], lineItems?: OcrLineItem[]): BusinessCardCandidateHints {
   const phones = uniqueStrings(rawText.match(PHONE_CANDIDATE_REGEX) ?? []);
   const emails = uniqueStrings((rawText.match(EMAIL_CANDIDATE_REGEX) ?? []).map((x) => x.replace(/[;,]+$/g, "")));
   const websites = uniqueStrings((rawText.match(WEBSITE_CANDIDATE_REGEX) ?? []).map((x) => normalizeWebsite(x)));
   const addressLines = extractAddressLines(rawText, lines);
+  const scriptProfile = detectScriptProfile(rawText);
+  const topCandidates = buildTopIdentityCandidates(rawText, lines);
+  const layoutProfile = buildLayoutProfile(rawText, lines, lineItems);
 
-  return { phones, emails, websites, addressLines };
+  return { phones, emails, websites, addressLines, scriptProfile, topCandidates, layoutProfile };
 }
+import type { OcrLineItem } from "./ocrService";

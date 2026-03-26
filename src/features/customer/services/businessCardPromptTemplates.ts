@@ -291,6 +291,26 @@ export interface BusinessCardPromptCandidateHints {
   emails: string[];
   websites: string[];
   addressLines: string[];
+  scriptProfile: {
+    dominantScript: "latin" | "cyrillic" | "mixed" | "unknown";
+    suggestedLocale: "tr" | "ru" | "intl";
+    confidence: number;
+  };
+  topCandidates: {
+    names: string[];
+    titles: string[];
+    companies: string[];
+  };
+  layoutProfile: {
+    orderedLines: string[];
+    topZoneLines: string[];
+    middleZoneLines: string[];
+    bottomZoneLines: string[];
+    preferredNameLines: string[];
+    preferredTitleLines: string[];
+    preferredCompanyLines: string[];
+    contactClusterLines: string[];
+  };
 }
 
 export interface BusinessCardPromptContext {
@@ -314,13 +334,28 @@ function renderContextSection(context?: BusinessCardPromptContext): string {
     const emails = hints.emails.length > 0 ? hints.emails.join(", ") : "[]";
     const websites = hints.websites.length > 0 ? hints.websites.join(", ") : "[]";
     const addressLines = hints.addressLines.length > 0 ? hints.addressLines.join(" | ") : "[]";
+    const names = hints.topCandidates.names.length > 0 ? hints.topCandidates.names.join(" | ") : "[]";
+    const titles = hints.topCandidates.titles.length > 0 ? hints.topCandidates.titles.join(" | ") : "[]";
+    const companies = hints.topCandidates.companies.length > 0 ? hints.topCandidates.companies.join(" | ") : "[]";
+    const preferredNames = hints.layoutProfile.preferredNameLines.length > 0 ? hints.layoutProfile.preferredNameLines.join(" | ") : "[]";
+    const preferredTitles = hints.layoutProfile.preferredTitleLines.length > 0 ? hints.layoutProfile.preferredTitleLines.join(" | ") : "[]";
+    const preferredCompanies = hints.layoutProfile.preferredCompanyLines.length > 0 ? hints.layoutProfile.preferredCompanyLines.join(" | ") : "[]";
+    const contactCluster = hints.layoutProfile.contactClusterLines.length > 0 ? hints.layoutProfile.contactClusterLines.join(" | ") : "[]";
 
     sections.push(
       `HEURISTIC ADAYLAR (sadece referans, uydurma yok):\n` +
       `- phones: ${phones}\n` +
       `- emails: ${emails}\n` +
       `- websites: ${websites}\n` +
-      `- addressLines: ${addressLines}`
+      `- addressLines: ${addressLines}\n` +
+      `- topNameCandidates: ${names}\n` +
+      `- topTitleCandidates: ${titles}\n` +
+      `- topCompanyCandidates: ${companies}\n` +
+      `- preferredNameLines: ${preferredNames}\n` +
+      `- preferredTitleLines: ${preferredTitles}\n` +
+      `- preferredCompanyLines: ${preferredCompanies}\n` +
+      `- contactClusterLines: ${contactCluster}\n` +
+      `- scriptProfile: ${hints.scriptProfile.dominantScript} / ${hints.scriptProfile.suggestedLocale} / confidence=${hints.scriptProfile.confidence}`
     );
   }
 
@@ -384,7 +419,7 @@ KURALLAR (HARFİYEN UYGULA):
 
 3) WEBSITE:
 - Gerçek domain/URL: www. veya http ile başlar VEYA en az bir nokta + TLD (.com, .com.tr, .net, .org, .tr, .org.tr, .es, .ru, .de, .al vb.)
-- `.cn` gibi ülke uzantılı domainleri de website olarak kabul et.
+- .cn gibi ülke uzantılı domainleri de website olarak kabul et.
 - ŞİRKET ADI/KISALTMA OLAN STRING website OLAMAZ: A.Ş, AŞ, LTD, ŞTİ, SAN, TİC, DIŞ, AKS, ORTAKLIĞI, GAYRİMENKUL
 - "@" içeriyorsa website OLAMAZ (email'dir).
 - Yoksa null.

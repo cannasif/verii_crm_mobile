@@ -28,6 +28,28 @@ export interface BusinessCardOcrResult {
   website?: string;
   notes?: string;
   imageUri?: string;
+  review?: BusinessCardReviewSummary;
+}
+
+export interface BusinessCardReviewFlag {
+  field:
+    | "general"
+    | "customerName"
+    | "contactNameAndSurname"
+    | "title"
+    | "phone1"
+    | "phone2"
+    | "email"
+    | "website"
+    | "address";
+  reason: string;
+  severity: "low" | "medium" | "high";
+}
+
+export interface BusinessCardReviewSummary {
+  overallConfidence: number;
+  fieldConfidence: Partial<Record<BusinessCardReviewFlag["field"], number>>;
+  flags: BusinessCardReviewFlag[];
 }
 
 export interface BusinessCardExtractionSocial {

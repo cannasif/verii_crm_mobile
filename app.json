@@ -37,6 +37,7 @@
     },
     "plugins": [
       "@react-native-community/datetimepicker",
+      "react-native-document-scanner-plugin",
       [
         "expo-location",
         {

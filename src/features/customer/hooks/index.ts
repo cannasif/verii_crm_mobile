@@ -4,3 +4,4 @@ export { useCustomer } from "./useCustomer";
 export { useCustomerImages } from "./useCustomerImages";
 export { useCreateCustomer, useCreateCustomerFromMobile, useUpdateCustomer, useDeleteCustomer, useUploadCustomerImage } from "./useCustomerMutation";
 export { useBusinessCardScan } from "./useBusinessCardScan";
+export { useBusinessCardPotentialMatches } from "./useBusinessCardPotentialMatches";
