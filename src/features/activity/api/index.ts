@@ -6,6 +6,7 @@ import type {
   ActivityDto,
   ActivityImageDto,
   ActivityTypeDto,
+  ActivityLookupDto,
   CreateActivityDto,
   UpdateActivityDto,
   PagedParams,
@@ -315,4 +316,23 @@ export const activityTypeApi = {
       );
     }
   },
+};
+
+async function getLookupList(endpoint: string): Promise<ActivityLookupDto[]> {
+  const response = await apiClient.get<ApiResponse<RawPagedPayload<ActivityLookupDto>>>(endpoint, {
+    params: { pageNumber: 1, pageSize: 1000, sortBy: "Id", sortDirection: "desc" },
+  });
+
+  if (!response.data.success) {
+    throw new Error(response.data.message || response.data.exceptionMessage || i18n.t("common.unknownError"));
+  }
+
+  return normalizePagedResponse(response.data.data).items;
+}
+
+export const activityLookupApi = {
+  getPaymentTypes: async (): Promise<ActivityLookupDto[]> => getLookupList("/api/PaymentType"),
+  getMeetingTypes: async (): Promise<ActivityLookupDto[]> => getLookupList("/api/ActivityMeetingType"),
+  getTopicPurposes: async (): Promise<ActivityLookupDto[]> => getLookupList("/api/ActivityTopicPurpose"),
+  getShippings: async (): Promise<ActivityLookupDto[]> => getLookupList("/api/ActivityShipping"),
 };

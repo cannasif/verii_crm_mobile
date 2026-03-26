@@ -21,6 +21,10 @@ export interface ActivityFormLike {
   status: string;
   priority?: string | null;
   assignedUserId?: number | null;
+  paymentTypeId?: number | null;
+  activityMeetingTypeId?: number | null;
+  activityTopicPurposeId?: number | null;
+  activityShippingId?: number | null;
   contactId?: number | null;
   contactName?: string | null;
   potentialCustomerId?: number | null;
@@ -112,6 +116,10 @@ export function buildCreateActivityPayload(
     status: statusToNumeric(data.status),
     priority: priorityToNumeric(data.priority),
     assignedUserId,
+    paymentTypeId: data.paymentTypeId ?? undefined,
+    activityMeetingTypeId: data.activityMeetingTypeId ?? undefined,
+    activityTopicPurposeId: data.activityTopicPurposeId ?? undefined,
+    activityShippingId: data.activityShippingId ?? undefined,
     contactName: data.contactName ?? undefined,
     contactId: data.contactId ?? undefined,
     potentialCustomerName: data.potentialCustomerName ?? undefined,

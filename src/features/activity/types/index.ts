@@ -50,6 +50,13 @@ export interface ActivityTypeDto {
   createdByFullUser?: string;
 }
 
+export interface ActivityLookupDto {
+  id: number;
+  name: string;
+  createdDate?: string;
+  updatedDate?: string;
+}
+
 export const ReminderChannel = {
   InApp: 0,
   Email: 1,
@@ -134,6 +141,14 @@ export interface ActivityDto {
   activityTypeId?: number;
   activityTypeName?: string;
   activityType: ActivityTypeRef | ActivityTypeDto | string | null;
+  paymentTypeId?: number | null;
+  paymentTypeName?: string | null;
+  activityMeetingTypeId?: number | null;
+  activityMeetingTypeName?: string | null;
+  activityTopicPurposeId?: number | null;
+  activityTopicPurposeName?: string | null;
+  activityShippingId?: number | null;
+  activityShippingName?: string | null;
   startDateTime: string;
   endDateTime?: string;
   isAllDay?: boolean;
@@ -171,6 +186,10 @@ export interface CreateActivityDto {
   status: ActivityStatusEnum | number;
   priority: ActivityPriorityEnum | number;
   assignedUserId: number;
+  paymentTypeId?: number | null;
+  activityMeetingTypeId?: number | null;
+  activityTopicPurposeId?: number | null;
+  activityShippingId?: number | null;
   contactName?: string;
   contactId?: number;
   potentialCustomerName?: string;
@@ -190,6 +209,10 @@ export interface UpdateActivityDto {
   status: ActivityStatusEnum | number;
   priority: ActivityPriorityEnum | number;
   assignedUserId: number;
+  paymentTypeId?: number | null;
+  activityMeetingTypeId?: number | null;
+  activityTopicPurposeId?: number | null;
+  activityShippingId?: number | null;
   contactName?: string;
   contactId?: number;
   potentialCustomerName?: string;

@@ -4,7 +4,7 @@ import i18n from "../../../locales";
 export const createActivitySchema = () =>
   z.object({
     subject: z.string().min(1, i18n.t("validation.subjectRequired")).max(100),
-    description: z.string().max(500).optional(),
+    description: z.string().max(2000).optional(),
     activityType: z.string().min(1, i18n.t("validation.activityTypeRequired")),
     activityTypeId: z.number().optional().nullable(),
     potentialCustomerId: z.number().optional().nullable(),
@@ -14,6 +14,10 @@ export const createActivitySchema = () =>
     status: z.string().min(1, i18n.t("validation.statusRequired")),
     isCompleted: z.boolean(),
     priority: z.string().optional().nullable(),
+    paymentTypeId: z.number().optional().nullable(),
+    activityMeetingTypeId: z.number().optional().nullable(),
+    activityTopicPurposeId: z.number().optional().nullable(),
+    activityShippingId: z.number().optional().nullable(),
     contactId: z.number().optional().nullable(),
     assignedUserId: z.number().optional().nullable(),
     startDateTime: z.string().min(1, i18n.t("validation.dateRequired")),

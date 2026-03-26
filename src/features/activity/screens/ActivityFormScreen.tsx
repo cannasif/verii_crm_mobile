@@ -23,7 +23,7 @@ import { ScreenHeader } from "../../../components/navigation";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useAuthStore } from "../../../store/auth";
-import { useActivity, useActivityTypes, useCreateActivity, useUpdateActivity } from "../hooks";
+import { useActivity, useActivityLookups, useActivityTypes, useCreateActivity, useUpdateActivity } from "../hooks";
 import { FormField, CustomerPicker, ContactPicker } from "../components";
 import { createActivitySchema, type ActivityFormData } from "../schemas";
 import { buildCreateActivityPayload, buildUpdateActivityPayload } from "../utils/buildCreateActivityPayload";
@@ -34,6 +34,7 @@ import {
   ACTIVITY_PRIORITY_NUMERIC,
   ReminderChannel,
   type ActivityTypeDto,
+  type ActivityLookupDto,
   type ActivityDto,
   type ActivityImageDto,
 } from "../types";
@@ -123,6 +124,10 @@ export function ActivityFormScreen(): React.ReactElement {
   const [typeModalOpen, setTypeModalOpen] = useState(false);
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [priorityModalOpen, setPriorityModalOpen] = useState(false);
+  const [paymentTypeModalOpen, setPaymentTypeModalOpen] = useState(false);
+  const [meetingTypeModalOpen, setMeetingTypeModalOpen] = useState(false);
+  const [topicPurposeModalOpen, setTopicPurposeModalOpen] = useState(false);
+  const [shippingModalOpen, setShippingModalOpen] = useState(false);
   const [startDateModalOpen, setStartDateModalOpen] = useState(false);
   const [endDateModalOpen, setEndDateModalOpen] = useState(false);
   const [isSubjectAutoManaged, setIsSubjectAutoManaged] = useState(true);
@@ -141,6 +146,7 @@ export function ActivityFormScreen(): React.ReactElement {
   const user = useAuthStore((state) => state.user);
   const { data: existingActivity, isLoading: activityLoading } = useActivity(activityId);
   const { data: activityTypes, isLoading: typesLoading } = useActivityTypes();
+  const { paymentTypes, meetingTypes, topicPurposes, shippings } = useActivityLookups();
   const createActivity = useCreateActivity();
   const updateActivity = useUpdateActivity();
 
@@ -195,6 +201,10 @@ export function ActivityFormScreen(): React.ReactElement {
       status: "Scheduled",
       isCompleted: false,
       priority: "Medium",
+      paymentTypeId: undefined,
+      activityMeetingTypeId: undefined,
+      activityTopicPurposeId: undefined,
+      activityShippingId: undefined,
       assignedUserId: user?.id,
       startDateTime: toDefaultStartDateTime(),
       endDateTime: toDefaultEndDateTime(),
@@ -294,6 +304,10 @@ export function ActivityFormScreen(): React.ReactElement {
         status: normalizeStatus(existingActivity.status),
         isCompleted: existingActivity.isCompleted,
         priority: normalizePriority(existingActivity.priority),
+        paymentTypeId: existingActivity.paymentTypeId ?? undefined,
+        activityMeetingTypeId: existingActivity.activityMeetingTypeId ?? undefined,
+        activityTopicPurposeId: existingActivity.activityTopicPurposeId ?? undefined,
+        activityShippingId: existingActivity.activityShippingId ?? undefined,
         contactId: existingActivity.contactId,
         assignedUserId: existingActivity.assignedUserId,
         startDateTime: existingActivity.startDateTime || existingActivity.activityDate || toDefaultStartDateTime(),
@@ -355,6 +369,10 @@ export function ActivityFormScreen(): React.ReactElement {
       status: "Scheduled",
       isCompleted: false,
       priority: "Medium",
+      paymentTypeId: undefined,
+      activityMeetingTypeId: undefined,
+      activityTopicPurposeId: undefined,
+      activityShippingId: undefined,
       contactId: initialContactId,
       assignedUserId: user?.id,
       startDateTime: startValue,
@@ -491,6 +509,32 @@ export function ActivityFormScreen(): React.ReactElement {
       setPriorityModalOpen(false);
     },
     [setValue]
+  );
+
+  const createLookupSelectHandler = useCallback(
+    (field: "paymentTypeId" | "activityMeetingTypeId" | "activityTopicPurposeId" | "activityShippingId", close: () => void) =>
+      (item: ActivityLookupDto) => {
+        setValue(field, item.id);
+        close();
+      },
+    [setValue]
+  );
+
+  const handlePaymentTypeSelect = useMemo(
+    () => createLookupSelectHandler("paymentTypeId", () => setPaymentTypeModalOpen(false)),
+    [createLookupSelectHandler]
+  );
+  const handleMeetingTypeSelect = useMemo(
+    () => createLookupSelectHandler("activityMeetingTypeId", () => setMeetingTypeModalOpen(false)),
+    [createLookupSelectHandler]
+  );
+  const handleTopicPurposeSelect = useMemo(
+    () => createLookupSelectHandler("activityTopicPurposeId", () => setTopicPurposeModalOpen(false)),
+    [createLookupSelectHandler]
+  );
+  const handleShippingSelect = useMemo(
+    () => createLookupSelectHandler("activityShippingId", () => setShippingModalOpen(false)),
+    [createLookupSelectHandler]
   );
 
   const handleCustomerChange = useCallback(
@@ -949,6 +993,28 @@ export function ActivityFormScreen(): React.ReactElement {
     [priorityOptions, watchPriority, t]
   );
 
+  const watchPaymentTypeId = watch("paymentTypeId");
+  const watchMeetingTypeId = watch("activityMeetingTypeId");
+  const watchTopicPurposeId = watch("activityTopicPurposeId");
+  const watchShippingId = watch("activityShippingId");
+
+  const selectedPaymentTypeLabel = useMemo(
+    () => paymentTypes.find((item) => item.id === watchPaymentTypeId)?.name || t("activity.select"),
+    [paymentTypes, watchPaymentTypeId, t]
+  );
+  const selectedMeetingTypeLabel = useMemo(
+    () => meetingTypes.find((item) => item.id === watchMeetingTypeId)?.name || t("activity.select"),
+    [meetingTypes, watchMeetingTypeId, t]
+  );
+  const selectedTopicPurposeLabel = useMemo(
+    () => topicPurposes.find((item) => item.id === watchTopicPurposeId)?.name || t("activity.select"),
+    [topicPurposes, watchTopicPurposeId, t]
+  );
+  const selectedShippingLabel = useMemo(
+    () => shippings.find((item) => item.id === watchShippingId)?.name || t("activity.select"),
+    [shippings, watchShippingId, t]
+  );
+
   const selectedStatusMeta = useMemo(() => {
     const normalized = String(watchStatus || "").toLocaleLowerCase("tr-TR");
 
@@ -1247,6 +1313,68 @@ export function ActivityFormScreen(): React.ReactElement {
                     {watchIsAllDay ? <Tick02Icon size={12} color="#FFFFFF" variant="stroke" /> : null}
                   </View>
                 </TouchableOpacity>
+
+                <View style={styles.dateGrid}>
+                  <View style={styles.dateCell}>
+                    <Text style={[styles.label, { color: mutedText }]}>{t("activity.paymentType")}</Text>
+                    <TouchableOpacity
+                      style={[styles.pickerField, { backgroundColor: innerBg, borderColor: innerBorder }]}
+                      onPress={() => setPaymentTypeModalOpen(true)}
+                    >
+                      <View style={styles.fieldLeftWrap}>
+                        <Text style={[styles.pickerFieldText, { color: watchPaymentTypeId ? titleText : mutedText }]} numberOfLines={1}>
+                          {selectedPaymentTypeLabel}
+                        </Text>
+                      </View>
+                      <ArrowDown01Icon size={15} color={softText} variant="stroke" />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.dateCell}>
+                    <Text style={[styles.label, { color: mutedText }]}>{t("activity.activityMeetingType")}</Text>
+                    <TouchableOpacity
+                      style={[styles.pickerField, { backgroundColor: innerBg, borderColor: innerBorder }]}
+                      onPress={() => setMeetingTypeModalOpen(true)}
+                    >
+                      <View style={styles.fieldLeftWrap}>
+                        <Text style={[styles.pickerFieldText, { color: watchMeetingTypeId ? titleText : mutedText }]} numberOfLines={1}>
+                          {selectedMeetingTypeLabel}
+                        </Text>
+                      </View>
+                      <ArrowDown01Icon size={15} color={softText} variant="stroke" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <View style={styles.dateGrid}>
+                  <View style={styles.dateCell}>
+                    <Text style={[styles.label, { color: mutedText }]}>{t("activity.activityTopicPurpose")}</Text>
+                    <TouchableOpacity
+                      style={[styles.pickerField, { backgroundColor: innerBg, borderColor: innerBorder }]}
+                      onPress={() => setTopicPurposeModalOpen(true)}
+                    >
+                      <View style={styles.fieldLeftWrap}>
+                        <Text style={[styles.pickerFieldText, { color: watchTopicPurposeId ? titleText : mutedText }]} numberOfLines={1}>
+                          {selectedTopicPurposeLabel}
+                        </Text>
+                      </View>
+                      <ArrowDown01Icon size={15} color={softText} variant="stroke" />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.dateCell}>
+                    <Text style={[styles.label, { color: mutedText }]}>{t("activity.activityShipping")}</Text>
+                    <TouchableOpacity
+                      style={[styles.pickerField, { backgroundColor: innerBg, borderColor: innerBorder }]}
+                      onPress={() => setShippingModalOpen(true)}
+                    >
+                      <View style={styles.fieldLeftWrap}>
+                        <Text style={[styles.pickerFieldText, { color: watchShippingId ? titleText : mutedText }]} numberOfLines={1}>
+                          {selectedShippingLabel}
+                        </Text>
+                      </View>
+                      <ArrowDown01Icon size={15} color={softText} variant="stroke" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
 
                 <View style={styles.fieldBlock}>
                   <CustomerPicker
@@ -1652,6 +1780,126 @@ export function ActivityFormScreen(): React.ReactElement {
               keyExtractor={(item) => item.value}
               renderItem={({ item }) =>
                 renderPickerItem({ item, onSelect: handlePrioritySelect, selectedValue: watchPriority })
+              }
+              style={styles.list}
+              showsVerticalScrollIndicator={false}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={paymentTypeModalOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setPaymentTypeModalOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity style={styles.modalBackdrop} onPress={() => setPaymentTypeModalOpen(false)} />
+          <View style={[styles.modalContent, { backgroundColor: shellBgAlt, borderColor: shellBorder, paddingBottom: insets.bottom + 16 }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: innerBorder }]}>
+              <View style={[styles.handle, { backgroundColor: innerBorder }]} />
+              <Text style={[styles.modalTitle, { color: titleText }]}>{t("activity.paymentType")}</Text>
+            </View>
+            <FlatList
+              data={paymentTypes}
+              keyExtractor={(item) => String(item.id)}
+              renderItem={({ item }) =>
+                renderPickerItem({
+                  item: { value: String(item.id), label: item.name },
+                  onSelect: () => handlePaymentTypeSelect(item),
+                  selectedValue: watchPaymentTypeId ? String(watchPaymentTypeId) : undefined,
+                })
+              }
+              style={styles.list}
+              showsVerticalScrollIndicator={false}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={meetingTypeModalOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setMeetingTypeModalOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity style={styles.modalBackdrop} onPress={() => setMeetingTypeModalOpen(false)} />
+          <View style={[styles.modalContent, { backgroundColor: shellBgAlt, borderColor: shellBorder, paddingBottom: insets.bottom + 16 }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: innerBorder }]}>
+              <View style={[styles.handle, { backgroundColor: innerBorder }]} />
+              <Text style={[styles.modalTitle, { color: titleText }]}>{t("activity.activityMeetingType")}</Text>
+            </View>
+            <FlatList
+              data={meetingTypes}
+              keyExtractor={(item) => String(item.id)}
+              renderItem={({ item }) =>
+                renderPickerItem({
+                  item: { value: String(item.id), label: item.name },
+                  onSelect: () => handleMeetingTypeSelect(item),
+                  selectedValue: watchMeetingTypeId ? String(watchMeetingTypeId) : undefined,
+                })
+              }
+              style={styles.list}
+              showsVerticalScrollIndicator={false}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={topicPurposeModalOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setTopicPurposeModalOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity style={styles.modalBackdrop} onPress={() => setTopicPurposeModalOpen(false)} />
+          <View style={[styles.modalContent, { backgroundColor: shellBgAlt, borderColor: shellBorder, paddingBottom: insets.bottom + 16 }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: innerBorder }]}>
+              <View style={[styles.handle, { backgroundColor: innerBorder }]} />
+              <Text style={[styles.modalTitle, { color: titleText }]}>{t("activity.activityTopicPurpose")}</Text>
+            </View>
+            <FlatList
+              data={topicPurposes}
+              keyExtractor={(item) => String(item.id)}
+              renderItem={({ item }) =>
+                renderPickerItem({
+                  item: { value: String(item.id), label: item.name },
+                  onSelect: () => handleTopicPurposeSelect(item),
+                  selectedValue: watchTopicPurposeId ? String(watchTopicPurposeId) : undefined,
+                })
+              }
+              style={styles.list}
+              showsVerticalScrollIndicator={false}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={shippingModalOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShippingModalOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity style={styles.modalBackdrop} onPress={() => setShippingModalOpen(false)} />
+          <View style={[styles.modalContent, { backgroundColor: shellBgAlt, borderColor: shellBorder, paddingBottom: insets.bottom + 16 }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: innerBorder }]}>
+              <View style={[styles.handle, { backgroundColor: innerBorder }]} />
+              <Text style={[styles.modalTitle, { color: titleText }]}>{t("activity.activityShipping")}</Text>
+            </View>
+            <FlatList
+              data={shippings}
+              keyExtractor={(item) => String(item.id)}
+              renderItem={({ item }) =>
+                renderPickerItem({
+                  item: { value: String(item.id), label: item.name },
+                  onSelect: () => handleShippingSelect(item),
+                  selectedValue: watchShippingId ? String(watchShippingId) : undefined,
+                })
               }
               style={styles.list}
               showsVerticalScrollIndicator={false}
