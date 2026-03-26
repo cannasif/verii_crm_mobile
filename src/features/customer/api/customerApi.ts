@@ -1,5 +1,6 @@
 import { apiClient } from "../../../lib/axios";
 import * as FileSystem from "expo-file-system/legacy";
+import { normalizeLocalMediaUri } from "../../../lib/mediaUri";
 import i18n from "../../../locales";
 import type { ApiResponse } from "../../auth/types";
 import type {
@@ -51,25 +52,7 @@ function getSafeUploadMeta(imageUri: string): { name: string; type: string; uri:
 
 async function ensureReadableUploadUri(imageUri: string): Promise<string> {
   if (!imageUri) return imageUri;
-  if (imageUri.startsWith("file://")) return imageUri;
-
-  if (imageUri.startsWith("content://")) {
-    const cacheBase = FileSystem.cacheDirectory ?? FileSystem.documentDirectory;
-    if (!cacheBase) {
-      throw new Error("Seçilen görsel geçerli bir dosyaya dönüştürülemedi.");
-    }
-
-    const fallbackFile = `${cacheBase}upload_${Date.now()}.jpg`;
-    try {
-      await FileSystem.copyAsync({ from: imageUri, to: fallbackFile });
-      return fallbackFile;
-    } catch {
-      // Some Android providers reject app-level copy, but networking can still stream content:// directly.
-      return imageUri;
-    }
-  }
-
-  return imageUri;
+  return normalizeLocalMediaUri(imageUri);
 }
 
 async function assertUploadFileIsValid(imageUri: string): Promise<void> {

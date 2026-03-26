@@ -1,6 +1,6 @@
 import { apiClient } from "../../../lib/axios";
-import * as FileSystem from "expo-file-system/legacy";
 import i18n from "../../../locales";
+import { normalizeLocalMediaUri } from "../../../lib/mediaUri";
 import type { ApiResponse } from "../../auth/types";
 import type {
   ActivityDto,
@@ -107,19 +107,7 @@ function getSafeUploadMeta(imageUri: string): { name: string; type: string; uri:
 
 async function ensureReadableUploadUri(imageUri: string): Promise<string> {
   if (!imageUri) return imageUri;
-  if (imageUri.startsWith("file://")) return imageUri;
-  if (!imageUri.startsWith("content://")) return imageUri;
-
-  const cacheBase = FileSystem.cacheDirectory ?? FileSystem.documentDirectory;
-  if (!cacheBase) return imageUri;
-
-  const target = `${cacheBase}activity_upload_${Date.now()}.jpg`;
-  try {
-    await FileSystem.copyAsync({ from: imageUri, to: target });
-    return target;
-  } catch {
-    return imageUri;
-  }
+  return normalizeLocalMediaUri(imageUri);
 }
 
 export const activityApi = {
