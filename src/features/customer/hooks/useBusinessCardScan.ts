@@ -55,6 +55,18 @@ function fallbackToStructuredInput(parsed: BusinessCardOcrResult): {
 
 type SourceChoice = "businessCard" | "qr" | "cancel";
 type QualityGateChoice = "continue" | "retry" | "cancel";
+type ScanSource = "camera" | "gallery";
+type ScanStageTimings = {
+  qrMs?: number;
+  previewOcrMs?: number;
+  qualityGateMs?: number;
+  processMs?: number;
+  totalMs?: number;
+};
+type PreparedBusinessCardScan = {
+  effectiveImageUri: string;
+  effectiveOcr: OcrResultPayload;
+};
 
 function mergeQrNotes(current: string | undefined, qrNote: string): string {
   if (!current) return qrNote;
@@ -148,6 +160,20 @@ export function useBusinessCardScan(): {
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const ocrCacheRef = useRef(new Map<string, OcrResultPayload>());
+  const createStageTimer = useCallback(() => {
+    const startedAt = Date.now();
+    return {
+      measure<T>(label: keyof ScanStageTimings, target: ScanStageTimings, fn: () => Promise<T>): Promise<T> {
+        const stepStartedAt = Date.now();
+        return fn().finally(() => {
+          target[label] = Date.now() - stepStartedAt;
+        });
+      },
+      finish(target: ScanStageTimings): ScanStageTimings {
+        return { ...target, totalMs: Date.now() - startedAt };
+      },
+    };
+  }, []);
 
   const debugScanLog = useCallback((stage: string, payload: unknown) => {
     if (!__DEV__) return;
@@ -424,6 +450,85 @@ export function useBusinessCardScan(): {
     [askDetectedSourceChoice, t]
   );
 
+  const prepareImageForScan = useCallback(
+    async (
+      source: ScanSource,
+      imageUri: string,
+      usedScanner: boolean,
+      stageTimer: ReturnType<typeof createStageTimer>,
+      stageTimings: ScanStageTimings
+    ): Promise<PreparedBusinessCardScan | "retry" | null> => {
+      const previewOcrPromise = stageTimer.measure("previewOcrMs", stageTimings, () =>
+        runOCR(imageUri).then(preprocessBusinessCardOcr)
+      );
+      const resolution = await stageTimer.measure("qrMs", stageTimings, () => resolveImageInput(imageUri));
+      if (resolution.qrResult) {
+        return null;
+      }
+      if (!resolution.shouldContinueWithOcr) {
+        return null;
+      }
+
+      const previewOcr = await previewOcrPromise;
+      const estimatedRotation = estimateBusinessCardRotation(previewOcr.lineItems);
+      const correctedImageUri =
+        shouldApplyDeskew(estimatedRotation, previewOcr.lineItems.length)
+          ? await rotateAndDeskewBusinessCardImage(imageUri, estimatedRotation)
+          : imageUri;
+      const effectiveImageUri = correctedImageUri || imageUri;
+      const effectiveRotation = correctedImageUri !== imageUri ? 0 : estimatedRotation;
+      const qualityChoice = await stageTimer.measure("qualityGateMs", stageTimings, () =>
+        runImageQualityGate(effectiveImageUri, usedScanner, effectiveRotation)
+      );
+      if (qualityChoice === "cancel") {
+        return null;
+      }
+      if (qualityChoice === "retry") {
+        void trackBusinessCardTelemetry({ type: "image_quality_retry_selected", details: { source } });
+        return "retry";
+      }
+
+      const effectiveOcr =
+        effectiveImageUri === imageUri
+          ? previewOcr
+          : preprocessBusinessCardOcr(await runOCR(effectiveImageUri));
+      ocrCacheRef.current.set(effectiveImageUri, effectiveOcr);
+      return { effectiveImageUri, effectiveOcr };
+    },
+    [createStageTimer, resolveImageInput, runImageQualityGate]
+  );
+
+  const finalizeScannedResult = useCallback(
+    async (
+      source: ScanSource,
+      prepared: PreparedBusinessCardScan,
+      stageTimer: ReturnType<typeof createStageTimer>,
+      stageTimings: ScanStageTimings
+    ): Promise<BusinessCardOcrResult | null> => {
+      const result = await stageTimer.measure("processMs", stageTimings, () =>
+        processImage(prepared.effectiveImageUri, prepared.effectiveOcr, { allowSecondPass: false })
+      );
+      if (result) {
+        const finishedTimings = stageTimer.finish(stageTimings);
+        debugScanLog("stageTimings", { source, ...finishedTimings });
+        void trackBusinessCardTelemetry({
+          type: "scan_completed",
+          details: {
+            source,
+            reviewConfidence: result.review?.overallConfidence ?? null,
+            qrMs: finishedTimings.qrMs ?? null,
+            previewOcrMs: finishedTimings.previewOcrMs ?? null,
+            qualityGateMs: finishedTimings.qualityGateMs ?? null,
+            processMs: finishedTimings.processMs ?? null,
+            totalMs: finishedTimings.totalMs ?? null,
+          },
+        });
+      }
+      return result;
+    },
+    [debugScanLog, processImage]
+  );
+
   const scanBusinessCard = useCallback(
     async (): Promise<BusinessCardOcrResult | null> => {
       setError(null);
@@ -431,40 +536,19 @@ export function useBusinessCardScan(): {
       void trackBusinessCardTelemetry({ type: "scan_started", details: { source: "camera" } });
       try {
         for (;;) {
+          const stageTimings: ScanStageTimings = {};
+          const stageTimer = createStageTimer();
           const { imageUri, usedScanner } = await captureBusinessCardFromCamera();
           void trackBusinessCardTelemetry({ type: usedScanner ? "scanner_used" : "camera_fallback_used" });
           if (!imageUri) return null;
-
-          const previewOcrPromise = runOCR(imageUri).then(preprocessBusinessCardOcr);
-          const resolution = await resolveImageInput(imageUri);
-          if (resolution.qrResult) return resolution.qrResult;
-          if (!resolution.shouldContinueWithOcr) return null;
-
-          const previewOcr = await previewOcrPromise;
-          const estimatedRotation = estimateBusinessCardRotation(previewOcr.lineItems);
-          const correctedImageUri =
-            shouldApplyDeskew(estimatedRotation, previewOcr.lineItems.length)
-              ? await rotateAndDeskewBusinessCardImage(imageUri, estimatedRotation)
-              : imageUri;
-          const effectiveImageUri = correctedImageUri || imageUri;
-          const effectiveRotation = correctedImageUri !== imageUri ? 0 : estimatedRotation;
-          const qualityChoice = await runImageQualityGate(effectiveImageUri, usedScanner, effectiveRotation);
-          if (qualityChoice === "cancel") return null;
-          if (qualityChoice === "retry") {
-            void trackBusinessCardTelemetry({ type: "image_quality_retry_selected", details: { source: "camera" } });
+          const prepared = await prepareImageForScan("camera", imageUri, usedScanner, stageTimer, stageTimings);
+          if (prepared === "retry") {
             continue;
           }
-
-          const effectiveOcr =
-            effectiveImageUri === imageUri
-              ? previewOcr
-              : preprocessBusinessCardOcr(await runOCR(effectiveImageUri));
-          ocrCacheRef.current.set(effectiveImageUri, effectiveOcr);
-          const result = await processImage(effectiveImageUri, effectiveOcr, { allowSecondPass: false });
-          if (result) {
-            void trackBusinessCardTelemetry({ type: "scan_completed", details: { source: "camera", reviewConfidence: result.review?.overallConfidence ?? null } });
+          if (!prepared) {
+            return null;
           }
-          return result;
+          return await finalizeScannedResult("camera", prepared, stageTimer, stageTimings);
         }
       } catch (e) {
         const message = e instanceof Error ? e.message : "";
@@ -481,7 +565,7 @@ export function useBusinessCardScan(): {
         setIsScanning(false);
       }
     },
-    [processImage, resolveImageInput, runImageQualityGate, t]
+    [createStageTimer, finalizeScannedResult, prepareImageForScan, t]
   );
 
   const pickBusinessCardFromGallery = useCallback(
@@ -492,38 +576,18 @@ export function useBusinessCardScan(): {
       try {
         void trackBusinessCardTelemetry({ type: "gallery_used" });
         for (;;) {
+          const stageTimings: ScanStageTimings = {};
+          const stageTimer = createStageTimer();
           const imageUri = await pickBusinessCardImageFromGallery();
           if (!imageUri) return null;
-          const previewOcrPromise = runOCR(imageUri).then(preprocessBusinessCardOcr);
-          const resolution = await resolveImageInput(imageUri);
-          if (resolution.qrResult) return resolution.qrResult;
-          if (!resolution.shouldContinueWithOcr) return null;
-
-          const previewOcr = await previewOcrPromise;
-          const estimatedRotation = estimateBusinessCardRotation(previewOcr.lineItems);
-          const correctedImageUri =
-            shouldApplyDeskew(estimatedRotation, previewOcr.lineItems.length)
-              ? await rotateAndDeskewBusinessCardImage(imageUri, estimatedRotation)
-              : imageUri;
-          const effectiveImageUri = correctedImageUri || imageUri;
-          const effectiveRotation = correctedImageUri !== imageUri ? 0 : estimatedRotation;
-          const qualityChoice = await runImageQualityGate(effectiveImageUri, false, effectiveRotation);
-          if (qualityChoice === "cancel") return null;
-          if (qualityChoice === "retry") {
-            void trackBusinessCardTelemetry({ type: "image_quality_retry_selected", details: { source: "gallery" } });
+          const prepared = await prepareImageForScan("gallery", imageUri, false, stageTimer, stageTimings);
+          if (prepared === "retry") {
             continue;
           }
-
-          const effectiveOcr =
-            effectiveImageUri === imageUri
-              ? previewOcr
-              : preprocessBusinessCardOcr(await runOCR(effectiveImageUri));
-          ocrCacheRef.current.set(effectiveImageUri, effectiveOcr);
-          const result = await processImage(effectiveImageUri, effectiveOcr, { allowSecondPass: false });
-          if (result) {
-            void trackBusinessCardTelemetry({ type: "scan_completed", details: { source: "gallery", reviewConfidence: result.review?.overallConfidence ?? null } });
+          if (!prepared) {
+            return null;
           }
-          return result;
+          return await finalizeScannedResult("gallery", prepared, stageTimer, stageTimings);
         }
       } catch (e) {
         const message = e instanceof Error ? e.message : "";
@@ -538,7 +602,7 @@ export function useBusinessCardScan(): {
         setIsScanning(false);
       }
     },
-    [processImage, resolveImageInput, runImageQualityGate, t]
+    [createStageTimer, finalizeScannedResult, prepareImageForScan, t]
   );
 
   const retryBusinessCardExtraction = useCallback(
