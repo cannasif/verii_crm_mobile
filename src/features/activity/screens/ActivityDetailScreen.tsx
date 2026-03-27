@@ -951,24 +951,24 @@ export function ActivityDetailScreen(): React.ReactElement {
             </View>
 
             {activityId != null ? (
-              <View
-                style={[
-                  styles.section,
-                  {
-                    backgroundColor: palette.card,
-                    borderColor: palette.cardBorder,
-                    shadowColor: palette.shadow,
-                  },
-                ]}
-              >
-                <SectionHeader
-                  title={t("common.tabReport")}
-                  accent={colors.accent}
-                  textColor={palette.text}
-                />
-                <ReportTab entityId={activityId} ruleType={DocumentRuleType.Activity} />
-              </View>
-            ) : null}
+  <View
+    style={[
+      styles.section,
+      {
+        backgroundColor: palette.card,
+        borderColor: palette.cardBorder,
+        shadowColor: palette.shadow,
+      },
+    ]}
+  >
+    <SectionHeader
+      title={t("common.tabReport")}
+      accent={colors.accent}
+      textColor={palette.text}
+    />
+    <ReportTab entityId={activityId} ruleType={DocumentRuleType.Activity} />
+  </View>
+) : null}
 
             {!activity.isCompleted && (
               <TouchableOpacity style={styles.completeButtonWrap} onPress={handleMarkComplete} activeOpacity={0.9}>
@@ -1357,5 +1357,71 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "800",
+  },
+    pdfCard: {
+    borderWidth: 1,
+    borderRadius: 18,
+    padding: 12,
+    gap: 10,
+    marginBottom: 16,
+    shadowOpacity: 0.03,
+    shadowRadius: 7,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 1,
+  },
+
+  pdfHeader: {
+    gap: 2,
+  },
+
+  pdfHeaderTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    lineHeight: 16,
+  },
+
+  pdfHeaderSub: {
+    fontSize: 10.5,
+    fontWeight: "500",
+    lineHeight: 13,
+  },
+
+  label: {
+    fontSize: 10,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 5,
+    lineHeight: 12,
+  },
+
+  reportTemplateBox: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+  },
+
+  reportTabWrap: {
+    marginTop: 2,
+  },
+
+  previewSection: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    gap: 6,
+  },
+
+  previewTitle: {
+    fontSize: 11.5,
+    fontWeight: "700",
+    lineHeight: 14,
+  },
+
+  previewInfoText: {
+    fontSize: 10.5,
+    lineHeight: 15,
+    fontWeight: "500",
   },
 });
