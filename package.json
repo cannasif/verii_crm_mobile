@@ -7,6 +7,9 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
+    "typecheck": "tsc --noEmit",
+    "test:business-card": "node ./scripts/run-business-card-tests.mjs",
+    "test": "npm run typecheck && npm run test:business-card",
     "postinstall": "patch-package"
   },
   "dependencies": {
