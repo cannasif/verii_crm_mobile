@@ -41,12 +41,12 @@ export function CustomerPicker({
   // --- TEMA ---
   const THEME = {
     bg: isDark ? "#1a0b2e" : colors.background,
-    cardBg: isDark ? "#1e1b29" : colors.card,
+    cardBg: isDark ? "#18181b" : colors.card,
     text: isDark ? "#FFFFFF" : colors.text,
     textMute: isDark ? "#94a3b8" : colors.textMuted,
-    border: isDark ? "rgba(255,255,255,0.1)" : colors.border,
+    border: isDark ? "#3f3f46" : colors.border,
     primary: "#db2777",
-    inputBg: isDark ? "rgba(255,255,255,0.05)" : colors.backgroundSecondary,
+    inputBg: isDark ? "#27272a" : colors.backgroundSecondary,
   };
 
   const [isOpen, setIsOpen] = useState(false);
@@ -183,7 +183,16 @@ export function CustomerPicker({
           >
             {/* Modal Header */}
             <View style={[styles.modalHeader, { borderBottomColor: THEME.border }]}>
-              <View style={[styles.handle, { backgroundColor: THEME.border }]} />
+            <View
+  style={[
+    styles.handle,
+    {
+      backgroundColor: isDark
+        ? "rgba(255,255,255,0.25)"
+        : "rgba(15,23,42,0.12)",
+    },
+  ]}
+/>
               <Text style={[styles.modalTitle, { color: THEME.text }]}>
                 {t("customer.selectCustomer")}
               </Text>
@@ -286,7 +295,7 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
     marginBottom: 12,
-    opacity: 0.5,
+    
   },
   modalTitle: {
     fontSize: 17,

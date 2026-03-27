@@ -2,12 +2,13 @@ import React, { useState } from "react";
 import { TouchableWithoutFeedback, View, StyleSheet, Text } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useUIStore } from "../../../store/ui";
-import { UserAdd01Icon, Invoice01Icon, Calendar02Icon, PackageIcon } from "hugeicons-react-native";
+import { UserAdd01Icon, Invoice01Icon, Calendar02Icon, PackageIcon ,CalendarAdd01Icon} from "hugeicons-react-native";
 
 const MODULE_ICONS: Record<string, React.ElementType> = {
   addCustomer: UserAdd01Icon,
   createQuote: Invoice01Icon,
   activities: Calendar02Icon,
+  createActivity: CalendarAdd01Icon,
   stock: PackageIcon, 
 };
 
@@ -74,6 +75,6 @@ const styles = StyleSheet.create({
     lineHeight: 14, 
     fontWeight: "600", 
     textAlign: "center",
-    letterSpacing: -0.2,
+    letterSpacing: -0.43,
   },
 });

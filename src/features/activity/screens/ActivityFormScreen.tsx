@@ -9,6 +9,7 @@ import {
   Modal,
   Platform,
   Image,
+  KeyboardAvoidingView,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -111,7 +112,7 @@ export function ActivityFormScreen(): React.ReactElement {
   ];
 
   const shellBg = colors.card;
-  const shellBgAlt = isDark ? "rgba(23,10,38,0.88)" : "rgba(255,255,255,0.98)";
+  const shellBgAlt = isDark ? "rgba(23,10,38,0.99)" : "rgba(255,255,255,0.98)";
   const shellBorder = colors.cardBorder;
   const innerBg = isDark ? "rgba(255,255,255,0.06)" : "#FFFFFF";
   const innerBorder = isDark ? "rgba(255,255,255,0.10)" : colors.border;
@@ -133,6 +134,7 @@ export function ActivityFormScreen(): React.ReactElement {
   const [isSubjectAutoManaged, setIsSubjectAutoManaged] = useState(true);
   const [androidPickerStep, setAndroidPickerStep] = useState<AndroidPickerStep>(null);
   const [activeTab, setActiveTab] = useState<"general" | "details">("general");
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const [tempStartDate, setTempStartDate] = useState(new Date());
   const [tempEndDate, setTempEndDate] = useState(new Date());
@@ -256,10 +258,10 @@ export function ActivityFormScreen(): React.ReactElement {
       activityType: ActivityDto["activityType"],
       activityTypeName?: string | null
     ): string => {
-    if (typeof activityType === "string") return activityType;
-    if (activityType && typeof activityType === "object" && typeof activityType.name === "string") {
-      return activityType.name;
-    }
+      if (typeof activityType === "string") return activityType;
+      if (activityType && typeof activityType === "object" && typeof activityType.name === "string") {
+        return activityType.name;
+      }
       return activityTypeName ?? "";
     },
     []
@@ -518,7 +520,10 @@ export function ActivityFormScreen(): React.ReactElement {
   );
 
   const createLookupSelectHandler = useCallback(
-    (field: "paymentTypeId" | "activityMeetingTypeId" | "activityTopicPurposeId" | "activityShippingId", close: () => void) =>
+    (
+        field: "paymentTypeId" | "activityMeetingTypeId" | "activityTopicPurposeId" | "activityShippingId",
+        close: () => void
+      ) =>
       (item: ActivityLookupDto) => {
         setValue(field, item.id);
         close();
@@ -898,15 +903,15 @@ export function ActivityFormScreen(): React.ReactElement {
   );
 
   const onInvalidSubmit = useCallback(() => {
-    const shouldGoToDetailsTab =
-      Boolean(
-        errors.status ||
-          errors.priority ||
-          errors.paymentTypeId ||
-          errors.activityMeetingTypeId ||
-          errors.activityTopicPurposeId ||
-          errors.activityShippingId
-      );
+    const shouldGoToDetailsTab = Boolean(
+      errors.status ||
+        errors.priority ||
+        errors.paymentTypeId ||
+        errors.activityMeetingTypeId ||
+        errors.activityTopicPurposeId ||
+        errors.activityShippingId
+    );
+
     setActiveTab(shouldGoToDetailsTab ? "details" : "general");
 
     Alert.alert(
@@ -1097,12 +1102,38 @@ export function ActivityFormScreen(): React.ReactElement {
     ],
     [t]
   );
+  const getFieldBorderColor = useCallback(
+    (fieldName: string, hasError?: boolean) => {
+      if (hasError) return colors.error;
+      if (focusedField === fieldName) return "#ec4899";
 
+      return isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)";
+    },
+    [colors.error, focusedField, isDark]
+  );
+
+  const getFieldGlowStyle = useCallback(
+    (fieldName: string) => {
+      if (focusedField !== fieldName) return null;
+
+      return {
+        borderColor: "#ec4899",
+        backgroundColor: isDark ? "rgba(236,72,153,0.10)" : "rgba(236,72,153,0.05)",
+      };
+    },
+    [focusedField, isDark]
+  );
   if (isEditMode && activityLoading) {
     return (
       <>
         <StatusBar style={isDark ? "light" : "dark"} />
-        <View style={[styles.container, { backgroundColor: mainBg }]}>
+        <StatusBar style={isDark ? "light" : "dark"} />
+  <KeyboardAvoidingView
+    style={[styles.container, { backgroundColor: mainBg }]}
+    behavior={Platform.OS === "ios" ? "padding" : undefined}
+    keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+    enabled={Platform.OS === "ios"}
+  >
           <View style={StyleSheet.absoluteFill}>
             <LinearGradient
               colors={gradientColors}
@@ -1119,7 +1150,7 @@ export function ActivityFormScreen(): React.ReactElement {
               </View>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </>
     );
   }
@@ -1151,328 +1182,82 @@ export function ActivityFormScreen(): React.ReactElement {
           keyboardShouldPersistTaps="handled"
           renderItem={() => (
             <View style={styles.screenStack}>
-              <View style={[styles.tabBarCard, { backgroundColor: shellBg, borderColor: shellBorder }]}>
-                <TouchableOpacity
-                  style={[
-                    styles.tabPill,
-                    activeTab === "general" && styles.tabPillActive,
-                    activeTab === "general" && { borderColor: `${accent}44` },
-                  ]}
-                  onPress={() => setActiveTab("general")}
-                  activeOpacity={0.85}
-                >
-                  <Text style={[styles.tabPillText, { color: activeTab === "general" ? accent : mutedText }]}>
-                    {t("activity.basicInfo")}
-                  </Text>
-                </TouchableOpacity>
+             <View
+  style={[
+    styles.tabBarCard,
+    {
+      backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.72)",
+      borderColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.04)",
+    },
+  ]}
+>
+  <TouchableOpacity
+    style={[
+      styles.tabPill,
+      activeTab === "general"
+        ? [
+            styles.tabPillActive,
+            
+              {
+                borderColor: "#ec4899",
+                backgroundColor: isDark
+                    ? "rgba(236,72,153,0.22)"
+                    : "rgba(236,72,153,0.12)",
+              },
+          ]
+        : styles.tabPillInactive,
+    ]}
+    onPress={() => setActiveTab("general")}
+    activeOpacity={0.9}
+  >
+    <Text
+      style={[
+        styles.tabPillText,
+        {
+          color: activeTab === "general" ? "#ec4899" : mutedText,
+        },
+      ]}
+    >
+      {t("activity.basicInfo")}
+    </Text>
+  </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[
-                    styles.tabPill,
-                    activeTab === "details" && styles.tabPillActive,
-                    activeTab === "details" && { borderColor: `${accent}44` },
-                  ]}
-                  onPress={() => setActiveTab("details")}
-                  activeOpacity={0.85}
-                >
-                  <Text style={[styles.tabPillText, { color: activeTab === "details" ? accent : mutedText }]}>
-                    {t("activity.detail")}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              <View
-                style={[
-                  styles.formSection,
-                  { backgroundColor: shellBg, borderColor: shellBorder },
-                  { display: activeTab === "details" ? "flex" : "none" },
-                ]}
-              >
-                <View style={styles.dateGrid}>
-                  <View style={styles.dateCell}>
-                    <Text style={[styles.label, { color: mutedText }]}>{t("activity.paymentType")}</Text>
-                    <TouchableOpacity
-                      style={[styles.pickerField, { backgroundColor: innerBg, borderColor: innerBorder }]}
-                      onPress={() => setPaymentTypeModalOpen(true)}
-                    >
-                      <View style={styles.fieldLeftWrap}>
-                        <Text
-                          style={[
-                            styles.pickerFieldText,
-                            { color: watchPaymentTypeId ? titleText : mutedText },
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {selectedPaymentTypeLabel}
-                        </Text>
-                      </View>
-                      <ArrowDown01Icon size={15} color={softText} variant="stroke" />
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.dateCell}>
-                    <Text style={[styles.label, { color: mutedText }]}>{t("activity.activityMeetingType")}</Text>
-                    <TouchableOpacity
-                      style={[styles.pickerField, { backgroundColor: innerBg, borderColor: innerBorder }]}
-                      onPress={() => setMeetingTypeModalOpen(true)}
-                    >
-                      <View style={styles.fieldLeftWrap}>
-                        <Text
-                          style={[
-                            styles.pickerFieldText,
-                            { color: watchMeetingTypeId ? titleText : mutedText },
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {selectedMeetingTypeLabel}
-                        </Text>
-                      </View>
-                      <ArrowDown01Icon size={15} color={softText} variant="stroke" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                <View style={styles.dateGrid}>
-                  <View style={styles.dateCell}>
-                    <Text style={[styles.label, { color: mutedText }]}>{t("activity.activityTopicPurpose")}</Text>
-                    <TouchableOpacity
-                      style={[styles.pickerField, { backgroundColor: innerBg, borderColor: innerBorder }]}
-                      onPress={() => setTopicPurposeModalOpen(true)}
-                    >
-                      <View style={styles.fieldLeftWrap}>
-                        <Text
-                          style={[
-                            styles.pickerFieldText,
-                            { color: watchTopicPurposeId ? titleText : mutedText },
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {selectedTopicPurposeLabel}
-                        </Text>
-                      </View>
-                      <ArrowDown01Icon size={15} color={softText} variant="stroke" />
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.dateCell}>
-                    <Text style={[styles.label, { color: mutedText }]}>{t("activity.activityShipping")}</Text>
-                    <TouchableOpacity
-                      style={[styles.pickerField, { backgroundColor: innerBg, borderColor: innerBorder }]}
-                      onPress={() => setShippingModalOpen(true)}
-                    >
-                      <View style={styles.fieldLeftWrap}>
-                        <Text
-                          style={[
-                            styles.pickerFieldText,
-                            { color: watchShippingId ? titleText : mutedText },
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {selectedShippingLabel}
-                        </Text>
-                      </View>
-                      <ArrowDown01Icon size={15} color={softText} variant="stroke" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
+  <TouchableOpacity
+    style={[
+      styles.tabPill,
+      activeTab === "details"
+        ? [
+            styles.tabPillActive,
+            {
+              borderColor: "#ec4899",
+              backgroundColor: isDark ? "rgba(236,72,153,0.14)" : "rgba(236,72,153,0.08)",
+            },
+          ]
+        : styles.tabPillInactive,
+    ]}
+    onPress={() => setActiveTab("details")}
+    activeOpacity={0.9}
+  >
+    <Text
+      style={[
+        styles.tabPillText,
+        {
+          color: activeTab === "details" ? "#ec4899" : mutedText,
+        },
+      ]}
+    >
+      {t("activity.detail")}
+    </Text>
+  </TouchableOpacity>
+</View>
 
               <View
                 style={[
                   styles.formSection,
-                  { backgroundColor: shellBg, borderColor: shellBorder },
-                  { display: activeTab === "details" ? "flex" : "none" },
-                ]}
-              >
-                <View style={styles.dateGrid}>
-                  <View style={styles.dateCell}>
-                    <Text style={[styles.label, { color: mutedText }]}>{t("activity.paymentType")}</Text>
-                    <TouchableOpacity
-                      style={[styles.pickerField, { backgroundColor: innerBg, borderColor: innerBorder }]}
-                      onPress={() => setPaymentTypeModalOpen(true)}
-                    >
-                      <View style={styles.fieldLeftWrap}>
-                        <Text
-                          style={[
-                            styles.pickerFieldText,
-                            { color: watchPaymentTypeId ? titleText : mutedText },
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {selectedPaymentTypeLabel}
-                        </Text>
-                      </View>
-                      <ArrowDown01Icon size={15} color={softText} variant="stroke" />
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.dateCell}>
-                    <Text style={[styles.label, { color: mutedText }]}>{t("activity.activityMeetingType")}</Text>
-                    <TouchableOpacity
-                      style={[styles.pickerField, { backgroundColor: innerBg, borderColor: innerBorder }]}
-                      onPress={() => setMeetingTypeModalOpen(true)}
-                    >
-                      <View style={styles.fieldLeftWrap}>
-                        <Text
-                          style={[
-                            styles.pickerFieldText,
-                            { color: watchMeetingTypeId ? titleText : mutedText },
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {selectedMeetingTypeLabel}
-                        </Text>
-                      </View>
-                      <ArrowDown01Icon size={15} color={softText} variant="stroke" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                <View style={styles.dateGrid}>
-                  <View style={styles.dateCell}>
-                    <Text style={[styles.label, { color: mutedText }]}>{t("activity.activityTopicPurpose")}</Text>
-                    <TouchableOpacity
-                      style={[styles.pickerField, { backgroundColor: innerBg, borderColor: innerBorder }]}
-                      onPress={() => setTopicPurposeModalOpen(true)}
-                    >
-                      <View style={styles.fieldLeftWrap}>
-                        <Text
-                          style={[
-                            styles.pickerFieldText,
-                            { color: watchTopicPurposeId ? titleText : mutedText },
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {selectedTopicPurposeLabel}
-                        </Text>
-                      </View>
-                      <ArrowDown01Icon size={15} color={softText} variant="stroke" />
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.dateCell}>
-                    <Text style={[styles.label, { color: mutedText }]}>{t("activity.activityShipping")}</Text>
-                    <TouchableOpacity
-                      style={[styles.pickerField, { backgroundColor: innerBg, borderColor: innerBorder }]}
-                      onPress={() => setShippingModalOpen(true)}
-                    >
-                      <View style={styles.fieldLeftWrap}>
-                        <Text
-                          style={[
-                            styles.pickerFieldText,
-                            { color: watchShippingId ? titleText : mutedText },
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {selectedShippingLabel}
-                        </Text>
-                      </View>
-                      <ArrowDown01Icon size={15} color={softText} variant="stroke" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-
-              <View
-                style={[
-                  styles.formSection,
-                  { backgroundColor: shellBg, borderColor: shellBorder },
-                  { display: "none" },
-                ]}
-              >
-                <View style={styles.dateGrid}>
-                  <View style={styles.dateCell}>
-                    <Text style={[styles.label, { color: mutedText }]}>{t("activity.paymentType")}</Text>
-                    <TouchableOpacity
-                      style={[styles.pickerField, { backgroundColor: innerBg, borderColor: innerBorder }]}
-                      onPress={() => setPaymentTypeModalOpen(true)}
-                    >
-                      <View style={styles.fieldLeftWrap}>
-                        <Text
-                          style={[
-                            styles.pickerFieldText,
-                            { color: watchPaymentTypeId ? titleText : mutedText },
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {selectedPaymentTypeLabel}
-                        </Text>
-                      </View>
-                      <ArrowDown01Icon size={15} color={softText} variant="stroke" />
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.dateCell}>
-                    <Text style={[styles.label, { color: mutedText }]}>{t("activity.activityMeetingType")}</Text>
-                    <TouchableOpacity
-                      style={[styles.pickerField, { backgroundColor: innerBg, borderColor: innerBorder }]}
-                      onPress={() => setMeetingTypeModalOpen(true)}
-                    >
-                      <View style={styles.fieldLeftWrap}>
-                        <Text
-                          style={[
-                            styles.pickerFieldText,
-                            { color: watchMeetingTypeId ? titleText : mutedText },
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {selectedMeetingTypeLabel}
-                        </Text>
-                      </View>
-                      <ArrowDown01Icon size={15} color={softText} variant="stroke" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                <View style={styles.dateGrid}>
-                  <View style={styles.dateCell}>
-                    <Text style={[styles.label, { color: mutedText }]}>{t("activity.activityTopicPurpose")}</Text>
-                    <TouchableOpacity
-                      style={[styles.pickerField, { backgroundColor: innerBg, borderColor: innerBorder }]}
-                      onPress={() => setTopicPurposeModalOpen(true)}
-                    >
-                      <View style={styles.fieldLeftWrap}>
-                        <Text
-                          style={[
-                            styles.pickerFieldText,
-                            { color: watchTopicPurposeId ? titleText : mutedText },
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {selectedTopicPurposeLabel}
-                        </Text>
-                      </View>
-                      <ArrowDown01Icon size={15} color={softText} variant="stroke" />
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.dateCell}>
-                    <Text style={[styles.label, { color: mutedText }]}>{t("activity.activityShipping")}</Text>
-                    <TouchableOpacity
-                      style={[styles.pickerField, { backgroundColor: innerBg, borderColor: innerBorder }]}
-                      onPress={() => setShippingModalOpen(true)}
-                    >
-                      <View style={styles.fieldLeftWrap}>
-                        <Text
-                          style={[
-                            styles.pickerFieldText,
-                            { color: watchShippingId ? titleText : mutedText },
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {selectedShippingLabel}
-                        </Text>
-                      </View>
-                      <ArrowDown01Icon size={15} color={softText} variant="stroke" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-
-              <View
-                style={[
-                  styles.formSection,
-                  { backgroundColor: shellBg, borderColor: shellBorder },
+                  {
+                    backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.92)",
+                    borderColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.06)",
+                  },
                   { display: activeTab === "general" ? "flex" : "none" },
                 ]}
               >
@@ -1506,7 +1291,7 @@ export function ActivityFormScreen(): React.ReactElement {
                   />
                 </View>
 
-                <View style={styles.fieldBlockLast}>
+                <View style={styles.fieldBlock}>
                   <ContactPicker
                     label={t("activity.contact")}
                     value={watch("contactId") ?? undefined}
@@ -1521,16 +1306,19 @@ export function ActivityFormScreen(): React.ReactElement {
                     {t("activity.activityType")} <Text style={{ color: colors.error }}>*</Text>
                   </Text>
                   <TouchableOpacity
-                    style={[
-                      styles.pickerField,
-                      {
-                        backgroundColor: innerBg,
-                        borderColor: errors.activityType ? colors.error : innerBorder,
-                      },
-                    ]}
-                    onPress={() => setTypeModalOpen(true)}
-                    activeOpacity={0.82}
-                  >
+  style={[
+    styles.pickerField,
+    {
+      backgroundColor: innerBg,
+      borderColor: getFieldBorderColor("activityType", !!errors.activityType),
+    },
+    getFieldGlowStyle("activityType"),
+  ]}
+  onPressIn={() => setFocusedField("activityType")}
+  onPressOut={() => setFocusedField(null)}
+  onPress={() => setTypeModalOpen(true)}
+  activeOpacity={0.82}
+>
                     <View style={styles.fieldLeftWrap}>
                       <View
                         style={[
@@ -1569,18 +1357,21 @@ export function ActivityFormScreen(): React.ReactElement {
                       {t("activity.activityDate")} <Text style={{ color: colors.error }}>*</Text>
                     </Text>
                     <TouchableOpacity
-                      style={[
-                        styles.pickerField,
-                        {
-                          backgroundColor: innerBg,
-                          borderColor: errors.startDateTime ? colors.error : innerBorder,
-                          opacity: isStartDateLocked ? 0.55 : 1,
-                        },
-                      ]}
-                      onPress={isStartDateLocked ? undefined : handleOpenStartDateModal}
-                      disabled={isStartDateLocked}
-                      activeOpacity={isStartDateLocked ? 1 : 0.82}
-                    >
+  style={[
+    styles.pickerField,
+    {
+      backgroundColor: innerBg,
+      borderColor: getFieldBorderColor("startDateTime", !!errors.startDateTime),
+      opacity: isStartDateLocked ? 0.55 : 1,
+    },
+    getFieldGlowStyle("startDateTime"),
+  ]}
+  onPressIn={isStartDateLocked ? undefined : () => setFocusedField("startDateTime")}
+  onPressOut={() => setFocusedField(null)}
+  onPress={isStartDateLocked ? undefined : handleOpenStartDateModal}
+  disabled={isStartDateLocked}
+  activeOpacity={isStartDateLocked ? 1 : 0.82}
+>
                       <View style={styles.fieldLeftWrap}>
                         <View
                           style={[
@@ -1612,15 +1403,19 @@ export function ActivityFormScreen(): React.ReactElement {
                       {t("activity.endDate")} <Text style={{ color: colors.error }}>*</Text>
                     </Text>
                     <TouchableOpacity
-                      style={[
-                        styles.pickerField,
-                        {
-                          backgroundColor: innerBg,
-                          borderColor: errors.endDateTime ? colors.error : innerBorder,
-                        },
-                      ]}
-                      onPress={handleOpenEndDateModal}
-                    >
+  style={[
+    styles.pickerField,
+    {
+      backgroundColor: innerBg,
+      borderColor: getFieldBorderColor("endDateTime", !!errors.endDateTime),
+    },
+    getFieldGlowStyle("endDateTime"),
+  ]}
+  onPressIn={() => setFocusedField("endDateTime")}
+  onPressOut={() => setFocusedField(null)}
+  onPress={handleOpenEndDateModal}
+  activeOpacity={0.82}
+>
                       <View style={styles.fieldLeftWrap}>
                         <View
                           style={[
@@ -1648,16 +1443,19 @@ export function ActivityFormScreen(): React.ReactElement {
                 </View>
 
                 <TouchableOpacity
-                  style={[
-                    styles.toggleRow,
-                    {
-                      borderColor: innerBorder,
-                      backgroundColor: innerBg,
-                    },
-                  ]}
-                  onPress={() => setValue("isAllDay", !watchIsAllDay)}
-                  activeOpacity={0.82}
-                >
+  style={[
+    styles.toggleRow,
+    {
+      borderColor: getFieldBorderColor("isAllDay"),
+      backgroundColor: innerBg,
+    },
+    getFieldGlowStyle("isAllDay"),
+  ]}
+  onPressIn={() => setFocusedField("isAllDay")}
+  onPressOut={() => setFocusedField(null)}
+  onPress={() => setValue("isAllDay", !watchIsAllDay)}
+  activeOpacity={0.82}
+>
                   <View style={styles.toggleLeft}>
                     <View
                       style={[
@@ -1685,92 +1483,251 @@ export function ActivityFormScreen(): React.ReactElement {
 
               <View
                 style={[
-                  styles.formSection,
+                  styles.formSectionCompact,
+                  {
+                    backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.92)",
+                    borderColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.06)",
+                  },
+                  { display: activeTab === "details" ? "flex" : "none" },
+                ]}
+              >
+                <View style={styles.twoColumnRow}>
+                  <View style={styles.twoColumnItem}>
+                    <Text style={[styles.labelCompact, { color: mutedText }]}>
+                      {t("activity.status")} <Text style={{ color: colors.error }}>*</Text>
+                    </Text>
+                    <TouchableOpacity
+  style={[
+    styles.pickerFieldCompact,
+    {
+      backgroundColor: innerBg,
+      borderColor: getFieldBorderColor("status", !!errors.status),
+    },
+    getFieldGlowStyle("status"),
+  ]}
+  onPressIn={() => setFocusedField("status")}
+  onPressOut={() => setFocusedField(null)}
+  onPress={() => setStatusModalOpen(true)}
+  activeOpacity={0.82}
+>
+                      <View style={styles.fieldLeftWrap}>
+                        <View
+                          style={[
+                            styles.fieldIconWrapCompact,
+                            {
+                              backgroundColor: selectedStatusMeta.bg,
+                              borderColor: `${selectedStatusMeta.color}22`,
+                            },
+                          ]}
+                        >
+                          <selectedStatusMeta.Icon size={12} color={selectedStatusMeta.color} variant="stroke" />
+                        </View>
+                        <Text
+                          style={[
+                            styles.pickerFieldTextCompact,
+                            { color: watchStatus ? titleText : mutedText },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {selectedStatusLabel}
+                        </Text>
+                      </View>
+                      <ArrowDown01Icon size={14} color={softText} variant="stroke" />
+                    </TouchableOpacity>
+                    {errors.status ? (
+                      <Text style={[styles.errorText, { color: colors.error }]}>
+                        {errors.status.message}
+                      </Text>
+                    ) : null}
+                  </View>
+
+                  <View style={styles.twoColumnItem}>
+                    <Text style={[styles.labelCompact, { color: mutedText }]}>
+                      {t("activity.priority")}
+                    </Text>
+                    <TouchableOpacity
+  style={[
+    styles.pickerFieldCompact,
+    {
+      backgroundColor: innerBg,
+      borderColor: getFieldBorderColor("priority"),
+    },
+    getFieldGlowStyle("priority"),
+  ]}
+  onPressIn={() => setFocusedField("priority")}
+  onPressOut={() => setFocusedField(null)}
+  onPress={() => setPriorityModalOpen(true)}
+  activeOpacity={0.82}
+>
+                      <View style={styles.fieldLeftWrap}>
+                        <View
+                          style={[
+                            styles.fieldIconWrapCompact,
+                            {
+                              backgroundColor: selectedPriorityMeta.bg,
+                              borderColor: `${selectedPriorityMeta.color}22`,
+                            },
+                          ]}
+                        >
+                          <Alert02Icon size={12} color={selectedPriorityMeta.color} variant="stroke" />
+                        </View>
+                        <Text
+                          style={[
+                            styles.pickerFieldTextCompact,
+                            { color: watchPriority ? titleText : mutedText },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {selectedPriorityLabel}
+                        </Text>
+                      </View>
+                      <ArrowDown01Icon size={14} color={softText} variant="stroke" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+
+              <View
+                style={[
+                  styles.formSectionCompact,
                   { backgroundColor: shellBg, borderColor: shellBorder },
                   { display: activeTab === "details" ? "flex" : "none" },
                 ]}
               >
-                <View style={styles.fieldContainer}>
-                  <Text style={[styles.label, { color: mutedText }]}>
-                    {t("activity.status")} <Text style={{ color: colors.error }}>*</Text>
-                  </Text>
-                  <TouchableOpacity
-                    style={[
-                      styles.pickerField,
-                      {
-                        backgroundColor: innerBg,
-                        borderColor: errors.status ? colors.error : innerBorder,
-                      },
-                    ]}
-                    onPress={() => setStatusModalOpen(true)}
-                  >
-                    <View style={styles.fieldLeftWrap}>
-                      <View
-                        style={[
-                          styles.fieldIconWrap,
-                          {
-                            backgroundColor: selectedStatusMeta.bg,
-                            borderColor: `${selectedStatusMeta.color}22`,
-                          },
-                        ]}
-                      >
-                        <selectedStatusMeta.Icon size={13} color={selectedStatusMeta.color} variant="stroke" />
-                      </View>
-                      <Text
-                        style={[
-                          styles.pickerFieldText,
-                          { color: watchStatus ? titleText : mutedText },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {selectedStatusLabel}
-                      </Text>
-                    </View>
-                    <ArrowDown01Icon size={15} color={softText} variant="stroke" />
-                  </TouchableOpacity>
-                  {errors.status ? (
-                    <Text style={[styles.errorText, { color: colors.error }]}>
-                      {errors.status.message}
+                <View style={styles.twoColumnRow}>
+                  <View style={styles.twoColumnItem}>
+                    <Text style={[styles.labelCompact, { color: mutedText }]}>
+                      {t("activity.paymentType")}
                     </Text>
-                  ) : null}
+                    <TouchableOpacity
+  style={[
+    styles.pickerFieldCompact,
+    {
+      backgroundColor: innerBg,
+      borderColor: getFieldBorderColor("paymentType"),
+    },
+    getFieldGlowStyle("paymentType"),
+  ]}
+  onPressIn={() => setFocusedField("paymentType")}
+  onPressOut={() => setFocusedField(null)}
+  onPress={() => setPaymentTypeModalOpen(true)}
+  activeOpacity={0.82}
+>
+                      <View style={styles.fieldLeftWrap}>
+                        <Text
+                          style={[
+                            styles.pickerFieldTextCompact,
+                            { color: watchPaymentTypeId ? titleText : mutedText },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {selectedPaymentTypeLabel}
+                        </Text>
+                      </View>
+                      <ArrowDown01Icon size={14} color={softText} variant="stroke" />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.twoColumnItem}>
+                    <Text style={[styles.labelCompact, { color: mutedText }]}>
+                      {t("activity.activityMeetingType")}
+                    </Text>
+                    <TouchableOpacity
+  style={[
+    styles.pickerFieldCompact,
+    {
+      backgroundColor: innerBg,
+      borderColor: getFieldBorderColor("meetingType"),
+    },
+    getFieldGlowStyle("meetingType"),
+  ]}
+  onPressIn={() => setFocusedField("meetingType")}
+  onPressOut={() => setFocusedField(null)}
+  onPress={() => setMeetingTypeModalOpen(true)}
+  activeOpacity={0.82}
+>
+                      <View style={styles.fieldLeftWrap}>
+                        <Text
+                          style={[
+                            styles.pickerFieldTextCompact,
+                            { color: watchMeetingTypeId ? titleText : mutedText },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {selectedMeetingTypeLabel}
+                        </Text>
+                      </View>
+                      <ArrowDown01Icon size={14} color={softText} variant="stroke" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
 
-                <View style={styles.fieldContainerLast}>
-                  <Text style={[styles.label, { color: mutedText }]}>{t("activity.priority")}</Text>
-                  <TouchableOpacity
-                    style={[
-                      styles.pickerField,
-                      {
-                        backgroundColor: innerBg,
-                        borderColor: innerBorder,
-                      },
-                    ]}
-                    onPress={() => setPriorityModalOpen(true)}
-                  >
-                    <View style={styles.fieldLeftWrap}>
-                      <View
-                        style={[
-                          styles.fieldIconWrap,
-                          {
-                            backgroundColor: selectedPriorityMeta.bg,
-                            borderColor: `${selectedPriorityMeta.color}22`,
-                          },
-                        ]}
-                      >
-                        <Alert02Icon size={13} color={selectedPriorityMeta.color} variant="stroke" />
+                <View style={styles.twoColumnRowLast}>
+                  <View style={styles.twoColumnItem}>
+                    <Text style={[styles.labelCompact, { color: mutedText }]}>
+                      {t("activity.activityTopicPurpose")}
+                    </Text>
+                    <TouchableOpacity
+  style={[
+    styles.pickerFieldCompact,
+    {
+      backgroundColor: innerBg,
+      borderColor: getFieldBorderColor("topicPurpose"),
+    },
+    getFieldGlowStyle("topicPurpose"),
+  ]}
+  onPressIn={() => setFocusedField("topicPurpose")}
+  onPressOut={() => setFocusedField(null)}
+  onPress={() => setTopicPurposeModalOpen(true)}
+  activeOpacity={0.82}
+>
+                      <View style={styles.fieldLeftWrap}>
+                        <Text
+                          style={[
+                            styles.pickerFieldTextCompact,
+                            { color: watchTopicPurposeId ? titleText : mutedText },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {selectedTopicPurposeLabel}
+                        </Text>
                       </View>
-                      <Text
-                        style={[
-                          styles.pickerFieldText,
-                          { color: watchPriority ? titleText : mutedText },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {selectedPriorityLabel}
-                      </Text>
-                    </View>
-                    <ArrowDown01Icon size={15} color={softText} variant="stroke" />
-                  </TouchableOpacity>
+                      <ArrowDown01Icon size={14} color={softText} variant="stroke" />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.twoColumnItem}>
+                    <Text style={[styles.labelCompact, { color: mutedText }]}>
+                      {t("activity.activityShipping")}
+                    </Text>
+                    <TouchableOpacity
+  style={[
+    styles.pickerFieldCompact,
+    {
+      backgroundColor: innerBg,
+      borderColor: getFieldBorderColor("shipping"),
+    },
+    getFieldGlowStyle("shipping"),
+  ]}
+  onPressIn={() => setFocusedField("shipping")}
+  onPressOut={() => setFocusedField(null)}
+  onPress={() => setShippingModalOpen(true)}
+  activeOpacity={0.82}
+>
+                      <View style={styles.fieldLeftWrap}>
+                        <Text
+                          style={[
+                            styles.pickerFieldTextCompact,
+                            { color: watchShippingId ? titleText : mutedText },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {selectedShippingLabel}
+                        </Text>
+                      </View>
+                      <ArrowDown01Icon size={14} color={softText} variant="stroke" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
 
@@ -1928,7 +1885,9 @@ export function ActivityFormScreen(): React.ReactElement {
                             {deletingImageId === image.id ? (
                               <ActivityIndicator size="small" color={accent} />
                             ) : (
-                              <Text style={[styles.deleteImageButtonText, { color: accent }]}>{t("common.delete")}</Text>
+                              <Text style={[styles.deleteImageButtonText, { color: accent }]}>
+                                {t("common.delete")}
+                              </Text>
                             )}
                           </TouchableOpacity>
                         </View>
@@ -1939,29 +1898,37 @@ export function ActivityFormScreen(): React.ReactElement {
               </View>
 
               <TouchableOpacity
-                style={[
-                  styles.submitButtonWrap,
-                  { backgroundColor: shellBg, borderColor: shellBorder },
-                ]}
-                onPress={handleSubmit(onSubmit, onInvalidSubmit)}
-                disabled={isSubmitting}
-                activeOpacity={0.86}
-              >
-                <LinearGradient
-                  colors={[accent, accentSecondary]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.submitButton}
-                >
-                  {isSubmitting ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <Text style={styles.submitButtonText}>
-                      {isEditMode ? t("common.update") : t("common.save")}
-                    </Text>
-                  )}
-                </LinearGradient>
-              </TouchableOpacity>
+  style={[
+    styles.submitButtonWrap,
+    { backgroundColor: shellBg, borderColor: shellBorder },
+  ]}
+  onPress={
+    activeTab === "general"
+      ? () => setActiveTab("details")
+      : handleSubmit(onSubmit, onInvalidSubmit)
+  }
+  disabled={isSubmitting}
+  activeOpacity={0.86}
+>
+  <LinearGradient
+    colors={[accent, accentSecondary]}
+    start={{ x: 0, y: 0 }}
+    end={{ x: 1, y: 1 }}
+    style={styles.submitButton}
+  >
+    {isSubmitting ? (
+      <ActivityIndicator size="small" color="#FFFFFF" />
+    ) : (
+      <Text style={styles.submitButtonText}>
+        {activeTab === "general"
+          ? t("common.continue", "Devam Et")
+          : isEditMode
+          ? t("common.update")
+          : t("common.save")}
+      </Text>
+    )}
+  </LinearGradient>
+</TouchableOpacity>
             </View>
           )}
         />
@@ -2008,7 +1975,14 @@ export function ActivityFormScreen(): React.ReactElement {
             ]}
           >
             <View style={[styles.modalHeader, { borderBottomColor: innerBorder }]}>
-              <View style={[styles.handle, { backgroundColor: innerBorder }]} />
+            <View
+  style={[
+    styles.handle,
+    {
+      backgroundColor: isDark ? "rgba(255,255,255,0.24)" : "rgba(15,23,42,0.10)",
+    },
+  ]}
+/>
               <Text style={[styles.modalTitle, { color: titleText }]}>{t("activity.selectType")}</Text>
             </View>
             {typesLoading ? (
@@ -2047,7 +2021,12 @@ export function ActivityFormScreen(): React.ReactElement {
             ]}
           >
             <View style={[styles.modalHeader, { borderBottomColor: innerBorder }]}>
-              <View style={[styles.handle, { backgroundColor: innerBorder }]} />
+            <View
+  style={[
+    styles.handle,
+    { backgroundColor: isDark ? "#a1a1aa" : "rgba(15,23,42,0.18)" },
+  ]}
+/>
               <Text style={[styles.modalTitle, { color: titleText }]}>{t("activity.selectStatus")}</Text>
             </View>
             <FlatList
@@ -2106,7 +2085,16 @@ export function ActivityFormScreen(): React.ReactElement {
       >
         <View style={styles.modalOverlay}>
           <TouchableOpacity style={styles.modalBackdrop} onPress={() => setPaymentTypeModalOpen(false)} />
-          <View style={[styles.modalContent, { backgroundColor: shellBgAlt, borderColor: shellBorder, paddingBottom: insets.bottom + 16 }]}>
+          <View
+            style={[
+              styles.modalContent,
+              {
+                backgroundColor: shellBgAlt,
+                borderColor: shellBorder,
+                paddingBottom: insets.bottom + 16,
+              },
+            ]}
+          >
             <View style={[styles.modalHeader, { borderBottomColor: innerBorder }]}>
               <View style={[styles.handle, { backgroundColor: innerBorder }]} />
               <Text style={[styles.modalTitle, { color: titleText }]}>{t("activity.paymentType")}</Text>
@@ -2136,7 +2124,16 @@ export function ActivityFormScreen(): React.ReactElement {
       >
         <View style={styles.modalOverlay}>
           <TouchableOpacity style={styles.modalBackdrop} onPress={() => setMeetingTypeModalOpen(false)} />
-          <View style={[styles.modalContent, { backgroundColor: shellBgAlt, borderColor: shellBorder, paddingBottom: insets.bottom + 16 }]}>
+          <View
+            style={[
+              styles.modalContent,
+              {
+                backgroundColor: shellBgAlt,
+                borderColor: shellBorder,
+                paddingBottom: insets.bottom + 16,
+              },
+            ]}
+          >
             <View style={[styles.modalHeader, { borderBottomColor: innerBorder }]}>
               <View style={[styles.handle, { backgroundColor: innerBorder }]} />
               <Text style={[styles.modalTitle, { color: titleText }]}>{t("activity.activityMeetingType")}</Text>
@@ -2166,7 +2163,16 @@ export function ActivityFormScreen(): React.ReactElement {
       >
         <View style={styles.modalOverlay}>
           <TouchableOpacity style={styles.modalBackdrop} onPress={() => setTopicPurposeModalOpen(false)} />
-          <View style={[styles.modalContent, { backgroundColor: shellBgAlt, borderColor: shellBorder, paddingBottom: insets.bottom + 16 }]}>
+          <View
+            style={[
+              styles.modalContent,
+              {
+                backgroundColor: shellBgAlt,
+                borderColor: shellBorder,
+                paddingBottom: insets.bottom + 16,
+              },
+            ]}
+          >
             <View style={[styles.modalHeader, { borderBottomColor: innerBorder }]}>
               <View style={[styles.handle, { backgroundColor: innerBorder }]} />
               <Text style={[styles.modalTitle, { color: titleText }]}>{t("activity.activityTopicPurpose")}</Text>
@@ -2196,7 +2202,16 @@ export function ActivityFormScreen(): React.ReactElement {
       >
         <View style={styles.modalOverlay}>
           <TouchableOpacity style={styles.modalBackdrop} onPress={() => setShippingModalOpen(false)} />
-          <View style={[styles.modalContent, { backgroundColor: shellBgAlt, borderColor: shellBorder, paddingBottom: insets.bottom + 16 }]}>
+          <View
+            style={[
+              styles.modalContent,
+              {
+                backgroundColor: shellBgAlt,
+                borderColor: shellBorder,
+                paddingBottom: insets.bottom + 16,
+              },
+            ]}
+          >
             <View style={[styles.modalHeader, { borderBottomColor: innerBorder }]}>
               <View style={[styles.handle, { backgroundColor: innerBorder }]} />
               <Text style={[styles.modalTitle, { color: titleText }]}>{t("activity.activityShipping")}</Text>
@@ -2366,7 +2381,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   screenStack: {
-    gap: 14,
+    gap: 12,
   },
   tabBarCard: {
     flexDirection: "row",
@@ -2378,20 +2393,24 @@ const styles = StyleSheet.create({
   },
   tabPill: {
     flex: 1,
-    borderWidth: 1,
-    borderRadius: 14,
     minHeight: 42,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "transparent",
+    paddingHorizontal: 12,
   },
   tabPillActive: {
-    opacity: 1,
+    borderWidth: 1.8,
+    paddingHorizontal: 12,
+  },
+  tabPillInactive: {
+    borderWidth: 0,
+    backgroundColor: "transparent",
   },
   tabPillText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "700",
-    lineHeight: 16,
+    lineHeight: 15,
   },
   loadingContainer: {
     flex: 1,
@@ -2407,39 +2426,66 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   formSection: {
     borderWidth: 1,
-    borderRadius: 24,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
   },
+  formSectionCompact: {
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+
   fieldContainer: {
-    marginBottom: 18,
+    marginBottom: 14,
   },
   fieldContainerLast: {
     marginBottom: 0,
   },
   fieldBlock: {
-    marginBottom: 18,
+    marginBottom: 14,
   },
   fieldBlockLast: {
     marginBottom: 0,
   },
+
   label: {
-    fontSize: 12,
-    fontWeight: "400",
-    marginBottom: 8,
+    fontSize: 11,
+    fontWeight: "500",
+    marginBottom: 6,
   },
+  labelCompact: {
+    fontSize: 11,
+    fontWeight: "500",
+    marginBottom: 6,
+  },
+
   pickerField: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     borderWidth: 1,
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    minHeight: 54,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    minHeight: 48,
     gap: 8,
   },
+  pickerFieldCompact: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    minHeight: 46,
+    gap: 8,
+  },
+  
+
   fieldLeftWrap: {
     flex: 1,
     minWidth: 0,
@@ -2447,38 +2493,70 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   fieldIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
+    width: 28,
+    height: 28,
+    borderRadius: 9,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 9,
+    marginRight: 8,
   },
+  fieldIconWrapCompact: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+  },
+
   pickerFieldText: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: "500",
     flex: 1,
-    lineHeight: 16,
+    lineHeight: 15,
   },
+  pickerFieldTextCompact: {
+    fontSize: 11.5,
+    fontWeight: "500",
+    flex: 1,
+    lineHeight: 15,
+  },
+
   errorText: {
     fontSize: 11,
     marginTop: 6,
     lineHeight: 14,
   },
+
   dateGrid: {
-    gap: 16,
-    marginBottom: 4,
+    gap: 12,
+    marginBottom: 2,
   },
   dateCell: {
     flex: 1,
   },
+
+  twoColumnRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 12,
+  },
+  twoColumnRowLast: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  twoColumnItem: {
+    flex: 1,
+  },
+
   toggleRow: {
-    minHeight: 54,
+    minHeight: 48,
     borderWidth: 1,
-    borderRadius: 18,
-    marginBottom: 18,
-    paddingHorizontal: 14,
+    borderRadius: 16,
+    marginBottom: 0,
+    paddingHorizontal: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -2490,18 +2568,19 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   toggleLabel: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: "500",
-    lineHeight: 16,
+    lineHeight: 15,
   },
   toggleIndicator: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
+
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -2518,9 +2597,10 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 12,
-    fontWeight: "500",
+    fontWeight: "600",
     lineHeight: 16,
   },
+
   reminderPresetRow: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -2549,8 +2629,9 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     lineHeight: 12,
   },
+
   secondaryActionButton: {
-    minHeight: 52,
+    minHeight: 50,
     borderRadius: 16,
     borderWidth: 1,
     alignItems: "center",
@@ -2558,9 +2639,10 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   secondaryActionButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "700",
   },
+
   imageLoadingIndicator: {
     marginTop: 16,
   },
@@ -2598,14 +2680,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
   },
+
   submitButtonWrap: {
     borderWidth: 1,
-    borderRadius: 22,
+    borderRadius: 20,
     padding: 6,
   },
   submitButton: {
-    minHeight: 54,
-    borderRadius: 18,
+    minHeight: 52,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -2615,6 +2698,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     letterSpacing: 0.1,
   },
+
   modalOverlay: {
     flex: 1,
     justifyContent: "flex-end",
@@ -2676,6 +2760,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   dateModalContent: {
     borderTopLeftRadius: 22,
     borderTopRightRadius: 22,
