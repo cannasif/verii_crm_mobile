@@ -1,11 +1,9 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { API_TIMEOUT, getApiBaseUrl, initializeApiBaseUrl } from "../constants/config";
-import { ACCESS_TOKEN_KEY, BRANCH_STORAGE_KEY, LANGUAGE_STORAGE_KEY } from "../constants/storage";
-import { storage } from "./storage";
 import type { ApiResponse, Branch } from "../features/auth/types";
 import { useAuthStore } from "../store/auth";
 import { router } from "expo-router";
-import i18n from "../locales";
+import i18n, { getCurrentLanguage } from "../locales";
 
 export const apiClient = axios.create({
   baseURL: getApiBaseUrl(),
@@ -24,9 +22,14 @@ export async function initializeApiClient(): Promise<void> {
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     config.baseURL = getApiBaseUrl();
-    const token = await storage.get<string>(ACCESS_TOKEN_KEY);
-    const branch = await storage.get<Branch>(BRANCH_STORAGE_KEY);
-    const language = await storage.get<string>(LANGUAGE_STORAGE_KEY);
+    const authState = useAuthStore.getState();
+    if (!authState.isHydrated && !config.url?.includes("/api/auth/login")) {
+      await authState.hydrate();
+    }
+
+    const token = useAuthStore.getState().token;
+    const branch = useAuthStore.getState().branch as Branch | null;
+    const language = getCurrentLanguage();
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
