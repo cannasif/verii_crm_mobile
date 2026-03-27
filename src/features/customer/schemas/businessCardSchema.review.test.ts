@@ -66,4 +66,29 @@ const sparseResult = toBusinessCardOcrResult(sparseExtraction);
 assert.ok((sparseResult.review?.overallConfidence ?? 100) <= 30, "sparse extraction should have lower confidence");
 assert.ok((sparseResult.review?.flags.length ?? 0) >= 3, "sparse extraction should produce review flags");
 
+const suspiciousExtraction: BusinessCardExtraction = {
+  contactNameAndSurname: "Volkan Sağlık",
+  name: "Volkan Sağlık",
+  title: "Kazım Karabekir Mh.",
+  company: "Bekir Saydam Cad. No: 104",
+  phones: ["+905331580040"],
+  emails: ["v..saglik@windoform.com.tr"],
+  website: "www.cisa-russia.com",
+  address: "Kazım Karabekir Mh. Tel: +90 232 854 70 00",
+  addressParts: { ...emptyAddressParts, province: "İzmir", district: "Torbalı" },
+  social: { ...emptySocial },
+  notes: [],
+};
+
+const suspiciousResult = toBusinessCardOcrResult(suspiciousExtraction);
+assert.ok((suspiciousResult.review?.fieldConfidence.customerName ?? 100) < 70, "company mixed with address should be flagged");
+assert.ok((suspiciousResult.review?.fieldConfidence.title ?? 100) < 70, "title mixed with address should be flagged");
+assert.ok((suspiciousResult.review?.fieldConfidence.email ?? 100) < 80, "suspicious email should lose confidence");
+assert.ok((suspiciousResult.review?.fieldConfidence.website ?? 100) < 80, "website/email mismatch should lose confidence");
+assert.ok((suspiciousResult.review?.fieldConfidence.address ?? 100) < 70, "address mixed with contact should lose confidence");
+assert.ok(
+  suspiciousResult.review?.flags.some((flag) => flag.field === "website" || flag.field === "customerName"),
+  "suspicious extraction should produce anomaly flags"
+);
+
 console.log("businessCardSchema review test passed");

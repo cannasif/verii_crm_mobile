@@ -508,10 +508,14 @@ export function CustomerFormScreen(): React.ReactElement {
       type: "review_retry",
       details: { overallConfidence: pendingBusinessCardResult.review?.overallConfidence ?? null },
     });
+    setIsBusinessCardReviewOpen(false);
     const retriedResult = await retryBusinessCardExtraction(pendingBusinessCardResult.imageUri);
     if (retriedResult) {
       setPendingBusinessCardResult(retriedResult);
+      setIsBusinessCardReviewOpen(true);
+      return;
     }
+    setIsBusinessCardReviewOpen(true);
   }, [pendingBusinessCardResult, retryBusinessCardExtraction, t]);
 
   const reviewFieldLabels = useMemo(() => ({

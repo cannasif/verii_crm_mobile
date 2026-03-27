@@ -1,12 +1,25 @@
+import type { OcrLineItem } from "./ocrService";
+import { detectBusinessCardLanguageProfile } from "./businessCardLanguageProfileService";
+import {
+  BUSINESS_CARD_ADDRESS_HINTS,
+  BUSINESS_CARD_COMPANY_MARKERS,
+  BUSINESS_CARD_CONTACT_TOKENS,
+  BUSINESS_CARD_INDUSTRY_KEYWORDS,
+  BUSINESS_CARD_TITLE_KEYWORDS,
+  lineContainsLexiconToken,
+} from "./businessCardLexicon";
+
 const PHONE_CANDIDATE_REGEX =
   /(?:\+|00)?\d{1,3}[\s().-]*(?:\d[\s().-]*){6,14}(?:\b(?:ext|ext\.|dahili|int\.?|pbx)\s*[:.]?\s*\d{1,6}\b|\s*\/\s*\d{1,6}|\s*\(\d{1,6}\))?/gi;
 const EMAIL_CANDIDATE_REGEX = /[^\s@]+@[^\s@]+\.[^\s@]+/g;
 const WEBSITE_CANDIDATE_REGEX =
   /(?:https?:\/\/)?(?:www\.)?[a-z0-9][a-z0-9.-]*\.(?:com(?:\.[a-z]{2})?|net|org|tr|edu(?:\.tr)?|gov(?:\.tr)?|io|biz|info|me|tv|es|ru|de|al|eu|fr|it|cn|co\.uk)(?:\/[^\s]*)?/gi;
-const CONTACT_TOKEN_REGEX =
-  /@|www\.|https?:\/\/|e-?mail|email|tel\.?|telefon|gsm|mobile|mob\.?|cell|office|fax|faks|linkedin|instagram|facebook|x\.com|twitter/i;
+const CONTACT_TOKEN_REGEX = new RegExp(
+  `@|www\\.|https?:\\/\\/|${BUSINESS_CARD_CONTACT_TOKENS.map((token) => token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")}`,
+  "i"
+);
 const ADDRESS_HINT_REGEX =
-  /\b(mah(?:\.|alle(?:si)?)?|cad(?:\.|de(?:si)?)?|sok(?:\.|ak|ağı)?|sk\.?|bulvar[ıi]?|bulv\.?|blv\.?|blok|kat\b|daire|apt|plaza|han|merkez(?:i)?|san\.?\s*sit\.?|sit\.?|osb|bölge(?:si)?|organize|posta|pk|no|numara|calle|nave|parque|business\s*park|parku|zona|street|st\.?|road|rd\.?|avenida|av\.?|ulitsa|ul\.?|ulica|prospekt|pr-?t|pr\.?|dom|d\.?|stroenie|str\.?|ofis|office|офис|ул\.?|улица|проспект|д\.?|дом|стр\.?)\b/i;
+  new RegExp(`\\b(${BUSINESS_CARD_ADDRESS_HINTS.map((token) => token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})\\b`, "i");
 const POSTAL_CODE_REGEX = /\b\d{4,6}\b/;
 const PHONE_IN_TEXT_REGEX =
   /(?:\+|00)?\d{1,3}[\s().-]*(?:\d[\s().-]*){6,14}/i;
@@ -54,7 +67,7 @@ export interface BusinessCardCandidateHints {
   addressLines: string[];
   scriptProfile: {
     dominantScript: "latin" | "cyrillic" | "mixed" | "unknown";
-    suggestedLocale: "tr" | "ru" | "intl";
+    suggestedLocale: "tr" | "en" | "de" | "ru" | "intl";
     confidence: number;
   };
   topCandidates: {
@@ -74,10 +87,6 @@ export interface BusinessCardCandidateHints {
   };
 }
 
-const COMPANY_HINT_REGEX =
-  /\b(a\.?\s?ş|aş|ltd|şti|san|tic|holding|group|llc|gmbh|co\.?\s?ltd|ooo|ооо|zao|зао|oao|оао|solutions|security|locks|metal|makine|machine|bio|biotech|trade|lines|construction|profile|pvc)\b/i;
-const TITLE_HINT_REGEX =
-  /\b(manager|director|chief|architect|engineer|sales|marketing|export|purchasing|logistics|managerial|chairman|vice chairman|president|müdür|yönetici|uzmanı|sorumlu|manager|менеджер|директор|руководитель|председатель)\b/i;
 const LETTER_LINE_REGEX = /\p{L}/u;
 const PERSON_TOKEN_REGEX = /^[\p{L}'.-]{2,}$/u;
 
@@ -140,7 +149,13 @@ function extractOrderedLines(rawText: string, lines?: string[], lineItems?: OcrL
   if (lineItems && lineItems.length > 0) {
     return uniqueStrings(
       [...lineItems]
-        .sort((left, right) => left.blockIndex - right.blockIndex || left.lineIndex - right.lineIndex)
+        .sort((left, right) => {
+          const topDelta = (left.frame?.top ?? Number.MAX_SAFE_INTEGER) - (right.frame?.top ?? Number.MAX_SAFE_INTEGER);
+          if (topDelta !== 0) return topDelta;
+          const leftDelta = (left.frame?.left ?? Number.MAX_SAFE_INTEGER) - (right.frame?.left ?? Number.MAX_SAFE_INTEGER);
+          if (leftDelta !== 0) return leftDelta;
+          return left.blockIndex - right.blockIndex || left.lineIndex - right.lineIndex;
+        })
         .map((item) => item.text)
     );
   }
@@ -170,41 +185,27 @@ function extractAddressLines(rawText: string, lines?: string[]): string[] {
 }
 
 function detectScriptProfile(rawText: string): BusinessCardCandidateHints["scriptProfile"] {
-  const letters = Array.from(rawText.matchAll(/\p{L}/gu)).length;
-  if (letters === 0) {
-    return { dominantScript: "unknown", suggestedLocale: "intl", confidence: 0 };
-  }
-
-  const cyrillic = Array.from(rawText.matchAll(/\p{Script=Cyrillic}/gu)).length;
-  const latin = Array.from(rawText.matchAll(/\p{Script=Latin}/gu)).length;
-  const dominantRatio = Math.max(cyrillic, latin) / letters;
-
-  if (cyrillic > 0 && latin > 0) {
-    return {
-      dominantScript: dominantRatio < 0.85 ? "mixed" : cyrillic > latin ? "cyrillic" : "latin",
-      suggestedLocale: cyrillic > latin ? "ru" : "tr",
-      confidence: Number(dominantRatio.toFixed(2)),
-    };
-  }
-
-  if (cyrillic > 0) {
-    return { dominantScript: "cyrillic", suggestedLocale: "ru", confidence: Number((cyrillic / letters).toFixed(2)) };
-  }
-
-  return { dominantScript: "latin", suggestedLocale: "tr", confidence: Number((latin / letters).toFixed(2)) };
+  return detectBusinessCardLanguageProfile(rawText);
 }
 
 function isLikelyNameLine(line: string): boolean {
-  if (CONTACT_TOKEN_REGEX.test(line) || TITLE_HINT_REGEX.test(line) || COMPANY_HINT_REGEX.test(line)) return false;
+  if (CONTACT_TOKEN_REGEX.test(line) || lineContainsLexiconToken(line, BUSINESS_CARD_TITLE_KEYWORDS) || looksLikeCompanyLine(line)) return false;
   const tokens = line.replace(/[^\p{L}\s'.-]/gu, " ").split(/\s+/).filter(Boolean);
   return tokens.length >= 2 && tokens.length <= 4 && tokens.every((token) => PERSON_TOKEN_REGEX.test(token));
 }
 
 function isLikelyCompanyZoneLine(line: string, index: number): boolean {
-  if (CONTACT_TOKEN_REGEX.test(line) || TITLE_HINT_REGEX.test(line)) return false;
-  if (COMPANY_HINT_REGEX.test(line)) return true;
+  if (CONTACT_TOKEN_REGEX.test(line) || lineContainsLexiconToken(line, BUSINESS_CARD_TITLE_KEYWORDS)) return false;
+  if (looksLikeCompanyLine(line)) return true;
   if (index <= 1 && /^[\p{Lu}\s.&'-]{2,}$/u.test(line.trim())) return true;
   return false;
+}
+
+function looksLikeCompanyLine(line: string): boolean {
+  return (
+    lineContainsLexiconToken(line, BUSINESS_CARD_COMPANY_MARKERS) ||
+    lineContainsLexiconToken(line, BUSINESS_CARD_INDUSTRY_KEYWORDS)
+  );
 }
 
 function scoreIdentityLines(rawText: string, lines?: string[]): ScoredIdentityLine[] {
@@ -218,13 +219,13 @@ function scoreIdentityLines(rawText: string, lines?: string[]): ScoredIdentityLi
     let titleScore = 0;
     let nameScore = 0;
 
-    if (COMPANY_HINT_REGEX.test(line)) companyScore += 4;
-    if (TITLE_HINT_REGEX.test(line)) titleScore += 4;
+    if (looksLikeCompanyLine(line)) companyScore += 4;
+    if (lineContainsLexiconToken(line, BUSINESS_CARD_TITLE_KEYWORDS)) titleScore += 4;
     if (isLikelyNameLine(line)) nameScore += 4;
-    if (index <= 1 && COMPANY_HINT_REGEX.test(line)) companyScore += 2;
+    if (index <= 1 && looksLikeCompanyLine(line)) companyScore += 2;
     if (index >= 1 && index <= 4 && isLikelyNameLine(line)) nameScore += 2;
-    if (index >= 1 && index <= 5 && TITLE_HINT_REGEX.test(line)) titleScore += 1;
-    if (/^[\p{Lu}\s.&'-]{2,}$/u.test(line) && !TITLE_HINT_REGEX.test(line)) companyScore += 1;
+    if (index >= 1 && index <= 5 && lineContainsLexiconToken(line, BUSINESS_CARD_TITLE_KEYWORDS)) titleScore += 1;
+    if (/^[\p{Lu}\s.&'-]{2,}$/u.test(line) && !lineContainsLexiconToken(line, BUSINESS_CARD_TITLE_KEYWORDS)) companyScore += 1;
     if (/^[\p{Lu}\s'.-]{2,}$/u.test(line) && isLikelyNameLine(line)) nameScore += 1;
 
     const best = Math.max(companyScore, titleScore, nameScore);
@@ -277,12 +278,39 @@ function buildLayoutProfile(rawText: string, lines?: string[], lineItems?: OcrLi
     };
   }
 
-  const topEnd = Math.max(1, Math.ceil(orderedLines.length / 3));
-  const middleEnd = Math.max(topEnd + 1, Math.ceil((orderedLines.length * 2) / 3));
+  const geometryLines = (lineItems ?? [])
+    .filter((item) => item.frame && item.text && item.text.length >= 2 && item.text.length <= 140)
+    .sort((left, right) => (left.frame!.top - right.frame!.top) || (left.frame!.left - right.frame!.left));
 
-  const topZoneLines = orderedLines.slice(0, topEnd);
-  const middleZoneLines = orderedLines.slice(topEnd, middleEnd);
-  const bottomZoneLines = orderedLines.slice(middleEnd);
+  let topZoneLines: string[];
+  let middleZoneLines: string[];
+  let bottomZoneLines: string[];
+
+  if (geometryLines.length >= 3) {
+    const minTop = Math.min(...geometryLines.map((item) => item.frame!.top));
+    const maxBottom = Math.max(...geometryLines.map((item) => item.frame!.top + item.frame!.height));
+    const totalHeight = Math.max(1, maxBottom - minTop);
+    const topBoundary = minTop + totalHeight / 3;
+    const middleBoundary = minTop + (totalHeight * 2) / 3;
+
+    topZoneLines = uniqueStrings(
+      geometryLines.filter((item) => item.frame!.top < topBoundary).map((item) => item.text)
+    );
+    middleZoneLines = uniqueStrings(
+      geometryLines
+        .filter((item) => item.frame!.top >= topBoundary && item.frame!.top < middleBoundary)
+        .map((item) => item.text)
+    );
+    bottomZoneLines = uniqueStrings(
+      geometryLines.filter((item) => item.frame!.top >= middleBoundary).map((item) => item.text)
+    );
+  } else {
+    const topEnd = Math.max(1, Math.ceil(orderedLines.length / 3));
+    const middleEnd = Math.max(topEnd + 1, Math.ceil((orderedLines.length * 2) / 3));
+    topZoneLines = orderedLines.slice(0, topEnd);
+    middleZoneLines = orderedLines.slice(topEnd, middleEnd);
+    bottomZoneLines = orderedLines.slice(middleEnd);
+  }
 
   const preferredCompanyLines = uniqueStrings(
     topZoneLines.filter((line, index) => isLikelyCompanyZoneLine(line, index)).slice(0, 3)
@@ -292,7 +320,7 @@ function buildLayoutProfile(rawText: string, lines?: string[], lineItems?: OcrLi
   );
   const preferredTitleLines = uniqueStrings(
     [...topZoneLines.slice(-2), ...middleZoneLines, ...bottomZoneLines.slice(0, 1)]
-      .filter((line) => TITLE_HINT_REGEX.test(line))
+      .filter((line) => lineContainsLexiconToken(line, BUSINESS_CARD_TITLE_KEYWORDS))
       .slice(0, 3)
   );
   const contactClusterLines = uniqueStrings(
@@ -322,4 +350,3 @@ export function buildBusinessCardCandidateHints(rawText: string, lines?: string[
 
   return { phones, emails, websites, addressLines, scriptProfile, topCandidates, layoutProfile };
 }
-import type { OcrLineItem } from "./ocrService";

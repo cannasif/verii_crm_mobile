@@ -182,6 +182,7 @@ Tel: 0212 343 05 11 · Fax: 0212 343 05 12`,
       notes: ["Fax: 0312 346 41 46", "Şube: Hürriyet Mah. Dr. Cemil Bengü Cad. No:60/A Çağlayan / İstanbul"],
     },
     assertResult: (result) => {
+      assert.equal(result.company, "Baygün Hırdavat İnşaat A.Ş.");
       assert.equal(result.phones[0], "+905352486111");
       assert.equal(result.phones[1], "+903123464141");
       assert.ok(result.notes.some((note) => note.includes("Fax")));
@@ -230,6 +231,97 @@ REPUBLIKA E KOSOVËS`,
       assert.equal(result.phones[0], "+38345771122");
       assert.equal(result.website, "www.m-sora.al");
       assert.equal(result.addressParts.country, "Kosovo");
+    },
+  },
+  {
+    name: "Muster GmbH / Germany",
+    rawText: `MUSTER GMBH
+Anna Müller
+Vertriebsleiterin
+Musterstraße 12
+40210 Düsseldorf
+Deutschland
+Tel. +49 211 1234567
+anna.mueller@muster.de
+www.muster.de`,
+    input: {
+      contactNameAndSurname: "Anna Müller",
+      name: "Anna Müller",
+      title: "Vertriebsleiterin",
+      company: "Muster GmbH",
+      phones: ["+49 211 1234567"],
+      emails: ["anna.mueller@muster.de"],
+      website: "www.muster.de",
+      address: "Musterstraße 12, 40210 Düsseldorf, Deutschland",
+      addressParts: {
+        neighborhood: null,
+        street: "Musterstraße",
+        avenue: null,
+        boulevard: null,
+        sitePlaza: null,
+        block: null,
+        buildingNo: "12",
+        floor: null,
+        apartment: null,
+        postalCode: "40210",
+        district: "Düsseldorf",
+        province: null,
+        country: "Deutschland",
+      },
+      social: emptySocial,
+      notes: [],
+    },
+    assertResult: (result) => {
+      assert.equal(result.name, "Anna Müller");
+      assert.equal(result.title, "Vertriebsleiterin");
+      assert.equal(result.company, "Muster GmbH");
+      assert.equal(result.phones[0], "+492111234567");
+      assert.equal(result.website, "www.muster.de");
+    },
+  },
+  {
+    name: "North Star / English",
+    rawText: `North Star Trading LLC
+John Carter
+Sales Manager
+1250 West Market Street, Suite 400
+Chicago, IL 60607
+Phone +1 312 555 0101
+john.carter@northstartrading.com
+www.northstartrading.com`,
+    input: {
+      contactNameAndSurname: "John Carter",
+      name: "John Carter",
+      title: "Sales Manager",
+      company: "North Star Trading LLC",
+      phones: ["+1 312 555 0101"],
+      emails: ["john.carter@northstartrading.com"],
+      website: "www.northstartrading.com",
+      address: "1250 West Market Street, Suite 400, Chicago, IL 60607",
+      addressParts: {
+        neighborhood: null,
+        street: "West Market Street",
+        avenue: null,
+        boulevard: null,
+        sitePlaza: "Suite 400",
+        block: null,
+        buildingNo: "1250",
+        floor: null,
+        apartment: null,
+        postalCode: "60607",
+        district: "Chicago",
+        province: "IL",
+        country: null,
+      },
+      social: emptySocial,
+      notes: [],
+    },
+    assertResult: (result) => {
+      assert.equal(result.name, "John Carter");
+      assert.equal(result.title, "Sales Manager");
+      assert.equal(result.company, "North Star Trading LLC");
+      assert.equal(result.phones[0], "+13125550101");
+      assert.equal(result.website, "www.northstartrading.com");
     },
   },
   {
@@ -320,6 +412,55 @@ www.vbh-kosovo.de | www.vbh24.de`,
       assert.equal(result.phones[0], "+377045560800");
       assert.equal(result.website, "www.vbh-kosovo.de");
       assert.ok(result.notes.some((note) => note.includes("vbh24.de")));
+      assert.equal(result.name, "Fisnik Berisha");
+      assert.equal(result.title, "Manager");
+      assert.equal(result.company, "VBH Kosovo L.L.C.");
+    },
+  },
+  {
+    name: "VBH / Kosovo bad extraction guard",
+    rawText: `VBH
+Everything Simple.
+Fisnik BERISHA
+Manager
+VBH Kosovo L.L.C.
+Member of VBH Group
+Tel.Mob. +377 (0) 45 560 800
+E-mail vbh-kosovo@hotmail.com
+Business Park Drenas
+13050 Bushat / Kosovo
+www.vbh-kosovo.de | www.vbh24.de`,
+    input: {
+      contactNameAndSurname: "Everything Simple",
+      name: "Everything Simple",
+      title: "Member of VBH Group",
+      company: "VBH",
+      phones: ["+377 (0) 45 560 800"],
+      emails: ["vbh-kosovo@hotmail.com"],
+      website: "www.vbh-kosovo.de",
+      address: "VBH Kosovo L.L.C., Business Park Drenas, 13050 Bushat / Kosovo",
+      addressParts: {
+        neighborhood: null,
+        street: null,
+        avenue: null,
+        boulevard: null,
+        sitePlaza: "Business Park Drenas",
+        block: null,
+        buildingNo: null,
+        floor: null,
+        apartment: null,
+        postalCode: "13050",
+        district: "Bushat",
+        province: null,
+        country: "Kosovo",
+      },
+      social: emptySocial,
+      notes: [],
+    },
+    assertResult: (result) => {
+      assert.equal(result.name, "Fisnik Berisha");
+      assert.equal(result.title, "Manager");
+      assert.equal(result.company, "VBH Kosovo L.L.C.");
     },
   },
   {
@@ -415,6 +556,139 @@ Add: Ya'an Agricultural Hi-Tech Ecological Park, Ya'an City, China`,
       assert.equal(result.website, "www.times-bio.com");
       assert.equal(result.addressParts.country, "China");
       assert.ok(result.notes.some((note) => note.includes("Fax")));
+    },
+  },
+  {
+    name: "Rob Locks / Russia wrong short company and website",
+    rawText: `RB
+rob locks security systems
+Dmitrii A. Kholodkov
+Sales division manager
+Office: +7 495 223 80 03 ext. 200
+Cell +7 917 507 33 17
+e-mail: hd@rob-locks.ru
+109428, Russia, Moscow,
+Ryazanskiy prospect str., 24, build. 1
+www.ravbariach.ru, www.cisa-russia.com, www.rob-locks.ru`,
+    input: {
+      contactNameAndSurname: "Dmitrii A. Kholodkov",
+      name: "Dmitrii A. Kholodkov",
+      title: "Sales division manager",
+      company: "RB",
+      phones: ["+7 917 507 33 17", "+7 495 223 80 03 ext. 200"],
+      emails: ["hd@rob-locks.ru"],
+      website: "www.cisa-russia.com",
+      address: "Ryazanskiy prospect str., 24, 109428, Moscow",
+      addressParts: {
+        neighborhood: null,
+        street: "Ryazanskiy prospect str.",
+        avenue: null,
+        boulevard: null,
+        sitePlaza: null,
+        block: null,
+        buildingNo: "24",
+        floor: null,
+        apartment: "build. 1",
+        postalCode: "109428",
+        district: null,
+        province: "Moscow",
+        country: "Russia",
+      },
+      social: emptySocial,
+      notes: [],
+    },
+    assertResult: (result) => {
+      assert.equal(result.company, "rob locks security systems");
+      assert.equal(result.website, "www.rob-locks.ru");
+      assert.ok(result.notes.some((note) => note.includes("cisa-russia.com")));
+    },
+  },
+  {
+    name: "M Sora / Kosovo bad company contamination",
+    rawText: `M SORA
+Nuhi Krasniqi
+Manager
+mob: +383 45 77 11 22
+nuhi.krasniqisigm-sora.al
+www.Sora.(94%)
+PARKU I BIZNESIT, 13000 DRENAS
+REPUBLIKA E KOSOVËS`,
+    input: {
+      contactNameAndSurname: "Nuhi Krasniqi",
+      name: "Nuhi Krasniqi",
+      title: "Manager",
+      company: "M SORA Nuhi Krasniqi Manager mob: +38345 7711 22 nuhikrasnigigm-sora.al",
+      phones: ["+383 45 77 11 22"],
+      emails: [],
+      website: "www.m-sora.al",
+      address: "PARKU I BIZNESIT, 13000 DRENAS, REPUBLIKA E KOSOVËS",
+      addressParts: {
+        neighborhood: null,
+        street: null,
+        avenue: null,
+        boulevard: null,
+        sitePlaza: "PARKU I BIZNESIT",
+        block: null,
+        buildingNo: null,
+        floor: null,
+        apartment: null,
+        postalCode: "13000",
+        district: "DRENAS",
+        province: null,
+        country: "KOSOVËS",
+      },
+      social: emptySocial,
+      notes: [],
+    },
+    assertResult: (result) => {
+      assert.equal(result.company, "M SORA");
+      assert.equal(result.name, "Nuhi Krasniqi");
+      assert.equal(result.title, "Manager");
+    },
+  },
+  {
+    name: "Bozdogan / TR service lines should not become person or company",
+    rawText: `BOZDOGAN CAM BALKON
+PVC Doğrama
+Alüminyum Doğrama
+Eşikli - Eşiksiz Sürme
+Otomatik Panjur
+Otomatik Kepenk
+Küpeşte - Sineklik
+Emre BOZDOĞAN
+0 553 416 84 63
+Atatürk San. Sit. 5542 Sk. No:11 Torbalı - İZMİR`,
+    input: {
+      contactNameAndSurname: "Otomatik Kepenk",
+      name: "Otomatik Kepenk",
+      title: null,
+      company: "Atatük San. Sit. 5542 Sk. No:11 Torbalı - İZMİR BOZDOĞAN PVC Doğrama BOZDOĞAN CAM BALKON",
+      phones: ["0 553 416 84 63"],
+      emails: [],
+      website: null,
+      address: "Atatürk San. Sit. 5542 Sk. No:11 Torbalı / İzmir",
+      addressParts: {
+        neighborhood: null,
+        street: "5542 Sk.",
+        avenue: null,
+        boulevard: null,
+        sitePlaza: "Atatürk San. Sit.",
+        block: null,
+        buildingNo: "No:11",
+        floor: null,
+        apartment: null,
+        postalCode: null,
+        district: "Torbalı",
+        province: "İzmir",
+        country: "Türkiye",
+      },
+      social: emptySocial,
+      notes: [],
+    },
+    assertResult: (result) => {
+      assert.equal(result.name, "Emre Bozdoğan");
+      assert.equal(result.company, "Bozdoğan Cam Balkon");
+      assert.equal(result.phones[0], "+905534168463");
     },
   },
 ];

@@ -53,8 +53,18 @@ export async function captureBusinessCardFromCamera(): Promise<{ imageUri: strin
       if (imageUri) {
         return { imageUri: await normalizeImageUri(imageUri), usedScanner: true };
       }
-    } catch {
-      // Fall back to plain camera capture below.
+      return { imageUri: null, usedScanner: true };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (
+        /cancel/i.test(message) ||
+        /canceled/i.test(message) ||
+        /cancelled/i.test(message) ||
+        /back/i.test(message)
+      ) {
+        return { imageUri: null, usedScanner: true };
+      }
+      throw new Error(message || "DOCUMENT_SCANNER_FAILED");
     }
   }
 

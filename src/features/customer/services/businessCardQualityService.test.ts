@@ -12,9 +12,9 @@ const strongQuality = assessBusinessCardOcrQuality(
     "www.strongbull.es",
   ],
   [
-    { blockIndex: 0, lineIndex: 0, text: "Sandra Lorido" },
-    { blockIndex: 0, lineIndex: 1, text: "Export Manager" },
-    { blockIndex: 0, lineIndex: 2, text: "Strong Bull Maquinaria S.L." },
+    { blockIndex: 0, lineIndex: 0, text: "Sandra Lorido", elementsCount: 2, recognizedLanguages: ["es"], cornerPoints: [{ x: 0, y: 0 }, { x: 120, y: 1 }, { x: 120, y: 20 }, { x: 0, y: 19 }] },
+    { blockIndex: 0, lineIndex: 1, text: "Export Manager", elementsCount: 2, recognizedLanguages: ["es"], cornerPoints: [{ x: 0, y: 30 }, { x: 140, y: 31 }, { x: 140, y: 50 }, { x: 0, y: 49 }] },
+    { blockIndex: 0, lineIndex: 2, text: "Strong Bull Maquinaria S.L.", elementsCount: 4, recognizedLanguages: ["es"], cornerPoints: [{ x: 0, y: 60 }, { x: 220, y: 61 }, { x: 220, y: 80 }, { x: 0, y: 79 }] },
   ]
 );
 assert.equal(strongQuality.flags.length, 0, "strong OCR should not produce quality flags");

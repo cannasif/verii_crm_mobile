@@ -1,5 +1,14 @@
 import { z } from "zod";
 import type { AddressParts, BusinessCardExtraction, BusinessCardOcrResult, BusinessCardReviewFlag, BusinessCardReviewSummary } from "../types/businessCard";
+import { detectBusinessCardLanguageProfile } from "../services/businessCardLanguageProfileService";
+import {
+  BUSINESS_CARD_ADDRESS_HINTS,
+  BUSINESS_CARD_COMPANY_MARKERS,
+  BUSINESS_CARD_CONTACT_TOKENS,
+  BUSINESS_CARD_INDUSTRY_KEYWORDS,
+  BUSINESS_CARD_TITLE_KEYWORDS,
+  lineContainsLexiconToken,
+} from "../services/businessCardLexicon";
 
 const AddressPartsSchema = z.object({
   neighborhood: z.string().nullable(),
@@ -58,9 +67,12 @@ const UNICODE_LETTER_REGEX = /\p{L}/u;
 const UNICODE_LETTER_GLOBAL_REGEX = /\p{L}/gu;
 const UNICODE_UPPERCASE_GLOBAL_REGEX = /\p{Lu}/gu;
 const CYRILLIC_REGEX = /\p{Script=Cyrillic}/u;
-const CONTACT_TOKEN_REGEX = /@|www\.|https?:\/\/|e-?mail|email|tel\.?|telefon|gsm|mobile|mob\.?|cell|office|fax|faks/i;
+const CONTACT_TOKEN_REGEX = new RegExp(
+  `@|www\\.|https?:\\/\\/|${BUSINESS_CARD_CONTACT_TOKENS.map((token) => token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")}`,
+  "i"
+);
 const ADDRESS_HINT_REGEX =
-  /\b(mah(?:\.|alle(?:si)?)?|cad(?:\.|de(?:si)?)?|sok(?:\.|ak|ağı)?|sk\.?|bulvar[ıi]?|bulv\.?|blv\.?|blok|kat\b|daire|apt|plaza|han|merkez(?:i)?|san\.?\s*sit\.?|sit\.?|osb|bölge(?:si)?|organize|posta|pk|calle|nave|parque|business\s*park|parku|zona|street|st\.?|road|rd\.?|avenida|av\.?|ulitsa|ul\.?|ulica|prospekt|pr-?t|pr\.?|dom|d\.?|stroenie|str\.?|ofis|office|офис|ул\.?|улица|проспект|д\.?|дом|стр\.?)\b/i;
+  new RegExp(`\\b(${BUSINESS_CARD_ADDRESS_HINTS.map((token) => token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})\\b`, "i");
 const ADDRESS_NO_REGEX = /\b(?:no|numara)\s*[:.]?\s*\d{1,5}(?:\s*[-/]\s*\w{1,5})?|\bn\s*[:.]\s*\d{1,5}(?:\s*[-/]\s*\w{1,5})?/i;
 const POSTAL_CODE_REGEX = /\b\d{4,6}\b/;
 const ADDRESS_EXCLUDE_REGEX =
@@ -71,71 +83,18 @@ const WEBSITE_CANDIDATE_REGEX =
   /(?:https?:\/\/)?(?:www\.)?[a-z0-9][a-z0-9.-]*\.(?:com(?:\.[a-z]{2})?|net|org|tr|edu(?:\.tr)?|gov(?:\.tr)?|io|biz|info|me|tv|es|ru|de|al|eu|fr|it|cn|co\.uk)(?:\/[^\s]*)?/gi;
 const WEBSITE_TLD_REGEX = /\.(?:com(?:\.[a-z]{2})?|net|org|tr|edu(?:\.tr)?|gov(?:\.tr)?|io|biz|info|me|tv|es|ru|de|al|eu|fr|it|cn|co\.uk)(?:\/|$)/i;
 const WEBSITE_BLACKLIST_REGEX = /\b(A\.?\s?Ş|AŞ|LTD|ŞT[İI]|SAN|T[İI]C|DIŞ|AKS|ORTAKLIĞI|ООО|ЗАО|ОАО)\b/i;
-const COMPANY_MARKER_REGEX = /\b(A\.?\s?Ş|AŞ|LTD|ŞT[İI]|SAN|T[İI]C|ORTAKLIĞI|S\.?L\.?|S\.?A\.?|LLC|L\.?L\.?C\.?|SH\.?P\.?K\.?|GMBH|CO\.?\s?LTD|ООО|ЗАО|ОАО)\b/i;
-const COMPANY_MARKER_BOUNDARY_REGEX =
-  /(^|[^\p{L}])(A\.?\s?Ş|AŞ|LTD|ŞT[İI]|SAN|T[İI]C|ORTAKLIĞI|S\.?L\.?|S\.?A\.?|LLC|L\.?L\.?C\.?|SH\.?P\.?K\.?|GMBH|CO\.?\s?LTD|ООО|ЗАО|ОАО)(?=$|[^\p{L}])/iu;
-const INDUSTRY_KEYWORD_REGEX =
-  /\b(makine|makina|tekstil|otomotiv|gıda|inşaat|mobilya|lojistik|logistics|trading|solutions|import|export|mühendislik|danışmanlık|turizm|enerji|group|grup|holding|plastik|metal|kimya|elektrik|elektronik|yazılım|software|bilişim|otomasyon|otomasyonu|pvc|alüminyum|nakliyat|gayrimenkul|sigorta|reklam|medya|ambalaj|demir|çelik|cam|pencere|kapı|vinç|maden|lines|teknoloji|technology|iletişim|hizmet|hizmetleri|services|marin|marine|denizcilik|hafriyat|peyzaj|tarım|mimarlık|müteahhit|depolama|soğutma|jeneratör|asansör|matbaa|ajans|eczane|optik|kozmetik|giyim|konfeksiyon|ayakkabı|deri|kuyumculuk|mücevher|oto|otobüs|araç|lastik|akü|yedek\s*parça|rulman|conta|boya|hırdavat|nalburiye|seramik|mermer|parke|halı|perde|aydınlatma|mutfak|banyo|beyaz\s*eşya|klima|kombi|doğalgaz|ısıtma|iklimlendirme|havalandırma|yangın|güvenlik|temizlik|catering|gümrük|antrepo|freight|cargo|kargo|kurye|taşımacılık|profil|security|locks|hardware|construction|managerial|biotech|agriculture|ecological|maquinaria|security\s*systems|машиностроение|металл|торговля|био|security)\b/i;
 const PHONE_CANDIDATE_REGEX =
   /(?:\+|00)?\d{1,3}[\s().-]*(?:\d[\s().-]*){6,14}(?:\b(?:ext|ext\.|dahili|int\.?|pbx)\s*[:.]?\s*\d{1,6}\b|\s*\/\s*\d{1,6}|\s*\(\d{1,6}\))?/gi;
 const PHONE_IN_TEXT_REGEX =
   /(?:\+|00)?\d{1,3}[\s().-]*(?:\d[\s().-]*){6,14}(?:\b(?:ext|ext\.|dahili|int\.?|pbx)\s*[:.]?\s*\d{1,6}\b|\s*\/\s*\d{1,6}|\s*\(\d{1,6}\))?/i;
-const TITLE_KEYWORDS = [
-  "sales",
-  "marketing",
-  "manager",
-  "planning",
-  "planner",
-  "müdür",
-  "müdürü",
-  "yardımcısı",
-  "yardimcisi",
-  "yönetici",
-  "yonetici",
-  "supervisor",
-  "director",
-  "chief",
-  "coordinator",
-  "assistant",
-  "deputy",
-  "logistic",
-  "lojistik",
-  "satış",
-  "satis",
-  "pazarlama",
-  "genel",
-  "engineer",
-  "uzmanı",
-  "uzmani",
-  "sorumlu",
-  "assembly",
-  "member",
-  "adviser",
-  "advisor",
-  "investment",
-  "koordinatörlüğü",
-  "koordinatorlugu",
-  "koordinatör",
-  "koordinator",
-  "export",
-  "ventas",
-  "managerial",
-  "division",
-  "office",
-  "chairman",
-  "vice chairman",
-  "executive vice president",
-  "manager",
-  "менеджер",
-  "директор",
-  "руководитель",
-  "председатель",
-  "chairman",
-] as const;
 const LETTER_CHAR_REGEX = UNICODE_LETTER_REGEX;
 const LETTER_GLOBAL_REGEX = UNICODE_LETTER_GLOBAL_REGEX;
 const UPPER_LETTER_GLOBAL_REGEX = UNICODE_UPPERCASE_GLOBAL_REGEX;
 const PERSON_TOKEN_REGEX = /^[\p{L}'.-]{2,}$/u;
+const SLOGAN_NOISE_REGEX =
+  /\b(everything simple|member of|official dealer|kap[ıi]\s+ve\s+pencere\s+aksesuarlar[ıi]|group member|made simple)\b/i;
+const SERVICE_CONNECTOR_TOKENS = new Set(["ve", "and", "-", "/", "eşikli", "eşiksiz"]);
+const COMPANY_CONNECTOR_TOKENS = new Set(["ve", "and", "of", "und", "&"]);
 
 const SAFE_PROVINCES = new Set([
   "istanbul", "ankara", "izmir", "bursa", "kocaeli", "antalya", "konya",
@@ -183,7 +142,27 @@ function normalizeCompanySuffix(value: string | null): string | null {
   if (!value) return null;
   return value
     .replace(/\bA\.?\s?S\.?\b/gi, "A.Ş.")
-    .replace(/\bLTD\.?\s*STI\.?\b/gi, "Ltd. Şti.");
+    .replace(/\bLTD\.?\s*STI\.?\b/gi, "Ltd. Şti.")
+    .replace(/\bGMBH\b/gi, "GmbH")
+    .replace(/\bL\.L\.C\.\.+\b/g, "L.L.C.")
+    .replace(/\bLLC\b/g, "LLC")
+    .replace(/\bL\.L\.C\b/g, "L.L.C.")
+    .replace(/\bCO\.?\s*LTD\.?\b/gi, "Co. Ltd.")
+    .replace(/\.{2,}/g, ".")
+    .trim();
+}
+
+function foldLocaleToken(value: string): string {
+  return value
+    .toLocaleLowerCase("tr-TR")
+    .replace(/ğ/g, "g")
+    .replace(/ü/g, "u")
+    .replace(/ş/g, "s")
+    .replace(/ı/g, "i")
+    .replace(/i̇/g, "i")
+    .replace(/ö/g, "o")
+    .replace(/ç/g, "c")
+    .replace(/ё/g, "е");
 }
 
 function uniqueStrings(values: string[]): string[] {
@@ -436,10 +415,11 @@ function normalizeWebsite(value: string | null, notes?: string[]): string | null
 }
 
 function extractWebsiteCandidatesFromRawText(rawText: string): string[] {
+  const textWithoutEmails = rawText.replace(/[^\s@]+@[^\s@]+\.[^\s@]+/g, " ");
   const candidates: string[] = [];
   let match: RegExpExecArray | null;
   const regex = new RegExp(WEBSITE_CANDIDATE_REGEX.source, "gi");
-  while ((match = regex.exec(rawText)) !== null) {
+  while ((match = regex.exec(textWithoutEmails)) !== null) {
     const normalized = normalizeWebsite(match[0]);
     if (normalized && !candidates.includes(normalized)) {
       candidates.push(normalized);
@@ -472,6 +452,99 @@ function pickWebsiteFromRawText(rawText: string | undefined, emails: string[], n
     }
   }
   return candidates[0] ?? null;
+}
+
+function pickWebsiteAlignedWithEmail(currentWebsite: string | null, rawText: string | undefined, emails: string[], notes: string[]): string | null {
+  const emailDomains = emails.map((x) => x.split("@")[1]?.toLowerCase()).filter(Boolean) as string[];
+  if (emailDomains.length === 0) return currentWebsite;
+
+  const currentDomain = extractDomainFromWebsite(currentWebsite ?? "");
+  if (currentDomain && emailDomains.some((emailDomain) => currentDomain.includes(emailDomain) || emailDomain.includes(currentDomain))) {
+    return currentWebsite;
+  }
+
+  const candidates = extractWebsiteCandidatesFromRawText(rawText ?? "");
+  const matched = candidates.find((candidate) => {
+    const domain = extractDomainFromWebsite(candidate);
+    return emailDomains.some((emailDomain) => domain.includes(emailDomain) || emailDomain.includes(domain));
+  });
+
+  if (matched) {
+    if (currentWebsite && matched !== currentWebsite) {
+      pushNote(notes, `Marka/ek website: ${currentWebsite}`);
+    }
+    return matched;
+  }
+
+  return currentWebsite;
+}
+
+function inferCompanyFromDomainLines(rawText: string | undefined, domains: string[]): string | null {
+  if (!rawText || domains.length === 0) return null;
+  const normalizedDomains = domains
+    .map((domain) => domain.split(".")[0]?.replace(/[-_]/g, " ").trim().toLocaleLowerCase("tr-TR"))
+    .filter(Boolean) as string[];
+  const compactDomains = normalizedDomains
+    .map((domain) => foldLocaleToken(domain).replace(/[^\p{L}\d]/gu, ""))
+    .filter(Boolean);
+  if (normalizedDomains.length === 0) return null;
+
+  const lines = rawText
+    .split(/\r?\n/)
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+
+  const matched = lines
+    .filter((line) => {
+      const normalizedLine = line.toLocaleLowerCase("tr-TR");
+      const compactLine = foldLocaleToken(normalizedLine).replace(/[^\p{L}\d]/gu, "");
+      return (
+        (normalizedDomains.some((domain) => normalizedLine.includes(domain)) ||
+          compactDomains.some((domain) => compactLine.includes(domain))) &&
+        (looksLikeCompany(line) || hasCompanyMarker(line)) &&
+        !CONTACT_TOKEN_REGEX.test(line) &&
+        !EMAIL_REGEX.test(line) &&
+        !/\b(?:www\.|https?:\/\/)\b/i.test(line) &&
+        !isPureServiceDescriptorLine(line)
+      );
+    })
+    .sort((left, right) => right.length - left.length)[0];
+
+  return matched ? sanitizeCompany(matched) : null;
+}
+
+function tokenizeCompanyForComparison(value: string | null): string[] {
+  if (!value) return [];
+  return value
+    .split(/\s+/)
+    .map((token) => foldLocaleToken(token).replace(/[^\p{L}\d]/gu, ""))
+    .filter(Boolean)
+    .filter((token) => !COMPANY_CONNECTOR_TOKENS.has(token))
+    .filter((token) => !["as", "as.", "aş", "ltd", "sti", "şti", "gmbh", "ag", "ug", "llc", "co"].includes(token));
+}
+
+function shouldPreferRicherCompanyCandidate(existing: string | null, candidate: string | null): boolean {
+  if (!candidate) return false;
+  if (!existing) return true;
+
+  const existingFolded = foldLocaleToken(existing).replace(/[^\p{L}\d]/gu, "");
+  const candidateFolded = foldLocaleToken(candidate).replace(/[^\p{L}\d]/gu, "");
+  if (!existingFolded || !candidateFolded) return false;
+  if (candidateFolded === existingFolded) return false;
+
+  if (
+    (candidateFolded.includes(existingFolded) || existingFolded.includes(candidateFolded)) &&
+    candidate.length >= existing.length + 3
+  ) {
+    return true;
+  }
+
+  const existingTokens = tokenizeCompanyForComparison(existing);
+  const candidateTokens = tokenizeCompanyForComparison(candidate);
+  if (existingTokens.length === 0 || candidateTokens.length === 0) return false;
+
+  const overlap = existingTokens.filter((token) => candidateTokens.includes(token)).length;
+  return overlap >= Math.max(1, Math.ceil(existingTokens.length * 0.5)) && candidateTokens.length > existingTokens.length;
 }
 
 function splitMixedAddressLine(line: string): string[] {
@@ -620,6 +693,76 @@ function enrichAddressPartsFromText(parts: AddressParts, addressText: string | n
   return enriched;
 }
 
+function enrichAddressPartsByLocale(parts: AddressParts, addressText: string | null): AddressParts {
+  if (!addressText) return parts;
+
+  const enriched = { ...parts };
+  const normalizedAddress = addressText.replace(/\s+/g, " ").trim();
+  const locale = detectBusinessCardLanguageProfile(normalizedAddress).suggestedLocale;
+
+  const assignIfMissing = (key: keyof AddressParts, value: string | null | undefined): void => {
+    if (!value || enriched[key]) return;
+    enriched[key] = value.trim();
+  };
+
+  if (locale === "tr") {
+    assignIfMissing("neighborhood", normalizedAddress.match(/\b([\p{L}\s]+?)\s+Mah\.?/iu)?.[1]);
+    assignIfMissing("avenue", normalizedAddress.match(/\b([\p{L}\s]+?)\s+Cad\.?/iu)?.[1]);
+    assignIfMissing("street", normalizedAddress.match(/\b([\p{L}\s0-9-]+?)\s+(?:Sk\.?|Sok(?:ak)?\.?)/iu)?.[1]);
+    assignIfMissing("boulevard", normalizedAddress.match(/\b([\p{L}\s]+?)\s+Bulv\.?/iu)?.[1]);
+    assignIfMissing("sitePlaza", normalizedAddress.match(/\b((?:[\p{L}\d.\s-]+?)\s+(?:Site|Plaza|İş Merkezi|İş Mrk\.?|Business Park|OSB|Organize Sanayi Bölgesi|San\.?\s*Sit\.?))\b/iu)?.[1]);
+    assignIfMissing("block", normalizedAddress.match(/\b(([A-Z0-9-]+)\s+Blok)\b/iu)?.[1]);
+    assignIfMissing("buildingNo", normalizedAddress.match(/\bNo\s*[:.]?\s*([A-Z0-9/-]+)/iu)?.[1]);
+    assignIfMissing("floor", normalizedAddress.match(/\bKat\s*[:.]?\s*([A-Z0-9-]+)/iu)?.[1]);
+    assignIfMissing("apartment", normalizedAddress.match(/\b(?:Daire|D:)\s*[:.]?\s*([A-Z0-9-]+)/iu)?.[1]);
+    assignIfMissing("apartment", normalizedAddress.match(/\bApt\.?\s*[:.]?\s*([A-Z0-9-]+)/iu)?.[1]);
+    if (!enriched.sitePlaza) {
+      const siteMatch = normalizedAddress.match(/\b((?:[\p{L}\d.\s-]+?)\s+(?:San\.?\s*Sit\.?|OSB|Organize Sanayi Bölgesi))\b/iu)?.[1];
+      if (siteMatch) enriched.sitePlaza = siteMatch.trim();
+    }
+    if (!enriched.street) {
+      const roadLike = normalizedAddress.match(/\b(\d+\.\s*Yol\s+Sk\.?)\b/iu)?.[1];
+      if (roadLike) enriched.street = roadLike.trim();
+    }
+  } else {
+    assignIfMissing("street", normalizedAddress.match(/\b([\p{L}\s0-9.'-]+?)\s+(?:Street|St\.?|Road|Rd\.?|Weg|Gasse|Straße|Strasse|Str\.?)\b/iu)?.[1]);
+    assignIfMissing("buildingNo", normalizedAddress.match(/\b(?:No|Nr\.?)\s*[:.]?\s*([A-Z0-9/-]+)/iu)?.[1]);
+    assignIfMissing("floor", normalizedAddress.match(/\b(?:Floor|Fl\.?)\s*[:.]?\s*([A-Z0-9-]+)/iu)?.[1]);
+    assignIfMissing("apartment", normalizedAddress.match(/\b(?:Suite|Ste\.?|Unit)\s*[:.]?\s*([A-Z0-9-]+)/iu)?.[1]);
+  }
+
+  const commaSegments = normalizedAddress.split(",").map((segment) => segment.trim()).filter(Boolean);
+  if (!enriched.country) {
+    const countrySegment = commaSegments.find((segment) => /^(?:türkiye|turkey|turkiye|espana|españa|spain|germany|deutschland|russia|россия|kosovo|albania|china|çin)$/i.test(segment));
+    if (countrySegment) enriched.country = countrySegment;
+  }
+
+  if (!enriched.province || !enriched.district) {
+    const slashMatch = normalizedAddress.match(/([\p{L}\s]+)\s*[/\-–]\s*([\p{L}\s]+)$/u);
+    if (slashMatch) {
+      const left = slashMatch[1]?.trim() ?? null;
+      const right = slashMatch[2]?.trim() ?? null;
+      if (!enriched.district && left) enriched.district = left;
+      if (!enriched.province && right) enriched.province = right;
+    }
+  }
+
+  if (!enriched.district || !enriched.province) {
+    const commaSegments = normalizedAddress
+      .split(",")
+      .map((segment) => segment.trim())
+      .filter(Boolean);
+    const locationSegment = commaSegments.reverse().find((segment) => /[/\-–]/.test(segment));
+    if (locationSegment) {
+      const parsed = extractProvinceDistrict(locationSegment);
+      if (!enriched.district && parsed.district) enriched.district = parsed.district;
+      if (!enriched.province && parsed.province) enriched.province = parsed.province;
+    }
+  }
+
+  return enriched;
+}
+
 export function sanitizeAddress(address: string | null): string | null {
   if (!address) return null;
 
@@ -735,7 +878,7 @@ export function sanitizePhones(phones: string[]): string[] {
 }
 
 function hasCompanyMarker(value: string): boolean {
-  return COMPANY_MARKER_REGEX.test(value) || COMPANY_MARKER_BOUNDARY_REGEX.test(value);
+  return lineContainsLexiconToken(value, BUSINESS_CARD_COMPANY_MARKERS);
 }
 
 function looksLikeCompany(value: string): boolean {
@@ -743,32 +886,169 @@ function looksLikeCompany(value: string): boolean {
   if (/\bgrup\b/.test(lower)) return true;
   if (/\bprof[ıi]l\b/.test(lower)) return true;
   if (hasCompanyMarker(value)) return true;
-  if (INDUSTRY_KEYWORD_REGEX.test(value)) return true;
+  if (lineContainsLexiconToken(value, BUSINESS_CARD_INDUSTRY_KEYWORDS)) return true;
   return false;
+}
+
+function looksLikeSloganOrDecorativeLine(value: string): boolean {
+  if (SLOGAN_NOISE_REGEX.test(value)) return true;
+  const lower = value.toLocaleLowerCase("tr-TR");
+  if (/\bmember of\b/.test(lower)) return true;
+  if (/\bofficial dealer\b/.test(lower)) return true;
+  if (/\beverything simple\b/.test(lower)) return true;
+  if (/\bkap[ıi]\s+ve\s+pencere\s+aksesuarlar[ıi]\b/.test(lower)) return true;
+  return false;
+}
+
+function isPureServiceDescriptorLine(value: string): boolean {
+  const tokens = value
+    .toLocaleLowerCase("tr-TR")
+    .replace(/[^\p{L}\s/-]/gu, " ")
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+  if (tokens.length === 0 || tokens.length > 4) return false;
+  const meaningful = tokens.filter((token) => !SERVICE_CONNECTOR_TOKENS.has(token));
+  if (meaningful.length === 0) return false;
+  return meaningful.every((token) => lineContainsLexiconToken(token, BUSINESS_CARD_INDUSTRY_KEYWORDS));
 }
 
 function sanitizeName(value: string | null): string | null {
   if (!value) return null;
   if (looksLikeCompany(value)) return null;
+  if (looksLikeSloganOrDecorativeLine(value)) return null;
   if (CONTACT_TOKEN_REGEX.test(value)) return null;
   const tokens = value.split(/\s+/).filter(Boolean);
   if (tokens.length < 2) return null;
-  return value;
+  if (tokens.some((token) => lineContainsLexiconToken(token, BUSINESS_CARD_INDUSTRY_KEYWORDS))) return null;
+  const locale = detectBusinessCardLanguageProfile(value).suggestedLocale;
+  const casingLocale = locale === "tr" ? "tr-TR" : locale === "de" ? "de-DE" : locale === "ru" ? "ru-RU" : "en-US";
+  return value
+    .split(/\s+/)
+    .map((token) => {
+      if (/^[A-ZÇĞİIÖŞÜА-ЯЁ]+$/u.test(token) && token.length > 1) {
+        return token.charAt(0) + token.slice(1).toLocaleLowerCase(casingLocale);
+      }
+      return token;
+    })
+    .join(" ");
 }
 
 function sanitizeTitle(value: string | null): string | null {
   if (!value) return null;
-  if (hasCompanyMarker(value) && !/\b(manager|müdür|architect|satın|export|purchasing|logistics|chief|yönetmeni|director|sales|менеджер|директор)\b/i.test(value)) {
+  if (looksLikeSloganOrDecorativeLine(value)) return null;
+  if (
+    hasCompanyMarker(value) &&
+    !lineContainsLexiconToken(value, BUSINESS_CARD_TITLE_KEYWORDS)
+  ) {
     return null;
   }
   if (CONTACT_TOKEN_REGEX.test(value)) return null;
+  if (ADDRESS_HINT_REGEX.test(value)) return null;
   return value;
 }
 
 function sanitizeCompany(value: string | null): string | null {
   if (!value) return null;
   if (/@|www\.|https?:\/\//i.test(value)) return null;
-  return normalizeCompanySuffix(value);
+  if (CONTACT_TOKEN_REGEX.test(value)) return null;
+  if (PHONE_IN_TEXT_REGEX.test(value)) return null;
+  if (looksLikeSloganOrDecorativeLine(value)) return null;
+  if (isPureServiceDescriptorLine(value)) return null;
+  if (value.replace(/[^\d]/g, "").length >= 5) return null;
+  const normalized = normalizeCompanySuffix(value);
+  if (!normalized) return normalized;
+  const tokens = normalized.split(/\s+/).filter(Boolean);
+  if (tokens.length === 2 && /^[A-ZÇĞİIÖŞÜА-ЯЁ]{1,2}$/u.test(tokens[0] ?? "") && /^[A-ZÇĞİIÖŞÜА-ЯЁ]{3,}$/u.test(tokens[1] ?? "")) {
+    return normalized;
+  }
+  if (tokens.length > 1 && uppercaseRatio(normalized) >= 0.9) {
+    const locale = detectBusinessCardLanguageProfile(normalized).suggestedLocale;
+    const casingLocale = locale === "tr" ? "tr-TR" : locale === "de" ? "de-DE" : locale === "ru" ? "ru-RU" : "en-US";
+    return tokens
+      .map((token) => {
+        if (/^[A-ZÇĞİIÖŞÜА-ЯЁ]{1,4}$/u.test(token) && !/[AEIİOÖUÜАЕЁИОУЫЭЮЯ]/u.test(token)) {
+          return token;
+        }
+        return token.charAt(0) + token.slice(1).toLocaleLowerCase(casingLocale);
+      })
+      .join(" ");
+  }
+  return normalized
+    .split(/\s+/)
+    .map((token, index) => {
+      if (index > 0 && COMPANY_CONNECTOR_TOKENS.has(token.toLocaleLowerCase("tr-TR"))) {
+        return token.toLocaleLowerCase("tr-TR");
+      }
+      if (index === 0 && /^[A-ZÇĞİIÖŞÜА-ЯЁ]{2,4}$/u.test(token)) {
+        return token;
+      }
+      if (/^[a-zçğıöşüа-яё]{2,}$/u.test(token)) {
+        return token.charAt(0).toLocaleUpperCase("tr-TR") + token.slice(1);
+      }
+      return token;
+    })
+    .join(" ");
+}
+
+function beautifyCompanyWithRawContext(company: string | null, rawText?: string): string | null {
+  if (!company || !rawText) return company;
+  const locale = detectBusinessCardLanguageProfile(rawText).suggestedLocale;
+  const casingLocale = locale === "tr" ? "tr-TR" : locale === "de" ? "de-DE" : locale === "ru" ? "ru-RU" : "en-US";
+  const rawTokens = rawText.match(/[\p{L}]+/gu) ?? [];
+  const preferredByFold = new Map<string, string>();
+
+  for (const rawToken of rawTokens) {
+    const fold = foldLocaleToken(rawToken);
+    const existing = preferredByFold.get(fold);
+    const isBetterCandidate =
+      !existing ||
+      /[çğıöşüÇĞİIÖŞÜёЁ]/u.test(rawToken) ||
+      (/^\p{Lu}/u.test(rawToken) && /^\p{Ll}/u.test(existing));
+    if (isBetterCandidate) {
+      preferredByFold.set(fold, rawToken);
+    }
+  }
+
+  return company
+    .split(/\s+/)
+    .map((token) => {
+      const cleanToken = token.replace(/[^\p{L}]/gu, "");
+      if (!cleanToken || /[çğıöşüÇĞİIÖŞÜёЁ]/u.test(token)) return token;
+      if (/^(?:GmbH|LLC|L\.L\.C\.|A\.Ş\.|Ltd\.|Şti\.|Co\.)$/i.test(token)) {
+        return normalizeCompanySuffix(token) ?? token;
+      }
+      const preferred = preferredByFold.get(foldLocaleToken(cleanToken));
+      if (!preferred || preferred === cleanToken) return token;
+      const replacement =
+        token === token.toLocaleUpperCase(casingLocale)
+          ? preferred.toLocaleUpperCase(casingLocale)
+          : preferred.charAt(0) + preferred.slice(1).toLocaleLowerCase(casingLocale);
+      return token.replace(cleanToken, replacement);
+    })
+    .join(" ")
+    .replace(/L\.L\.C\.\.+/g, "L.L.C.");
+}
+
+function normalizeCompanyConnectors(value: string | null): string | null {
+  if (!value) return value;
+  return value
+    .split(/\s+/)
+    .map((token, index) => {
+      if (index > 0 && COMPANY_CONNECTOR_TOKENS.has(token.toLocaleLowerCase("tr-TR"))) {
+        return token.toLocaleLowerCase("tr-TR");
+      }
+      return token;
+    })
+    .join(" ");
+}
+
+function isWeakCompanyCandidate(value: string | null): boolean {
+  if (!value) return true;
+  const tokens = value.split(/\s+/).filter(Boolean);
+  if (tokens.length === 1 && value.length <= 4) return true;
+  if (looksLikeSloganOrDecorativeLine(value)) return true;
+  return false;
 }
 
 function collectIdentitySourceLines(rawText?: string, rawLines?: string[]): string[] {
@@ -801,8 +1081,7 @@ function isIdentityNoiseLine(line: string): boolean {
 }
 
 function hasTitleKeyword(line: string): boolean {
-  const lower = line.toLocaleLowerCase("tr-TR");
-  return TITLE_KEYWORDS.some((keyword) => lower.includes(keyword));
+  return lineContainsLexiconToken(line, BUSINESS_CARD_TITLE_KEYWORDS);
 }
 
 function isLikelyTitleLine(line: string): boolean {
@@ -861,13 +1140,18 @@ type BusinessCardNormalizationHints = {
   preferredNameLines?: string[];
   preferredTitleLines?: string[];
   preferredCompanyLines?: string[];
+  recognizedLanguages?: string[];
 };
 
 function scoreNameCandidate(line: string, index: number, hints?: BusinessCardNormalizationHints): number {
   if (!isLikelyPersonNameLine(line)) return -1;
   let score = 4;
+  const locale = detectBusinessCardLanguageProfile(line).suggestedLocale;
+  const recognizedLanguages = hints?.recognizedLanguages ?? [];
   if (index >= 1 && index <= 5) score += 2;
   if (uppercaseRatio(line) >= 0.85) score += 1;
+  if (locale === "tr" || locale === "de" || locale === "en") score += 1;
+  if (recognizedLanguages.some((language) => /^(tr|en|de)$/i.test(language))) score += 1;
   if (hints?.preferredNameLines?.includes(line)) score += 3;
   return score;
 }
@@ -875,8 +1159,12 @@ function scoreNameCandidate(line: string, index: number, hints?: BusinessCardNor
 function scoreTitleCandidate(line: string, index: number, nameIndex: number, hints?: BusinessCardNormalizationHints): number {
   if (!isLikelyTitleLine(line)) return -1;
   let score = 4;
+  const locale = detectBusinessCardLanguageProfile(line).suggestedLocale;
+  const recognizedLanguages = hints?.recognizedLanguages ?? [];
   if (nameIndex >= 0 && Math.abs(index - nameIndex) <= 2) score += 2;
   if (index <= 6) score += 1;
+  if (locale === "tr" || locale === "de" || locale === "en" || locale === "ru") score += 1;
+  if (recognizedLanguages.some((language) => /^(tr|en|de|ru)$/i.test(language))) score += 1;
   if (hints?.preferredTitleLines?.includes(line)) score += 2;
   return score;
 }
@@ -884,9 +1172,13 @@ function scoreTitleCandidate(line: string, index: number, nameIndex: number, hin
 function scoreCompanyCandidate(line: string, index: number, nameIndex: number, hints?: BusinessCardNormalizationHints): number {
   if (!isLikelyCompanyLine(line, index)) return -1;
   let score = 4;
+  const locale = detectBusinessCardLanguageProfile(line).suggestedLocale;
+  const recognizedLanguages = hints?.recognizedLanguages ?? [];
   if (index <= 2) score += 2;
   if (nameIndex > 0 && index < nameIndex) score += 1;
   if (hasCompanyMarker(line)) score += 1;
+  if (locale === "tr" || locale === "de" || locale === "en") score += 1;
+  if (recognizedLanguages.some((language) => /^(tr|en|de)$/i.test(language))) score += 1;
   if (hints?.preferredCompanyLines?.includes(line)) score += 3;
   return score;
 }
@@ -897,16 +1189,43 @@ function pickBestCandidate(candidates: ScoredIdentityCandidate[]): string | null
     .sort((a, b) => b.score - a.score || a.index - b.index || a.line.length - b.line.length)[0]?.line ?? null;
 }
 
+function pickBestSanitizedCandidate(
+  candidates: ScoredIdentityCandidate[],
+  sanitizer: (value: string | null) => string | null,
+): string | null {
+  const sorted = [...candidates].sort((a, b) => b.score - a.score || a.index - b.index || a.line.length - b.line.length);
+  for (const candidate of sorted) {
+    const sanitized = sanitizer(candidate.line);
+    if (sanitized) return sanitized;
+  }
+  return null;
+}
+
 function mergeCompanyLines(lines: string[], startIndex: number): string {
   const base = lines[startIndex];
   if (!base) return "";
 
+  const previous = lines[startIndex - 1];
   const next = lines[startIndex + 1];
-  if (!next) return base;
-  if (isLikelyPersonNameLine(next) || isLikelyTitleLine(next) || isIdentityNoiseLine(next)) return base;
-  if (!hasCompanyMarker(next)) return base;
+  const segments = [base];
 
-  return `${base} ${next}`.replace(/\s+/g, " ").trim();
+  if (
+    previous &&
+    startIndex <= 2 &&
+    !isLikelyPersonNameLine(previous) &&
+    !isLikelyTitleLine(previous) &&
+    !isIdentityNoiseLine(previous) &&
+    /^[\p{L}\s&.-]{2,24}$/u.test(previous) &&
+    !hasCompanyMarker(previous)
+  ) {
+    segments.unshift(previous);
+  }
+
+  if (next && !isLikelyPersonNameLine(next) && !isLikelyTitleLine(next) && !isIdentityNoiseLine(next) && hasCompanyMarker(next)) {
+    segments.push(next);
+  }
+
+  return segments.join(" ").replace(/\s+/g, " ").trim();
 }
 
 function inferIdentityFromRawText(
@@ -937,7 +1256,7 @@ function inferIdentityFromRawText(
     }
     nameCandidates.push({ line, score, index: i });
   }
-  inferredName = pickBestCandidate(nameCandidates);
+  inferredName = pickBestSanitizedCandidate(nameCandidates, (value) => sanitizeName(normalizeNullable(value)));
   if (inferredName) {
     nameIndex = lines.findIndex((line) => line === inferredName);
   }
@@ -951,7 +1270,7 @@ function inferIdentityFromRawText(
     if (nameIndex >= 0 && Math.abs(i - nameIndex) > 3) continue;
     titleCandidates.push({ line, score, index: i });
   }
-  inferredTitle = pickBestCandidate(titleCandidates);
+  inferredTitle = pickBestSanitizedCandidate(titleCandidates, (value) => sanitizeTitle(normalizeNullable(value)));
 
   let inferredCompany: string | null = null;
   const companyCandidates: ScoredIdentityCandidate[] = [];
@@ -962,12 +1281,12 @@ function inferIdentityFromRawText(
     if (score < 0) continue;
     companyCandidates.push({ line: mergeCompanyLines(lines, i), score, index: i });
   }
-  inferredCompany = pickBestCandidate(companyCandidates);
+  inferredCompany = pickBestSanitizedCandidate(companyCandidates, (value) => sanitizeCompany(normalizeNullable(value)));
 
   return {
-    inferredName: sanitizeName(normalizeNullable(inferredName)),
-    inferredTitle: sanitizeTitle(normalizeNullable(inferredTitle)),
-    inferredCompany: sanitizeCompany(normalizeNullable(inferredCompany)),
+    inferredName,
+    inferredTitle,
+    inferredCompany,
   };
 }
 
@@ -975,6 +1294,29 @@ function normalizeSocialHandle(value: string | null): string | null {
   if (!value) return null;
   const cleaned = value.replace(/\s+/g, "").trim();
   return cleaned.length ? cleaned : null;
+}
+
+function logBusinessCardNormalizationDebug(payload: {
+  assembledAddress: string | null;
+  sanitizedLlmAddress: string | null;
+  fallbackAddress: string | null;
+  finalAddress: string | null;
+  preferredAddressLines?: string[];
+  rawName: string | null;
+  rawCompany: string | null;
+  inferredIdentity: { inferredName: string | null; inferredTitle: string | null; inferredCompany: string | null };
+  finalName: string | null;
+  finalTitle: string | null;
+  finalCompany: string | null;
+  phones: string[];
+  emails: string[];
+  website: string | null;
+  addressParts: AddressParts;
+  notes: string[];
+}): void {
+  const isDev = typeof globalThis !== "undefined" && Boolean((globalThis as { __DEV__?: boolean }).__DEV__);
+  if (!isDev) return;
+  console.log("[BusinessCardNormalize] decision", payload);
 }
 
 export function repairJsonString(input: string): string | null {
@@ -1023,9 +1365,10 @@ export function validateAndNormalizeBusinessCardExtraction(
     emails = normalizeEmails(extractEmailCandidatesFromRawText(rawText), notes);
   }
   phones = sortPhonesByRawContext(phones, rawText);
-  const website =
+  let website =
     normalizeWebsite(normalizeNullable(parsed.data.website), notes) ??
     pickWebsiteFromRawText(rawText, emails, notes);
+  website = pickWebsiteAlignedWithEmail(website, rawText, emails, notes);
 
   let addressParts = normalizeAddressParts(parsed.data.addressParts);
 
@@ -1035,6 +1378,7 @@ export function validateAndNormalizeBusinessCardExtraction(
   const address = assembledAddress ?? sanitizedLlmAddress ?? fallbackAddress;
 
   addressParts = enrichAddressPartsFromText(addressParts, address);
+  addressParts = enrichAddressPartsByLocale(addressParts, address);
 
   const rawName = normalizeNullable(parsed.data.name);
   const rawCompany = normalizeNullable(parsed.data.company);
@@ -1053,21 +1397,25 @@ export function validateAndNormalizeBusinessCardExtraction(
   }
 
   if (!company && rawName && looksLikeCompany(rawName)) {
-    company = normalizeCompanySuffix(rawName);
+    company = sanitizeCompany(rawName);
   }
 
   if (!company && rawCompany && looksLikeCompany(rawCompany)) {
-    company = normalizeCompanySuffix(rawCompany);
+    company = sanitizeCompany(rawCompany);
   }
 
   if (!company && inferredIdentity.inferredCompany) {
-    company = normalizeCompanySuffix(inferredIdentity.inferredCompany);
+    company = sanitizeCompany(inferredIdentity.inferredCompany);
   } else if (company && inferredIdentity.inferredCompany) {
     const existing = company.toLocaleLowerCase("tr-TR");
     const inferred = inferredIdentity.inferredCompany.toLocaleLowerCase("tr-TR");
     if ((inferred.includes(existing) || existing.includes(inferred)) && inferred.length > existing.length + 3) {
-      company = normalizeCompanySuffix(inferredIdentity.inferredCompany);
+      company = sanitizeCompany(inferredIdentity.inferredCompany);
     }
+  }
+
+  if (isWeakCompanyCandidate(company) && inferredIdentity.inferredCompany && inferredIdentity.inferredCompany.length > (company?.length ?? 0)) {
+    company = sanitizeCompany(inferredIdentity.inferredCompany);
   }
 
   if (!company && emails.length > 0) {
@@ -1084,7 +1432,80 @@ export function validateAndNormalizeBusinessCardExtraction(
     }
   }
 
+  if (!company && website && rawText) {
+    const websiteStem = extractDomainFromWebsite(website).split(".")[0]?.replace(/[-_]/g, " ").trim();
+    if (websiteStem) {
+      const lines = rawText.split(/\r?\n/).map((line) => line.replace(/\s+/g, " ").trim()).filter(Boolean);
+      const matchedLine = lines.find((line) => {
+        const normalizedLine = line.toLocaleLowerCase("tr-TR");
+        return normalizedLine.includes(websiteStem.toLocaleLowerCase("tr-TR")) && !CONTACT_TOKEN_REGEX.test(line);
+      });
+      if (matchedLine) {
+        company = sanitizeCompany(matchedLine);
+      }
+    }
+  }
+
+  const domainDrivenCompany = inferCompanyFromDomainLines(rawText, [
+    extractDomainFromWebsite(website ?? ""),
+    ...(emails[0] ? [emails[0].split("@")[1] ?? ""] : []),
+  ]);
+  if (shouldPreferRicherCompanyCandidate(company, domainDrivenCompany)) {
+    company = sanitizeCompany(domainDrivenCompany);
+  }
+
+  if (company && rawText && (company.length <= 4 || company === company.toUpperCase())) {
+    const websiteStem = extractDomainFromWebsite(website ?? "").split(".")[0]?.replace(/[-_]/g, " ").trim();
+    const lines = rawText.split(/\r?\n/).map((line) => line.replace(/\s+/g, " ").trim()).filter(Boolean);
+    const enrichedCompanyCandidates = [...lines]
+      .filter((line) => {
+      const normalizedLine = line.toLocaleLowerCase("tr-TR");
+      const matchesWebsiteStem = websiteStem
+        ? normalizedLine.includes(websiteStem.toLocaleLowerCase("tr-TR"))
+        : false;
+      return (matchesWebsiteStem || looksLikeCompany(line)) && line.length > company!.length + 3 && !CONTACT_TOKEN_REGEX.test(line);
+      })
+      .sort((left, right) => right.length - left.length);
+    const enrichedCompany = enrichedCompanyCandidates
+      .map((line) => sanitizeCompany(line))
+      .find((line): line is string => Boolean(line));
+    if (enrichedCompany) {
+      company = enrichedCompany;
+    } else if (inferredIdentity.inferredCompany && inferredIdentity.inferredCompany.length > company.length) {
+      company = sanitizeCompany(inferredIdentity.inferredCompany);
+    } else {
+      const domainDriven = inferCompanyFromDomainLines(rawText, [
+        extractDomainFromWebsite(website ?? ""),
+        ...(emails[0] ? [emails[0].split("@")[1] ?? ""] : []),
+      ]);
+      if (domainDriven) {
+        company = domainDriven;
+      }
+    }
+  }
+
+  company = normalizeCompanyConnectors(normalizeCompanySuffix(beautifyCompanyWithRawContext(company, rawText)));
+
   const contactNameAndSurname = name;
+
+  logBusinessCardNormalizationDebug({
+    assembledAddress,
+    sanitizedLlmAddress,
+    fallbackAddress,
+    finalAddress: address,
+    preferredAddressLines,
+    rawName,
+    rawCompany,
+    inferredIdentity,
+    finalName: name,
+    finalTitle: title,
+    finalCompany: company,
+    phones,
+    emails,
+    website,
+    addressParts,
+    notes,
+  });
 
   return {
     contactNameAndSurname,
@@ -1155,6 +1576,19 @@ function clampConfidence(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
+function extractEmailDomain(value: string | null | undefined): string | null {
+  if (!value || !value.includes("@")) return null;
+  return value.split("@")[1]?.toLocaleLowerCase("tr-TR") ?? null;
+}
+
+function hasSuspiciousEmailPattern(value: string): boolean {
+  return /\.\.|__|--|@@|\s/.test(value);
+}
+
+function hasSuspiciousWebsitePattern(value: string): boolean {
+  return /\s|@|\.\.|,,|;;/.test(value);
+}
+
 function buildBusinessCardReviewSummary(extraction: BusinessCardExtraction): BusinessCardReviewSummary {
   const flags: BusinessCardReviewFlag[] = [];
   const fieldConfidence: BusinessCardReviewSummary["fieldConfidence"] = {};
@@ -1174,12 +1608,17 @@ function buildBusinessCardReviewSummary(extraction: BusinessCardExtraction): Bus
   if (extraction.company) {
     let confidence = 86;
     if (hasCompanyMarker(extraction.company)) confidence += 8;
-    else if (INDUSTRY_KEYWORD_REGEX.test(extraction.company)) confidence += 5;
+    else if (lineContainsLexiconToken(extraction.company, BUSINESS_CARD_INDUSTRY_KEYWORDS)) confidence += 5;
     if (extraction.company.length < 4) confidence -= 25;
+    if (ADDRESS_HINT_REGEX.test(extraction.company) || CONTACT_TOKEN_REGEX.test(extraction.company)) confidence -= 30;
     setField(
       "customerName",
       confidence,
-      confidence < 70 ? "Firma adı kısa veya belirsiz görünüyor." : undefined,
+      confidence < 70
+        ? ADDRESS_HINT_REGEX.test(extraction.company) || CONTACT_TOKEN_REGEX.test(extraction.company)
+          ? "Firma adı adres veya iletişim satırıyla karışmış olabilir."
+          : "Firma adı kısa veya belirsiz görünüyor."
+        : undefined,
       confidence < 55 ? "high" : "medium"
     );
   } else {
@@ -1201,11 +1640,16 @@ function buildBusinessCardReviewSummary(extraction: BusinessCardExtraction): Bus
   }
 
   if (extraction.title) {
-    const confidence = hasTitleKeyword(extraction.title) ? 84 : 56;
+    let confidence = hasTitleKeyword(extraction.title) ? 84 : 56;
+    if (hasCompanyMarker(extraction.title) || ADDRESS_HINT_REGEX.test(extraction.title)) confidence -= 24;
     setField(
       "title",
       confidence,
-      confidence < 70 ? "Ünvan satırı net görünmüyor olabilir." : undefined,
+      confidence < 70
+        ? hasCompanyMarker(extraction.title) || ADDRESS_HINT_REGEX.test(extraction.title)
+          ? "Ünvan satırı firma veya adres bilgisiyle karışmış olabilir."
+          : "Ünvan satırı net görünmüyor olabilir."
+        : undefined,
       "medium"
     );
   } else {
@@ -1229,11 +1673,16 @@ function buildBusinessCardReviewSummary(extraction: BusinessCardExtraction): Bus
   });
 
   if (extraction.emails[0]) {
-    const confidence = EMAIL_REGEX.test(extraction.emails[0]) ? 94 : 45;
+    let confidence = EMAIL_REGEX.test(extraction.emails[0]) ? 94 : 45;
+    if (hasSuspiciousEmailPattern(extraction.emails[0])) confidence -= 24;
     setField(
       "email",
       confidence,
-      confidence < 70 ? "E-posta adresi doğrulanamadı." : undefined,
+      confidence < 70
+        ? hasSuspiciousEmailPattern(extraction.emails[0])
+          ? "E-posta adresinde OCR kaynaklı karakter hatası olabilir."
+          : "E-posta adresi doğrulanamadı."
+        : undefined,
       confidence < 55 ? "high" : "medium"
     );
   } else {
@@ -1241,11 +1690,26 @@ function buildBusinessCardReviewSummary(extraction: BusinessCardExtraction): Bus
   }
 
   if (extraction.website) {
-    const confidence = isValidWebsite(extraction.website) ? 88 : 48;
+    let confidence = isValidWebsite(extraction.website) ? 88 : 48;
+    if (hasSuspiciousWebsitePattern(extraction.website)) confidence -= 20;
+    const emailDomain = extractEmailDomain(extraction.emails[0]);
+    const websiteDomain = extractDomainFromWebsite(extraction.website);
+    const domainMismatch =
+      Boolean(emailDomain) &&
+      Boolean(websiteDomain) &&
+      !websiteDomain.includes(emailDomain!) &&
+      !emailDomain!.includes(websiteDomain);
+    if (domainMismatch) confidence -= 12;
     setField(
       "website",
       confidence,
-      confidence < 70 ? "Web sitesi alanı şirket satırı ile karışmış olabilir." : undefined,
+      confidence < 70
+        ? domainMismatch
+          ? "Web sitesi alanı e-posta domainiyle uyuşmuyor, kontrol etmek iyi olabilir."
+          : hasSuspiciousWebsitePattern(extraction.website)
+            ? "Web sitesi alanında OCR kaynaklı karakter hatası olabilir."
+            : "Web sitesi alanı şirket satırı ile karışmış olabilir."
+        : undefined,
       confidence < 55 ? "high" : "medium"
     );
   } else {
@@ -1258,7 +1722,8 @@ function buildBusinessCardReviewSummary(extraction: BusinessCardExtraction): Bus
       .map((part) => part.trim())
       .filter(Boolean)
       .filter((segment) => isStrongAddressLine(segment)).length;
-    const confidence = strongSegments >= 2 ? 84 : strongSegments === 1 ? 64 : 40;
+    let confidence = strongSegments >= 2 ? 84 : strongSegments === 1 ? 64 : 40;
+    if (/@|www\.|https?:\/\/|\b(?:tel|telefon|gsm|mobile|fax|faks|email|e-mail)\b/i.test(extraction.address)) confidence -= 28;
     setField(
       "address",
       confidence,

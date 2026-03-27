@@ -257,6 +257,57 @@ Caferağa Mah. Moda Cad. No:30/4
       assert.equal(result.addressParts.postalCode, "34710");
     },
   },
+  {
+    name: "Windoform / TR factory address",
+    rawText: `WINDOFORM
+Volkan SAĞLIK
+Genel Müdür Yardımcısı
+Deputy General Manager
+Tel : +90 232 854 70 00-01
+Fax : +90 232 854 63 00
+Mobil : +90 533 158 00 40
+v.saglik@windoform.com.tr
+Fabrika: Kazım Karabekir Mh.
+Bekir Saydam Cd. No: 104
+A-10 Blok No: 76-35870
+Pancar - Torbalı - İZMİR
+www.windoform.com`,
+    input: {
+      contactNameAndSurname: "Volkan Sağlık",
+      name: "Volkan Sağlık",
+      title: "Genel Müdür Yardımcısı / Deputy General Manager",
+      company: "Windoform",
+      phones: ["+90 533 158 00 40", "+90 232 854 70 00-01"],
+      emails: ["v.saglik@windoform.com.tr"],
+      website: "www.windoform.com",
+      address: "Kazım Karabekir Mah. Bekir Saydam Cad. No:104, A-10 Blok, Pancar, Torbalı / İzmir",
+      addressParts: {
+        neighborhood: "Kazım Karabekir Mah.",
+        street: null,
+        avenue: "Bekir Saydam Cad.",
+        boulevard: null,
+        sitePlaza: null,
+        block: "A-10 Blok",
+        buildingNo: "No:104",
+        floor: null,
+        apartment: null,
+        postalCode: null,
+        district: "Torbalı",
+        province: "İzmir",
+        country: "Türkiye",
+      },
+      social: emptySocial,
+      notes: ["Fax: +902328546300"],
+    },
+    assertResult: (result) => {
+      assert.equal(result.name, "Volkan Sağlık");
+      assert.equal(result.phones[0], "+905331580040");
+      assert.equal(result.website, "www.windoform.com");
+      assert.equal(result.addressParts.block, "A-10 Blok");
+      assert.equal(result.addressParts.province, "İzmir");
+      assert.equal(result.addressParts.district, "Torbalı");
+    },
+  },
 ];
 
 const failures: string[] = [];

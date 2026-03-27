@@ -293,7 +293,7 @@ export interface BusinessCardPromptCandidateHints {
   addressLines: string[];
   scriptProfile: {
     dominantScript: "latin" | "cyrillic" | "mixed" | "unknown";
-    suggestedLocale: "tr" | "ru" | "intl";
+    suggestedLocale: "tr" | "en" | "de" | "ru" | "intl";
     confidence: number;
   };
   topCandidates: {

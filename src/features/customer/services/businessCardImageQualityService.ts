@@ -17,7 +17,7 @@ function getImageSize(uri: string): Promise<{ width: number; height: number }> {
 
 export async function assessBusinessCardImageQuality(
   imageUri: string,
-  options?: { usedScanner?: boolean }
+  options?: { usedScanner?: boolean; imageRotation?: number | null }
 ): Promise<BusinessCardImageQualityAssessment> {
   let width: number | null = null;
   let height: number | null = null;
@@ -45,5 +45,6 @@ export async function assessBusinessCardImageQuality(
     height,
     fileSizeBytes,
     usedScanner: options?.usedScanner,
+    imageRotation: options?.imageRotation,
   });
 }

@@ -5,16 +5,43 @@ export interface OcrLineItem {
   blockIndex: number;
   lineIndex: number;
   text: string;
+  elementsCount?: number;
+  frame?: {
+    width: number;
+    height: number;
+    top: number;
+    left: number;
+  };
+  cornerPoints?: Array<{ x: number; y: number }>;
+  recognizedLanguages?: string[];
 }
 
 export interface OcrResultPayload {
   rawText: string;
   lines: string[];
   lineItems: OcrLineItem[];
+  recognizedLanguages: string[];
+  metrics?: {
+    blockCount: number;
+    lineCount: number;
+    elementCount: number;
+  };
 }
 
-type OcrNativeLine = { text?: unknown; value?: unknown; content?: unknown; string?: unknown };
-type OcrNativeBlock = { lines?: unknown; text?: unknown };
+type OcrNativeFrame = { width?: unknown; height?: unknown; top?: unknown; left?: unknown };
+type OcrNativePoint = { x?: unknown; y?: unknown };
+type OcrNativeLanguage = { languageCode?: unknown };
+type OcrNativeLine = {
+  text?: unknown;
+  value?: unknown;
+  content?: unknown;
+  string?: unknown;
+  elements?: unknown;
+  frame?: unknown;
+  cornerPoints?: unknown;
+  recognizedLanguages?: unknown;
+};
+type OcrNativeBlock = { lines?: unknown; text?: unknown; frame?: unknown; cornerPoints?: unknown; recognizedLanguages?: unknown };
 type OcrNativeResult = { text?: unknown; lines?: unknown; blocks?: unknown };
 
 function toCleanText(value: unknown): string | null {
@@ -47,6 +74,43 @@ function uniqueLines(values: string[]): string[] {
   return out;
 }
 
+function toFrame(value: unknown): OcrLineItem["frame"] | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const frame = value as OcrNativeFrame;
+  const width = typeof frame.width === "number" ? frame.width : Number(frame.width);
+  const height = typeof frame.height === "number" ? frame.height : Number(frame.height);
+  const top = typeof frame.top === "number" ? frame.top : Number(frame.top);
+  const left = typeof frame.left === "number" ? frame.left : Number(frame.left);
+  if ([width, height, top, left].some((part) => Number.isNaN(part))) return undefined;
+  return { width, height, top, left };
+}
+
+function toCornerPoints(value: unknown): OcrLineItem["cornerPoints"] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const points = value
+    .map((point) => {
+      if (!point || typeof point !== "object") return null;
+      const native = point as OcrNativePoint;
+      const x = typeof native.x === "number" ? native.x : Number(native.x);
+      const y = typeof native.y === "number" ? native.y : Number(native.y);
+      if (Number.isNaN(x) || Number.isNaN(y)) return null;
+      return { x, y };
+    })
+    .filter((point): point is { x: number; y: number } => Boolean(point));
+  return points.length > 0 ? points : undefined;
+}
+
+function toRecognizedLanguages(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+      const language = item as OcrNativeLanguage;
+      return typeof language.languageCode === "string" ? language.languageCode.trim() : null;
+    })
+    .filter((item): item is string => Boolean(item));
+}
+
 function extractLineItems(result: unknown): OcrLineItem[] {
   if (!result || typeof result !== "object") return [];
 
@@ -63,7 +127,16 @@ function extractLineItems(result: unknown): OcrLineItem[] {
         lines.forEach((lineValue, lineIndex) => {
           const text = getLineText(lineValue);
           if (text) {
-            out.push({ blockIndex, lineIndex, text });
+            const nativeLine = (lineValue && typeof lineValue === "object" ? lineValue : {}) as OcrNativeLine;
+            out.push({
+              blockIndex,
+              lineIndex,
+              text,
+              elementsCount: Array.isArray(nativeLine.elements) ? nativeLine.elements.length : undefined,
+              frame: toFrame(nativeLine.frame ?? block.frame),
+              cornerPoints: toCornerPoints(nativeLine.cornerPoints ?? block.cornerPoints),
+              recognizedLanguages: toRecognizedLanguages(nativeLine.recognizedLanguages ?? block.recognizedLanguages),
+            });
           }
         });
         return;
@@ -71,7 +144,14 @@ function extractLineItems(result: unknown): OcrLineItem[] {
 
       const blockText = toCleanText(block.text);
       if (blockText) {
-        out.push({ blockIndex, lineIndex: 0, text: blockText });
+        out.push({
+          blockIndex,
+          lineIndex: 0,
+          text: blockText,
+          frame: toFrame(block.frame),
+          cornerPoints: toCornerPoints(block.cornerPoints),
+          recognizedLanguages: toRecognizedLanguages(block.recognizedLanguages),
+        });
       }
     });
   }
@@ -81,7 +161,16 @@ function extractLineItems(result: unknown): OcrLineItem[] {
     topLines.forEach((lineValue, lineIndex) => {
       const text = getLineText(lineValue);
       if (text) {
-        out.push({ blockIndex: 0, lineIndex, text });
+        const nativeLine = (lineValue && typeof lineValue === "object" ? lineValue : {}) as OcrNativeLine;
+        out.push({
+          blockIndex: 0,
+          lineIndex,
+          text,
+          elementsCount: Array.isArray(nativeLine.elements) ? nativeLine.elements.length : undefined,
+          frame: toFrame(nativeLine.frame),
+          cornerPoints: toCornerPoints(nativeLine.cornerPoints),
+          recognizedLanguages: toRecognizedLanguages(nativeLine.recognizedLanguages),
+        });
       }
     });
   }
@@ -95,13 +184,25 @@ function toPayload(result: unknown): OcrResultPayload {
   const lineItems = extractLineItems(result);
 
   const lineTexts = lineItems.map((item) => item.text);
+  const recognizedLanguages = uniqueLines(lineItems.flatMap((item) => item.recognizedLanguages ?? []));
+  const elementCount = lineItems.reduce((sum, item) => sum + (item.elementsCount ?? 0), 0);
   const fallbackLines = rawText
     .split(/\r?\n/)
     .map((line) => line.replace(/\s+/g, " ").trim())
     .filter(Boolean);
 
   const lines = uniqueLines(lineTexts.length > 0 ? lineTexts : fallbackLines);
-  return { rawText, lines, lineItems };
+  return {
+    rawText,
+    lines,
+    lineItems,
+    recognizedLanguages,
+    metrics: {
+      blockCount: Array.isArray(native.blocks) ? native.blocks.length : 0,
+      lineCount: lineItems.length,
+      elementCount,
+    },
+  };
 }
 
 async function visionOCR(imageUri: string): Promise<OcrResultPayload> {
@@ -116,7 +217,7 @@ async function mlKitOCR(imageUri: string): Promise<OcrResultPayload> {
 
 export async function runOCR(imageUri: string): Promise<OcrResultPayload> {
   if (!imageUri || typeof imageUri !== "string") {
-    return { rawText: "", lines: [], lineItems: [] };
+    return { rawText: "", lines: [], lineItems: [], recognizedLanguages: [], metrics: { blockCount: 0, lineCount: 0, elementCount: 0 } };
   }
   try {
     if (Platform.OS === "ios") {
@@ -125,7 +226,7 @@ export async function runOCR(imageUri: string): Promise<OcrResultPayload> {
     if (Platform.OS === "android") {
       return await mlKitOCR(imageUri);
     }
-    return { rawText: "", lines: [], lineItems: [] };
+    return { rawText: "", lines: [], lineItems: [], recognizedLanguages: [], metrics: { blockCount: 0, lineCount: 0, elementCount: 0 } };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     throw new Error(

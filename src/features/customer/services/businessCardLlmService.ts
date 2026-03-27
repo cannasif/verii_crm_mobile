@@ -57,8 +57,8 @@ export async function extractBusinessCardViaLLM(input: string | ExtractBusinessC
   };
 
   const response = await apiClient.post<LlmExtractResponse>("/api/ai/business-card/extract", payload, {
-    // OCR+LLM extraction may take longer on poor networks/devices.
-    timeout: 120000,
+    // Keep the review flow responsive; fall back to deterministic parsing on timeout.
+    timeout: 8000,
   });
   const body = response.data;
 

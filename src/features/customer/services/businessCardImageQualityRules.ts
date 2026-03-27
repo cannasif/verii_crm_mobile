@@ -3,7 +3,8 @@ export type BusinessCardImageQualityFlag = {
     | "customer.ocrImageQualityLowResolution"
     | "customer.ocrImageQualityLowFileSize"
     | "customer.ocrImageQualityAspectRatio"
-    | "customer.ocrImageQualityNoScanner";
+    | "customer.ocrImageQualityNoScanner"
+    | "customer.ocrImageQualityPossibleRotation";
   severity: "low" | "medium" | "high";
 };
 
@@ -21,6 +22,7 @@ export type BusinessCardImageQualityInputs = {
   height: number | null;
   fileSizeBytes: number | null;
   usedScanner?: boolean;
+  imageRotation?: number | null;
 };
 
 function pushFlag(
@@ -61,6 +63,10 @@ export function buildBusinessCardImageQualityAssessment(
 
   if (!inputs.usedScanner) {
     score = pushFlag(flags, "customer.ocrImageQualityNoScanner", "low", 6, score);
+  }
+
+  if (typeof inputs.imageRotation === "number" && Math.abs(inputs.imageRotation) >= 8) {
+    score = pushFlag(flags, "customer.ocrImageQualityPossibleRotation", Math.abs(inputs.imageRotation) >= 14 ? "high" : "medium", Math.abs(inputs.imageRotation) >= 14 ? 18 : 10, score);
   }
 
   score = Math.max(0, Math.min(100, Math.round(score)));
