@@ -117,7 +117,7 @@ export function QuotationNotesModal({
             {displayNotes.map((note, index) => (
               <View key={index} style={styles.field}>
                 <Text style={[styles.label, { color: colors.textSecondary }]}>
-                  {t("quotation.noteLabel", { index: index + 1 }, `Not ${index + 1}`)}
+                  {t("quotation.noteLabel", { index: index + 1, defaultValue: `Not ${index + 1}` })}
                 </Text>
                 <TextInput
                   style={[

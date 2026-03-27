@@ -29,6 +29,22 @@ export interface BusinessCardOcrResult {
   notes?: string;
   imageUri?: string;
   review?: BusinessCardReviewSummary;
+  languageProfile?: BusinessCardResultLanguageProfile;
+  translationMeta?: BusinessCardTranslationMeta;
+}
+
+export interface BusinessCardResultLanguageProfile {
+  dominantScript: "latin" | "cyrillic" | "mixed" | "unknown";
+  suggestedLocale: "tr" | "en" | "de" | "ru" | "intl";
+  confidence: number;
+  recognizedLanguages: string[];
+}
+
+export interface BusinessCardTranslationMeta {
+  targetLocale: "tr";
+  sourceLocale: BusinessCardResultLanguageProfile["suggestedLocale"];
+  changedFields: Array<"title" | "address" | "notes" | "countryName" | "cityName" | "districtName">;
+  translated: boolean;
 }
 
 export interface BusinessCardReviewFlag {

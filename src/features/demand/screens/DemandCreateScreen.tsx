@@ -134,7 +134,7 @@ export function DemandCreateScreen(): React.ReactElement {
 
   const { data: customer } = useCustomer(watchedCustomerId ?? undefined);
   const { data: shippingAddresses } = useCustomerShippingAddresses(watchedCustomerId ?? undefined);
-  const { data: erpCustomers } = useErpCustomers(watchedErpCustomerCode || undefined);
+  const { data: erpCustomers } = useErpCustomers();
   const exchangeRateParamsOnce = useMemo(
     () => ({
       tarih: new Date().toISOString().split("T")[0],

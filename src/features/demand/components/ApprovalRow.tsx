@@ -1,5 +1,5 @@
 import React, { memo } from "react";
-import { View, TouchableOpacity, StyleSheet } from "react-native";
+import { View, TouchableOpacity, StyleSheet, type GestureResponderEvent } from "react-native";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useTranslation } from "react-i18next";
@@ -8,8 +8,8 @@ import type { ApprovalActionGetDto } from "../types";
 interface ApprovalRowProps {
   approval: ApprovalActionGetDto;
   onPress: (approvalRequestId: number) => void;
-  onApprove: (e: React.SyntheticEvent, approval: ApprovalActionGetDto) => void;
-  onReject: (e: React.SyntheticEvent, approval: ApprovalActionGetDto) => void;
+  onApprove: (e: GestureResponderEvent, approval: ApprovalActionGetDto) => void;
+  onReject: (e: GestureResponderEvent, approval: ApprovalActionGetDto) => void;
   isPending: boolean;
 }
 
@@ -38,12 +38,12 @@ function ApprovalRowComponent({
     onPress(approval.approvalRequestId);
   };
 
-  const handleApprovePress = (e: React.SyntheticEvent): void => {
+  const handleApprovePress = (e: GestureResponderEvent): void => {
     e.stopPropagation();
     onApprove(e, approval);
   };
 
-  const handleRejectPress = (e: React.SyntheticEvent): void => {
+  const handleRejectPress = (e: GestureResponderEvent): void => {
     e.stopPropagation();
     onReject(e, approval);
   };

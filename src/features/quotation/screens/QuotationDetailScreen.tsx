@@ -376,7 +376,7 @@ const gradientColors = isDark
   }, [lines.length, clearErrors]);
 
   useEffect(() => {
-    if (notesData) setNotes(notesFromDto(notesData as Record<string, string | null | undefined>));
+    if (notesData) setNotes(notesFromDto(notesData));
   }, [notesData]);
 
   const applyCurrencyChange = useCallback(

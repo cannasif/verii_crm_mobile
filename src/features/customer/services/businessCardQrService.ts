@@ -341,18 +341,31 @@ export function parseQrPayloadToBusinessCard(rawValue: string): BusinessCardOcrR
   return null;
 }
 
-export async function detectQrFromImage(imageUri: string): Promise<{ rawValue: string | null; parsedCard: BusinessCardOcrResult | null }> {
+export async function detectQrFromImage(
+  imageUri: string,
+  options?: { timeoutMs?: number }
+): Promise<{ rawValue: string | null; parsedCard: BusinessCardOcrResult | null }> {
   const barcodeModule = getBarcodeModule();
   if (!barcodeModule) {
     return { rawValue: null, parsedCard: null };
   }
 
   try {
-    const rawResult = barcodeModule.scan
-      ? await barcodeModule.scan(imageUri)
-      : barcodeModule.detect
-        ? await barcodeModule.detect(imageUri)
-        : [];
+    const runDetection = async () =>
+      barcodeModule.scan
+        ? await barcodeModule.scan(imageUri)
+        : barcodeModule.detect
+          ? await barcodeModule.detect(imageUri)
+          : [];
+
+    const timeoutMs = options?.timeoutMs ?? 0;
+    const rawResult =
+      timeoutMs > 0
+        ? await Promise.race([
+            runDetection(),
+            new Promise<BarcodeRecord[]>((resolve) => setTimeout(() => resolve([]), timeoutMs)),
+          ])
+        : await runDetection();
     const barcodes = normalizeBarcodeResult(rawResult);
     const structuredCard = barcodes.map(parseStructuredBarcodeRecord).find(Boolean) ?? null;
     const qrValue = barcodes

@@ -13,6 +13,7 @@ import { assessBusinessCardImageQuality } from "../services/businessCardImageQua
 import { assessBusinessCardOcrQuality, mergeReviewWithQualityAssessment } from "../services/businessCardQualityService";
 import { detectQrFromImage } from "../services/businessCardQrService";
 import { trackBusinessCardTelemetry } from "../services/businessCardTelemetryService";
+import { detectBusinessCardLanguageProfile } from "../services/businessCardLanguageProfileService";
 import {
   pickBestBusinessCardExtraction,
   repairJsonString,
@@ -74,6 +75,21 @@ function applyQualityReview(
   };
 }
 
+function withLanguageProfile(
+  result: BusinessCardOcrResult,
+  rawText: string,
+  recognizedLanguages: string[]
+): BusinessCardOcrResult {
+  const detected = detectBusinessCardLanguageProfile(rawText);
+  return {
+    ...result,
+    languageProfile: {
+      ...detected,
+      recognizedLanguages,
+    },
+  };
+}
+
 function shouldRunBusinessCardSecondPass(result: BusinessCardOcrResult | null | undefined): boolean {
   const review = result?.review;
   if (!review) return false;
@@ -106,12 +122,19 @@ function shouldUseDeterministicFastPath(result: BusinessCardOcrResult | null | u
       hasContactName &&
       hasPrimaryPhone &&
       hasSecondaryContactSignal &&
-      customerConfidence >= 80 &&
-      contactConfidence >= 78 &&
-      phoneConfidence >= 85 &&
-      Math.max(emailConfidence, websiteConfidence, addressConfidence) >= 60 &&
+      customerConfidence >= 68 &&
+      contactConfidence >= 70 &&
+      phoneConfidence >= 82 &&
+      Math.max(emailConfidence, websiteConfidence, addressConfidence) >= 48 &&
       !hasCriticalHighFlag
   );
+}
+
+function shouldApplyDeskew(estimatedRotation: number | null | undefined, lineCount: number): boolean {
+  if (typeof estimatedRotation !== "number" || !Number.isFinite(estimatedRotation)) return false;
+  if (lineCount < 4) return false;
+  const absRotation = Math.abs(estimatedRotation);
+  return absRotation >= 12 && absRotation <= 45;
 }
 
 export function useBusinessCardScan(): {
@@ -182,10 +205,19 @@ export function useBusinessCardScan(): {
           }
         );
         debugScanLog("fallbackNormalized", { variant: variant.key, normalizedFallback });
-        const fallbackCandidate = applyQualityReview({
-          ...toBusinessCardOcrResult(normalizedFallback),
-          imageUri,
-        }, rawText, ocr.lines, ocr.lineItems);
+        const fallbackCandidate = applyQualityReview(
+          withLanguageProfile(
+            {
+              ...toBusinessCardOcrResult(normalizedFallback),
+              imageUri,
+            },
+            rawText,
+            ocr.recognizedLanguages
+          ),
+          rawText,
+          ocr.lines,
+          ocr.lineItems
+        );
 
         if (variant.key === "primary" && shouldUseDeterministicFastPath(fallbackCandidate)) {
           debugScanLog("finalBestExtraction", { variant: variant.key, best: fallbackCandidate, strategy: "deterministic-fast-path" });
@@ -225,10 +257,19 @@ export function useBusinessCardScan(): {
           debugScanLog("llmNormalized", { variant: variant.key, normalized });
           const best = pickBestBusinessCardExtraction(normalized, normalizedFallback);
           debugScanLog("finalBestExtraction", { variant: variant.key, best });
-          candidateResult = applyQualityReview({
-            ...toBusinessCardOcrResult(best),
-            imageUri,
-          }, rawText, ocr.lines, ocr.lineItems);
+          candidateResult = applyQualityReview(
+            withLanguageProfile(
+              {
+                ...toBusinessCardOcrResult(best),
+                imageUri,
+              },
+              rawText,
+              ocr.recognizedLanguages
+            ),
+            rawText,
+            ocr.lines,
+            ocr.lineItems
+          );
         } catch {
           if (__DEV__) {
             console.log("[BusinessCardScan] LLM extraction failed, regex fallback used.");
@@ -348,7 +389,7 @@ export function useBusinessCardScan(): {
     async (
       imageUri: string
     ): Promise<{ shouldContinueWithOcr: boolean; qrResult: BusinessCardOcrResult | null }> => {
-      const qrDetection = await detectQrFromImage(imageUri);
+      const qrDetection = await detectQrFromImage(imageUri, { timeoutMs: 500 });
       if (!qrDetection.rawValue) {
         return { shouldContinueWithOcr: true, qrResult: null };
       }
@@ -394,14 +435,15 @@ export function useBusinessCardScan(): {
           void trackBusinessCardTelemetry({ type: usedScanner ? "scanner_used" : "camera_fallback_used" });
           if (!imageUri) return null;
 
+          const previewOcrPromise = runOCR(imageUri).then(preprocessBusinessCardOcr);
           const resolution = await resolveImageInput(imageUri);
           if (resolution.qrResult) return resolution.qrResult;
           if (!resolution.shouldContinueWithOcr) return null;
 
-          const previewOcr = preprocessBusinessCardOcr(await runOCR(imageUri));
+          const previewOcr = await previewOcrPromise;
           const estimatedRotation = estimateBusinessCardRotation(previewOcr.lineItems);
           const correctedImageUri =
-            typeof estimatedRotation === "number" && Math.abs(estimatedRotation) >= 4
+            shouldApplyDeskew(estimatedRotation, previewOcr.lineItems.length)
               ? await rotateAndDeskewBusinessCardImage(imageUri, estimatedRotation)
               : imageUri;
           const effectiveImageUri = correctedImageUri || imageUri;
@@ -418,7 +460,7 @@ export function useBusinessCardScan(): {
               ? previewOcr
               : preprocessBusinessCardOcr(await runOCR(effectiveImageUri));
           ocrCacheRef.current.set(effectiveImageUri, effectiveOcr);
-          const result = await processImage(effectiveImageUri, effectiveOcr);
+          const result = await processImage(effectiveImageUri, effectiveOcr, { allowSecondPass: false });
           if (result) {
             void trackBusinessCardTelemetry({ type: "scan_completed", details: { source: "camera", reviewConfidence: result.review?.overallConfidence ?? null } });
           }
@@ -452,14 +494,15 @@ export function useBusinessCardScan(): {
         for (;;) {
           const imageUri = await pickBusinessCardImageFromGallery();
           if (!imageUri) return null;
+          const previewOcrPromise = runOCR(imageUri).then(preprocessBusinessCardOcr);
           const resolution = await resolveImageInput(imageUri);
           if (resolution.qrResult) return resolution.qrResult;
           if (!resolution.shouldContinueWithOcr) return null;
 
-          const previewOcr = preprocessBusinessCardOcr(await runOCR(imageUri));
+          const previewOcr = await previewOcrPromise;
           const estimatedRotation = estimateBusinessCardRotation(previewOcr.lineItems);
           const correctedImageUri =
-            typeof estimatedRotation === "number" && Math.abs(estimatedRotation) >= 4
+            shouldApplyDeskew(estimatedRotation, previewOcr.lineItems.length)
               ? await rotateAndDeskewBusinessCardImage(imageUri, estimatedRotation)
               : imageUri;
           const effectiveImageUri = correctedImageUri || imageUri;
@@ -476,7 +519,7 @@ export function useBusinessCardScan(): {
               ? previewOcr
               : preprocessBusinessCardOcr(await runOCR(effectiveImageUri));
           ocrCacheRef.current.set(effectiveImageUri, effectiveOcr);
-          const result = await processImage(effectiveImageUri, effectiveOcr);
+          const result = await processImage(effectiveImageUri, effectiveOcr, { allowSecondPass: false });
           if (result) {
             void trackBusinessCardTelemetry({ type: "scan_completed", details: { source: "gallery", reviewConfidence: result.review?.overallConfidence ?? null } });
           }
@@ -503,7 +546,7 @@ export function useBusinessCardScan(): {
       setError(null);
       setIsScanning(true);
       try {
-        return await processImage(imageUri, ocrCacheRef.current.get(imageUri) ?? null, { allowSecondPass: false });
+        return await processImage(imageUri, ocrCacheRef.current.get(imageUri) ?? null, { allowSecondPass: true });
       } catch (e) {
         setError(e instanceof Error ? e.message : t("customer.retryScanFailed"));
         return null;

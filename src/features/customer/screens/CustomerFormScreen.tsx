@@ -44,6 +44,7 @@ import { createCustomerSchema, type CustomerFormData } from "../schemas";
 import type { CountryDto, CityDto, DistrictDto } from "../types";
 import type { BusinessCardOcrResult } from "../types/businessCard";
 import { trackBusinessCardTelemetry } from "../services/businessCardTelemetryService";
+import { canTranslateBusinessCardToTurkish, translateBusinessCardToTurkish } from "../services/businessCardTranslationService";
 import { 
   Camera01Icon, 
   Image01Icon, 
@@ -121,6 +122,7 @@ export function CustomerFormScreen(): React.ReactElement {
   const [ocrDistrictName, setOcrDistrictName] = useState<string | null>(null);
   const [pendingBusinessCardResult, setPendingBusinessCardResult] = useState<BusinessCardOcrResult | null>(null);
   const [isBusinessCardReviewOpen, setIsBusinessCardReviewOpen] = useState(false);
+  const [isTranslatingBusinessCard, setIsTranslatingBusinessCard] = useState(false);
 
   const { data: existingCustomer, isLoading: customerLoading } = useCustomer(customerId);
   const { data: customerTypes } = useCustomerTypes();
@@ -517,6 +519,45 @@ export function CustomerFormScreen(): React.ReactElement {
     }
     setIsBusinessCardReviewOpen(true);
   }, [pendingBusinessCardResult, retryBusinessCardExtraction, t]);
+
+  const handleTranslateBusinessCardReview = useCallback(async () => {
+    if (!pendingBusinessCardResult) return;
+    setIsTranslatingBusinessCard(true);
+    try {
+      const translated = await translateBusinessCardToTurkish(pendingBusinessCardResult);
+      setPendingBusinessCardResult(translated);
+      void trackBusinessCardTelemetry({
+        type: "review_confirmed",
+        details: {
+          translationApplied: translated.translationMeta?.translated ?? false,
+          translationChangedFields: translated.translationMeta?.changedFields.join(",") ?? "",
+        },
+      });
+    } finally {
+      setIsTranslatingBusinessCard(false);
+    }
+  }, [pendingBusinessCardResult]);
+
+  const ocrLanguageLabel = useMemo(() => {
+    const locale = pendingBusinessCardResult?.languageProfile?.suggestedLocale;
+    switch (locale) {
+      case "tr":
+        return t("customer.ocrLanguageTurkish");
+      case "en":
+        return t("customer.ocrLanguageEnglish");
+      case "de":
+        return t("customer.ocrLanguageGerman");
+      case "ru":
+        return t("customer.ocrLanguageRussian");
+      default:
+        return t("customer.ocrLanguageInternational");
+    }
+  }, [pendingBusinessCardResult?.languageProfile?.suggestedLocale, t]);
+
+  const canTranslateReview = useMemo(
+    () => canTranslateBusinessCardToTurkish(pendingBusinessCardResult),
+    [pendingBusinessCardResult]
+  );
 
   const reviewFieldLabels = useMemo(() => ({
     general: t("customer.ocrGeneral"),
@@ -960,6 +1001,39 @@ export function CustomerFormScreen(): React.ReactElement {
               {t("customer.ocrReviewSubtitle")}
             </Text>
 
+            {pendingBusinessCardResult?.languageProfile ? (
+              <View style={[styles.ocrLanguageCard, { backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: THEME.border }]}>
+                <View style={styles.ocrLanguageHeader}>
+                  <Text style={[styles.ocrConfidenceTitle, { color: THEME.text }]}>
+                    {t("customer.ocrDetectedLanguage")}
+                  </Text>
+                  <Text style={[styles.ocrLanguageBadge, { color: THEME.primary, backgroundColor: `${THEME.primary}14` }]}>
+                    {ocrLanguageLabel}
+                  </Text>
+                </View>
+                <Text style={[styles.ocrLanguageHint, { color: THEME.textMute }]}>
+                  {pendingBusinessCardResult.translationMeta?.translated
+                    ? t("customer.ocrTranslatedSummary")
+                    : t("customer.ocrTranslationHint")}
+                </Text>
+                {canTranslateReview ? (
+                  <TouchableOpacity
+                    style={[styles.ocrTranslateBtn, { borderColor: THEME.primary, backgroundColor: `${THEME.primary}12` }]}
+                    onPress={handleTranslateBusinessCardReview}
+                    disabled={isScanning || isTranslatingBusinessCard}
+                  >
+                    {isTranslatingBusinessCard ? (
+                      <ActivityIndicator size="small" color={THEME.primary} />
+                    ) : (
+                      <Text style={[styles.ocrTranslateText, { color: THEME.primary }]}>
+                        {t("customer.ocrTranslateToTurkish")}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+            ) : null}
+
             {pendingBusinessCardResult?.review ? (
               <View style={[styles.ocrConfidenceCard, { backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: THEME.border }]}>
                 <Text style={[styles.ocrConfidenceTitle, { color: THEME.text }]}>
@@ -1287,6 +1361,44 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 10,
     gap: 6,
+  },
+  ocrLanguageCard: {
+    marginTop: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 10,
+    gap: 8,
+  },
+  ocrLanguageHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  ocrLanguageBadge: {
+    fontSize: 12,
+    fontWeight: "700",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    overflow: "hidden",
+  },
+  ocrLanguageHint: {
+    fontSize: 11,
+    fontWeight: "500",
+    lineHeight: 16,
+  },
+  ocrTranslateBtn: {
+    minHeight: 38,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 10,
+  },
+  ocrTranslateText: {
+    fontSize: 12,
+    fontWeight: "700",
   },
   ocrConfidenceTitle: {
     fontSize: 13,

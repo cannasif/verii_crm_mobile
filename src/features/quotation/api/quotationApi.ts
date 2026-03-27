@@ -495,7 +495,7 @@ export const quotationApi = {
       : [];
     const items = Array.isArray(rawItems) ? rawItems : [];
     return items.map((item) => {
-      const r = item as Record<string, unknown>;
+      const r = item as unknown as Record<string, unknown>;
       return {
         id: (r.id ?? r.Id ?? 0) as number,
         salesType: (r.salesType ?? r.SalesType ?? "") as string,
