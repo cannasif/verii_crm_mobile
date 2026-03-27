@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const STORAGE_KEY = "business_card_scan_telemetry";
 const MAX_EVENTS = 100;
+const FLUSH_DELAY_MS = 1500;
 
 export type BusinessCardTelemetryEvent = {
   type:
@@ -24,6 +25,53 @@ export type BusinessCardTelemetryEvent = {
 };
 
 let memoryQueue: BusinessCardTelemetryEvent[] = [];
+let persistedQueue: BusinessCardTelemetryEvent[] | null = null;
+let flushTimer: ReturnType<typeof setTimeout> | null = null;
+let flushPromise: Promise<void> | null = null;
+const isDevRuntime = typeof __DEV__ !== "undefined" && __DEV__;
+
+function appendBoundedEvents(base: BusinessCardTelemetryEvent[], next: BusinessCardTelemetryEvent[]): BusinessCardTelemetryEvent[] {
+  return [...base, ...next].slice(-MAX_EVENTS);
+}
+
+async function loadPersistedQueue(): Promise<BusinessCardTelemetryEvent[]> {
+  if (persistedQueue) return persistedQueue;
+  try {
+    const raw = await AsyncStorage.getItem(STORAGE_KEY);
+    persistedQueue = raw ? (JSON.parse(raw) as BusinessCardTelemetryEvent[]) : [];
+  } catch {
+    persistedQueue = [];
+  }
+  return persistedQueue;
+}
+
+async function flushTelemetryQueue(): Promise<void> {
+  flushTimer = null;
+  if (!memoryQueue.length) return;
+
+  const pending = [...memoryQueue];
+  memoryQueue = [];
+
+  try {
+    const current = await loadPersistedQueue();
+    persistedQueue = appendBoundedEvents(current, pending);
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(persistedQueue));
+  } catch {
+    memoryQueue = appendBoundedEvents(pending, memoryQueue);
+    if (isDevRuntime) {
+      console.log("[BusinessCardTelemetry] Persist failed", pending.map((item) => item.type).join(","));
+    }
+  }
+}
+
+function scheduleFlush(): void {
+  if (flushTimer) return;
+  flushTimer = setTimeout(() => {
+    flushPromise = flushTelemetryQueue().finally(() => {
+      flushPromise = null;
+    });
+  }, FLUSH_DELAY_MS);
+}
 
 export async function trackBusinessCardTelemetry(event: Omit<BusinessCardTelemetryEvent, "timestamp">): Promise<void> {
   const withTimestamp: BusinessCardTelemetryEvent = {
@@ -31,29 +79,26 @@ export async function trackBusinessCardTelemetry(event: Omit<BusinessCardTelemet
     timestamp: new Date().toISOString(),
   };
 
-  memoryQueue = [...memoryQueue, withTimestamp].slice(-MAX_EVENTS);
+  memoryQueue = appendBoundedEvents(memoryQueue, [withTimestamp]);
+  scheduleFlush();
 
-  try {
-    const currentRaw = await AsyncStorage.getItem(STORAGE_KEY);
-    const current = currentRaw ? (JSON.parse(currentRaw) as BusinessCardTelemetryEvent[]) : [];
-    const next = [...current, withTimestamp].slice(-MAX_EVENTS);
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  } catch {
-    if (__DEV__) {
-      console.log("[BusinessCardTelemetry] Persist failed", withTimestamp.type);
-    }
-  }
-
-  if (__DEV__) {
+  if (isDevRuntime) {
     console.log("[BusinessCardTelemetry]", withTimestamp.type, withTimestamp.details ?? {});
   }
 }
 
 export async function getBusinessCardTelemetryEvents(): Promise<BusinessCardTelemetryEvent[]> {
+  if (flushPromise) {
+    await flushPromise;
+  } else if (flushTimer) {
+    clearTimeout(flushTimer);
+    flushTimer = null;
+    await flushTelemetryQueue();
+  }
+
   try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    if (!raw) return memoryQueue;
-    return JSON.parse(raw) as BusinessCardTelemetryEvent[];
+    const current = await loadPersistedQueue();
+    return appendBoundedEvents(current, memoryQueue);
   } catch {
     return memoryQueue;
   }
