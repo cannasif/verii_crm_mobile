@@ -39,12 +39,12 @@ import {
   useBusinessCardPotentialMatches
 } from "../hooks";
 import { useCustomerShippingAddresses } from "../../shipping-address/hooks/useShippingAddresses";
-import { FormField, LocationPicker, PremiumPicker } from "../components";
+import { BusinessCardReviewModal, FormField, LocationPicker, PremiumPicker } from "../components";
 import { createCustomerSchema, type CustomerFormData } from "../schemas";
 import type { CountryDto, CityDto, DistrictDto } from "../types";
 import type { BusinessCardOcrResult } from "../types/businessCard";
 import { trackBusinessCardTelemetry } from "../services/businessCardTelemetryService";
-import { canTranslateBusinessCardToTurkish, translateBusinessCardToTurkish } from "../services/businessCardTranslationService";
+import { translateBusinessCardToTurkish } from "../services/businessCardTranslationService";
 import { 
   Camera01Icon, 
   Image01Icon, 
@@ -538,39 +538,6 @@ export function CustomerFormScreen(): React.ReactElement {
     }
   }, [pendingBusinessCardResult]);
 
-  const ocrLanguageLabel = useMemo(() => {
-    const locale = pendingBusinessCardResult?.languageProfile?.suggestedLocale;
-    switch (locale) {
-      case "tr":
-        return t("customer.ocrLanguageTurkish");
-      case "en":
-        return t("customer.ocrLanguageEnglish");
-      case "de":
-        return t("customer.ocrLanguageGerman");
-      case "ru":
-        return t("customer.ocrLanguageRussian");
-      default:
-        return t("customer.ocrLanguageInternational");
-    }
-  }, [pendingBusinessCardResult?.languageProfile?.suggestedLocale, t]);
-
-  const canTranslateReview = useMemo(
-    () => canTranslateBusinessCardToTurkish(pendingBusinessCardResult),
-    [pendingBusinessCardResult]
-  );
-
-  const reviewFieldLabels = useMemo(() => ({
-    general: t("customer.ocrGeneral"),
-    customerName: t("customer.name"),
-    contactNameAndSurname: t("customer.contactPerson"),
-    title: t("customer.contactTitle"),
-    phone1: t("customer.phone"),
-    phone2: t("customer.phone2"),
-    email: t("customer.email"),
-    website: t("customer.website"),
-    address: t("customer.address"),
-  }), [t]);
-
   const FormSection = ({ title, icon, children }: { title: string, icon?: React.ReactNode, children: React.ReactNode }) => {
     const hasChildren = React.Children.count(children) > 0;
     if (!hasChildren) return null;
@@ -987,141 +954,19 @@ export function CustomerFormScreen(): React.ReactElement {
         </View>
       </Modal>
 
-      <Modal
+      <BusinessCardReviewModal
         visible={isBusinessCardReviewOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={handleCancelBusinessCardReview}
-      >
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity style={styles.modalBackdrop} onPress={handleCancelBusinessCardReview} />
-          <View style={[styles.ocrReviewContent, { backgroundColor: THEME.cardBg, borderColor: THEME.border }]}>
-            <Text style={[styles.ocrReviewTitle, { color: THEME.text }]}>{t("customer.ocrReviewTitle")}</Text>
-            <Text style={[styles.ocrReviewSubtitle, { color: THEME.textMute }]}>
-              {t("customer.ocrReviewSubtitle")}
-            </Text>
-
-            {pendingBusinessCardResult?.languageProfile ? (
-              <View style={[styles.ocrLanguageCard, { backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: THEME.border }]}>
-                <View style={styles.ocrLanguageHeader}>
-                  <Text style={[styles.ocrConfidenceTitle, { color: THEME.text }]}>
-                    {t("customer.ocrDetectedLanguage")}
-                  </Text>
-                  <Text style={[styles.ocrLanguageBadge, { color: THEME.primary, backgroundColor: `${THEME.primary}14` }]}>
-                    {ocrLanguageLabel}
-                  </Text>
-                </View>
-                <Text style={[styles.ocrLanguageHint, { color: THEME.textMute }]}>
-                  {pendingBusinessCardResult.translationMeta?.translated
-                    ? t("customer.ocrTranslatedSummary")
-                    : t("customer.ocrTranslationHint")}
-                </Text>
-                {canTranslateReview ? (
-                  <TouchableOpacity
-                    style={[styles.ocrTranslateBtn, { borderColor: THEME.primary, backgroundColor: `${THEME.primary}12` }]}
-                    onPress={handleTranslateBusinessCardReview}
-                    disabled={isScanning || isTranslatingBusinessCard}
-                  >
-                    {isTranslatingBusinessCard ? (
-                      <ActivityIndicator size="small" color={THEME.primary} />
-                    ) : (
-                      <Text style={[styles.ocrTranslateText, { color: THEME.primary }]}>
-                        {t("customer.ocrTranslateToTurkish")}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                ) : null}
-              </View>
-            ) : null}
-
-            {pendingBusinessCardResult?.review ? (
-              <View style={[styles.ocrConfidenceCard, { backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: THEME.border }]}>
-                <Text style={[styles.ocrConfidenceTitle, { color: THEME.text }]}>
-                  {t("customer.ocrConfidenceTitle", { score: pendingBusinessCardResult.review.overallConfidence })}
-                </Text>
-                {pendingBusinessCardResult.review.flags.length > 0 ? (
-                  <View style={styles.ocrFlagList}>
-                    {pendingBusinessCardResult.review.flags.slice(0, 4).map((flag, index) => (
-                      <Text key={`${flag.field}-${index}`} style={[styles.ocrFlagText, { color: flag.severity === "high" ? "#ef4444" : THEME.textMute }]}>
-                        • {reviewFieldLabels[flag.field]}: {flag.reason}
-                      </Text>
-                    ))}
-                  </View>
-                ) : (
-                  <Text style={[styles.ocrFlagText, { color: THEME.textMute }]}>
-                    {t("customer.ocrNoFlagMessage")}
-                  </Text>
-                )}
-              </View>
-            ) : null}
-
-            {potentialMatchesQuery.data && potentialMatchesQuery.data.length > 0 ? (
-              <View style={[styles.ocrConfidenceCard, { backgroundColor: isDark ? "rgba(251,191,36,0.08)" : "#FFF7ED", borderColor: "#f59e0b" }]}>
-                <Text style={[styles.ocrConfidenceTitle, { color: THEME.text }]}>
-                  {t("customer.ocrPotentialMatchesTitle", { count: potentialMatchesQuery.data.length })}
-                </Text>
-                <View style={styles.ocrFlagList}>
-                  {potentialMatchesQuery.data.slice(0, 3).map((match) => (
-                    <Text key={match.customer.id} style={[styles.ocrFlagText, { color: THEME.textMute }]}>
-                      • {match.customer.name} ({match.score}) - {match.reasons.join(", ")}
-                    </Text>
-                  ))}
-                </View>
-              </View>
-            ) : null}
-
-            {pendingBusinessCardResult?.imageUri ? (
-              <Image source={{ uri: pendingBusinessCardResult.imageUri }} style={styles.ocrPreviewImage} resizeMode="cover" />
-            ) : null}
-
-            <View style={styles.ocrFieldsWrap}>
-              {([
-                ["customerName", pendingBusinessCardResult?.customerName || "-"],
-                ["contactNameAndSurname", pendingBusinessCardResult?.contactNameAndSurname || "-"],
-                ["title", pendingBusinessCardResult?.title || "-"],
-                ["phone1", pendingBusinessCardResult?.phone1 || "-"],
-                ["phone2", pendingBusinessCardResult?.phone2 || "-"],
-                ["email", pendingBusinessCardResult?.email || "-"],
-                ["website", pendingBusinessCardResult?.website || "-"],
-                ["address", pendingBusinessCardResult?.address || "-"],
-              ] as const).map(([field, value]) => {
-                const confidence = pendingBusinessCardResult?.review?.fieldConfidence[field];
-                const isLowConfidence = typeof confidence === "number" && confidence < 70;
-                return (
-                  <Text key={field} style={[styles.ocrFieldLine, { color: isLowConfidence ? "#ef4444" : THEME.text }]}>
-                    {reviewFieldLabels[field]}: {value}
-                    {typeof confidence === "number" ? ` (${confidence}%)` : ""}
-                  </Text>
-                );
-              })}
-            </View>
-
-            <View style={styles.ocrActionRow}>
-              <TouchableOpacity
-                style={[styles.ocrActionBtn, { borderColor: THEME.border, backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#f8fafc" }]}
-                onPress={handleCancelBusinessCardReview}
-                disabled={isScanning}
-              >
-                <Text style={[styles.ocrActionText, { color: THEME.text }]}>{t("common.cancel")}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.ocrActionBtn, { borderColor: THEME.primary, backgroundColor: `${THEME.primary}14` }]}
-                onPress={handleRetryBusinessCardReview}
-                disabled={isScanning}
-              >
-                {isScanning ? <ActivityIndicator size="small" color={THEME.primary} /> : <Text style={[styles.ocrActionText, { color: THEME.primary }]}>{t("common.retry")}</Text>}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.ocrActionBtn, { borderColor: THEME.primary, backgroundColor: THEME.primary }]}
-                onPress={handleConfirmBusinessCardReview}
-                disabled={isScanning}
-              >
-                <Text style={[styles.ocrActionText, { color: "#ffffff" }]}>{t("common.confirm")}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        result={pendingBusinessCardResult}
+        isScanning={isScanning}
+        isTranslating={isTranslatingBusinessCard}
+        isDark={isDark}
+        theme={THEME}
+        potentialMatches={potentialMatchesQuery.data ?? []}
+        onCancel={handleCancelBusinessCardReview}
+        onRetry={handleRetryBusinessCardReview}
+        onConfirm={handleConfirmBusinessCardReview}
+        onTranslate={handleTranslateBusinessCardReview}
+      />
     </View>
   );
 }
@@ -1340,107 +1185,4 @@ const styles = StyleSheet.create({
   list: { flexGrow: 0 },
   pickerItem: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1 },
   pickerItemText: { fontSize: 13, fontWeight: "500", flex: 1 },
-  ocrReviewContent: {
-    marginHorizontal: 16,
-    marginBottom: 20,
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 14,
-  },
-  ocrReviewTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  ocrReviewSubtitle: {
-    marginTop: 4,
-    fontSize: 12,
-  },
-  ocrConfidenceCard: {
-    marginTop: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 10,
-    gap: 6,
-  },
-  ocrLanguageCard: {
-    marginTop: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 10,
-    gap: 8,
-  },
-  ocrLanguageHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
-  },
-  ocrLanguageBadge: {
-    fontSize: 12,
-    fontWeight: "700",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    overflow: "hidden",
-  },
-  ocrLanguageHint: {
-    fontSize: 11,
-    fontWeight: "500",
-    lineHeight: 16,
-  },
-  ocrTranslateBtn: {
-    minHeight: 38,
-    borderRadius: 10,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 10,
-  },
-  ocrTranslateText: {
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  ocrConfidenceTitle: {
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  ocrFlagList: {
-    gap: 4,
-  },
-  ocrFlagText: {
-    fontSize: 11,
-    fontWeight: "500",
-  },
-  ocrPreviewImage: {
-    marginTop: 10,
-    width: "100%",
-    height: 110,
-    borderRadius: 10,
-  },
-  ocrFieldsWrap: {
-    marginTop: 10,
-    gap: 4,
-  },
-  ocrFieldLine: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  ocrActionRow: {
-    marginTop: 14,
-    flexDirection: "row",
-    gap: 8,
-  },
-  ocrActionBtn: {
-    flex: 1,
-    minHeight: 40,
-    borderRadius: 10,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 8,
-  },
-  ocrActionText: {
-    fontSize: 12,
-    fontWeight: "700",
-  },
 });

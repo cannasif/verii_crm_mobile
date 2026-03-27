@@ -8,4 +8,5 @@ export { LocationPicker } from "./LocationPicker";
 export { CustomerPicker } from "./CustomerPicker";
 export { FormField } from "./FormField";
 export { CustomerDetailContent } from "./CustomerDetailContent";
-export {PremiumPicker} from './PremiumPicker';
+export { BusinessCardReviewModal } from "./BusinessCardReviewModal";
+export { PremiumPicker } from "./PremiumPicker";
