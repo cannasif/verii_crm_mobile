@@ -17,10 +17,10 @@ export const CRM_MODULES: Module[] = [
   },
   {
     id: "3",
-    key: "activities",
+    key: "createActivity",
     icon: "📅",
     color: "#EC4899", 
-    route: "/(tabs)/activities",
+    route: "/(tabs)/activities/create",
   },
   {
     id: "4",

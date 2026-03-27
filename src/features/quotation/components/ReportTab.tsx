@@ -41,15 +41,44 @@ export function ReportTab({
   builtInTemplates = [],
 }: ReportTabProps): React.ReactElement {
   const { t } = useTranslation();
-  const { colors } = useUIStore();
+  const { colors, themeMode } = useUIStore();
   const showToast = useToastStore((s) => s.showToast);
   const { height: windowHeight } = useWindowDimensions();
-  const { data: templates, isLoading: templatesLoading, isError: templatesError, error: templatesErrorObj, refetch } = useReportTemplateList(ruleType);
+
+  const { data: templates, isLoading: templatesLoading, isError: templatesError, error: templatesErrorObj, refetch } =
+    useReportTemplateList(ruleType);
+
   const generatePdf = useGenerateReportPdf();
+
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | string | undefined>(undefined);
   const [templatePickerVisible, setTemplatePickerVisible] = useState(false);
   const [pdfFileUri, setPdfFileUri] = useState<string | null>(null);
+
+  const isDark = themeMode === "dark";
   const inAppPdfPreviewAvailable = useMemo(() => canPreviewPdfInApp(), []);
+
+  const palette = useMemo(
+    () => ({
+      softBg: isDark ? "rgba(255,255,255,0.03)" : "#F8FAFC",
+      inputBg: isDark ? "rgba(255,255,255,0.04)" : "rgba(248,250,252,0.94)",
+      border: isDark ? "rgba(255,255,255,0.14)" : "rgba(148,163,184,0.26)",
+      borderStrong: isDark ? "rgba(236,72,153,0.26)" : "rgba(219,39,119,0.22)",
+      brand: isDark ? "#EC4899" : "#DB2777",
+      brandSoft: isDark ? "rgba(236,72,153,0.10)" : "rgba(219,39,119,0.07)",
+      orange: "#F97316",
+      orangeSoft: "rgba(249,115,22,0.10)",
+      blue: "#38BDF8",
+      blueSoft: "rgba(56,189,248,0.10)",
+      text: colors.text,
+      muted: colors.textMuted,
+      shadow: isDark ? "#000000" : "#0F172A",
+      card: colors.card,
+      cardBorder: colors.cardBorder,
+      background: colors.background,
+      backgroundSecondary: colors.backgroundSecondary,
+    }),
+    [colors, isDark]
+  );
 
   const defaultTemplate = useMemo(() => {
     const builtInDefault = builtInTemplates.find((tpl) => tpl.isDefault === true);
@@ -75,13 +104,17 @@ export function ReportTab({
       showToast("error", t("report.selectTemplateFirst"));
       return;
     }
+
     const builtInTemplate = builtInTemplates.find((tpl) => tpl.id === selectedTemplateId);
+
     if (builtInTemplate) {
       generatePdf.reset();
+
       void builtInTemplate
         .generate()
         .then((fileUri) => {
           setPdfFileUri(fileUri);
+
           if (!inAppPdfPreviewAvailable) {
             void openPdfExternallyAsync(fileUri).then((result) => {
               if (!result.opened && result.reason === "no_app") {
@@ -89,14 +122,17 @@ export function ReportTab({
               }
             });
           }
+
           showToast("success", t("report.generated"));
         })
         .catch((err) => {
           const message = err instanceof Error ? err.message : t("report.generateError");
           showToast("error", message);
         });
+
       return;
     }
+
     generatePdf.mutate(
       { templateId: selectedTemplateId as number, entityId },
       {
@@ -104,18 +140,23 @@ export function ReportTab({
           try {
             const base64 = arrayBufferToBase64(arrayBuffer);
             const dir = FileSystem.cacheDirectory ?? FileSystem.documentDirectory;
+
             if (dir == null) {
               showToast("error", t("report.saveError"));
               generatePdf.reset();
               return;
             }
+
             const fileName = `report-${ruleType}-${entityId}-${Date.now()}.pdf`;
             const fileUri = `${dir}${fileName}`;
+
             await FileSystem.writeAsStringAsync(fileUri, base64, {
               encoding: FileSystem.EncodingType.Base64,
             });
+
             const displayUri = fileUri.startsWith("file://") ? fileUri : `file://${fileUri}`;
             setPdfFileUri(displayUri);
+
             if (!inAppPdfPreviewAvailable) {
               void openPdfExternallyAsync(displayUri).then((result) => {
                 if (!result.opened && result.reason === "no_app") {
@@ -123,11 +164,13 @@ export function ReportTab({
                 }
               });
             }
+
             showToast("success", t("report.generated"));
           } catch (err) {
             const message = err instanceof Error ? err.message : t("report.saveError");
             showToast("error", message);
           }
+
           generatePdf.reset();
         },
         onError: (err: unknown) => {
@@ -136,21 +179,37 @@ export function ReportTab({
         },
       }
     );
-  }, [selectedTemplateId, entityId, ruleType, generatePdf, showToast, t, builtInTemplates, inAppPdfPreviewAvailable]);
+  }, [
+    selectedTemplateId,
+    entityId,
+    ruleType,
+    generatePdf,
+    showToast,
+    t,
+    builtInTemplates,
+    inAppPdfPreviewAvailable,
+  ]);
 
   const handleOpenPdf = useCallback(async () => {
     if (pdfFileUri == null) return;
+
     const result = await openPdfExternallyAsync(pdfFileUri);
+
     if (!result.opened) {
-      showToast("error", t(result.reason === "no_app" ? "report.viewerNotAvailable" : "report.openError"));
+      showToast(
+        "error",
+        t(result.reason === "no_app" ? "report.viewerNotAvailable" : "report.openError")
+      );
     }
   }, [pdfFileUri, showToast, t]);
 
   const handleSharePdf = useCallback(async () => {
     if (pdfFileUri == null) return;
+
     try {
       const shareUri = pdfFileUri.startsWith("file://") ? pdfFileUri : `file://${pdfFileUri}`;
       const isAvailable = await Sharing.isAvailableAsync();
+
       if (isAvailable) {
         await Sharing.shareAsync(shareUri, {
           mimeType: "application/pdf",
@@ -168,39 +227,58 @@ export function ReportTab({
   const pdfViewerHeight = useMemo(() => Math.max(400, windowHeight * 0.5), [windowHeight]);
 
   const pickerOptions = useMemo(
-    () =>
-      [
-        ...builtInTemplates.map((tpl) => ({
-          id: tpl.id,
-          name: tpl.title,
-        })),
-        ...templates.map((tpl) => ({
-          id: tpl.id,
-          name: tpl.title,
-        })),
-      ],
+    () => [
+      ...builtInTemplates.map((tpl) => ({
+        id: tpl.id,
+        name: tpl.title,
+      })),
+      ...templates.map((tpl) => ({
+        id: tpl.id,
+        name: tpl.title,
+      })),
+    ],
     [builtInTemplates, templates]
   );
 
   if (templatesLoading) {
     return (
-      <View style={[styles.centered, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.accent} />
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={palette.brand} />
       </View>
     );
   }
 
   if (templatesError) {
     return (
-      <View style={[styles.centered, styles.errorBox, { backgroundColor: colors.background }]}>
-        <Text style={[styles.errorText, { color: colors.error }]}>
+      <View
+        style={[
+          styles.stateCard,
+          {
+            backgroundColor: palette.card,
+            borderColor: palette.border,
+          },
+        ]}
+      >
+        <Text style={[styles.stateTitle, { color: colors.error }]}>
+          {t("common.error")}
+        </Text>
+        <Text style={[styles.stateText, { color: palette.muted }]}>
           {templatesErrorObj?.message ?? t("common.error")}
         </Text>
+
         <TouchableOpacity
-          style={[styles.retryBtn, { backgroundColor: colors.accent }]}
+          style={[
+            styles.retryBtn,
+            {
+              backgroundColor: palette.brandSoft,
+              borderColor: palette.borderStrong,
+            },
+          ]}
           onPress={() => refetch()}
         >
-          <Text style={styles.retryBtnText}>{t("common.retry")}</Text>
+          <Text style={[styles.retryBtnText, { color: palette.brand }]}>
+            {t("common.retry")}
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -208,94 +286,242 @@ export function ReportTab({
 
   if (templates.length === 0 && builtInTemplates.length === 0) {
     return (
-      <View style={[styles.centered, styles.emptyBox, { backgroundColor: colors.background }]}>
-        <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+      <View
+        style={[
+          styles.stateCard,
+          {
+            backgroundColor: palette.card,
+            borderColor: palette.border,
+          },
+        ]}
+      >
+        <Text style={[styles.stateTitle, { color: palette.text }]}>
           {t("report.noTemplates")}
+        </Text>
+        <Text style={[styles.stateText, { color: palette.muted }]}>
+          Rapor oluşturabilmek için kullanılabilir şablon bulunamadı.
         </Text>
       </View>
     );
   }
 
   return (
-    <FlatListScrollView
-      style={[styles.scroll, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          {t("report.template")}
-        </Text>
-        <TouchableOpacity
-          style={[styles.pickerBtn, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}
-          onPress={() => setTemplatePickerVisible(true)}
+    <>
+      <FlatListScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View
+          style={[
+            styles.reportTemplateBox,
+            {
+              borderColor: palette.border,
+              backgroundColor: palette.inputBg,
+            },
+          ]}
         >
-          <Text style={[styles.pickerTxt, { color: colors.text }]} numberOfLines={1}>
-            {selectedTemplate?.title ?? t("report.selectTemplate")}
+          <Text style={[styles.label, { color: palette.muted }]}>
+            {t("report.template")}
           </Text>
-        </TouchableOpacity>
-      </View>
-      <View style={styles.actionsRow}>
+
+          <TouchableOpacity
+            activeOpacity={0.85}
+            style={[
+              styles.templateSelector,
+              {
+                borderColor: palette.border,
+                backgroundColor: palette.softBg,
+              },
+            ]}
+            onPress={() => setTemplatePickerVisible(true)}
+          >
+            <Text style={[styles.templateSelectorText, { color: palette.text }]} numberOfLines={1}>
+              {selectedTemplate?.title ?? t("report.selectTemplate")}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         <TouchableOpacity
-          style={[styles.generateBtn, { backgroundColor: colors.accent }]}
+          activeOpacity={0.88}
+          style={[
+            styles.reportPrimaryButton,
+            {
+              backgroundColor: generatePdf.isPending
+                ? isDark
+                  ? "rgba(236,72,153,0.10)"
+                  : "rgba(219,39,119,0.08)"
+                : isDark
+                  ? "rgba(236,72,153,0.18)"
+                  : "rgba(219,39,119,0.12)",
+              borderColor: generatePdf.isPending
+                ? isDark
+                  ? "rgba(236,72,153,0.22)"
+                  : "rgba(219,39,119,0.16)"
+                : isDark
+                  ? "rgba(236,72,153,0.38)"
+                  : "rgba(219,39,119,0.24)",
+              opacity: selectedTemplateId == null ? 0.7 : 1,
+            },
+          ]}
           onPress={handleGeneratePdf}
           disabled={generatePdf.isPending || selectedTemplateId == null}
         >
           {generatePdf.isPending ? (
-            <ActivityIndicator color="#FFF" size="small" />
+            <ActivityIndicator color={palette.brand} size="small" />
           ) : (
-            <Text style={styles.generateBtnText}>{t("report.generatePdf")}</Text>
+            <Text style={[styles.reportPrimaryButtonText, { color: palette.brand }]}>
+              {t("report.generatePdf")}
+            </Text>
           )}
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.shareBtn,
-            { backgroundColor: pdfFileUri != null ? colors.accent : colors.textMuted },
-          ]}
-          onPress={handleSharePdf}
-          disabled={pdfFileUri == null}
-        >
-          <Text style={styles.shareBtnText}>{t("report.share")}</Text>
-        </TouchableOpacity>
-        {!inAppPdfPreviewAvailable && (
+
+        <View style={styles.pdfActionRow}>
           <TouchableOpacity
+            activeOpacity={0.88}
             style={[
-              styles.shareBtn,
-              { backgroundColor: pdfFileUri != null ? colors.accent : colors.textMuted },
+              styles.reportSecondaryButton,
+              {
+                flex: 1,
+                backgroundColor: pdfFileUri
+                  ? isDark
+                    ? "rgba(56,189,248,0.10)"
+                    : "rgba(14,165,233,0.08)"
+                  : isDark
+                    ? "rgba(255,255,255,0.025)"
+                    : "rgba(15,23,42,0.035)",
+                borderColor: pdfFileUri
+                  ? isDark
+                    ? "rgba(56,189,248,0.26)"
+                    : "rgba(14,165,233,0.18)"
+                  : palette.border,
+                opacity: pdfFileUri ? 1 : 0.55,
+              },
             ]}
             onPress={handleOpenPdf}
-            disabled={pdfFileUri == null}
+            disabled={!pdfFileUri}
           >
-            <Text style={styles.shareBtnText}>{t("report.openPdf")}</Text>
+            <Text
+              style={[
+                styles.reportSecondaryButtonText,
+                { color: pdfFileUri ? (isDark ? "#7DD3FC" : "#0284C7") : palette.muted },
+              ]}
+            >
+              {t("report.openPdf")}
+            </Text>
           </TouchableOpacity>
-        )}
-      </View>
-      {pdfFileUri != null && inAppPdfPreviewAvailable && (
-        <View style={[styles.previewSection, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            {t("report.preview")}
-          </Text>
-          <View style={[styles.pdfViewerWrapper, { height: pdfViewerHeight, backgroundColor: colors.backgroundSecondary }]}>
-            <WebView
-              source={{ uri: pdfFileUri }}
-              originWhitelist={["file://", "content://"]}
-              style={styles.pdfWebView}
-              scalesPageToFit
-              nestedScrollEnabled
-            />
+
+          <TouchableOpacity
+            activeOpacity={0.88}
+            style={[
+              styles.reportSecondaryButton,
+              {
+                flex: 1,
+                backgroundColor: pdfFileUri
+                  ? isDark
+                    ? "rgba(249,115,22,0.10)"
+                    : "rgba(245,158,11,0.08)"
+                  : isDark
+                    ? "rgba(255,255,255,0.025)"
+                    : "rgba(15,23,42,0.035)",
+                borderColor: pdfFileUri
+                  ? isDark
+                    ? "rgba(249,115,22,0.24)"
+                    : "rgba(245,158,11,0.18)"
+                  : palette.border,
+                opacity: pdfFileUri ? 1 : 0.55,
+              },
+            ]}
+            onPress={handleSharePdf}
+            disabled={!pdfFileUri}
+          >
+            <Text
+              style={[
+                styles.reportSecondaryButtonText,
+                { color: pdfFileUri ? (isDark ? "#FDBA74" : "#D97706") : palette.muted },
+              ]}
+            >
+              {t("report.share")}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {pdfFileUri == null ? (
+          <View
+            style={[
+              styles.previewInfoCard,
+              {
+                borderColor: palette.border,
+                backgroundColor: isDark
+                  ? "rgba(255,255,255,0.025)"
+                  : "rgba(15,23,42,0.03)",
+              },
+            ]}
+          >
+            <Text style={[styles.previewTitle, { color: palette.text }]}>
+              PDF henüz oluşturulmadı
+            </Text>
+            <Text style={[styles.previewInfoText, { color: palette.muted }]}>
+              Önce PDF oluşturun, ardından açabilir veya paylaşabilirsiniz.
+            </Text>
           </View>
-        </View>
-      )}
-      {pdfFileUri != null && !inAppPdfPreviewAvailable && (
-        <View style={[styles.previewSection, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            {t("report.preview")}
-          </Text>
-          <Text style={[styles.androidPdfInfo, { color: colors.textMuted }]}>
-            {t("report.androidPreviewFallback")}
-          </Text>
-        </View>
-      )}
+        ) : inAppPdfPreviewAvailable ? (
+          <View
+            style={[
+              styles.previewSection,
+              {
+                backgroundColor: palette.card,
+                borderColor: palette.borderStrong,
+              },
+            ]}
+          >
+            <Text style={[styles.previewTitle, { color: palette.text }]}>
+              {t("report.preview")}
+            </Text>
+
+            <View
+              style={[
+                styles.pdfViewerWrapper,
+                {
+                  height: pdfViewerHeight,
+                  backgroundColor: palette.backgroundSecondary,
+                  borderColor: palette.border,
+                },
+              ]}
+            >
+              <WebView
+                source={{ uri: pdfFileUri }}
+                originWhitelist={["file://", "content://"]}
+                style={styles.pdfWebView}
+                scalesPageToFit
+                nestedScrollEnabled
+              />
+            </View>
+          </View>
+        ) : (
+          <View
+            style={[
+              styles.previewInfoCard,
+              {
+                borderColor: isDark
+                  ? "rgba(236,72,153,0.18)"
+                  : "rgba(219,39,119,0.14)",
+                backgroundColor: isDark
+                  ? "rgba(236,72,153,0.08)"
+                  : "rgba(219,39,119,0.06)",
+              },
+            ]}
+          >
+            <Text style={[styles.previewTitle, { color: palette.text }]}>
+              PDF hazır
+            </Text>
+            <Text style={[styles.previewInfoText, { color: palette.muted }]}>
+              {t("report.androidPreviewFallback")}
+            </Text>
+          </View>
+        )}
+      </FlatListScrollView>
+
       <PickerModal
         visible={templatePickerVisible}
         options={pickerOptions}
@@ -308,43 +534,167 @@ export function ReportTab({
         title={t("report.selectTemplate")}
         searchPlaceholder={t("report.searchTemplate")}
       />
-    </FlatListScrollView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1 },
-  scrollContent: { padding: 16, paddingBottom: 32 },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  errorBox: { flex: 1 },
-  errorText: { fontSize: 14, textAlign: "center", marginBottom: 16 },
-  retryBtn: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 8 },
-  retryBtnText: { color: "#FFF", fontSize: 14, fontWeight: "600" },
-  emptyBox: { flex: 1 },
-  emptyText: { fontSize: 15, textAlign: "center" },
-  section: { padding: 16, borderRadius: 12, borderWidth: 1, marginBottom: 16 },
-  sectionTitle: { fontSize: 16, fontWeight: "600", marginBottom: 12 },
-  pickerBtn: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12 },
-  pickerTxt: { fontSize: 15 },
-  actionsRow: { marginBottom: 16, gap: 12 },
-  generateBtn: {
-    paddingVertical: 14,
-    borderRadius: 12,
+  scroll: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
+
+  scrollContent: {
+    gap: 14,
+    paddingTop: 4,
+    paddingBottom: 10,
+  },
+
+  centered: {
+    minHeight: 140,
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 52,
+    paddingHorizontal: 18,
   },
-  generateBtnText: { color: "#FFF", fontSize: 16, fontWeight: "600" },
-  shareBtn: {
-    paddingVertical: 14,
-    borderRadius: 12,
+
+  stateCard: {
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 14,
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 52,
+    gap: 8,
   },
-  shareBtnText: { color: "#FFF", fontSize: 16, fontWeight: "600" },
-  previewSection: { padding: 16, borderRadius: 12, borderWidth: 1, marginBottom: 16 },
-  androidPdfInfo: { fontSize: 14, lineHeight: 20 },
-  pdfViewerWrapper: { borderRadius: 8, overflow: "hidden" },
-  pdfWebView: { flex: 1, backgroundColor: "transparent" },
+
+  stateTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    lineHeight: 16,
+    textAlign: "center",
+  },
+
+  stateText: {
+    fontSize: 10.8,
+    fontWeight: "500",
+    lineHeight: 14,
+    textAlign: "center",
+  },
+
+  retryBtn: {
+    minHeight: 40,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+    marginTop: 4,
+  },
+
+  retryBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    lineHeight: 14,
+  },
+
+  label: {
+    fontSize: 10,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 5,
+    lineHeight: 12,
+  },
+
+  reportTemplateBox: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+  },
+
+  templateSelector: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    minHeight: 46,
+    justifyContent: "center",
+  },
+
+  templateSelectorText: {
+    fontSize: 11.5,
+    fontWeight: "500",
+    lineHeight: 14,
+  },
+
+  reportPrimaryButton: {
+    minHeight: 46,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2,
+  },
+
+  reportPrimaryButtonText: {
+    fontSize: 12,
+    fontWeight: "700",
+    lineHeight: 14,
+  },
+  pdfActionRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 2,
+  },
+
+  reportSecondaryButton: {
+    minHeight: 44,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 10,
+  },
+  reportSecondaryButtonText: {
+    fontSize: 12,
+    fontWeight: "700",
+    lineHeight: 14,
+  },
+
+  previewSection: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    gap: 10,
+  },
+
+  previewInfoCard: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    gap: 6,
+  },
+
+  previewTitle: {
+    fontSize: 11.5,
+    fontWeight: "700",
+    lineHeight: 14,
+  },
+
+  previewInfoText: {
+    fontSize: 10.5,
+    lineHeight: 15,
+    fontWeight: "500",
+  },
+
+  pdfViewerWrapper: {
+    borderRadius: 10,
+    overflow: "hidden",
+    borderWidth: 1,
+  },
+
+  pdfWebView: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
 });
