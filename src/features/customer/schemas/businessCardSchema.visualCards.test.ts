@@ -691,6 +691,360 @@ Atatürk San. Sit. 5542 Sk. No:11 Torbalı - İZMİR`,
       assert.equal(result.phones[0], "+905534168463");
     },
   },
+  {
+    name: "Isbank / TR address should drop contact contamination",
+    rawText: `TÜRKİYE İŞ BANKASI
+
+Nurhat Çaça
+Customer Relationship Manager
+
+Türkiye İş Bankası A.Ş.
+Ayrancılar - Torbalı
+İzmir Branch
+İnönü Mah. İzmir Aydın Cad. No 57/B
+Ayrancılar 35860 Torbalı / İzmir - Turkey
+Phone: +90 (232) 854 65 64
+Gsm: +90 (507) 198 61 16
+nurhat.caca@isbank.com.tr`,
+    input: {
+      contactNameAndSurname: "Nurhat Çaça",
+      name: "Nurhat Çaça",
+      title: "Customer Relationship Manager",
+      company: "Türkiye İş Bankası A.Ş.",
+      phones: ["+90 (232) 854 65 64"],
+      emails: ["nurhat.caca@isbank.com.tr"],
+      website: null,
+      address: "Nurhat Çaça BANKASI Customer Relationship Manager Türkiye İş Bankası A.Ş. Ayrancılar - Torbalı İzmir Branch İnönü Mah. İzmir Aydın Cad. No:57/B Ayrancılar 35860 Torbalı / İzmir - Turkey Phone:",
+      addressParts: {
+        neighborhood: null,
+        street: null,
+        avenue: null,
+        boulevard: null,
+        sitePlaza: null,
+        block: null,
+        buildingNo: null,
+        floor: null,
+        apartment: null,
+        postalCode: null,
+        district: null,
+        province: null,
+        country: null,
+      },
+      social: emptySocial,
+      notes: [],
+    },
+    assertResult: (result) => {
+      assert.equal(result.company, "Türkiye İş Bankası A.Ş.");
+      assert.equal(result.name, "Nurhat Çaça");
+      assert.ok(result.address?.includes("İnönü Mah."));
+      assert.ok(result.address?.includes("No 57/B") || result.address?.includes("No:57/B"));
+      assert.ok(!result.address?.includes("Customer Relationship Manager"));
+      assert.ok(!result.address?.includes("Phone"));
+    },
+  },
+  {
+    name: "Windoform / TR should recover person and title",
+    rawText: `WINDOFORM
+KAPI ve PENCERE AKSESUARLARI
+NURAY Grup
+
+Volkan SAĞLIK
+Genel Müdür Yardımcısı
+Deputy General Manager
+
+Tel: +90 232 854 70 00-01
+Fax: +90 232 854 63 00
+Mobil: +90 533 158 00 40
+v.saglik@windoform.com.tr
+Fabrika: Kazım Karabekir Mh. Bekir Saydam Cd. No: 104
+A-10 Blok No: 76-35870
+Pancar - Torbalı - İZMİR
+www.windoform.com`,
+    input: {
+      contactNameAndSurname: "Kapı ve Pencere AKSESUARLARI",
+      name: "Kapı ve Pencere AKSESUARLARI",
+      title: null,
+      company: "WINDOFORM",
+      phones: ["+90 232 854 63 00"],
+      emails: ["v.saglik@windoform.com.tr"],
+      website: "www.windoform.com",
+      address: "Fabrika: Kazım Karabekir Mah. NURAY Grup Bekir Saydam Cd. No: 104 A-10 Blok No:",
+      addressParts: {
+        neighborhood: null,
+        street: null,
+        avenue: null,
+        boulevard: null,
+        sitePlaza: null,
+        block: null,
+        buildingNo: null,
+        floor: null,
+        apartment: null,
+        postalCode: null,
+        district: null,
+        province: null,
+        country: null,
+      },
+      social: emptySocial,
+      notes: [],
+    },
+    assertResult: (result) => {
+      assert.equal(result.company, "WINDOFORM");
+      assert.equal(result.name, "Volkan Sağlık");
+      assert.ok(result.title?.includes("Genel Müdür Yardımcısı"));
+      assert.ok(result.address?.includes("Kazım Karabekir"));
+      assert.ok(!result.address?.includes("NURAY Grup"));
+    },
+  },
+  {
+    name: "Trade Lines / TR should prefer brand over slogan",
+    rawText: `Trade Lines
+Komple Lojistik
+Dış Ticaret Çözümleri
+
+Melisa TATAROĞLU
+Satış ve Pazarlama
+
++90 538 594 59 93
+melisa@tradelines.com.tr
+www.tradelines.com.tr
+Caferağa Mah. Moda Cad. No:30/4
+34710 Kadıköy / İstanbul - Türkiye`,
+    input: {
+      contactNameAndSurname: "Lines Çözümleri",
+      name: "Lines Çözümleri",
+      title: null,
+      company: "Komple Lojistik",
+      phones: ["+90 538 594 59 93"],
+      emails: ["melisa@tradelines.com.tr"],
+      website: "www.tradelines.com.tr",
+      address: "Caferağa Mah. Moda Cad.. No:30/4 34710 Kadıköy / İstanbul",
+      addressParts: {
+        neighborhood: null,
+        street: null,
+        avenue: null,
+        boulevard: null,
+        sitePlaza: null,
+        block: null,
+        buildingNo: null,
+        floor: null,
+        apartment: null,
+        postalCode: null,
+        district: null,
+        province: null,
+        country: null,
+      },
+      social: emptySocial,
+      notes: [],
+    },
+    assertResult: (result) => {
+      assert.ok(result.company?.toLowerCase().includes("trade"));
+      assert.equal(result.name, "Melisa Tataroğlu");
+      assert.ok(result.title?.includes("Satış ve Pazarlama"));
+      assert.ok(result.address?.includes("Kadıköy"));
+    },
+  },
+  {
+    name: "Rapid / EN should drop service slogan from address",
+    rawText: `RAPID
+Since 1965
+55 Years
+INTERNATIONAL ROAD TRANSPORT
+ROMANIA RUSSIA UKRAINE POLAND MOROCCO UZBEKISTAN MOLDOVA TURKEY
+
+OLGA DOĞAN
+Customer Representative
+
+Tel 0090 212 252 38 33 (Pbx)
+Gsm 0090 542 566 08 98
+e-mail olga.dogan@rapid.com.tr
+web www.rapid.com.tr`,
+    input: {
+      contactNameAndSurname: "Olga Doğan",
+      name: "Olga Doğan",
+      title: "Customer Representative",
+      company: "RAPID",
+      phones: ["0090 212 252 38 33 (Pbx)"],
+      emails: ["olga.dogan@rapid.com.tr"],
+      website: "www.rapid.com.tr",
+      address: "ULUSLARARASI TAŞIMACILIK Since 1965 ROMANIA RUSSIA UKRAINE POLAND MOROCCO UZBEKISTAN MOLDOVA TURKEY INTERNATIONAL 55 Years ROAD",
+      addressParts: {
+        neighborhood: null,
+        street: null,
+        avenue: null,
+        boulevard: null,
+        sitePlaza: null,
+        block: null,
+        buildingNo: null,
+        floor: null,
+        apartment: null,
+        postalCode: null,
+        district: null,
+        province: null,
+        country: null,
+      },
+      social: emptySocial,
+      notes: [],
+    },
+    assertResult: (result) => {
+      assert.equal(result.company, "RAPID");
+      assert.equal(result.name, "Olga Doğan");
+      assert.equal(result.title, "Customer Representative");
+      assert.equal(result.address, null);
+    },
+  },
+  {
+    name: "NGC / TR should keep company and person separate",
+    rawText: `NGC DANIŞMANLIK
+New Global Consultancy
+
+Ali Hakan KANAT
+Koordinatör
+
+0541 244 14 54
+www.ngcdanismanlik.com
+hakan@ngcdanismanlik.com
+0850 302 642 - 0850 302 4 NGC`,
+    input: {
+      contactNameAndSurname: "New Global Consultancy",
+      name: "New Global Consultancy",
+      title: null,
+      company: "NGCDANISMANLIK",
+      phones: ["0541 244 14 54"],
+      emails: ["hakan@ngcdanismanlik.com"],
+      website: "www.ngcdanismanlik.com",
+      address: null,
+      addressParts: {
+        neighborhood: null,
+        street: null,
+        avenue: null,
+        boulevard: null,
+        sitePlaza: null,
+        block: null,
+        buildingNo: null,
+        floor: null,
+        apartment: null,
+        postalCode: null,
+        district: null,
+        province: null,
+        country: null,
+      },
+      social: emptySocial,
+      notes: [],
+    },
+    assertResult: (result) => {
+      assert.ok(result.company?.toLowerCase().includes("ngc"));
+      assert.ok(result.company?.toLowerCase().includes("dan"));
+      assert.equal(result.name, "Ali Hakan Kanat");
+      assert.ok(result.title?.toLowerCase().includes("koordinat"));
+      assert.equal(result.address, null);
+    },
+  },
+  {
+    name: "Yurtici / TR should recover title email website and clean address",
+    rawText: `yurtiçi taşımacılık hizmetleri
+
+Hülya VEYİSOĞLU
+İş Geliştirme Yöneticisi
+
+İstasyon Mah. Hatboyu Cad.
+No: 172 / C Tuzla / İSTANBUL
+operasyon@tasimahizmetleri.com
+hulya@tasimahizmetleri.com
+www.yurticitasimahizmetleri.com
+0542 137 17 41
+0850 888 85 88
+0216 888 18 18`,
+    input: {
+      contactNameAndSurname: "Hülya Veyisoğlu",
+      name: "Hülya Veyisoğlu",
+      title: null,
+      company: "yurtiçi",
+      phones: ["0542 137 17 41"],
+      emails: [],
+      website: null,
+      address: "İstasyon Mah.. Hatboyu Cad.. No: 172/C Tuzla / İSTANBUL .com .com",
+      addressParts: {
+        neighborhood: null,
+        street: null,
+        avenue: null,
+        boulevard: null,
+        sitePlaza: null,
+        block: null,
+        buildingNo: null,
+        floor: null,
+        apartment: null,
+        postalCode: null,
+        district: null,
+        province: null,
+        country: null,
+      },
+      social: emptySocial,
+      notes: [],
+    },
+    assertResult: (result) => {
+      assert.ok(result.company?.toLowerCase().includes("yurt"));
+      assert.ok(result.company?.toLowerCase().includes("taş"));
+      assert.equal(result.name, "Hülya Veyisoğlu");
+      assert.ok(result.title?.toLowerCase().includes("geliştirme"));
+      assert.ok(result.emails.some((email) => email.includes("hulya@")));
+      assert.ok(result.website?.includes("yurtici"));
+      assert.ok(result.address?.includes("Hatboyu"));
+      assert.ok(!result.address?.includes(".com"));
+    },
+  },
+  {
+    name: "Windoform / TR manager card should keep person title and address",
+    rawText: `WINDOFORM
+KAPI VE PENCERE AKSESUARLARI
+NURAY Grup
+
+Aydın YÜKSEL
+Genel Müdür / General Manager
+
+Tel: +90 232 854 70 00-01
+Fax: +90 232 854 63 00
+Mobil: +90 532 425 48 21
+a.yuksel@windoform.com.tr
+Fabrika: Kazım Karabekir Mh.
+Bekir Saydam Cd. No: 104
+A-10 Blok No: 7-8 35870
+Pancar - Torbalı - İZMİR
+www.windoform.com.tr`,
+    input: {
+      contactNameAndSurname: "Fabrika: Kazım Karabekir Mh.",
+      name: "Fabrika: Kazım Karabekir Mh.",
+      title: "Genel Müdür / General Manager",
+      company: "WINDOFORM",
+      phones: ["+90 232 854 70 00"],
+      emails: ["a.yuksel@windoform.com.tr"],
+      website: "www.windoform.com.tr",
+      address: "Fabrika: Kazım Karabekir Mh.. Bekir Saydam Cd. No: 104 A-10 Blok No:",
+      addressParts: {
+        neighborhood: null,
+        street: null,
+        avenue: null,
+        boulevard: null,
+        sitePlaza: null,
+        block: null,
+        buildingNo: null,
+        floor: null,
+        apartment: null,
+        postalCode: null,
+        district: null,
+        province: null,
+        country: null,
+      },
+      social: emptySocial,
+      notes: [],
+    },
+    assertResult: (result) => {
+      assert.equal(result.company, "WINDOFORM");
+      assert.equal(result.name, "Aydın Yüksel");
+      assert.ok(result.title?.includes("Genel Müdür"));
+      assert.ok(result.address?.includes("Kazım Karabekir"));
+      assert.ok(!result.address?.includes("NURAY Grup"));
+    },
+  },
 ];
 
 const failures: string[] = [];

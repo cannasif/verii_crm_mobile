@@ -92,7 +92,7 @@ const LETTER_GLOBAL_REGEX = UNICODE_LETTER_GLOBAL_REGEX;
 const UPPER_LETTER_GLOBAL_REGEX = UNICODE_UPPERCASE_GLOBAL_REGEX;
 const PERSON_TOKEN_REGEX = /^[\p{L}'.-]{2,}$/u;
 const SLOGAN_NOISE_REGEX =
-  /\b(everything simple|member of|official dealer|kap[ıi]\s+ve\s+pencere\s+aksesuarlar[ıi]|group member|made simple)\b/i;
+  /\b(everything simple|member of|official dealer|kap[ıi]\s+ve\s+pencere\s+aksesuarlar[ıi]|group member|made simple|komple lojistik|d[ıi]ş ticaret çözümleri|dis ticaret cozumleri|çözümleri|cozumleri|international road transport|since\s+\d{4})\b/i;
 const SERVICE_CONNECTOR_TOKENS = new Set(["ve", "and", "-", "/", "eşikli", "eşiksiz"]);
 const COMPANY_CONNECTOR_TOKENS = new Set(["ve", "and", "of", "und", "&"]);
 
@@ -191,7 +191,7 @@ function stripPhoneLabel(value: string): string {
 
 function stripContactFragments(value: string): string {
   const cleaned = value
-    .replace(/\b(e-?mail|email|www|http|tel\.?|telefon|gsm|mobile|fax|faks)\b\s*[:.]?/gi, " | ")
+    .replace(/\b(e-?mail|email|www|http|tel\.?|telefon|gsm|mobile|mob\.?|cell|phone|office|direct|fax|faks)\b\s*[:.]?/gi, " | ")
     .replace(/[^\s@]+@[^\s@]+\.[^\s@]+/g, " | ")
     .replace(/(?:https?:\/\/|www\.)\S+/gi, " | ")
     .replace(PHONE_CANDIDATE_REGEX, " | ")
@@ -493,24 +493,73 @@ function inferCompanyFromDomainLines(rawText: string | undefined, domains: strin
     .split(/\r?\n/)
     .map((line) => line.replace(/\s+/g, " ").trim())
     .filter(Boolean);
+  const mergedPairLines = lines
+    .slice(0, -1)
+    .filter((line, index) => {
+      const next = lines[index + 1] ?? "";
+      if (!next) return false;
+      if (line.length > 24 || next.length > 24) return false;
+      if (CONTACT_TOKEN_REGEX.test(line) || CONTACT_TOKEN_REGEX.test(next)) return false;
+      if (EMAIL_REGEX.test(line) || EMAIL_REGEX.test(next)) return false;
+      if (isStrongAddressLine(line) || isStrongAddressLine(next)) return false;
+      if (isLikelyPersonNameLine(line) || isLikelyPersonNameLine(next)) return false;
+      if (isLikelyTitleLine(line) || isLikelyTitleLine(next)) return false;
+      return true;
+    })
+    .map((line, index) => `${line} ${lines[index + 1] ?? ""}`.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+  const candidateLines = uniqueStrings([...lines, ...mergedPairLines]);
 
-  const matched = lines
+  const matched = candidateLines
     .filter((line) => {
       const normalizedLine = line.toLocaleLowerCase("tr-TR");
       const compactLine = foldLocaleToken(normalizedLine).replace(/[^\p{L}\d]/gu, "");
+      const directDomainMatch =
+        normalizedDomains.some((domain) => normalizedLine.includes(domain)) ||
+        compactDomains.some((domain) => compactLine.includes(domain));
       return (
-        (normalizedDomains.some((domain) => normalizedLine.includes(domain)) ||
-          compactDomains.some((domain) => compactLine.includes(domain))) &&
-        (looksLikeCompany(line) || hasCompanyMarker(line)) &&
+        directDomainMatch &&
+        (looksLikeCompany(line) || hasCompanyMarker(line) || compactDomains.some((domain) => compactLine.includes(domain))) &&
         !CONTACT_TOKEN_REGEX.test(line) &&
         !EMAIL_REGEX.test(line) &&
+        !WEBSITE_TLD_REGEX.test(line) &&
         !/\b(?:www\.|https?:\/\/)\b/i.test(line) &&
-        !isPureServiceDescriptorLine(line)
+        !isPureServiceDescriptorLine(line) &&
+        !looksLikeSloganOrDecorativeLine(line)
       );
     })
     .sort((left, right) => right.length - left.length)[0];
 
   return matched ? sanitizeCompany(matched) : null;
+}
+
+function inferExactBrandLineFromDomain(rawText: string | undefined, domainSource: string | null | undefined): string | null {
+  if (!rawText || !domainSource) return null;
+  const stem = domainSource.split(".")[0]?.replace(/[-_]/g, " ").trim();
+  const stemFolded = foldLocaleToken(stem ?? "").replace(/[^\p{L}\d]/gu, "");
+  if (!stemFolded) return null;
+
+  const lines = rawText
+    .split(/\r?\n/)
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+
+  const exactLine = lines.find((line) => {
+    const folded = foldLocaleToken(line).replace(/[^\p{L}\d]/gu, "");
+    return folded === stemFolded && !CONTACT_TOKEN_REGEX.test(line) && !EMAIL_REGEX.test(line);
+  });
+
+  return exactLine ? sanitizeCompany(exactLine) : null;
+}
+
+function lineContainsStrongIdentityNoise(value: string): boolean {
+  return (
+    isLikelyPersonNameLine(value) ||
+    isLikelyTitleLine(value) ||
+    CONTACT_TOKEN_REGEX.test(value) ||
+    EMAIL_REGEX.test(value) ||
+    PHONE_IN_TEXT_REGEX.test(value)
+  );
 }
 
 function tokenizeCompanyForComparison(value: string | null): string[] {
@@ -555,6 +604,11 @@ function splitMixedAddressLine(line: string): string[] {
   }
 
   const beforeHint = line.slice(0, match.index).trimEnd();
+  const labeledPrefixMatch = beforeHint.match(/^(?:fabrika|merkez|şube|sube|adres)\s*:\s*(.+)$/i);
+  if (labeledPrefixMatch?.[1]) {
+    const rebuilt = `${labeledPrefixMatch[1].trim()} ${line.slice(match.index).trim()}`.replace(/\s+/g, " ").trim();
+    return rebuilt ? [rebuilt] : [line];
+  }
   const lastSpaceIdx = beforeHint.lastIndexOf(" ");
   if (lastSpaceIdx < 5) return [line];
 
@@ -562,6 +616,14 @@ function splitMixedAddressLine(line: string): string[] {
   const addressPart = line.slice(lastSpaceIdx + 1).trim();
 
   if (!prefix || !addressPart) return [line];
+  if (
+    lineContainsStrongIdentityNoise(prefix) ||
+    looksLikeSloganOrDecorativeLine(prefix) ||
+    isPureServiceDescriptorLine(prefix) ||
+    hasCompanyMarker(prefix)
+  ) {
+    return [addressPart];
+  }
   return [prefix, addressPart];
 }
 
@@ -575,8 +637,40 @@ function containsKnownLocation(line: string): boolean {
   return false;
 }
 
+function countKnownLocationTokens(line: string): number {
+  const lower = line.toLocaleLowerCase("tr-TR");
+  const words = lower.split(/[\s,/\-–.]+/).filter(Boolean);
+  let count = 0;
+  for (const word of words) {
+    if (SAFE_PROVINCES.has(word) || KNOWN_DISTRICTS.has(word)) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+function isSuspiciousAddressLikeLine(line: string): boolean {
+  const hasConcreteAddressSignal =
+    ADDRESS_HINT_REGEX.test(line) ||
+    ADDRESS_NO_REGEX.test(line) ||
+    POSTAL_CODE_REGEX.test(line);
+
+  if (looksLikeSloganOrDecorativeLine(line)) return true;
+  if (isPureServiceDescriptorLine(line) && !hasConcreteAddressSignal) return true;
+  if (!hasConcreteAddressSignal && countKnownLocationTokens(line) >= 3) return true;
+  if (
+    !hasConcreteAddressSignal &&
+    lineContainsLexiconToken(line, BUSINESS_CARD_INDUSTRY_KEYWORDS) &&
+    !containsKnownLocation(line)
+  ) {
+    return true;
+  }
+  return false;
+}
+
 function isStrongAddressLine(line: string): boolean {
   if (PHONE_IN_TEXT_REGEX.test(line)) return false;
+  if (isSuspiciousAddressLikeLine(line)) return false;
   if (ADDRESS_HINT_REGEX.test(line)) return true;
   if (ADDRESS_NO_REGEX.test(line)) return true;
   if (POSTAL_CODE_REGEX.test(line) && /[\p{L}]{2,}/u.test(line)) return true;
@@ -783,6 +877,13 @@ export function sanitizeAddress(address: string | null): string | null {
   const kept: string[] = [];
   for (const line of expandedLines) {
     if (COUNTRY_LINE_REGEX.test(line)) continue;
+    if (isStrongAddressLine(line) && ADDRESS_EXCLUDE_REGEX.test(line)) {
+      const stripped = stripContactFragments(line);
+      if (stripped && isStrongAddressLine(stripped)) {
+        kept.push(stripCountrySuffix(stripped));
+      }
+      continue;
+    }
     if (ADDRESS_EXCLUDE_REGEX.test(line)) {
       const stripped = stripContactFragments(line);
       if (stripped && isStrongAddressLine(stripped)) {
@@ -802,7 +903,9 @@ export function sanitizeAddress(address: string | null): string | null {
     .replace(/\b(mahallesi|mahalle|mah\.?|mh\.?)\b/gi, "Mah.")
     .replace(/\b(caddesi|cadde|cad\.?)\b/gi, "Cad.")
     .replace(/\b(sokağı|sokak|sok\.?|sk\.?)\b/gi, "Sk.")
+    .replace(/\b[\p{L}]+\s+Grup\b/gu, "")
     .replace(COUNTRY_SUFFIX_REGEX, "")
+    .replace(/\b(?:phone|gsm|tel\.?|telefon|mobile|mob\.?|cell|office|direct|fax|faks)\s*:?\s*$/gi, "")
     .replace(/\s+/g, " ")
     .trim();
 
@@ -810,7 +913,12 @@ export function sanitizeAddress(address: string | null): string | null {
   const safeSegments = uniqueStrings(
     normalized
       .split(",")
-      .map((segment) => segment.replace(/\s+/g, " ").trim())
+      .map((segment) =>
+        segment
+          .replace(/\b(?:phone|gsm|tel\.?|telefon|mobile|mob\.?|cell|office|direct|fax|faks)\s*:?\s*$/gi, "")
+          .replace(/\s+/g, " ")
+          .trim()
+      )
       .filter(Boolean)
       .filter((segment) => !COUNTRY_LINE_REGEX.test(segment))
       .filter((segment) => !ADDRESS_EXCLUDE_REGEX.test(segment))
@@ -918,10 +1026,14 @@ function sanitizeName(value: string | null): string | null {
   if (looksLikeCompany(value)) return null;
   if (looksLikeSloganOrDecorativeLine(value)) return null;
   if (CONTACT_TOKEN_REGEX.test(value)) return null;
+  if (ADDRESS_HINT_REGEX.test(value)) return null;
+  if (ADDRESS_NO_REGEX.test(value)) return null;
+  if (containsKnownLocation(value) && /\d/.test(value)) return null;
   const tokens = value.split(/\s+/).filter(Boolean);
   if (tokens.length < 2) return null;
   if (tokens.some((token) => lineContainsLexiconToken(token, BUSINESS_CARD_INDUSTRY_KEYWORDS))) return null;
-  const locale = detectBusinessCardLanguageProfile(value).suggestedLocale;
+  const hasExplicitTurkishSignal = /[çğıöşüÇĞİÖŞÜ]/u.test(value);
+  const locale = hasExplicitTurkishSignal ? "tr" : detectBusinessCardLanguageProfile(value).suggestedLocale;
   const casingLocale = locale === "tr" ? "tr-TR" : locale === "de" ? "de-DE" : locale === "ru" ? "ru-RU" : "en-US";
   return value
     .split(/\s+/)
@@ -951,6 +1063,7 @@ function sanitizeTitle(value: string | null): string | null {
 function sanitizeCompany(value: string | null): string | null {
   if (!value) return null;
   if (/@|www\.|https?:\/\//i.test(value)) return null;
+  if (WEBSITE_TLD_REGEX.test(value) && !/\s/.test(value.trim())) return null;
   if (CONTACT_TOKEN_REGEX.test(value)) return null;
   if (PHONE_IN_TEXT_REGEX.test(value)) return null;
   if (looksLikeSloganOrDecorativeLine(value)) return null;
@@ -958,6 +1071,26 @@ function sanitizeCompany(value: string | null): string | null {
   if (value.replace(/[^\d]/g, "").length >= 5) return null;
   const normalized = normalizeCompanySuffix(value);
   if (!normalized) return normalized;
+  const normalizedTokens = normalized.split(/\s+/).filter(Boolean);
+  const hasRussianLegalEntityPrefix = /^(?:ООО|ЗАО|ОАО)\b/u.test(normalized);
+  if (hasRussianLegalEntityPrefix && normalizedTokens.length > 1) {
+    return normalized.replace(/\s+/g, " ").trim();
+  }
+  const trailingPersonMatch = normalized.match(
+    /^(.*?(?:A\.?Ş\.?|LTD\.?\s*(?:ŞTİ\.?|ŞTI\.?)|LTD\.?|ŞTİ\.?|ŞTI\.?|GMBH|AG|UG|LLC|L\.L\.C\.|INC\.?|CO\.?\s*LTD\.?|ООО|ЗАО|ОАО))\s+(.+)$/iu
+  );
+  if (trailingPersonMatch?.[2] && !hasRussianLegalEntityPrefix) {
+    const trailing = sanitizeName(trailingPersonMatch[2].trim());
+    if (trailing) {
+      return trailingPersonMatch[1].replace(/\s+/g, " ").trim();
+    }
+  }
+  const legalEntityBoundary = normalized.match(
+    /^(.*?(?:A\.?Ş\.?|LTD\.?\s*(?:ŞTİ\.?|ŞTI\.?)|LTD\.?|ŞTİ\.?|ŞTI\.?|GMBH|AG|UG|LLC|L\.L\.C\.|INC\.?|CO\.?\s*LTD\.?|ООО|ЗАО|ОАО))/iu
+  );
+  if (legalEntityBoundary && legalEntityBoundary[1] && !hasRussianLegalEntityPrefix && normalizedTokens.length <= 3) {
+    return legalEntityBoundary[1].replace(/\s+/g, " ").trim();
+  }
   const tokens = normalized.split(/\s+/).filter(Boolean);
   if (tokens.length === 2 && /^[A-ZÇĞİIÖŞÜА-ЯЁ]{1,2}$/u.test(tokens[0] ?? "") && /^[A-ZÇĞİIÖŞÜА-ЯЁ]{3,}$/u.test(tokens[1] ?? "")) {
     return normalized;
@@ -1048,6 +1181,7 @@ function isWeakCompanyCandidate(value: string | null): boolean {
   const tokens = value.split(/\s+/).filter(Boolean);
   if (tokens.length === 1 && value.length <= 4) return true;
   if (looksLikeSloganOrDecorativeLine(value)) return true;
+  if (isPureServiceDescriptorLine(value)) return true;
   return false;
 }
 
@@ -1069,6 +1203,7 @@ function uppercaseRatio(value: string): number {
 }
 
 function isIdentityNoiseLine(line: string): boolean {
+  if (looksLikeSloganOrDecorativeLine(line)) return true;
   if (CONTACT_TOKEN_REGEX.test(line)) return true;
   if (EMAIL_REGEX.test(line)) return true;
   if (PHONE_IN_TEXT_REGEX.test(line)) return true;
@@ -1095,6 +1230,7 @@ function isLikelyTitleLine(line: string): boolean {
 
 function isLikelyPersonNameLine(line: string): boolean {
   if (isIdentityNoiseLine(line)) return false;
+  if (looksLikeSloganOrDecorativeLine(line)) return false;
   if (looksLikeCompany(line)) return false;
   if (isLikelyTitleLine(line)) return false;
 
@@ -1271,6 +1407,19 @@ function inferIdentityFromRawText(
     titleCandidates.push({ line, score, index: i });
   }
   inferredTitle = pickBestSanitizedCandidate(titleCandidates, (value) => sanitizeTitle(normalizeNullable(value)));
+  if (!inferredName && inferredTitle) {
+    const titleIndex = lines.findIndex((line) => line === inferredTitle);
+    if (titleIndex > 0) {
+      for (let i = Math.max(0, titleIndex - 2); i < titleIndex; i += 1) {
+        const candidate = sanitizeName(lines[i] ?? null);
+        if (candidate) {
+          inferredName = candidate;
+          nameIndex = i;
+          break;
+        }
+      }
+    }
+  }
 
   let inferredCompany: string | null = null;
   const companyCandidates: ScoredIdentityCandidate[] = [];
@@ -1411,6 +1560,8 @@ export function validateAndNormalizeBusinessCardExtraction(
     const inferred = inferredIdentity.inferredCompany.toLocaleLowerCase("tr-TR");
     if ((inferred.includes(existing) || existing.includes(inferred)) && inferred.length > existing.length + 3) {
       company = sanitizeCompany(inferredIdentity.inferredCompany);
+    } else if (hasTitleKeyword(company) && !hasTitleKeyword(inferredIdentity.inferredCompany)) {
+      company = sanitizeCompany(inferredIdentity.inferredCompany);
     }
   }
 
@@ -1450,11 +1601,62 @@ export function validateAndNormalizeBusinessCardExtraction(
     extractDomainFromWebsite(website ?? ""),
     ...(emails[0] ? [emails[0].split("@")[1] ?? ""] : []),
   ]);
+  const exactBrandCompany =
+    inferExactBrandLineFromDomain(rawText, extractDomainFromWebsite(website ?? "")) ??
+    inferExactBrandLineFromDomain(rawText, emails[0]?.split("@")[1] ?? "");
+  if (/^(?:ООО|ЗАО|ОАО)$/u.test(company ?? "") && rawText) {
+    const russianLegalLine = rawText
+      .split(/\r?\n/)
+      .map((line) => line.replace(/\s+/g, " ").trim())
+      .find((line) => /^(?:ООО|ЗАО|ОАО)\s+\p{L}+/u.test(line));
+    if (russianLegalLine) {
+      company = sanitizeCompany(russianLegalLine);
+    }
+  }
   if (shouldPreferRicherCompanyCandidate(company, domainDrivenCompany)) {
     company = sanitizeCompany(domainDrivenCompany);
+  } else if (company && domainDrivenCompany) {
+    const currentFolded = foldLocaleToken(company).replace(/[^\p{L}\d]/gu, "");
+    const domainFolded = foldLocaleToken(domainDrivenCompany).replace(/[^\p{L}\d]/gu, "");
+    const websiteStem = extractDomainFromWebsite(website ?? "").split(".")[0] ?? "";
+    const stemFolded = foldLocaleToken(websiteStem).replace(/[^\p{L}\d]/gu, "");
+    if (
+      stemFolded &&
+      !currentFolded.includes(stemFolded) &&
+      domainFolded.includes(stemFolded) &&
+      (isWeakCompanyCandidate(company) || !hasCompanyMarker(company) || /\b(?:group|grup)\b/i.test(company))
+    ) {
+      company = sanitizeCompany(domainDrivenCompany);
+    }
+  }
+  if (exactBrandCompany && (isWeakCompanyCandidate(company) || /\b(?:group|grup)\b/i.test(company ?? ""))) {
+    company = sanitizeCompany(exactBrandCompany);
+  }
+  if (exactBrandCompany && company) {
+    const currentFolded = foldLocaleToken(company).replace(/[^\p{L}\d]/gu, "");
+    const exactFolded = foldLocaleToken(exactBrandCompany).replace(/[^\p{L}\d]/gu, "");
+    if (
+      exactFolded &&
+      currentFolded !== exactFolded &&
+      (/\b(?:group|grup)\b/i.test(company) || isWeakCompanyCandidate(company) || !currentFolded.includes(exactFolded))
+    ) {
+      company = sanitizeCompany(exactBrandCompany);
+    }
   }
 
-  if (company && rawText && (company.length <= 4 || company === company.toUpperCase())) {
+  if (
+    company &&
+    rawText &&
+    (
+      company.length <= 4 ||
+      (
+        company === company.toUpperCase() &&
+        company.split(/\s+/).length <= 3 &&
+        !/^(?:ООО|ЗАО|ОАО)\b/u.test(company) &&
+        !exactBrandCompany
+      )
+    )
+  ) {
     const websiteStem = extractDomainFromWebsite(website ?? "").split(".")[0]?.replace(/[-_]/g, " ").trim();
     const lines = rawText.split(/\r?\n/).map((line) => line.replace(/\s+/g, " ").trim()).filter(Boolean);
     const enrichedCompanyCandidates = [...lines]
@@ -1481,6 +1683,16 @@ export function validateAndNormalizeBusinessCardExtraction(
       if (domainDriven) {
         company = domainDriven;
       }
+    }
+  }
+
+  if (/^(?:ООО|ЗАО|ОАО)$/u.test(company ?? "") && rawText) {
+    const russianLegalLine = rawText
+      .split(/\r?\n/)
+      .map((line) => line.replace(/\s+/g, " ").trim())
+      .find((line) => /^(?:ООО|ЗАО|ОАО)\s+\p{L}+/u.test(line));
+    if (russianLegalLine) {
+      company = russianLegalLine.replace(/\s+/g, " ").trim();
     }
   }
 

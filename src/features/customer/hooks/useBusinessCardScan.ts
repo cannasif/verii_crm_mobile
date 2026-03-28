@@ -416,7 +416,7 @@ export function useBusinessCardScan(): {
       imageUri: string
     ): Promise<{ shouldContinueWithOcr: boolean; qrResult: BusinessCardOcrResult | null }> => {
       const qrDetection = await detectQrFromImage(imageUri, { timeoutMs: 500 });
-      if (!qrDetection.rawValue) {
+      if (!qrDetection.rawValue && !qrDetection.parsedCard) {
         return { shouldContinueWithOcr: true, qrResult: null };
       }
       void trackBusinessCardTelemetry({ type: "qr_detected", details: { hasStructuredPayload: Boolean(qrDetection.parsedCard) } });

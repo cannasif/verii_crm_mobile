@@ -380,3 +380,7 @@ export async function detectQrFromImage(
     return { rawValue: null, parsedCard: null };
   }
 }
+
+export function hasDetectedQr(result: { rawValue: string | null; parsedCard: BusinessCardOcrResult | null }): boolean {
+  return Boolean(result.rawValue || result.parsedCard);
+}

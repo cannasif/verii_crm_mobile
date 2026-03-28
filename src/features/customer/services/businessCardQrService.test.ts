@@ -1,4 +1,4 @@
-import { parseQrPayloadToBusinessCard } from "./businessCardQrService";
+import { hasDetectedQr, parseQrPayloadToBusinessCard } from "./businessCardQrService";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) {
@@ -49,5 +49,23 @@ assert(parsedMecard?.notes?.includes("Priority lead"), "MECARD note should be pa
 
 const parsedUrl = parseQrPayloadToBusinessCard("https://strongbull.es");
 assert(parsedUrl?.website === "https://strongbull.es", "URL QR should map to website");
+
+assert(
+  hasDetectedQr({
+    rawValue: null,
+    parsedCard: {
+      customerName: "VBH Kosovo L.L.C.",
+      contactNameAndSurname: null,
+      title: null,
+      phone1: null,
+      phone2: null,
+      email: null,
+      website: null,
+      address: null,
+    } as any,
+  }),
+  "structured-only QR should be treated as detected"
+);
+assert(!hasDetectedQr({ rawValue: null, parsedCard: null }), "empty QR detection should be false");
 
 console.log("businessCardQrService test passed");
