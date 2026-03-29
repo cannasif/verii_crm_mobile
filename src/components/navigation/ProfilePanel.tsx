@@ -32,7 +32,9 @@ import {
   Logout01Icon,
   Mail01Icon,
   Call02Icon,
-  WhatsappIcon
+  WhatsappIcon,
+  ListViewIcon,
+  GridViewIcon,
 } from "hugeicons-react-native";
 
 import { useUIStore } from "../../store/ui";
@@ -67,7 +69,7 @@ export default function ProfilePanel({
   const router = useRouter();
   const { t } = useTranslation();
 
-  const { colors, themeMode, toggleTheme } = useUIStore();
+  const { colors, themeMode, toggleTheme, menuViewType, setMenuViewType } = useUIStore();
   const isDarkMode = themeMode === "dark";
   const [currentLang, setCurrentLang] = useState(getCurrentLanguage());
 
@@ -226,6 +228,65 @@ export default function ProfilePanel({
                   thumbColor="#FFFFFF"
                   style={{ transform: [{ scaleX: 0.9 }, { scaleY: 0.9 }] }}
                 />
+              </View>
+
+              <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+
+              <View style={styles.menuRow}>
+                <View style={[styles.iconBox, { backgroundColor: "rgba(236, 72, 153, 0.1)" }]}>
+                  <ListViewIcon size={20} color={ACTIVE_COLOR} variant="stroke" strokeWidth={1.8} />
+                </View>
+                <Text style={[styles.menuText, { color: colors.text }]}>{t("profile.menuView")}</Text>
+                <View
+                  style={[
+                    styles.segmentShell,
+                    {
+                      backgroundColor: isDarkMode ? "rgba(255,255,255,0.06)" : "#E2E8F0",
+                      borderColor: isDarkMode ? "rgba(148,163,184,0.25)" : "rgba(100,116,139,0.22)",
+                    },
+                  ]}
+                >
+                  <TouchableOpacity
+                    onPress={() => setMenuViewType("list")}
+                    style={[
+                      styles.segmentCell,
+                      menuViewType === "list" && [
+                        styles.segmentCellOn,
+                        { backgroundColor: isDarkMode ? "rgba(255,255,255,0.11)" : "#FFFFFF" },
+                      ],
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: menuViewType === "list" }}
+                    accessibilityLabel={t("profile.menuViewList")}
+                  >
+                    <ListViewIcon
+                      size={18}
+                      color={menuViewType === "list" ? ACTIVE_COLOR : colors.textMuted}
+                      variant="stroke"
+                      strokeWidth={1.8}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => setMenuViewType("grid")}
+                    style={[
+                      styles.segmentCell,
+                      menuViewType === "grid" && [
+                        styles.segmentCellOn,
+                        { backgroundColor: isDarkMode ? "rgba(255,255,255,0.11)" : "#FFFFFF" },
+                      ],
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: menuViewType === "grid" }}
+                    accessibilityLabel={t("profile.menuViewGrid")}
+                  >
+                    <GridViewIcon
+                      size={18}
+                      color={menuViewType === "grid" ? ACTIVE_COLOR : colors.textMuted}
+                      variant="stroke"
+                      strokeWidth={1.8}
+                    />
+                  </TouchableOpacity>
+                </View>
               </View>
 
               <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
@@ -432,6 +493,25 @@ const styles = StyleSheet.create({
     marginRight: 14,
   },
   menuText: { flex: 1, fontSize: 15, fontWeight: "500" },
+  segmentShell: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 11,
+    padding: 3,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  segmentCell: {
+    paddingVertical: 7,
+    paddingHorizontal: 11,
+    borderRadius: 8,
+  },
+  segmentCellOn: {
+    shadowColor: "#64748B",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.14,
+    shadowRadius: 3,
+    elevation: 2,
+  },
   langPill: {
     flexDirection: "row",
     alignItems: "center",

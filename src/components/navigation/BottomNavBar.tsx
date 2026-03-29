@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, StyleSheet, TouchableOpacity, Platform, Dimensions, Pressable, Modal, Image } from "react-native";
+import { View, StyleSheet, TouchableOpacity, Platform, Pressable, Modal, Image, Text as RNText, useWindowDimensions } from "react-native";
 import { usePathname, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -13,7 +13,7 @@ import {
   Calendar03Icon,
   Add01Icon,
   Cancel01Icon,
-  Camera01Icon,         
+  Camera01Icon,        
   UserAdd01Icon,        
   Home03Icon,           
   NoteAddIcon,   
@@ -24,8 +24,6 @@ import {
   ArrowRight01Icon,
   HugeiconsProps,
 } from "hugeicons-react-native";
-
-const { width, height } = Dimensions.get("window");
 
 interface NavItem {
   key: string;
@@ -47,6 +45,8 @@ export function BottomNavBar(): React.ReactElement {
   const insets = useSafeAreaInsets();
   const { colors, themeMode } = useUIStore();
 
+  const { width, height } = useWindowDimensions();
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSalesActionSheetOpen, setIsSalesActionSheetOpen] = useState(false);
   
@@ -55,17 +55,17 @@ export function BottomNavBar(): React.ReactElement {
   const THEME = {
     bg: isDark ? "#0f0518" : colors.navBar || "#FFFFFF",
     iconBg: isDark ? "#1E122D" : "#FFFFFF", 
-    iconBorder: isDark ? "rgba(219, 39, 119, 0.4)" : "rgba(219, 39, 119, 0.2)",
-    navTopBorder: isDark ? "rgba(219, 39, 119, 0.35)" : "rgba(219, 39, 119, 0.2)", 
-    backdropBg: isDark ? "rgba(0, 0, 0, 0.6)" : "rgba(0, 0, 0, 0.4)",
-    
-    active: isDark ? "#db2777" : "#EE66A6", 
-    fabBg: isDark ? "#be185d" : "#f5b1d1ff", 
+    iconBorder: isDark ? "rgba(219, 39, 119, 0.4)" : "rgba(219, 39, 119, 0.15)",
+    navTopBorder: isDark ? "rgba(219, 39, 119, 0.35)" : "rgba(226, 232, 240, 0.8)",
+    backdropBg: isDark ? "rgba(0, 0, 0, 0.6)" : "rgba(255, 255, 255, 0.3)",
+
+    active: isDark ? "#db2777" : "#db2777",
+    fabBg: isDark ? "rgba(219, 39, 119, 0.88)" : "rgba(236, 72, 153, 0.78)",
 
     inactive: isDark ? "#94a3b8" : "#64748B",
     sheetBg: isDark ? "#160B24" : "#FFFFFF",
     sheetBorder: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
-    text: isDark ? "#F8FAFC" : "#0F172A",
+    text: isDark ? "#F8FAFC" : "#1E293B",
     textMute: isDark ? "#94A3B8" : "#64748B",
   };
 
@@ -103,7 +103,7 @@ export function BottomNavBar(): React.ReactElement {
     <View 
       style={[
         styles.wrapper, 
-        { height: isMenuOpen ? height : NAV_HEIGHT + safeBottom + 35 }
+        { height: isMenuOpen ? height : NAV_HEIGHT + safeBottom + 35, width }
       ]} 
       pointerEvents="box-none"
     >
@@ -116,59 +116,43 @@ export function BottomNavBar(): React.ReactElement {
       )}
 
       {isMenuOpen && (
-        <View style={[styles.radialWrapper, { bottom: safeBottom + 70 }]} pointerEvents="box-none">
-          
+        <View style={[styles.radialWrapper, { bottom: safeBottom + 70, left: (width - 290) / 2 }]} pointerEvents="box-none">
           <View style={[styles.iconPos, { left: 15, top: 70 }]} pointerEvents="box-none">
-            <Pressable 
-              style={({ pressed }) => [styles.btnBase, pressed && styles.btnPressed]} 
-              onPress={() => handlePress("/customers/create?autoScan=true")} 
-            >
+            <Pressable style={({ pressed }) => [styles.btnBase, pressed && styles.btnPressed]} onPress={() => handlePress("/customers/create?autoScan=true")}>
               <View style={[styles.miniCircle, { backgroundColor: THEME.iconBg, borderColor: THEME.iconBorder }]}>
-                <Camera01Icon size={24} color={THEME.active} variant="stroke" strokeWidth={2} />
+                <Camera01Icon size={24} color={THEME.active} variant="stroke" strokeWidth={1.8} />
               </View>
             </Pressable>
           </View>
 
           <View style={[styles.iconPos, { left: 55, top: 25 }]} pointerEvents="box-none">
-            <Pressable 
-              style={({ pressed }) => [styles.btnBase, pressed && styles.btnPressed]} 
-              onPress={() => handlePress("/customers/create")}
-            >
+            <Pressable style={({ pressed }) => [styles.btnBase, pressed && styles.btnPressed]} onPress={() => handlePress("/customers/create")}>
               <View style={[styles.miniCircle, { backgroundColor: THEME.iconBg, borderColor: THEME.iconBorder }]}>
-                <UserAdd01Icon size={24} color={THEME.active} variant="stroke" strokeWidth={2} />
+                <UserAdd01Icon size={24} color={THEME.active} variant="stroke" strokeWidth={1.8} />
               </View>
             </Pressable>
           </View>
 
           <View style={[styles.iconPos, { left: 117, top: 0 }]} pointerEvents="box-none">
-            <Pressable 
-              style={({ pressed }) => [styles.btnBase, pressed && styles.btnPressed]} 
-              onPress={() => handlePress("/(tabs)")}
-            >
+            <Pressable style={({ pressed }) => [styles.btnBase, pressed && styles.btnPressed]} onPress={() => handlePress("/(tabs)")}>
               <View style={[styles.miniCircle, { backgroundColor: THEME.iconBg, borderColor: THEME.iconBorder, width: 56, height: 56 }]}>
-                <Home03Icon size={28} color={THEME.active} variant="stroke" strokeWidth={2} />
+                <Home03Icon size={28} color={THEME.active} variant="stroke" strokeWidth={1.8} />
               </View>
             </Pressable>
           </View>
 
           <View style={[styles.iconPos, { left: 185, top: 25 }]} pointerEvents="box-none">
-            <Pressable 
-              style={({ pressed }) => [styles.btnBase, pressed && styles.btnPressed]} 
-              onPress={() => setIsSalesActionSheetOpen(true)}
-            >
+            <Pressable style={({ pressed }) => [styles.btnBase, pressed && styles.btnPressed]} onPress={() => setIsSalesActionSheetOpen(true)}>
               <View style={[styles.miniCircle, { backgroundColor: THEME.iconBg, borderColor: THEME.iconBorder }]}>
-                <NoteAddIcon size={24} color={THEME.active} variant="stroke" strokeWidth={2} />
+                <NoteAddIcon size={24} color={THEME.active} variant="stroke" strokeWidth={1.8} />
               </View>
             </Pressable>
           </View>
 
           <View style={[styles.iconPos, { left: 225, top: 70 }]} pointerEvents="box-none">
-            <Pressable 
-              style={({ pressed }) => [styles.btnBase, pressed && styles.btnPressed]} 
-              onPress={() => handlePress("/(tabs)/activities/create")}
-            >
+            <Pressable style={({ pressed }) => [styles.btnBase, pressed && styles.btnPressed]} onPress={() => handlePress("/(tabs)/activities/create")}>
               <View style={[styles.miniCircle, { backgroundColor: THEME.iconBg, borderColor: THEME.iconBorder }]}>
-                <CalendarAdd01Icon size={24} color={THEME.active} variant="stroke" strokeWidth={2} />
+                <CalendarAdd01Icon size={24} color={THEME.active} variant="stroke" strokeWidth={1.8} />
               </View>
             </Pressable>
           </View>
@@ -176,11 +160,11 @@ export function BottomNavBar(): React.ReactElement {
         </View>
       )}
 
-      <View style={[styles.navContainer, { height: NAV_HEIGHT + safeBottom }]} pointerEvents="box-none">
+      <View style={[styles.navContainer, { height: NAV_HEIGHT + safeBottom, width }]} pointerEvents="box-none">
         
         <Svg width={width} height={NAV_HEIGHT + safeBottom} style={styles.svgBackground}>
           <Path d={fillPath} fill={THEME.bg} />
-          <Path d={navPath} stroke={THEME.navTopBorder} strokeWidth={1.5} fill="none" />
+          <Path d={navPath} stroke={THEME.navTopBorder} strokeWidth={1} fill="none" />
         </Svg>
 
         <View style={[styles.tabsContent, { paddingBottom: safeBottom }]} pointerEvents="box-none">
@@ -189,10 +173,18 @@ export function BottomNavBar(): React.ReactElement {
             {NAV_ITEMS.slice(0, 2).map((item) => {
               const active = isActive(item.route);
               return (
-                <TouchableOpacity key={item.key} style={styles.navTab} onPress={() => handlePress(item.route)}>
+                <TouchableOpacity key={item.key} style={styles.navTab} activeOpacity={0.6} onPress={() => handlePress(item.route)}>
                   {active && <View style={[styles.activeBar, { backgroundColor: THEME.active }]} />}
-                  <item.icon size={22} color={active ? THEME.active : THEME.inactive} strokeWidth={active ? 2.5 : 1.5} variant="stroke" />
-                  <Text style={[styles.tabLabel, { color: active ? THEME.active : THEME.inactive, fontWeight: active ? "800" : "500" }]}>{t(`nav.${item.key}`)}</Text>
+                  <item.icon size={26} color={active ? THEME.active : THEME.inactive} strokeWidth={1.5} variant="stroke" />
+                  <RNText style={[
+                    styles.tabLabel, 
+                    { 
+                      color: active ? THEME.active : THEME.inactive, 
+                      fontWeight: active ? "600" : "500"
+                    }
+                  ]}>
+                    {t(`nav.${item.key}`)}
+                  </RNText>
                 </TouchableOpacity>
               );
             })}
@@ -204,10 +196,18 @@ export function BottomNavBar(): React.ReactElement {
             {NAV_ITEMS.slice(2, 4).map((item) => {
               const active = isActive(item.route);
               return (
-                <TouchableOpacity key={item.key} style={styles.navTab} onPress={() => handlePress(item.route)}>
+                <TouchableOpacity key={item.key} style={styles.navTab} activeOpacity={0.6} onPress={() => handlePress(item.route)}>
                   {active && <View style={[styles.activeBar, { backgroundColor: THEME.active }]} />}
-                  <item.icon size={22} color={active ? THEME.active : THEME.inactive} strokeWidth={active ? 2.5 : 1.5} variant="stroke" />
-                  <Text style={[styles.tabLabel, { color: active ? THEME.active : THEME.inactive, fontWeight: active ? "800" : "500" }]}>{t(`nav.${item.key}`)}</Text>
+                  <item.icon size={26} color={active ? THEME.active : THEME.inactive} strokeWidth={1.5} variant="stroke" />
+                  <RNText style={[
+                    styles.tabLabel, 
+                    { 
+                      color: active ? THEME.active : THEME.inactive, 
+                      fontWeight: active ? "600" : "400" 
+                    }
+                  ]}>
+                    {t(`nav.${item.key}`)}
+                  </RNText>
                 </TouchableOpacity>
               );
             })}
@@ -217,32 +217,29 @@ export function BottomNavBar(): React.ReactElement {
       </View>
 
       <TouchableOpacity
-  style={[
-    styles.mainFab, 
-    { 
-      backgroundColor: THEME.fabBg, 
-      shadowColor: THEME.fabBg, 
-      bottom: safeBottom + 28,
-      borderWidth: isDark ? 0 : 0.8, 
-      borderColor: isDark ? "transparent" : "#FF0066" 
-    }
-  ]}
-  onPress={() => setIsMenuOpen(!isMenuOpen)}
-  activeOpacity={0.9}
->
-  {isMenuOpen ? (
-    <Cancel01Icon size={30} color="#FFF" variant="stroke" strokeWidth={2.5} />
-  ) : (
-    <Image 
-      source={require('../../../assets/v3logo.png')} 
-      style={{ 
-        width: 94, 
-        height: 94, 
-        resizeMode: 'contain'
-      }} 
-    />
-  )}
-</TouchableOpacity>
+        style={[
+          styles.mainFab, 
+          { 
+            backgroundColor: THEME.fabBg, 
+            shadowColor: THEME.fabBg, 
+            bottom: safeBottom + 28,
+            left: (width - 58) / 2,
+            borderWidth: isDark ? 0 : 0.8, 
+            borderColor: isDark ? "transparent" : "#FF0066" 
+          }
+        ]}
+        onPress={() => setIsMenuOpen(!isMenuOpen)}
+        activeOpacity={0.9}
+      >
+        {isMenuOpen ? (
+          <Cancel01Icon size={28} color="#FFF" variant="stroke" strokeWidth={2} />
+        ) : (
+          <Image 
+            source={require('../../../assets/v3logo.png')} 
+            style={{ width: 94, height: 94, resizeMode: 'contain' }} 
+          />
+        )}
+      </TouchableOpacity>
 
       <Modal visible={isSalesActionSheetOpen} transparent animationType="slide" onRequestClose={() => setIsSalesActionSheetOpen(false)}>
         <View style={styles.sheetOverlay}>
@@ -256,49 +253,37 @@ export function BottomNavBar(): React.ReactElement {
             </View>
 
             <View style={styles.sheetOptions}>
-              <TouchableOpacity 
-                style={[styles.sheetOptionBtn, { borderBottomColor: THEME.sheetBorder }]} 
-                onPress={() => handleSalesActionPress("/(tabs)/sales/quotations/create")}
-                activeOpacity={0.7}
-              >
+              <TouchableOpacity style={[styles.sheetOptionBtn, { borderBottomColor: THEME.sheetBorder }]} onPress={() => handleSalesActionPress("/(tabs)/sales/quotations/create")} activeOpacity={0.7}>
                 <View style={[styles.sheetIconBox, { backgroundColor: isDark ? 'rgba(219,39,119,0.15)' : '#FFF1F2' }]}>
-                  <Invoice01Icon size={22} color={THEME.active} variant="stroke" />
+                  <Invoice01Icon size={24} color={THEME.active} variant="stroke" strokeWidth={1.8} />
                 </View>
                 <View style={styles.sheetOptionTextWrap}>
                   <Text style={[styles.sheetOptionTitle, { color: THEME.text }]}>{t("salesActionSheet.quotationTitle")}</Text>
                   <Text style={[styles.sheetOptionDesc, { color: THEME.textMute }]}>{t("salesActionSheet.quotationDescription")}</Text>
                 </View>
-                <ArrowRight01Icon size={20} color={THEME.textMute} />
+                <ArrowRight01Icon size={20} color={THEME.textMute} strokeWidth={1.5} />
               </TouchableOpacity>
 
-              <TouchableOpacity 
-                style={[styles.sheetOptionBtn, { borderBottomColor: THEME.sheetBorder }]} 
-                onPress={() => handleSalesActionPress("/(tabs)/sales/orders/create")}
-                activeOpacity={0.7}
-              >
+              <TouchableOpacity style={[styles.sheetOptionBtn, { borderBottomColor: THEME.sheetBorder }]} onPress={() => handleSalesActionPress("/(tabs)/sales/orders/create")} activeOpacity={0.7}>
                 <View style={[styles.sheetIconBox, { backgroundColor: isDark ? 'rgba(219,39,119,0.15)' : '#FFF1F2' }]}>
-                  <ShoppingBag01Icon size={22} color={THEME.active} variant="stroke" />
+                  <ShoppingBag01Icon size={24} color={THEME.active} variant="stroke" strokeWidth={1.8} />
                 </View>
                 <View style={styles.sheetOptionTextWrap}>
                   <Text style={[styles.sheetOptionTitle, { color: THEME.text }]}>{t("salesActionSheet.orderTitle")}</Text>
                   <Text style={[styles.sheetOptionDesc, { color: THEME.textMute }]}>{t("salesActionSheet.orderDescription")}</Text>
                 </View>
-                <ArrowRight01Icon size={20} color={THEME.textMute} />
+                <ArrowRight01Icon size={20} color={THEME.textMute} strokeWidth={1.5} />
               </TouchableOpacity>
 
-              <TouchableOpacity 
-                style={[styles.sheetOptionBtn, { borderBottomColor: "transparent" }]} 
-                onPress={() => handleSalesActionPress("/(tabs)/sales/demands/create")}
-                activeOpacity={0.7}
-              >
+              <TouchableOpacity style={[styles.sheetOptionBtn, { borderBottomColor: "transparent" }]} onPress={() => handleSalesActionPress("/(tabs)/sales/demands/create")} activeOpacity={0.7}>
                 <View style={[styles.sheetIconBox, { backgroundColor: isDark ? 'rgba(219,39,119,0.15)' : '#FFF1F2' }]}>
-                  <NoteIcon size={22} color={THEME.active} variant="stroke" />
+                  <NoteIcon size={24} color={THEME.active} variant="stroke" strokeWidth={1.8} />
                 </View>
                 <View style={styles.sheetOptionTextWrap}>
                   <Text style={[styles.sheetOptionTitle, { color: THEME.text }]}>{t("salesActionSheet.demandTitle")}</Text>
                   <Text style={[styles.sheetOptionDesc, { color: THEME.textMute }]}>{t("salesActionSheet.demandDescription")}</Text>
                 </View>
-                <ArrowRight01Icon size={20} color={THEME.textMute} />
+                <ArrowRight01Icon size={20} color={THEME.textMute} strokeWidth={1.5} />
               </TouchableOpacity>
             </View>
 
@@ -315,12 +300,11 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 0,
     left: 0,
-    width: width,
     zIndex: 1000,
   },
   backdrop: {
     position: "absolute",
-    top: -height, 
+    top: -9999,
     bottom: 0, 
     left: 0,
     right: 0,
@@ -330,13 +314,12 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 0,
     left: 0,
-    width: width,
     zIndex: 20,
     elevation: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
   },
   svgBackground: {
     position: "absolute",
@@ -364,37 +347,35 @@ const styles = StyleSheet.create({
   activeBar: {
     position: "absolute",
     top: 0, 
-    width: 35,
-    height: 3,
-    borderBottomLeftRadius: 4,
-    borderBottomRightRadius: 4,
+    width: 24,
+    height: 2.5,
+    borderBottomLeftRadius: 3,
+    borderBottomRightRadius: 3,
   },
   tabLabel: {
-    fontSize: 9.5, 
-    marginTop: 4,
-    textAlign: 'center', 
+    fontSize: 10, 
+    marginTop: 4, 
+    letterSpacing: 0.5, 
   },
   centerHoleSpace: {
     width: 90, 
   },
   mainFab: {
     position: "absolute",
-    left: (width - 58) / 2, 
     width: 58,
     height: 58,
     borderRadius: 29,
     justifyContent: "center",
     alignItems: "center",
     elevation: 25,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
     zIndex: 1001,
   },
 
   radialWrapper: {
     position: "absolute",
-    left: (width - 290) / 2, 
     width: 290,
     height: 145, 
     zIndex: 5, 
@@ -417,26 +398,26 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1.2,
+    borderWidth: 1,
     shadowColor: "#db2777",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.2,
     shadowRadius: 6,
     elevation: 6,
   },
   btnPressed: {
     transform: [{ scale: 0.92 }],
-    opacity: 0.95, 
+    opacity: 0.9, 
   },
 
   sheetOverlay: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0,0,0,0.4)",
   },
   sheetContent: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     paddingHorizontal: 20,
     paddingTop: 12,
   },
@@ -445,9 +426,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sheetHandle: {
-    width: 40,
-    height: 5,
-    borderRadius: 3,
+    width: 44,
+    height: 4,
+    borderRadius: 2,
     marginBottom: 16,
   },
   sheetTitle: {
@@ -464,16 +445,16 @@ const styles = StyleSheet.create({
   sheetOptionBtn: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 16,
-    borderBottomWidth: 1,
+    paddingVertical: 18,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   sheetIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 46,
+    height: 46,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 14,
+    marginRight: 16,
   },
   sheetOptionTextWrap: {
     flex: 1,
