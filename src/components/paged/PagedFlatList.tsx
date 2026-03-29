@@ -164,6 +164,8 @@ export function PagedFlatList<ItemT>({
           ListEmptyComponent={emptyNode as React.ReactElement | null | undefined}
           ListFooterComponent={combinedFooter}
           contentContainerStyle={contentContainerStyle}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           {...flatListProps}
         />
       )}
