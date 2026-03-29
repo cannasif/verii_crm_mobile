@@ -59,6 +59,7 @@ import { calculateLineTotals } from "../../quotation/utils";
 import { generateTempQuickQuotationReportPdf } from "../utils/generateTempQuickQuotationReportPdf";
 import { useReportTemplateList } from "../../quotation/hooks/useReportTemplateList";
 import { DocumentRuleType } from "../../quotation/types";
+import { getCurrencyDisplayLabel as getCurrencyDisplayName } from "../../../lib/currencyDisplay";
 
 function numberValue(value: string): number {
   const parsed = Number(value.replace(",", "."));
@@ -160,30 +161,6 @@ function mapRateToUpdateDto(
     exchangeRateDate: rate.exchangeRateDate || fallbackDate,
     isManual: !(rate.isOfficial ?? true),
   };
-}
-
-function getCurrencyDisplayName(currency: string | number | null | undefined): string {
-  const value = String(currency ?? "").trim().toUpperCase();
-
-  switch (value) {
-    case "0":
-    case "TL":
-    case "TRY":
-      return "TL";
-    case "1":
-    case "USD":
-      return "USD";
-    case "2":
-    case "EUR":
-    case "EURO":
-      return "EURO";
-    case "3":
-    case "GBP":
-    case "STERLIN":
-      return "STERLIN";
-    default:
-      return value || "-";
-  }
 }
 
 export function TempQuickQuotationCreateScreen(): React.ReactElement {

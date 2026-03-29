@@ -27,6 +27,7 @@ import { useUIStore } from "../../../store/ui";
 import { useToast } from "../../../hooks/useToast";
 import { tempQuickQuotationRepository } from "../repositories/tempQuotattion.repository";
 import type { TempQuotattionGetDto } from "../models/tempQuotattion.model";
+import { getCurrencyDisplayLabel } from "../../../lib/currencyDisplay";
 
 function formatDate(value?: string | null): string {
   if (!value) return "-";
@@ -243,7 +244,7 @@ export function TempQuickQuotationListScreen(): React.ReactElement {
                 style={[styles.metaChipText, { color: colors.text }]}
                 numberOfLines={1}
               >
-                {item.currencyCode || "-"}
+                {getCurrencyDisplayLabel(item.currencyCode)}
               </Text>
             </View>
 

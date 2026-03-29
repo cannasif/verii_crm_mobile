@@ -34,6 +34,10 @@ import { DocumentRuleType } from "../../quotation/types";
 import { PickerModal } from "../../quotation/components";
 import { openPdfExternallyAsync } from "../../../lib/pdf";
 import { getApiBaseUrl } from "../../../constants/config";
+import {
+  getCurrencyDisplayLabel as getCurrencyDisplayName,
+  getCurrencySymbol,
+} from "../../../lib/currencyDisplay";
 
 function formatDate(value?: string | null): string {
   if (!value) return "-";
@@ -48,30 +52,6 @@ function formatNumber(value?: number | null, fractionDigits = 2): string {
     minimumFractionDigits: fractionDigits,
     maximumFractionDigits: fractionDigits,
   }).format(value);
-}
-
-function getCurrencyDisplayName(currency: string | number | null | undefined): string {
-  const value = String(currency ?? "").trim().toUpperCase();
-
-  switch (value) {
-    case "0":
-    case "TL":
-    case "TRY":
-      return "TL";
-    case "1":
-    case "USD":
-      return "USD";
-    case "2":
-    case "EUR":
-    case "EURO":
-      return "EURO";
-    case "3":
-    case "GBP":
-    case "STERLIN":
-      return "STERLIN";
-    default:
-      return value || "-";
-  }
 }
 
 function resolveMobileImageUri(path?: string | null): string | null {
@@ -378,7 +358,7 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
                   style={[styles.metaChipText, { color: colors.text }]}
                   numberOfLines={1}
                 >
-                  {detail.currencyCode || "-"}
+                  {getCurrencyDisplayName(detail.currencyCode)}
                 </Text>
               </View>
 
@@ -454,14 +434,22 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
               ]}
             >
               <Text style={[styles.summaryLabel, { color: colors.muted }]}>Toplam</Text>
-              <Text
-                style={[styles.summaryValue, { color: colors.brand }]}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.9}
-              >
-                {formatNumber(totalGrandAmount)} {detail.currencyCode}
-              </Text>
+              <View style={styles.summaryTotalAmountRow}>
+                <Text
+                  style={[styles.summaryCurrencySymbol, { color: colors.brand }]}
+                  accessibilityLabel={getCurrencyDisplayName(detail.currencyCode)}
+                >
+                  {getCurrencySymbol(detail.currencyCode)}
+                </Text>
+                <Text
+                  style={[styles.summaryValue, { color: colors.brand, flex: 1, minWidth: 0 }]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.9}
+                >
+                  {formatNumber(totalGrandAmount)}
+                </Text>
+              </View>
             </View>
           </View>
 
@@ -618,7 +606,7 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
                       adjustsFontSizeToFit
                       minimumFontScale={0.9}
                     >
-                      {formatNumber(line.unitPrice)} {detail.currencyCode}
+                      {formatNumber(line.unitPrice)} {getCurrencyDisplayName(detail.currencyCode)}
                     </Text>
                   </View>
 
@@ -663,7 +651,7 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
                     adjustsFontSizeToFit
                     minimumFontScale={0.9}
                   >
-                    {formatNumber(line.lineGrandTotal)} {detail.currencyCode}
+                    {formatNumber(line.lineGrandTotal)} {getCurrencyDisplayName(detail.currencyCode)}
                   </Text>
                 </View>
 
@@ -1142,6 +1130,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     lineHeight: 18,
+  },
+
+  summaryTotalAmountRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "nowrap",
+  },
+
+  summaryCurrencySymbol: {
+    fontSize: 20,
+    fontWeight: "800",
+    lineHeight: 24,
+    includeFontPadding: false,
   },
 
   actionsRow: {
