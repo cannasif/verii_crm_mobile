@@ -6,14 +6,14 @@ import { UserMultipleIcon, Calendar02Icon, Task01Icon } from "hugeicons-react-na
 
 interface StatsStripProps {
   totalCustomers?: number;
-  todayActivities?: number;
+  totalActivities?: number;
   pendingTasks?: number;
 }
 
-export function StatsStrip({ 
-  totalCustomers = 0, 
-  todayActivities = 0, 
-  pendingTasks = 0 
+export function StatsStrip({
+  totalCustomers = 0,
+  totalActivities = 0,
+  pendingTasks = 0,
 }: StatsStripProps): React.ReactElement {
   const { t } = useTranslation();
   const { themeMode } = useUIStore();
@@ -60,7 +60,7 @@ export function StatsStrip({
       <StatColumn 
         icon={Calendar02Icon} 
         color="#EC4899" 
-        value={todayActivities} 
+        value={totalActivities}
         label={t("home.statsActivities")} 
         showDivider 
       />

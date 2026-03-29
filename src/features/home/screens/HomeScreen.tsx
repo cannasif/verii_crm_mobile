@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, StyleSheet, View, TouchableOpacity } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
@@ -17,7 +17,10 @@ import { HomeHero } from "../components/HomeHero";
 import { StatsStrip } from "../components/StatsStrip";
 import { RecentActivities } from "../components/RecentActivities";
 
-import { useActivities } from "../../activity/hooks"; 
+import { useActivities } from "../../activity/hooks";
+import { useCustomers } from "../../customer/hooks";
+import { useDailyTasks } from "../../daily-tasks/hooks";
+import { countPendingTasksForToday, getTodayRange } from "../utils/homeStats";
 
 export function HomeScreen(): React.ReactElement {
   const { t } = useTranslation();
@@ -25,12 +28,30 @@ export function HomeScreen(): React.ReactElement {
   const { themeMode } = useUIStore();
   const insets = useSafeAreaInsets();
   
-  const { 
-    data: activitiesData, 
-    isLoading: isActivitiesLoading, 
-    error: activitiesError, 
-    refetch 
+  const {
+    data: activitiesData,
+    isLoading: isActivitiesLoading,
+    error: activitiesError,
+    refetch: refetchActivities,
   } = useActivities({ pageSize: 3, sortDirection: "desc" });
+
+  const {
+    data: customersData,
+    refetch: refetchCustomers,
+  } = useCustomers({ pageSize: 1 });
+
+  const todayRange = useMemo(() => getTodayRange(), []);
+  const {
+    data: todayTasks,
+    refetch: refetchDailyTasks,
+  } = useDailyTasks(todayRange);
+
+  const totalCustomers = customersData?.pages?.[0]?.totalCount ?? 0;
+  const totalActivities = activitiesData?.pages?.[0]?.totalCount ?? 0;
+  const pendingTasksCount = useMemo(
+    () => countPendingTasksForToday(todayTasks),
+    [todayTasks]
+  );
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -44,9 +65,13 @@ export function HomeScreen(): React.ReactElement {
 
   const onRefresh = useCallback(async (): Promise<void> => {
     setRefreshing(true);
-    await refetch();
+    await Promise.all([
+      refetchActivities(),
+      refetchCustomers(),
+      refetchDailyTasks(),
+    ]);
     setRefreshing(false);
-  }, [refetch]);
+  }, [refetchActivities, refetchCustomers, refetchDailyTasks]);
 
   const onOpenModule = useCallback((route: string): void => {
     router.push(route as never);
@@ -64,7 +89,7 @@ export function HomeScreen(): React.ReactElement {
           {t("home.error")}
         </Text>
         <TouchableOpacity 
-          onPress={() => void onRefresh()} 
+          onPress={() => void onRefresh()}
           style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? '#1E293B' : '#F1F5F9', padding: 10, borderRadius: 12 }}
         >
           <RefreshIcon size={18} color={textColor} />
@@ -120,10 +145,10 @@ export function HomeScreen(): React.ReactElement {
               {t("home.overview")}
             </Text>
             
-            <StatsStrip 
-              totalCustomers={0}
-              todayActivities={0}
-              pendingTasks={0}
+            <StatsStrip
+              totalCustomers={totalCustomers}
+              totalActivities={totalActivities}
+              pendingTasks={pendingTasksCount}
             />
 
             <RecentActivities activities={recentActivitiesList as any} />
