@@ -5,25 +5,23 @@ import {
   FlatList,
   ActivityIndicator,
   TouchableOpacity,
-  Dimensions,
   Text,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient"; // Arka plan efekti için eklendi
-import { Add01Icon } from "hugeicons-react-native";
-
+import { LinearGradient } from "expo-linear-gradient";
+import { listContentBottomPadding } from "../../../constants/layout";
 import { ScreenHeader } from "../../../components/navigation";
-import { PagedFlatList } from "../../../components/paged";
+import { PagedFlatList, SalesListCreateButton } from "../../../components/paged";
+import { useKeyboardBottomInset } from "../../../hooks/useKeyboardBottomInset";
 import { useUIStore } from "../../../store/ui";
 import { useQuotationList, useCreateRevisionOfQuotation } from "../hooks";
 import { QuotationRow } from "../components/QuotationRow";
 import { CustomerMailComposerModal } from "../../integration";
 import type { QuotationGetDto } from "../types";
 
-const { width } = Dimensions.get("window");
 const GAP = 16;
 const PADDING = 16;
 
@@ -32,23 +30,18 @@ export function QuotationListScreen(): React.ReactElement {
   const router = useRouter();
   const { themeMode } = useUIStore();
   const insets = useSafeAreaInsets();
+  const keyboardInset = useKeyboardBottomInset();
 
   const isDark = themeMode === "dark";
 
-  // --- MODERN TEMA TANIMLAMASI ---
-  const mainBg = isDark ? "#0c0516" : "#FAFAFA";
+  const mainBg = isDark ? "#09090F" : "#F8FAFC";
   const brandColor = isDark ? "#EC4899" : "#DB2777";
-  const cardBg = isDark ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.85)";
-  const borderColor = isDark
-    ? "rgba(236, 72, 153, 0.18)"
-    : "rgba(236, 72, 153, 0.25)";
-  const textColor = isDark ? "#F8FAFC" : "#1E293B";
   const mutedColor = isDark ? "#94A3B8" : "#64748B";
 
   const gradientColors = (
     isDark
-      ? ["rgba(236, 72, 153, 0.1)", "transparent", "rgba(249, 115, 22, 0.08)"]
-      : ["rgba(255, 235, 240, 0.6)", "#FFFFFF", "rgba(255, 240, 225, 0.6)"]
+      ? ["rgba(236,72,153,0.08)", "transparent", "rgba(249,115,22,0.05)"]
+      : ["rgba(255,235,240,0.55)", "#FFFFFF", "rgba(255,244,237,0.55)"]
   ) as [string, string, ...string[]];
 
   const [sortBy, setSortBy] = useState<string>("Id");
@@ -146,27 +139,17 @@ export function QuotationListScreen(): React.ReactElement {
   const renderItem = useCallback(
     ({ item }: { item: QuotationGetDto }) => {
       return (
-        <View
-          style={[
-            styles.cardWrapper,
-            {
-              backgroundColor: cardBg,
-              borderColor: borderColor,
-            },
-          ]}
-        >
-          <QuotationRow
-            quotation={item}
-            onPress={handleRowClick}
-            onRevision={handleRevision}
-            onGoogleMail={handleGoogleMail}
-            onOutlookMail={handleOutlookMail}
-            isPending={createRevisionMutation.isPending}
-          />
-        </View>
+        <QuotationRow
+          quotation={item}
+          onPress={handleRowClick}
+          onRevision={handleRevision}
+          onGoogleMail={handleGoogleMail}
+          onOutlookMail={handleOutlookMail}
+          isPending={createRevisionMutation.isPending}
+        />
       );
     },
-    [handleRowClick, handleRevision, createRevisionMutation.isPending, handleGoogleMail, handleOutlookMail, cardBg, borderColor]
+    [handleRowClick, handleRevision, createRevisionMutation.isPending, handleGoogleMail, handleOutlookMail]
   );
 
   const renderEmpty = useCallback(() => {
@@ -191,7 +174,6 @@ export function QuotationListScreen(): React.ReactElement {
     );
   }, [isFetchingNextPage, brandColor]);
 
-  // --- ERROR STATE ---
   if (error) {
     return (
       <View style={[styles.container, { backgroundColor: mainBg }]}>
@@ -217,12 +199,10 @@ export function QuotationListScreen(): React.ReactElement {
     );
   }
 
-  // --- MAIN RENDER ---
   return (
     <View style={[styles.container, { backgroundColor: mainBg }]}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      {/* Modern Gradient Arka Plan */}
       <View style={StyleSheet.absoluteFill}>
         <LinearGradient colors={gradientColors} style={StyleSheet.absoluteFill} />
       </View>
@@ -238,23 +218,12 @@ export function QuotationListScreen(): React.ReactElement {
           onSearchChange={setSearchText}
           searchPlaceholder={t("quotation.searchPlaceholder")}
           toolbarActions={
-            <TouchableOpacity
-              style={[
-                styles.createButton,
-                isDark ? styles.createButtonDark : styles.createButtonLight,
-                {
-                  backgroundColor: isDark ? "rgba(236, 72, 153, 0.15)" : brandColor,
-                },
-              ]}
+            <SalesListCreateButton
               onPress={handleCreatePress}
-              activeOpacity={0.8}
-            >
-              <Add01Icon
-                size={22}
-                color={isDark ? brandColor : "#FFFFFF"}
-                variant="stroke"
-              />
-            </TouchableOpacity>
+              isDark={isDark}
+              accentColor={brandColor}
+              accessibilityLabel={t("common.create")}
+            />
           }
           afterToolbarContent={
             <View style={styles.quickActionsRow}>
@@ -304,7 +273,9 @@ export function QuotationListScreen(): React.ReactElement {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={[
             styles.flatListContent,
-            { paddingBottom: Math.max(insets.bottom, 24) + 80 },
+            {
+              paddingBottom: listContentBottomPadding(insets.bottom) + keyboardInset,
+            },
           ]}
           emptyComponent={renderEmpty()}
         />
@@ -343,27 +314,6 @@ const styles = StyleSheet.create({
   searchContainer: {
     flex: 1,
   },
-  createButton: {
-    height: 48,
-    width: 48,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  createButtonDark: {
-    shadowColor: "transparent",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    elevation: 0,
-  },
-  createButtonLight: {
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
   quickActionsRow: {
     flexDirection: "row",
     gap: 10,
@@ -387,11 +337,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: PADDING,
     paddingTop: 4,
     gap: GAP,
-  },
-  cardWrapper: {
-    borderWidth: 1,
-    borderRadius: 20,
-    overflow: "hidden", 
   },
   footerLoading: {
     paddingVertical: 20,

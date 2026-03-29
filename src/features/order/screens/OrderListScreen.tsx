@@ -5,24 +5,22 @@ import {
   FlatList,
   ActivityIndicator,
   TouchableOpacity,
-  TouchableWithoutFeedback,
-  Dimensions,
-  Text 
+  Text,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
+import { listContentBottomPadding } from "../../../constants/layout";
 import { ScreenHeader } from "../../../components/navigation";
-import { PagedFlatList } from "../../../components/paged";
+import { PagedFlatList, SalesListCreateButton } from "../../../components/paged";
+import { useKeyboardBottomInset } from "../../../hooks/useKeyboardBottomInset";
 import { useUIStore } from "../../../store/ui";
 import { useOrderList, useCreateRevisionOfOrder } from "../hooks";
 import { OrderRow } from "../components";
 import { CustomerMailComposerModal } from "../../integration";
 import type { OrderGetDto } from "../types";
-// Tasarım bütünlüğü için ikon
-import { Add01Icon } from "hugeicons-react-native";
-
 const GAP = 12;
 const PADDING = 16;
 
@@ -31,15 +29,20 @@ export function OrderListScreen(): React.ReactElement {
   const router = useRouter();
   const { themeMode } = useUIStore();
   const insets = useSafeAreaInsets();
-  
+  const keyboardInset = useKeyboardBottomInset();
+
   const isDark = themeMode === "dark";
 
-  // --- TEMA AYARLARI ---
+  const mainBg = isDark ? "#09090F" : "#F8FAFC";
+  const gradientColors = (
+    isDark
+      ? ["rgba(236,72,153,0.08)", "transparent", "rgba(249,115,22,0.05)"]
+      : ["rgba(255,235,240,0.55)", "#FFFFFF", "rgba(255,244,237,0.55)"]
+  ) as [string, string, ...string[]];
+
   const theme = {
-    screenBg: isDark ? "#1a0b2e" : "#F8FAFC",
+    screenBg: mainBg,
     headerBg: isDark ? "#1a0b2e" : "#FFFFFF",
-    cardBg: isDark ? "#1e1b29" : "#FFFFFF",
-    cardBorder: isDark ? "rgba(255, 255, 255, 0.1)" : "#E2E8F0",
     textTitle: isDark ? "#FFFFFF" : "#0F172A",
     textMute: isDark ? "#94a3b8" : "#64748B",
     primary: "#db2777",
@@ -122,7 +125,6 @@ export function OrderListScreen(): React.ReactElement {
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // Veri Düzleştirme (Değişken ismini düzelttik: quotations -> orders)
   const orders = useMemo(() => {
     return (
       data?.pages
@@ -131,31 +133,20 @@ export function OrderListScreen(): React.ReactElement {
     );
   }, [data]);
 
-  // --- RENDER ITEMS ---
-
   const renderItem = useCallback(
     ({ item }: { item: OrderGetDto }) => {
       return (
-        // Wrapper: Tema uyumu için çerçeve
-        <View style={[
-            styles.cardWrapper, 
-            { 
-                backgroundColor: theme.cardBg,
-                borderColor: theme.cardBorder
-            }
-        ]}>
-            <OrderRow
-              order={item}
-              onPress={handleRowClick}
-              onRevision={handleRevision}
-              onGoogleMail={handleGoogleMail}
-              onOutlookMail={handleOutlookMail}
-              isPending={createRevisionMutation.isPending}
-            />
-        </View>
+        <OrderRow
+          order={item}
+          onPress={handleRowClick}
+          onRevision={handleRevision}
+          onGoogleMail={handleGoogleMail}
+          onOutlookMail={handleOutlookMail}
+          isPending={createRevisionMutation.isPending}
+        />
       );
     },
-    [handleRowClick, handleRevision, createRevisionMutation.isPending, handleGoogleMail, handleOutlookMail, theme]
+    [handleRowClick, handleRevision, createRevisionMutation.isPending, handleGoogleMail, handleOutlookMail]
   );
 
   const renderEmpty = useCallback(() => {
@@ -179,11 +170,13 @@ export function OrderListScreen(): React.ReactElement {
     );
   }, [isFetchingNextPage, theme]);
 
-  // --- ERROR STATE ---
   if (error) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.screenBg }]}>
+      <View style={[styles.container, { backgroundColor: mainBg }]}>
         <StatusBar style={isDark ? "light" : "dark"} backgroundColor={theme.headerBg} />
+        <View style={StyleSheet.absoluteFill}>
+          <LinearGradient colors={gradientColors} style={StyleSheet.absoluteFill} />
+        </View>
         <ScreenHeader title={t("order.list")} showBackButton />
         <View style={styles.center}>
             <Text style={{ color: theme.error, marginBottom: 12 }}>{t("common.error")}</Text>
@@ -200,9 +193,12 @@ export function OrderListScreen(): React.ReactElement {
 
   // --- MAIN RENDER ---
   return (
-    <View style={[styles.container, { backgroundColor: theme.screenBg }]}>
+    <View style={[styles.container, { backgroundColor: mainBg }]}>
       <StatusBar style={isDark ? "light" : "dark"} backgroundColor={theme.headerBg} />
-      
+      <View style={StyleSheet.absoluteFill}>
+        <LinearGradient colors={gradientColors} style={StyleSheet.absoluteFill} />
+      </View>
+
       <ScreenHeader title={t("order.list")} showBackButton />
 
       <View style={styles.listContainer}>
@@ -214,13 +210,12 @@ export function OrderListScreen(): React.ReactElement {
           onSearchChange={setSearchTerm}
           searchPlaceholder={t("order.searchPlaceholder")}
           toolbarActions={
-            <View style={[styles.actionBtnContainer, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F1F5F9" }]}>
-              <TouchableWithoutFeedback onPress={handleCreatePress}>
-                <View style={[styles.iconBtn, { backgroundColor: theme.activeSwitch }]}>
-                  <Add01Icon size={20} color="#FFF" variant="stroke" />
-                </View>
-              </TouchableWithoutFeedback>
-            </View>
+            <SalesListCreateButton
+              onPress={handleCreatePress}
+              isDark={isDark}
+              accentColor={theme.activeSwitch}
+              accessibilityLabel={t("common.create")}
+            />
           }
           isLoading={Boolean(isLoading && !data)}
           refreshing={isRefetching}
@@ -232,7 +227,7 @@ export function OrderListScreen(): React.ReactElement {
           contentContainerStyle={{
             paddingHorizontal: PADDING,
             paddingTop: 12,
-            paddingBottom: insets.bottom + 20,
+            paddingBottom: listContentBottomPadding(insets.bottom) + keyboardInset,
             gap: GAP,
           }}
           emptyComponent={renderEmpty()}
@@ -262,35 +257,11 @@ const styles = StyleSheet.create({
     justifyContent: "center", 
     marginTop: 50 
   },
-  // Controls Area
   controlsArea: {
     flexDirection: 'row', 
     alignItems: 'center', 
     paddingHorizontal: 16, 
     paddingVertical: 12,
-  },
-  actionBtnContainer: {
-    flexDirection: 'row', 
-    padding: 4, 
-    borderRadius: 12, 
-    alignItems: 'center', 
-    height: 48,
-    width: 48, 
-    justifyContent: 'center'
-  },
-  iconBtn: { 
-    padding: 8, 
-    borderRadius: 8, 
-    height: 40, 
-    width: 40, 
-    alignItems: 'center', 
-    justifyContent: 'center' 
-  },
-  // Kart Stili
-  cardWrapper: {
-    borderRadius: 16,
-    borderWidth: 1,
-    overflow: 'hidden',
   },
   footerLoading: {
     paddingVertical: 20,
