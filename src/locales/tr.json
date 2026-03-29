@@ -132,7 +132,10 @@
   "contactMail": "E-Posta Gönder",
   "contactWhatsapp": "WhatsApp'tan Yaz",
   "contactPhone": "Telefonla Ara",
-  "cancel": "İptal"
+  "cancel": "İptal",
+  "menuView": "Menü görünümü",
+  "menuViewList": "Liste",
+  "menuViewGrid": "Izgara"
 },
   "quickActions": {
     "scanCard": "Kartvizit Oku",

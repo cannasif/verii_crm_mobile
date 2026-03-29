@@ -124,7 +124,10 @@
   "contactMail": "Send Email",
   "contactWhatsapp": "WhatsApp",
   "contactPhone": "Call Us",
-  "cancel": "Cancel"
+  "cancel": "Cancel",
+  "menuView": "Menu view",
+  "menuViewList": "List",
+  "menuViewGrid": "Grid"
 },
   "quickActions": {
     "scanCard": "Scan Card",
