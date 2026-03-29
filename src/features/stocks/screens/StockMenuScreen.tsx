@@ -5,7 +5,7 @@ import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient"; // EKLENDİ
+import { LinearGradient } from "expo-linear-gradient";
 
 import { ScreenHeader } from "../../../components/navigation";
 import { useUIStore } from "../../../store/ui";
@@ -19,7 +19,7 @@ import {
 export function StockMenuScreen(): React.ReactElement {
   const { t } = useTranslation();
   const router = useRouter();
-  const { colors, themeMode } = useUIStore();
+  const { colors, themeMode, menuViewType } = useUIStore();
   const insets = useSafeAreaInsets();
 
   const handleStockListPress = useCallback(() => {
@@ -28,13 +28,11 @@ export function StockMenuScreen(): React.ReactElement {
 
   const moduleColor = colors.accentSecondary || "#f97316";
 
-  // --- ARKA PLAN AYARLARI (HomeScreen ile Birebir Aynı) ---
   const mainBg = themeMode === "dark" ? "#0c0516" : "#FFFFFF";
-  
+
   const gradientColors = (themeMode === "dark"
     ? ['rgba(236, 72, 153, 0.12)', 'transparent', 'rgba(249, 115, 22, 0.12)']
     : ['rgba(255, 235, 240, 0.6)', '#FFFFFF', 'rgba(255, 240, 225, 0.6)']) as [string, string, ...string[]];
-  // ---------------------------------------------------------
 
   return (
     <View style={[styles.container, { backgroundColor: mainBg }]}>
@@ -50,43 +48,54 @@ export function StockMenuScreen(): React.ReactElement {
           />
       </View>
 
-      {/* İÇERİK KATMANI */}
       <View style={{ flex: 1 }}>
         <ScreenHeader 
           title={t("stockMenu.title")} 
           showBackButton 
-          // Header'ın arkasının şeffaf olması gerekebilir, bileşeninizin yapısına göre
-          // style={{ backgroundColor: 'transparent' }} 
         />
         
         <FlatListScrollView
-          style={styles.content} // backgroundColor kaldırıldı (transparent)
+          style={styles.content}
           contentContainerStyle={[
             styles.contentContainer, 
             { paddingBottom: insets.bottom + 40 }
           ]}
           showsVerticalScrollIndicator={false}
         >
-          <MenuCard
-            title={t("stockMenu.stockMovements")}
-            description={t("stockMenu.stockMovementsDesc")}
-            icon={
-              <PackageIcon 
-                size={24} 
-                color={moduleColor} 
-                variant="stroke" 
-                strokeWidth={1.5}
-              />
+          <View
+            style={
+              menuViewType === "grid"
+                ? {
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    justifyContent: "space-between",
+                    width: "100%",
+                  }
+                : { flexDirection: "column", gap: 0 }
             }
-            rightIcon={
-              <ArrowRight01Icon 
-                size={24} 
-                color={colors.textMuted} 
-                variant="stroke"
-              />
-            }
-            onPress={handleStockListPress}
-          />
+          >
+            <MenuCard
+              title={t("stockMenu.stockMovements")}
+              description={t("stockMenu.stockMovementsDesc")}
+              viewType={menuViewType}
+              icon={
+                <PackageIcon
+                  size={24}
+                  color={moduleColor}
+                  variant="stroke"
+                  strokeWidth={1.5}
+                />
+              }
+              rightIcon={
+                <ArrowRight01Icon
+                  size={24}
+                  color={colors.textMuted}
+                  variant="stroke"
+                />
+              }
+              onPress={handleStockListPress}
+            />
+          </View>
         </FlatListScrollView>
       </View>
     </View>
@@ -99,7 +108,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    backgroundColor: 'transparent', // Gradient görünsün diye şeffaf
+    backgroundColor: 'transparent',
   },
   contentContainer: {
     padding: 20,

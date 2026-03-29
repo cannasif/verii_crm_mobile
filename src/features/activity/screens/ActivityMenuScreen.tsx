@@ -1,5 +1,6 @@
 import React, { useCallback } from "react";
-import { View, StyleSheet, FlatList } from "react-native";
+import { View, StyleSheet } from "react-native";
+import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { StatusBar } from "expo-status-bar";
@@ -19,7 +20,7 @@ export function ActivityMenuScreen(): React.ReactElement {
   const { t } = useTranslation();
   const router = useRouter();
   
-  const { colors, themeMode } = useUIStore() as any;
+  const { themeMode, menuViewType } = useUIStore() as any;
   const insets = useSafeAreaInsets();
   const isDark = themeMode === "dark";
 
@@ -105,25 +106,39 @@ export function ActivityMenuScreen(): React.ReactElement {
       <View style={{ flex: 1 }}>
         <ScreenHeader title={t("activityMenu.title")} showBackButton />
         
-        <FlatList
+        <FlatListScrollView
           style={styles.content}
           contentContainerStyle={[
-            styles.contentContainer, 
-            { paddingBottom: insets.bottom + 40 }
+            styles.contentContainer,
+            { paddingBottom: insets.bottom + 40 },
           ]}
-          data={menuItems}
-          keyExtractor={(item) => item.key}
-          renderItem={({ item }) => (
-            <MenuCard
-              title={item.title}
-              description={item.description}
-              icon={item.icon}
-              rightIcon={<ArrowRight01Icon size={20} color={arrowColor} />}
-              onPress={item.onPress}
-            />
-          )}
           showsVerticalScrollIndicator={false}
-        />
+        >
+          <View
+            style={
+              menuViewType === "grid"
+                ? {
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    justifyContent: "space-between",
+                    width: "100%",
+                  }
+                : { flexDirection: "column", gap: 0 }
+            }
+          >
+            {menuItems.map((item) => (
+              <MenuCard
+                key={item.key}
+                title={item.title}
+                description={item.description}
+                viewType={menuViewType}
+                icon={item.icon}
+                rightIcon={<ArrowRight01Icon size={20} color={arrowColor} />}
+                onPress={item.onPress}
+              />
+            ))}
+          </View>
+        </FlatListScrollView>
       </View>
     </View>
   );

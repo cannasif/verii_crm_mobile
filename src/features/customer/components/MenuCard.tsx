@@ -1,64 +1,128 @@
 import React, { useState } from "react";
-import { View, TouchableOpacity, StyleSheet } from "react-native";
-import { Text } from "../../../components/ui/text"; // Yolunuz farklıysa düzeltin
-import { useUIStore } from "../../../store/ui"; // Yolunuz farklıysa düzeltin
+import {
+  View,
+  TouchableOpacity,
+  StyleSheet,
+  Text as RNText,
+} from "react-native";
+import { Text } from "../../../components/ui/text";
+import { useUIStore } from "../../../store/ui";
+import { ArrowRight01Icon } from "hugeicons-react-native";
+
+const PRESS_BORDER = "rgba(219, 39, 119, 0.4)";
+const ACTIVE_PINK = "#ec4899";
+
+const GRID_WIDTH_PCT = "31%";
 
 interface MenuCardProps {
   title: string;
   description: string;
-  // Hem String (Emoji) hem Component (SVG) alabilsin
-  icon: React.ReactNode; 
+  icon: React.ReactNode;
   onPress: () => void;
-  // HATA ÇÖZÜMÜ: Burayı eklemeyi unutmuşuz, şimdi ekledik.
-  rightIcon?: React.ReactNode; 
+  rightIcon?: React.ReactNode;
+  viewType?: "list" | "grid";
 }
 
-export function MenuCard({ 
-  title, 
-  description, 
-  icon, 
-  onPress, 
-  rightIcon // Props'tan alıyoruz
+export function MenuCard({
+  title,
+  description,
+  icon,
+  onPress,
+  rightIcon,
+  viewType = "list",
 }: MenuCardProps): React.ReactElement {
-  
-  const { colors, themeMode } = useUIStore() as any;
+  const { colors, themeMode } = useUIStore();
   const isDark = themeMode === "dark";
-
-  // --- TIKLAMA DURUMU (WOW EFEKTİ) ---
   const [isPressed, setIsPressed] = useState(false);
 
-  // --- RENKLER ---
-  const ACTIVE_PINK = "#ec4899"; // Neon Pembe
+  const listCardBg = isDark ? colors?.card || "#1E293B" : "#FFFFFF";
+  const gridCardBg = isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.88)";
+  const cardBg = viewType === "grid" ? gridCardBg : listCardBg;
 
-  // 1. ZEMİN RENGİ
-  const cardBg = isDark ? (colors?.card || "#1E293B") : "#FFFFFF";
+  const normalBorder = isDark ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.16)";
+  const currentBorder = isPressed ? PRESS_BORDER : normalBorder;
+  const gridBorderWidth = isPressed ? 1.6 : isDark ? 1 : 1.15;
 
-  // 2. BORDER (ÇERÇEVE)
-  const normalBorder = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)";
-  const currentBorder = isPressed ? ACTIVE_PINK : normalBorder;
+  const iconBoxBgList = isDark ? "rgba(255,255,255,0.08)" : "rgba(232, 72, 85, 0.1)";
+  const iconBoxBgPressed = isDark ? "rgba(236, 72, 153, 0.2)" : "rgba(236, 72, 153, 0.15)";
+  const listIconBg = isPressed ? iconBoxBgPressed : iconBoxBgList;
 
-  // 3. İKON KUTUSU ARKAPLANI
-  const normalIconBg = isDark ? "rgba(255,255,255,0.08)" : "rgba(232, 72, 85, 0.1)";
-  const pressedIconBg = isDark ? "rgba(236, 72, 153, 0.2)" : "rgba(236, 72, 153, 0.15)";
-  const currentIconBg = isPressed ? pressedIconBg : normalIconBg;
+  const gridTitleColor = isDark ? "#F8FAFC" : "#334155";
+  const titleColor = isDark ? "#F8FAFC" : "#1E293B";
+  const listTitleColor = isPressed ? ACTIVE_PINK : titleColor;
+  const descColor = isDark ? "#94A3B8" : "#64748B";
+  const arrowColor = isPressed ? ACTIVE_PINK : isDark ? "#94A3B8" : "#94A3B8";
 
-  // 4. METİN RENKLERİ
-  const titleColor = isPressed ? ACTIVE_PINK : (isDark ? "#FFFFFF" : colors.text);
-  const descColor = isDark ? "#94A3B8" : colors.textSecondary;
-  const arrowColor = isPressed ? ACTIVE_PINK : (isDark ? "#64748B" : "#9CA3AF");
+  const shadowColor = isPressed
+    ? "rgba(219, 39, 119, 0.28)"
+    : isDark
+      ? "#1E293B"
+      : "#64748B";
+  const shadowOpacity = isPressed
+    ? isDark
+      ? 0.36
+      : 0.11
+    : isDark
+      ? 0.28
+      : 0.08;
+
+  if (viewType === "grid") {
+    return (
+      <TouchableOpacity
+        style={[
+          styles.gridContainer,
+          {
+            backgroundColor: cardBg,
+            borderColor: currentBorder,
+            borderWidth: gridBorderWidth,
+            transform: [{ scale: isPressed ? 0.96 : 1 }],
+          },
+        ]}
+        onPress={onPress}
+        onPressIn={() => setIsPressed(true)}
+        onPressOut={() => setIsPressed(false)}
+        activeOpacity={1}
+        accessibilityRole="button"
+        accessibilityLabel={title}
+      >
+        <View style={styles.gridIconWrap}>
+          {React.isValidElement(icon) ? (
+            React.cloneElement(icon as React.ReactElement<any>, {
+              color: isPressed ? ACTIVE_PINK : isDark ? "#F8FAFC" : "#1E293B",
+              variant: "stroke",
+              size: 24,
+              strokeWidth: 2,
+            })
+          ) : (
+            <Text
+              style={[styles.gridEmoji, { color: isPressed ? ACTIVE_PINK : undefined }]}
+            >
+              {icon}
+            </Text>
+          )}
+        </View>
+        <RNText
+          style={[styles.gridTitle, { color: gridTitleColor }]}
+          numberOfLines={2}
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}
+        >
+          {title}
+        </RNText>
+      </TouchableOpacity>
+    );
+  }
 
   return (
     <TouchableOpacity
       style={[
         styles.container,
-        { 
-          backgroundColor: cardBg, 
+        {
+          backgroundColor: cardBg,
           borderColor: currentBorder,
-          // Basınca çizgi hafif kalınlaşsın
           borderWidth: isPressed ? 1.5 : 1,
-          // Gölge
-          shadowColor: isPressed ? ACTIVE_PINK : (isDark ? "#000" : "#64748B"),
-          shadowOpacity: isDark ? 0.3 : 0.08,
+          shadowColor,
+          shadowOpacity,
         },
       ]}
       onPress={onPress}
@@ -66,39 +130,37 @@ export function MenuCard({
       onPressOut={() => setIsPressed(false)}
       activeOpacity={0.9}
     >
-      {/* İKON KUTUSU */}
-  <View style={[styles.iconContainer, { backgroundColor: currentIconBg }]}>
+      <View style={[styles.iconContainer, { backgroundColor: listIconBg }]}>
         {React.isValidElement(icon) ? (
-          // DÜZELTME: variant değiştirmeyi kaldırdık, sadece renk değişecek.
           React.cloneElement(icon as React.ReactElement<any>, {
-            color: isPressed ? ACTIVE_PINK : (isDark ? "#FFFFFF" : "#111827"), // Renk değişimi
-            // variant: "stroke", // Eğer kütüphane zorunlu kılıyorsa bunu sabit bırak
-            // strokeWidth: 1.5 // İstersen kalınlığı sabit tut
+            color: isPressed ? ACTIVE_PINK : isDark ? "#F8FAFC" : "#1E293B",
           })
         ) : (
-          // Eğer Emoji/String ise
-          <Text style={[styles.icon, { color: isPressed ? ACTIVE_PINK : undefined }]}>
+          <Text style={[styles.iconEmoji, { color: isPressed ? ACTIVE_PINK : undefined }]}>
             {icon}
           </Text>
         )}
       </View>
 
-      {/* İÇERİK */}
       <View style={styles.content}>
-        <Text style={[styles.title, { color: titleColor }]}>
+        <Text style={[styles.title, { color: listTitleColor }]} numberOfLines={1}>
           {title}
         </Text>
-        <Text style={[styles.description, { color: descColor }]}>
+        <Text style={[styles.description, { color: descColor }]} numberOfLines={2}>
           {description}
         </Text>
       </View>
 
-      {/* SAĞ TARAF (rightIcon varsa onu göster, yoksa varsayılan ok) */}
       <View style={styles.rightContainer}>
         {rightIcon ? (
           rightIcon
         ) : (
-          <Text style={[styles.arrow, { color: arrowColor }]}>›</Text>
+          <ArrowRight01Icon
+            size={20}
+            color={arrowColor}
+            variant="stroke"
+            strokeWidth={2}
+          />
         )}
       </View>
     </TouchableOpacity>
@@ -110,13 +172,35 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: 16,
     marginBottom: 12,
-    // Gölge ayarları
     shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
+    shadowRadius: 12,
     elevation: 2,
+  },
+  gridContainer: {
+    width: GRID_WIDTH_PCT,
+    aspectRatio: 0.82,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+    borderRadius: 22,
+    paddingHorizontal: 4,
+  },
+  gridIconWrap: {
+    marginBottom: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  gridEmoji: {
+    fontSize: 22,
+  },
+  gridTitle: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: "600",
+    textAlign: "center",
+    letterSpacing: -0.43,
   },
   iconContainer: {
     width: 48,
@@ -126,12 +210,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 16,
   },
-  icon: {
+  iconEmoji: {
     fontSize: 24,
   },
   content: {
     flex: 1,
     paddingRight: 8,
+    justifyContent: "center",
   },
   title: {
     fontSize: 16,
@@ -140,15 +225,12 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 14,
+    fontWeight: "500",
+    lineHeight: 18,
   },
   rightContainer: {
     justifyContent: "center",
     alignItems: "center",
     minWidth: 24,
-  },
-  arrow: {
-    fontSize: 28,
-    fontWeight: "300",
-    lineHeight: 30, 
   },
 });

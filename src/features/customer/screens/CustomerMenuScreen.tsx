@@ -23,7 +23,7 @@ export function CustomerMenuScreen(): React.ReactElement {
   const { t } = useTranslation();
   const router = useRouter();
   
-  const { colors, themeMode } = useUIStore() as any;
+  const { colors, themeMode, menuViewType } = useUIStore() as any;
   const insets = useSafeAreaInsets();
   const isDark = themeMode === "dark";
 
@@ -80,9 +80,22 @@ export function CustomerMenuScreen(): React.ReactElement {
           ]}
           showsVerticalScrollIndicator={false}
         >
+          <View
+            style={
+              menuViewType === "grid"
+                ? {
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    justifyContent: "space-between",
+                    width: "100%",
+                  }
+                : { flexDirection: "column", gap: 0 }
+            }
+          >
           <MenuCard
             title={t("customerMenu.customers")}
             description={t("customerMenu.customersDesc")}
+            viewType={menuViewType}
             icon={
               <UserGroupIcon 
                 size={24} 
@@ -98,6 +111,7 @@ export function CustomerMenuScreen(): React.ReactElement {
           <MenuCard
             title={t("customerMenu.erpCustomers")}
             description={t("customerMenu.erpCustomersDesc")}
+            viewType={menuViewType}
             icon={
               <Building02Icon 
                 size={24} 
@@ -113,6 +127,7 @@ export function CustomerMenuScreen(): React.ReactElement {
           <MenuCard
             title={t("customerMenu.contacts")}
             description={t("customerMenu.contactsDesc")}
+            viewType={menuViewType}
             icon={
               <UserCircleIcon 
                 size={24} 
@@ -128,6 +143,7 @@ export function CustomerMenuScreen(): React.ReactElement {
           <MenuCard
             title={t("customerMenu.shippingAddresses")}
             description={t("customerMenu.shippingAddressesDesc")}
+            viewType={menuViewType}
             icon={
               <Location01Icon 
                 size={24} 
@@ -143,6 +159,7 @@ export function CustomerMenuScreen(): React.ReactElement {
           <MenuCard
             title={t("customerMenu.titles")}
             description={t("customerMenu.titlesDesc")}
+            viewType={menuViewType}
             icon={
               <Task01Icon 
                 size={24} 
@@ -154,6 +171,7 @@ export function CustomerMenuScreen(): React.ReactElement {
             rightIcon={<ArrowRight01Icon size={20} color={arrowColor} variant="stroke" strokeWidth={2} />}
             onPress={handleTitlesPress}
           />
+          </View>
 
         </FlatListScrollView>
       </View>

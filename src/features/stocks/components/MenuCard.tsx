@@ -1,8 +1,19 @@
 import React, { useState } from "react";
-import { View, StyleSheet, TouchableOpacity } from "react-native";
+import {
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  Text as RNText,
+} from "react-native";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { ArrowRight01Icon } from "hugeicons-react-native";
+
+const PRESS_BORDER = "rgba(219, 39, 119, 0.4)";
+const ACTIVE_PINK = "#ec4899";
+
+/** Grid tiles: same proportions as home Quick Actions (ModuleCard). */
+const GRID_WIDTH_PCT = "31%";
 
 interface MenuCardProps {
   title: string;
@@ -10,6 +21,7 @@ interface MenuCardProps {
   icon: React.ReactNode;
   onPress: () => void;
   rightIcon?: React.ReactNode;
+  viewType?: "list" | "grid";
 }
 
 export function MenuCard({
@@ -18,25 +30,90 @@ export function MenuCard({
   icon,
   onPress,
   rightIcon,
+  viewType = "list",
 }: MenuCardProps): React.ReactElement {
   const { colors, themeMode } = useUIStore();
   const isDark = themeMode === "dark";
   const [isPressed, setIsPressed] = useState(false);
 
-  const ACTIVE_PINK = "#ec4899";
+  const listCardBg = isDark ? colors?.card || "#1E293B" : "#FFFFFF";
+  const gridCardBg = isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.88)";
+  const cardBg = viewType === "grid" ? gridCardBg : listCardBg;
 
-  const cardBg = isDark ? (colors?.card || "#1E293B") : "#FFFFFF";
-  const normalBorder = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)";
-  const currentBorder = isPressed ? ACTIVE_PINK : normalBorder;
+  const normalBorder = isDark ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.16)";
+  const currentBorder = isPressed ? PRESS_BORDER : normalBorder;
+  const gridBorderWidth = isPressed ? 1.6 : isDark ? 1 : 1.15;
 
   const iconBoxBg = isDark ? "rgba(236, 72, 153, 0.15)" : "#FFF0F5";
 
-  const normalIconColor = colors?.text || (isDark ? "#FFFFFF" : "#000000");
+  const normalIconColor = colors?.text || (isDark ? "#F8FAFC" : "#1E293B");
   const currentIconColor = isPressed ? ACTIVE_PINK : normalIconColor;
 
-  const titleColor = isDark ? "#F8FAFC" : "#111827";
-  const descColor = isDark ? "#94A3B8" : "#6B7280";
-  const arrowColor = isPressed ? ACTIVE_PINK : isDark ? "#F472B6" : "#9CA3AF";
+  const gridTitleColor = isDark ? "#F8FAFC" : "#334155";
+  const titleColor = isDark ? "#F8FAFC" : "#1E293B";
+  const descColor = isDark ? "#94A3B8" : "#64748B";
+  const arrowColor = isPressed ? ACTIVE_PINK : isDark ? "#F472B6" : "#94A3B8";
+
+  const shadowColor = isPressed
+    ? "rgba(219, 39, 119, 0.28)"
+    : isDark
+      ? "#1E293B"
+      : "#64748B";
+  const shadowOpacity = isPressed
+    ? isDark
+      ? 0.36
+      : 0.11
+    : isDark
+      ? 0.28
+      : 0.08;
+
+  if (viewType === "grid") {
+    return (
+      <TouchableOpacity
+        style={[
+          styles.gridContainer,
+          {
+            backgroundColor: cardBg,
+            borderColor: currentBorder,
+            borderWidth: gridBorderWidth,
+            transform: [{ scale: isPressed ? 0.96 : 1 }],
+          },
+        ]}
+        onPress={onPress}
+        onPressIn={() => setIsPressed(true)}
+        onPressOut={() => setIsPressed(false)}
+        activeOpacity={1}
+        accessibilityRole="button"
+        accessibilityLabel={title}
+      >
+        <View style={styles.gridIconWrap}>
+          {React.isValidElement(icon) ? (
+            React.cloneElement(icon as React.ReactElement<any>, {
+              color: currentIconColor,
+              variant: "stroke",
+              size: 24,
+              strokeWidth: 2,
+            })
+          ) : (
+            <Text
+              style={[styles.gridEmoji, { color: currentIconColor }]}
+              numberOfLines={1}
+            >
+              {icon}
+            </Text>
+          )}
+        </View>
+        <RNText
+          style={[styles.gridTitle, { color: gridTitleColor }]}
+          numberOfLines={2}
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}
+        >
+          {title}
+        </RNText>
+      </TouchableOpacity>
+    );
+  }
 
   return (
     <TouchableOpacity
@@ -45,8 +122,9 @@ export function MenuCard({
         {
           backgroundColor: cardBg,
           borderColor: currentBorder,
-          shadowColor: isDark ? "#000" : "#64748B",
-          shadowOpacity: isDark ? 0.3 : 0.08,
+          borderWidth: isPressed ? 1.5 : 1,
+          shadowColor,
+          shadowOpacity,
         },
       ]}
       onPress={onPress}
@@ -102,11 +180,34 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     borderRadius: 16,
-    borderWidth: 1,
     marginBottom: 12,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12,
     elevation: 2,
+  },
+  gridContainer: {
+    width: GRID_WIDTH_PCT,
+    aspectRatio: 0.82,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+    borderRadius: 22,
+    paddingHorizontal: 4,
+  },
+  gridIconWrap: {
+    marginBottom: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  gridEmoji: {
+    fontSize: 22,
+  },
+  gridTitle: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: "600",
+    textAlign: "center",
+    letterSpacing: -0.43,
   },
   iconContainer: {
     width: 44,

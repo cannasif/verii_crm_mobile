@@ -1,35 +1,162 @@
-import React from "react";
-import { View, TouchableOpacity, StyleSheet } from "react-native";
+import React, { useState } from "react";
+import {
+  View,
+  TouchableOpacity,
+  StyleSheet,
+  Text as RNText,
+} from "react-native";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
+import { ArrowRight01Icon } from "hugeicons-react-native";
+
+const PRESS_BORDER = "rgba(219, 39, 119, 0.4)";
+const ACTIVE_PINK = "#ec4899";
+
+const GRID_WIDTH_PCT = "31%";
 
 interface MenuCardProps {
   title: string;
   description: string;
-  icon: string;
+  icon: React.ReactNode;
   onPress: () => void;
+  rightIcon?: React.ReactNode;
+  viewType?: "list" | "grid";
 }
 
-export function MenuCard({ title, description, icon, onPress }: MenuCardProps): React.ReactElement {
-  const { colors } = useUIStore();
+export function MenuCard({
+  title,
+  description,
+  icon,
+  onPress,
+  rightIcon,
+  viewType = "list",
+}: MenuCardProps): React.ReactElement {
+  const { colors, themeMode } = useUIStore();
+  const isDark = themeMode === "dark";
+  const [isPressed, setIsPressed] = useState(false);
+
+  const listCardBg = colors.card;
+  const gridCardBg = isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.88)";
+  const cardBg = viewType === "grid" ? gridCardBg : listCardBg;
+
+  const normalBorderList = colors.cardBorder;
+  const normalBorderGrid = isDark ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.08)";
+  const normalBorder = viewType === "grid" ? normalBorderGrid : normalBorderList;
+  const currentBorder = isPressed ? PRESS_BORDER : normalBorder;
+
+  const listIconBg = isDark ? "rgba(236, 72, 153, 0.12)" : "rgba(236, 72, 153, 0.1)";
+
+  const gridTitleColor = isDark ? "#F8FAFC" : "#334155";
+  const titleColor = isDark ? "#F8FAFC" : colors.text;
+  const descColor = isDark ? "#94A3B8" : colors.textSecondary;
+  const arrowColor = isPressed ? ACTIVE_PINK : colors.textMuted;
+
+  const shadowColor = isPressed
+    ? "rgba(219, 39, 119, 0.28)"
+    : isDark
+      ? "#1E293B"
+      : "#64748B";
+  const shadowOpacity = isPressed
+    ? isDark
+      ? 0.36
+      : 0.11
+    : isDark
+      ? 0.28
+      : 0.08;
+
+  if (viewType === "grid") {
+    return (
+      <TouchableOpacity
+        style={[
+          styles.gridContainer,
+          {
+            backgroundColor: cardBg,
+            borderColor: currentBorder,
+            borderWidth: isPressed ? 1.5 : 1,
+            transform: [{ scale: isPressed ? 0.96 : 1 }],
+          },
+        ]}
+        onPress={onPress}
+        onPressIn={() => setIsPressed(true)}
+        onPressOut={() => setIsPressed(false)}
+        activeOpacity={1}
+        accessibilityRole="button"
+        accessibilityLabel={title}
+      >
+        <View style={styles.gridIconWrap}>
+          {typeof icon === "string" ? (
+            <Text style={[styles.gridEmoji, { color: isPressed ? ACTIVE_PINK : titleColor }]}>
+              {icon}
+            </Text>
+          ) : React.isValidElement(icon) ? (
+            React.cloneElement(icon as React.ReactElement<any>, {
+              color: isPressed ? ACTIVE_PINK : titleColor,
+              variant: "stroke",
+              size: 24,
+              strokeWidth: 2,
+            })
+          ) : (
+            icon
+          )}
+        </View>
+        <RNText
+          style={[styles.gridTitle, { color: gridTitleColor }]}
+          numberOfLines={2}
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}
+        >
+          {title}
+        </RNText>
+      </TouchableOpacity>
+    );
+  }
 
   return (
     <TouchableOpacity
       style={[
         styles.container,
-        { backgroundColor: colors.card, borderColor: colors.cardBorder },
+        {
+          backgroundColor: cardBg,
+          borderColor: currentBorder,
+          borderWidth: isPressed ? 1.5 : 1,
+          shadowColor,
+          shadowOpacity,
+        },
       ]}
       onPress={onPress}
-      activeOpacity={0.7}
+      onPressIn={() => setIsPressed(true)}
+      onPressOut={() => setIsPressed(false)}
+      activeOpacity={0.9}
     >
-      <View style={styles.iconContainer}>
-        <Text style={styles.icon}>{icon}</Text>
+      <View style={[styles.iconContainer, { backgroundColor: listIconBg }]}>
+        {typeof icon === "string" ? (
+          <Text style={[styles.iconEmoji, { color: isPressed ? ACTIVE_PINK : titleColor }]}>
+            {icon}
+          </Text>
+        ) : (
+          icon
+        )}
       </View>
       <View style={styles.content}>
-        <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-        <Text style={[styles.description, { color: colors.textSecondary }]}>{description}</Text>
+        <Text style={[styles.title, { color: titleColor }]} numberOfLines={1}>
+          {title}
+        </Text>
+        <Text style={[styles.description, { color: descColor }]} numberOfLines={2}>
+          {description}
+        </Text>
       </View>
-      <Text style={[styles.arrow, { color: colors.textMuted }]}>›</Text>
+      <View style={styles.rightContainer}>
+        {rightIcon ? (
+          rightIcon
+        ) : (
+          <ArrowRight01Icon
+            size={20}
+            color={arrowColor}
+            variant="stroke"
+            strokeWidth={2}
+          />
+        )}
+      </View>
     </TouchableOpacity>
   );
 }
@@ -39,24 +166,51 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: 16,
     marginBottom: 12,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
+    elevation: 2,
+  },
+  gridContainer: {
+    width: GRID_WIDTH_PCT,
+    aspectRatio: 0.82,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+    borderRadius: 22,
+    paddingHorizontal: 4,
+  },
+  gridIconWrap: {
+    marginBottom: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  gridEmoji: {
+    fontSize: 22,
+  },
+  gridTitle: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: "600",
+    textAlign: "center",
+    letterSpacing: -0.43,
   },
   iconContainer: {
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: "rgba(236, 72, 153, 0.1)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 16,
   },
-  icon: {
+  iconEmoji: {
     fontSize: 24,
   },
   content: {
     flex: 1,
+    paddingRight: 8,
+    justifyContent: "center",
   },
   title: {
     fontSize: 16,
@@ -65,9 +219,12 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 14,
+    fontWeight: "500",
+    lineHeight: 18,
   },
-  arrow: {
-    fontSize: 24,
-    fontWeight: "300",
+  rightContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    minWidth: 24,
   },
 });

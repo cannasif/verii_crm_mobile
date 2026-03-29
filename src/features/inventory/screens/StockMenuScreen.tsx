@@ -12,7 +12,7 @@ import { MenuCard } from "../components";
 export function StockMenuScreen(): React.ReactElement {
   const { t } = useTranslation();
   const router = useRouter();
-  const { colors, themeMode } = useUIStore();
+  const { colors, themeMode, menuViewType } = useUIStore();
   const insets = useSafeAreaInsets();
 
   const contentBackground = themeMode === "dark" ? "rgba(20, 10, 30, 0.5)" : colors.background;
@@ -31,12 +31,26 @@ export function StockMenuScreen(): React.ReactElement {
           contentContainerStyle={[styles.contentContainer, { paddingBottom: insets.bottom + 100 }]}
           showsVerticalScrollIndicator={false}
         >
-          <MenuCard
-            title={t("stockMenu.stockMovements")}
-            description={t("stockMenu.stockMovementsDesc")}
-            icon="📦"
-            onPress={handleStockListPress}
-          />
+          <View
+            style={
+              menuViewType === "grid"
+                ? {
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    justifyContent: "space-between",
+                    width: "100%",
+                  }
+                : { flexDirection: "column", gap: 0 }
+            }
+          >
+            <MenuCard
+              title={t("stockMenu.stockMovements")}
+              description={t("stockMenu.stockMovementsDesc")}
+              viewType={menuViewType}
+              icon="📦"
+              onPress={handleStockListPress}
+            />
+          </View>
         </FlatListScrollView>
       </View>
     </>
