@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from "react";
+import React, { useMemo, useCallback, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -9,6 +9,9 @@ import {
   Image,
   ActivityIndicator,
   KeyboardAvoidingView,
+  Modal,
+  Pressable,
+  Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
@@ -37,6 +40,7 @@ import {
   Image02Icon,
   Add01Icon,
   ArrowRight01Icon,
+  Cancel01Icon,
 } from "hugeicons-react-native";
 
 interface CustomerTheme {
@@ -448,6 +452,7 @@ export function CustomerDetailContent({
 }: CustomerDetailContentProps): React.ReactElement {
   const { themeMode } = useUIStore();
   const isDark = themeMode === "dark";
+  const [imagePreview, setImagePreview] = useState<{ uri: string; caption: string } | null>(null);
 
   const safeCustomerName = customer?.name?.trim() || t("customer.unnamedCustomer");
   const initials = getInitials(safeCustomerName);
@@ -514,6 +519,8 @@ export function CustomerDetailContent({
   }, [customer?.phone]);
 
   const noteDate = getNoteDate(customer);
+
+  const { width: previewWinW, height: previewWinH } = Dimensions.get("window");
 
   return (
     <View style={[styles.container, { backgroundColor: mainBg }]}>
@@ -664,19 +671,21 @@ export function CustomerDetailContent({
                 const imageUri = toAbsoluteImageUrl(item.imageUrl);
                 if (!imageUri) return null;
 
+                const caption = item.imageDescription?.trim() || t("customer.imageDefaultDescription");
+
                 return (
-                  <View
+                  <TouchableOpacity
                     key={item.id}
+                    activeOpacity={0.88}
                     style={[
                       styles.imageCard,
                       { borderColor: theme.divider, backgroundColor: theme.cardBgSoft },
                     ]}
+                    onPress={() => setImagePreview({ uri: imageUri, caption })}
                   >
                     <Image source={{ uri: imageUri }} style={styles.customerImage} resizeMode="cover" />
-                    <Text style={[styles.imageCaption, { color: theme.text }]}>
-                      {item.imageDescription?.trim() || t("customer.imageDefaultDescription")}
-                    </Text>
-                  </View>
+                    <Text style={[styles.imageCaption, { color: theme.text }]}>{caption}</Text>
+                  </TouchableOpacity>
                 );
               })}
             </ScrollView>
@@ -987,6 +996,67 @@ export function CustomerDetailContent({
           </View>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={imagePreview !== null}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setImagePreview(null)}
+      >
+        <View style={styles.imagePreviewRoot}>
+          <Pressable
+            style={[
+              styles.imagePreviewBackdrop,
+              { backgroundColor: isDark ? "rgba(0,0,0,0.94)" : "rgba(0,0,0,0.82)" },
+            ]}
+            onPress={() => setImagePreview(null)}
+            accessibilityRole="button"
+            accessibilityLabel={t("common.close")}
+          />
+          {imagePreview ? (
+            <View
+              style={[styles.imagePreviewColumn, { width: previewWinW * 0.92 }]}
+              pointerEvents="box-none"
+            >
+              <View
+                style={[
+                  styles.imagePreviewFrame,
+                  {
+                    height: previewWinH * 0.72,
+                    borderColor: isDark ? "rgba(219, 39, 119, 0.42)" : "rgba(219, 39, 119, 0.26)",
+                    backgroundColor: isDark ? "rgba(15, 23, 42, 0.5)" : "rgba(255, 255, 255, 0.98)",
+                  },
+                ]}
+              >
+                <Pressable
+                  style={[
+                    styles.imagePreviewCloseBtn,
+                    {
+                      backgroundColor: isDark ? "rgba(15, 23, 42, 0.72)" : "rgba(255, 255, 255, 0.94)",
+                      borderColor: isDark ? "rgba(219, 39, 119, 0.35)" : "rgba(219, 39, 119, 0.2)",
+                    },
+                  ]}
+                  onPress={() => setImagePreview(null)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("common.close")}
+                >
+                  <Cancel01Icon size={18} color={isDark ? "#e2e8f0" : "#475569"} variant="stroke" />
+                </Pressable>
+                <Image
+                  source={{ uri: imagePreview.uri }}
+                  style={styles.imagePreviewImage}
+                  resizeMode="contain"
+                />
+              </View>
+              <Text style={[styles.imagePreviewCaption, { color: theme.textSoft }]} numberOfLines={3}>
+                {imagePreview.caption}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1294,6 +1364,56 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontWeight: "400",
+  },
+
+  imagePreviewRoot: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  imagePreviewBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  imagePreviewColumn: {
+    alignItems: "center",
+    zIndex: 1,
+  },
+
+  imagePreviewFrame: {
+    width: "100%",
+    position: "relative",
+    borderRadius: 18,
+    borderWidth: 1.5,
+    overflow: "hidden",
+  },
+
+  imagePreviewImage: {
+    width: "100%",
+    height: "100%",
+  },
+
+  imagePreviewCloseBtn: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    zIndex: 2,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  imagePreviewCaption: {
+    marginTop: 14,
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: "center",
+    paddingHorizontal: 8,
+    maxWidth: "92%",
   },
 
   notesText: {
