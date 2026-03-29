@@ -77,7 +77,15 @@ import {
 import type { StockRelationDto } from "../../stocks/types";
 import { calculateLineTotals, calculateTotals } from "../utils";
 import type { ExchangeRateDto } from "../types";
-import { UserIcon } from "hugeicons-react-native";
+import {
+  UserIcon,
+  ArrowRight01Icon,
+  MoneyExchange01Icon,
+  Note01Icon,
+  Edit02Icon,
+  Delete02Icon,
+  Alert02Icon,
+} from "hugeicons-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 function addDaysToDateOnly(dateValue: string, days: number): string {
@@ -103,6 +111,17 @@ export function QuotationCreateScreen(): React.ReactElement {
       : ["rgba(255, 235, 240, 0.6)", "#FFFFFF", "rgba(255, 240, 225, 0.6)"]
   ) as [string, string, ...string[]];
   const contentBackground = "transparent";
+
+  const shellBg = colors.card;
+  const shellBgAlt = isDark ? "rgba(23,10,38,0.99)" : "rgba(255,255,255,0.98)";
+  const shellBorder = colors.cardBorder;
+  const sectionOutline = isDark ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.08)";
+  const innerBg = isDark ? "rgba(255,255,255,0.06)" : "#FFFFFF";
+  const innerBorder = isDark ? "rgba(255,255,255,0.10)" : colors.border;
+  const titleText = colors.text;
+  const mutedText = colors.textSecondary;
+  const softText = colors.textMuted;
+  const accent = colors.accent;
 
   const [lines, setLines] = useState<QuotationLineFormState[]>([]);
   const [exchangeRates, setExchangeRates] = useState<
@@ -132,6 +151,7 @@ export function QuotationCreateScreen(): React.ReactElement {
     useState(false);
   const [representativeModalVisible, setRepresentativeModalVisible] =
     useState(false);
+  const [activeTab, setActiveTab] = useState<"general" | "lines">("general");
   const [projectCodeModalVisible, setProjectCodeModalVisible] = useState(false);
   const [salesTypeModalVisible, setSalesTypeModalVisible] = useState(false);
   const [pendingStockForRelated, setPendingStockForRelated] = useState<
@@ -848,11 +868,62 @@ export function QuotationCreateScreen(): React.ReactElement {
                 </View>
               ) : null;
             })()}
+            <View
+              style={[
+                styles.tabBarCard,
+                {
+                  backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.72)",
+                  borderColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.04)",
+                },
+              ]}
+            >
+              <TouchableOpacity
+                style={[
+                  styles.tabPill,
+                  activeTab === "general"
+                    ? [
+                        styles.tabPillActive,
+                        {
+                          borderColor: "#ec4899",
+                          backgroundColor: isDark ? "rgba(236,72,153,0.22)" : "rgba(236,72,153,0.12)",
+                        },
+                      ]
+                    : styles.tabPillInactive,
+                ]}
+                onPress={() => setActiveTab("general")}
+                activeOpacity={0.9}
+              >
+                <Text style={[styles.tabPillText, { color: activeTab === "general" ? "#ec4899" : softText }]}>
+                  Genel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.tabPill,
+                  activeTab === "lines"
+                    ? [
+                        styles.tabPillActive,
+                        {
+                          borderColor: "#ec4899",
+                          backgroundColor: isDark ? "rgba(236,72,153,0.14)" : "rgba(236,72,153,0.08)",
+                        },
+                      ]
+                    : styles.tabPillInactive,
+                ]}
+                onPress={() => setActiveTab("lines")}
+                activeOpacity={0.9}
+              >
+                <Text style={[styles.tabPillText, { color: activeTab === "lines" ? "#ec4899" : softText }]}>
+                  Satırlar
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ display: activeTab === "general" ? "flex" : "none" }}>
 
             <View
               style={[
                 styles.section,
-                { backgroundColor: colors.card, borderColor: colors.cardBorder },
+                { backgroundColor: shellBg, borderColor: sectionOutline },
               ]}
             >
               <Text style={[styles.sectionTitle, { color: colors.text }]}>
@@ -863,33 +934,38 @@ export function QuotationCreateScreen(): React.ReactElement {
                 style={[
                   styles.customerSelectButton,
                   {
-                    backgroundColor: colors.card,
+                    backgroundColor: innerBg,
                     borderColor: errors.quotation?.potentialCustomerId
                       ? colors.error
-                      : colors.border,
+                      : innerBorder,
+                    minHeight: 48,
+                    borderRadius: 16,
                   },
                 ]}
                 onPress={() => setCustomerSelectDialogOpen(true)}
               >
                 <View style={styles.customerSelectContent}>
                   <View
-                    style={[
-                      styles.iconContainer,
-                      { backgroundColor: colors.accent + "15" },
-                    ]}
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 9,
+                      borderWidth: 1,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginRight: 8,
+                      backgroundColor: `${accent}10`,
+                      borderColor: `${accent}18`,
+                    }}
                   >
-                    <UserIcon
-                      size={22}
-                      color={colors.accent}
-                      variant="stroke"
-                    />
+                    <UserIcon size={14} color={accent} variant="stroke" strokeWidth={1.8} />
                   </View>
 
                   <View style={styles.customerSelectTextContainer}>
                     <Text
                       style={[
                         styles.customerSelectLabel,
-                        { color: colors.textMuted },
+                        { color: softText },
                       ]}
                     >
                       MÜŞTERİ SEÇİMİ
@@ -897,7 +973,7 @@ export function QuotationCreateScreen(): React.ReactElement {
                     <Text
                       style={[
                         styles.customerSelectValue,
-                        { color: colors.text },
+                        { color: titleText },
                       ]}
                     >
                       {selectedCustomer?.name ||
@@ -908,7 +984,7 @@ export function QuotationCreateScreen(): React.ReactElement {
                   </View>
                 </View>
 
-                <Text style={{ color: colors.textMuted, fontSize: 20 }}>›</Text>
+                <ArrowRight01Icon size={18} color={softText} variant="stroke" strokeWidth={1.8} />
               </TouchableOpacity>
 
               {errors.quotation?.potentialCustomerId?.message && (
@@ -926,7 +1002,7 @@ export function QuotationCreateScreen(): React.ReactElement {
                     render={({ field: { value } }) => (
                       <View style={styles.fieldContainer}>
                         <Text
-                          style={[styles.label, { color: colors.textSecondary }]}
+                          style={[styles.label, { color: mutedText }]}
                         >
                           Teslimat Adresi
                         </Text>
@@ -934,8 +1010,8 @@ export function QuotationCreateScreen(): React.ReactElement {
                           style={[
                             styles.pickerButton,
                             {
-                              backgroundColor: colors.backgroundSecondary,
-                              borderColor: colors.border,
+                              backgroundColor: innerBg,
+                              borderColor: innerBorder,
                             },
                           ]}
                           onPress={() => setShippingAddressModalVisible(true)}
@@ -954,74 +1030,77 @@ export function QuotationCreateScreen(): React.ReactElement {
             <View
               style={[
                 styles.section,
-                { backgroundColor: colors.card, borderColor: colors.cardBorder },
+                { backgroundColor: shellBg, borderColor: sectionOutline },
               ]}
             >
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              <Text style={[styles.sectionTitle, { color: titleText }]}>
                 Teklif Bilgileri
               </Text>
 
-              <OfferTypePicker control={control} />
-
-              <Controller
-                control={control}
-                name="quotation.representativeId"
-                render={({ field: { value } }) => (
-                  <View style={styles.fieldContainer}>
-                    <Text style={[styles.label, { color: colors.textSecondary }]}>
-                      Satış Temsilcisi
-                    </Text>
-                    <TouchableOpacity
-                      style={[
-                        styles.pickerButton,
-                        {
-                          backgroundColor: colors.backgroundSecondary,
-                          borderColor: colors.border,
-                        },
-                      ]}
-                      onPress={() => setRepresentativeModalVisible(true)}
-                    >
-                      <Text style={[styles.pickerText, { color: colors.text }]}>
-                        {value
-                          ? relatedUsers.find((u) => u.userId === value)
-                            ? `${
-                                relatedUsers.find((u) => u.userId === value)
-                                  ?.firstName
-                              } ${
-                                relatedUsers.find((u) => u.userId === value)
-                                  ?.lastName
-                              }`
-                            : String(value)
-                          : "Seçiniz"}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              />
+              <View style={styles.twoColumnRow}>
+                <View style={styles.twoColumnItem}>
+                  <OfferTypePicker control={control} compact />
+                </View>
+                <View style={styles.twoColumnItem}>
+                  <Controller
+                    control={control}
+                    name="quotation.representativeId"
+                    render={({ field: { value } }) => (
+                      <View style={styles.fieldContainerTight}>
+                        <Text style={[styles.labelCompact, { color: mutedText }]}>
+                          Satış Temsilcisi
+                        </Text>
+                        <TouchableOpacity
+                          style={[
+                            styles.pickerButton,
+                            styles.pickerShellCompact,
+                            {
+                              backgroundColor: innerBg,
+                              borderColor: innerBorder,
+                            },
+                          ]}
+                          onPress={() => setRepresentativeModalVisible(true)}
+                        >
+                          <Text
+                            style={[styles.pickerText, styles.pickerTextCompact, { color: colors.text }]}
+                            numberOfLines={1}
+                          >
+                            {value
+                              ? relatedUsers.find((u) => u.userId === value)
+                                ? `${relatedUsers.find((u) => u.userId === value)?.firstName} ${relatedUsers.find((u) => u.userId === value)?.lastName}`
+                                : String(value)
+                              : "Seçin"}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  />
+                </View>
+              </View>
 
               <Controller
                 control={control}
                 name="quotation.paymentTypeId"
                 render={({ field: { value } }) => (
-                  <View style={styles.fieldContainer}>
-                    <Text style={[styles.label, { color: colors.textSecondary }]}>
-                      Ödeme Tipi <Text style={{ color: colors.error }}>*</Text>
+                  <View style={styles.fieldContainerTight}>
+                    <Text style={[styles.labelCompact, { color: mutedText }]}>
+                      Ödeme tipi <Text style={{ color: colors.error }}>*</Text>
                     </Text>
                     <TouchableOpacity
                       style={[
                         styles.pickerButton,
+                        styles.pickerShellCompact,
                         {
-                          backgroundColor: colors.backgroundSecondary,
+                          backgroundColor: innerBg,
                           borderColor: errors.quotation?.paymentTypeId
                             ? colors.error
-                            : colors.border,
+                            : innerBorder,
                         },
                       ]}
                       onPress={() => setPaymentTypeModalVisible(true)}
                     >
-                      <Text style={[styles.pickerText, { color: colors.text }]}>
-                        {paymentTypes?.find((pt) => pt.id === value)?.name ||
-                          "Seçiniz"}
+                      <Text style={[styles.pickerText, styles.pickerTextCompact, { color: colors.text }]} numberOfLines={1}>
+                        {paymentTypes?.find((pt) => pt.id === value)?.name || "Seçin"}
                       </Text>
                     </TouchableOpacity>
                     {errors.quotation?.paymentTypeId?.message && (
@@ -1033,85 +1112,93 @@ export function QuotationCreateScreen(): React.ReactElement {
                 )}
               />
 
-              <View style={styles.fieldContainer}>
-                <TouchableOpacity
-                  style={[
-                    styles.dateButton,
-                    {
-                      backgroundColor: colors.backgroundSecondary,
-                      borderColor: errors.quotation?.deliveryDate
-                        ? colors.error
-                        : colors.border,
-                    },
-                  ]}
-                  onPress={() => setDeliveryDateModalOpen(true)}
-                >
-                  <Text style={[styles.dateButtonText, { color: colors.text }]}>
-                    Teslimat Tarihi: {watchedDeliveryDate || "Seçiniz"}
-                  </Text>
-                </TouchableOpacity>
-                {errors.quotation?.deliveryDate?.message && (
-                  <Text style={[styles.fieldError, { color: colors.error }]}>
-                    {errors.quotation.deliveryDate.message}
-                  </Text>
-                )}
+              <View style={styles.twoColumnRow}>
+                <View style={styles.twoColumnItem}>
+                  <View style={styles.fieldContainerTight}>
+                    <Text style={[styles.labelCompact, { color: mutedText }]}>Teslimat</Text>
+                    <TouchableOpacity
+                      style={[
+                        styles.dateCell,
+                        {
+                          backgroundColor: innerBg,
+                          borderColor: errors.quotation?.deliveryDate
+                            ? colors.error
+                            : innerBorder,
+                        },
+                      ]}
+                      onPress={() => setDeliveryDateModalOpen(true)}
+                    >
+                      <Text style={[styles.dateCellValue, { color: colors.text }]} numberOfLines={1}>
+                        {watchedDeliveryDate || "Tarih seçin"}
+                      </Text>
+                    </TouchableOpacity>
+                    {errors.quotation?.deliveryDate?.message && (
+                      <Text style={[styles.fieldError, { color: colors.error }]}>
+                        {errors.quotation.deliveryDate.message}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+                <View style={styles.twoColumnItem}>
+                  <View style={styles.fieldContainerTight}>
+                    <Text style={[styles.labelCompact, { color: mutedText }]}>Teklif</Text>
+                    <TouchableOpacity
+                      style={[styles.dateCell, { backgroundColor: innerBg, borderColor: innerBorder }]}
+                      onPress={() => setOfferDateModalOpen(true)}
+                    >
+                      <Text style={[styles.dateCellValue, { color: colors.text }]} numberOfLines={1}>
+                        {watchedOfferDate || "Tarih seçin"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </View>
-
-              <TouchableOpacity
-                style={[
-                  styles.dateButton,
-                  {
-                    backgroundColor: colors.backgroundSecondary,
-                    borderColor: colors.border,
-                  },
-                ]}
-                onPress={() => setOfferDateModalOpen(true)}
-              >
-                <Text style={[styles.dateButtonText, { color: colors.text }]}>
-                  Teklif Tarihi: {watchedOfferDate || "Seçiniz"}
-                </Text>
-              </TouchableOpacity>
 
               <Controller
                 control={control}
                 name="quotation.currency"
                 render={({ field: { value } }) => (
-                  <View style={styles.fieldContainer}>
+                  <View style={styles.fieldContainerTight}>
                     <View style={styles.currencyHeader}>
-                      <Text
-                        style={[styles.label, { color: colors.textSecondary }]}
-                      >
-                        Para Birimi <Text style={{ color: colors.error }}>*</Text>
+                      <Text style={[styles.labelCompact, { color: mutedText }]}>
+                        Para birimi <Text style={{ color: colors.error }}>*</Text>
                       </Text>
                       {value && (
                         <TouchableOpacity
                           style={[
                             styles.exchangeRateButton,
+                            styles.exchangeRateButtonCompact,
                             { backgroundColor: colors.accent },
                           ]}
                           onPress={() => setExchangeRateDialogVisible(true)}
                         >
-                          <Text style={styles.exchangeRateButtonText}>
-                            💱 Kurlar
-                          </Text>
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                            <MoneyExchange01Icon
+                              size={13}
+                              color="#FFFFFF"
+                              variant="stroke"
+                              strokeWidth={1.8}
+                            />
+                            <Text style={styles.exchangeRateButtonTextCompact}>Kurlar</Text>
+                          </View>
                         </TouchableOpacity>
                       )}
                     </View>
                     <TouchableOpacity
                       style={[
                         styles.pickerButton,
+                        styles.pickerShellCompact,
                         {
-                          backgroundColor: colors.backgroundSecondary,
+                          backgroundColor: innerBg,
                           borderColor: errors.quotation?.currency
                             ? colors.error
-                            : colors.border,
+                            : innerBorder,
                         },
                       ]}
                       onPress={() => setCurrencyModalVisible(true)}
                     >
-                      <Text style={[styles.pickerText, { color: colors.text }]}>
-                        {currencyOptions?.find((c) => c.code === value)
-                          ?.dovizIsmi ?? "Seçiniz"}
+                      <Text style={[styles.pickerText, styles.pickerTextCompact, { color: colors.text }]} numberOfLines={1}>
+                        {currencyOptions?.find((c) => c.code === value)?.dovizIsmi ?? "Seçin"}
                       </Text>
                     </TouchableOpacity>
                     {errors.quotation?.currency?.message && (
@@ -1130,29 +1217,106 @@ export function QuotationCreateScreen(): React.ReactElement {
                 disabled={!watchedRepresentativeId}
               />
 
-              {watchedOfferType && (
+              {watchedOfferType ? (
+                <View style={styles.twoColumnRow}>
+                  <View style={styles.twoColumnItem}>
+                    <Controller
+                      control={control}
+                      name="quotation.salesTypeDefinitionId"
+                      render={({ field: { value } }) => (
+                        <View style={styles.fieldContainerTight}>
+                          <Text style={[styles.labelCompact, { color: mutedText }]} numberOfLines={2}>
+                            {t("quotation.deliveryMethod")}
+                          </Text>
+                          <TouchableOpacity
+                            style={[
+                              styles.pickerButton,
+                              styles.pickerShellCompact,
+                              {
+                                backgroundColor: innerBg,
+                                borderColor: innerBorder,
+                              },
+                            ]}
+                            onPress={() => setSalesTypeModalVisible(true)}
+                          >
+                            <Text style={[styles.pickerText, styles.pickerTextCompact, { color: colors.text }]} numberOfLines={1}>
+                              {value
+                                ? salesTypeList.find((s) => s.id === value)?.name ?? t("common.select")
+                                : t("common.select")}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    />
+                  </View>
+                  <View style={styles.twoColumnItem}>
+                    <Controller
+                      control={control}
+                      name="quotation.erpProjectCode"
+                      render={({ field: { value } }) => (
+                        <View style={styles.fieldContainerTight}>
+                          <Text style={[styles.labelCompact, { color: mutedText }]} numberOfLines={2}>
+                            {t("quotation.projectCode")}
+                          </Text>
+                          <TouchableOpacity
+                            style={[
+                              styles.pickerButton,
+                              styles.pickerShellCompact,
+                              {
+                                backgroundColor: innerBg,
+                                borderColor: innerBorder,
+                              },
+                            ]}
+                            onPress={() => setProjectCodeModalVisible(true)}
+                          >
+                            <Text style={[styles.pickerText, styles.pickerTextCompact, { color: colors.text }]} numberOfLines={2}>
+                              {value
+                                ? (() => {
+                                    const p = projects.find((pr) => pr.projeKod === value);
+                                    return p
+                                      ? p.projeAciklama
+                                        ? `${p.projeKod} - ${p.projeAciklama}`
+                                        : p.projeKod
+                                      : value;
+                                  })()
+                                : t("common.select")}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    />
+                  </View>
+                </View>
+              ) : (
                 <Controller
                   control={control}
-                  name="quotation.salesTypeDefinitionId"
+                  name="quotation.erpProjectCode"
                   render={({ field: { value } }) => (
-                    <View style={styles.fieldContainer}>
-                      <Text style={[styles.label, { color: colors.textSecondary }]}>
-                        {t("quotation.deliveryMethod")}
+                    <View style={styles.fieldContainerTight}>
+                      <Text style={[styles.labelCompact, { color: mutedText }]}>
+                        {t("quotation.projectCode")}
                       </Text>
                       <TouchableOpacity
                         style={[
                           styles.pickerButton,
+                          styles.pickerShellCompact,
                           {
-                            backgroundColor: colors.backgroundSecondary,
-                            borderColor: colors.border,
+                            backgroundColor: innerBg,
+                            borderColor: innerBorder,
                           },
                         ]}
-                        onPress={() => setSalesTypeModalVisible(true)}
+                        onPress={() => setProjectCodeModalVisible(true)}
                       >
-                        <Text style={[styles.pickerText, { color: colors.text }]}>
+                        <Text style={[styles.pickerText, styles.pickerTextCompact, { color: colors.text }]} numberOfLines={2}>
                           {value
-                            ? salesTypeList.find((s) => s.id === value)?.name ??
-                              t("common.select")
+                            ? (() => {
+                                const p = projects.find((pr) => pr.projeKod === value);
+                                return p
+                                  ? p.projeAciklama
+                                    ? `${p.projeKod} - ${p.projeAciklama}`
+                                    : p.projeKod
+                                  : value;
+                              })()
                             : t("common.select")}
                         </Text>
                       </TouchableOpacity>
@@ -1161,98 +1325,72 @@ export function QuotationCreateScreen(): React.ReactElement {
                 />
               )}
 
-              <Controller
-                control={control}
-                name="quotation.erpProjectCode"
-                render={({ field: { value } }) => (
-                  <View style={styles.fieldContainer}>
-                    <Text style={[styles.label, { color: colors.textSecondary }]}>
-                      {t("quotation.projectCode")}
-                    </Text>
-                    <TouchableOpacity
-                      style={[
-                        styles.pickerButton,
-                        {
-                          backgroundColor: colors.backgroundSecondary,
-                          borderColor: colors.border,
-                        },
-                      ]}
-                      onPress={() => setProjectCodeModalVisible(true)}
-                    >
-                      <Text style={[styles.pickerText, { color: colors.text }]}>
-                        {value
-                          ? (() => {
-                              const p = projects.find((pr) => pr.projeKod === value);
-                              return p
-                                ? p.projeAciklama
-                                  ? `${p.projeKod} - ${p.projeAciklama}`
-                                  : p.projeKod
-                                : value;
-                            })()
-                          : t("common.select")}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              />
-
-              <Controller
-                control={control}
-                name="quotation.generalDiscountRate"
-                render={({ field: { onChange, value } }) => (
-                  <View style={styles.fieldContainer}>
-                    <Text style={[styles.label, { color: colors.textSecondary }]}>
-                      {t("quotation.generalDiscountRate")}
-                    </Text>
-                    <TextInput
-                      style={[
-                        styles.input,
-                        {
-                          backgroundColor: colors.backgroundSecondary,
-                          borderColor: colors.border,
-                          color: colors.text,
-                        },
-                      ]}
-                      value={value != null ? String(value) : ""}
-                      onChangeText={(v) => {
-                        const sanitized = sanitizeDecimalInput(v);
-                        onChange(sanitized === "" ? null : parseDecimalInput(sanitized));
-                      }}
-                      placeholder="0"
-                      keyboardType="decimal-pad"
-                    />
-                  </View>
-                )}
-              />
-
-              <Controller
-                control={control}
-                name="quotation.generalDiscountAmount"
-                render={({ field: { onChange, value } }) => (
-                  <View style={styles.fieldContainer}>
-                    <Text style={[styles.label, { color: colors.textSecondary }]}>
-                      {t("quotation.generalDiscountAmount")}
-                    </Text>
-                    <TextInput
-                      style={[
-                        styles.input,
-                        {
-                          backgroundColor: colors.backgroundSecondary,
-                          borderColor: colors.border,
-                          color: colors.text,
-                        },
-                      ]}
-                      value={value != null ? String(value) : ""}
-                      onChangeText={(v) => {
-                        const sanitized = sanitizeDecimalInput(v);
-                        onChange(sanitized === "" ? null : parseDecimalInput(sanitized));
-                      }}
-                      placeholder="0"
-                      keyboardType="decimal-pad"
-                    />
-                  </View>
-                )}
-              />
+              <View style={styles.twoColumnRow}>
+                <View style={styles.twoColumnItem}>
+                  <Controller
+                    control={control}
+                    name="quotation.generalDiscountRate"
+                    render={({ field: { onChange, value } }) => (
+                      <View style={styles.fieldContainerTight}>
+                        <Text style={[styles.labelCompact, { color: mutedText }]} numberOfLines={2}>
+                          {t("quotation.generalDiscountRate")}
+                        </Text>
+                        <TextInput
+                          style={[
+                            styles.input,
+                            styles.inputCompact,
+                            {
+                              backgroundColor: innerBg,
+                              borderColor: innerBorder,
+                              color: colors.text,
+                            },
+                          ]}
+                          value={value != null ? String(value) : ""}
+                          onChangeText={(v) => {
+                            const sanitized = sanitizeDecimalInput(v);
+                            onChange(sanitized === "" ? null : parseDecimalInput(sanitized));
+                          }}
+                          placeholder="%"
+                          placeholderTextColor={colors.textMuted}
+                          keyboardType="decimal-pad"
+                        />
+                      </View>
+                    )}
+                  />
+                </View>
+                <View style={styles.twoColumnItem}>
+                  <Controller
+                    control={control}
+                    name="quotation.generalDiscountAmount"
+                    render={({ field: { onChange, value } }) => (
+                      <View style={styles.fieldContainerTight}>
+                        <Text style={[styles.labelCompact, { color: mutedText }]} numberOfLines={2}>
+                          {t("quotation.generalDiscountAmount")}
+                        </Text>
+                        <TextInput
+                          style={[
+                            styles.input,
+                            styles.inputCompact,
+                            {
+                              backgroundColor: innerBg,
+                              borderColor: innerBorder,
+                              color: colors.text,
+                            },
+                          ]}
+                          value={value != null ? String(value) : ""}
+                          onChangeText={(v) => {
+                            const sanitized = sanitizeDecimalInput(v);
+                            onChange(sanitized === "" ? null : parseDecimalInput(sanitized));
+                          }}
+                          placeholder="0,00"
+                          placeholderTextColor={colors.textMuted}
+                          keyboardType="decimal-pad"
+                        />
+                      </View>
+                    )}
+                  />
+                </View>
+              </View>
 
               <FormField
                 label="Açıklama"
@@ -1260,7 +1398,7 @@ export function QuotationCreateScreen(): React.ReactElement {
                 onChangeText={(text) =>
                   setValue("quotation.description", text || null)
                 }
-                placeholder="Teklif açıklaması"
+                placeholder="İsteğe bağlı kısa not…"
                 multiline
                 numberOfLines={3}
                 maxLength={500}
@@ -1270,18 +1408,37 @@ export function QuotationCreateScreen(): React.ReactElement {
                 style={[
                   styles.notesButton,
                   {
-                    backgroundColor: colors.backgroundSecondary,
-                    borderColor: colors.border,
+                    backgroundColor: innerBg,
+                    borderColor: innerBorder,
+                    minHeight: 44,
+                    borderRadius: 14,
                   },
                 ]}
                 onPress={() => setNotesModalVisible(true)}
               >
-                <Text style={[styles.notesButtonText, { color: colors.text }]}>
-                  📝 {t("quotation.notesSection")}
-                  {notes.some((n) => n.trim())
-                    ? ` (${notes.filter((n) => n.trim()).length})`
-                    : ""}
-                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+                  <View
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 9,
+                      borderWidth: 1,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginRight: 8,
+                      backgroundColor: `${accent}10`,
+                      borderColor: `${accent}18`,
+                    }}
+                  >
+                    <Note01Icon size={14} color={accent} variant="stroke" strokeWidth={1.8} />
+                  </View>
+                  <Text style={[styles.notesButtonText, { color: titleText }]}>
+                    {t("quotation.notesSection")}
+                    {notes.some((n) => n.trim())
+                      ? ` (${notes.filter((n) => n.trim()).length})`
+                      : ""}
+                  </Text>
+                </View>
               </TouchableOpacity>
 
               <QuotationNotesModal
@@ -1294,11 +1451,13 @@ export function QuotationCreateScreen(): React.ReactElement {
                 onClose={() => setNotesModalVisible(false)}
               />
             </View>
+            </View>
 
+            <View style={{ display: activeTab === "lines" ? "flex" : "none" }}>
             <View
               style={[
                 styles.section,
-                { backgroundColor: colors.card, borderColor: colors.cardBorder },
+                { backgroundColor: shellBg, borderColor: sectionOutline },
               ]}
             >
               <View style={styles.sectionHeader}>
@@ -1342,8 +1501,13 @@ export function QuotationCreateScreen(): React.ReactElement {
                         style={[
                           styles.lineCard,
                           {
-                            backgroundColor: colors.backgroundSecondary,
-                            borderColor: colors.border,
+                            backgroundColor: innerBg,
+                            borderColor: innerBorder,
+                            shadowColor: "#000",
+                            shadowOffset: { width: 0, height: 1 },
+                            shadowRadius: 4,
+                            shadowOpacity: isDark ? 0.12 : 0.03,
+                            elevation: 1,
                           },
                           line.approvalStatus === 1 && {
                             borderColor: colors.warning,
@@ -1357,7 +1521,7 @@ export function QuotationCreateScreen(): React.ReactElement {
                               <Text
                                 style={[
                                   styles.lineProductName,
-                                  { color: colors.text },
+                                  { color: titleText },
                                 ]}
                                 numberOfLines={2}
                               >
@@ -1432,220 +1596,83 @@ export function QuotationCreateScreen(): React.ReactElement {
                               </View>
                             )}
 
-                            <View style={styles.lineDetailRows}>
-                              <View style={styles.lineDetailRow}>
-                                <Text
-                                  style={[
-                                    styles.lineDetailLabel,
-                                    { color: colors.textMuted },
-                                  ]}
-                                >
-                                  {t("quotation.quantity")}:
-                                </Text>
-                                <Text
-                                  style={[
-                                    styles.lineDetailValue,
-                                    { color: colors.text },
-                                  ]}
-                                >
-                                  {line.quantity.toLocaleString("tr-TR", {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                  })}
-                                </Text>
+                            <View
+                              style={[
+                                styles.lineDetailRowsInset,
+                                {
+                                  backgroundColor: colors.activeBackground,
+                                  borderColor: innerBorder,
+                                },
+                              ]}
+                            >
+                              <View style={styles.lineDetailRows}>
+                              <View style={[styles.linePairRow, { borderBottomColor: innerBorder }]}>
+                                <View style={styles.lineHalf}>
+                                  <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.quantity")}</Text>
+                                  <Text style={[styles.lineMicroValue, { color: accent }]} numberOfLines={1}>
+                                    {line.quantity.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </Text>
+                                </View>
+                                <View style={[styles.lineHalf, styles.lineHalfTrailing]}>
+                                  <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.unitPrice")}</Text>
+                                  <Text style={[styles.lineMicroValue, { color: accent }]} numberOfLines={1}>
+                                    {line.unitPrice.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </Text>
+                                </View>
                               </View>
-
-                              <View style={styles.lineDetailRow}>
-                                <Text
-                                  style={[
-                                    styles.lineDetailLabel,
-                                    { color: colors.textMuted },
-                                  ]}
-                                >
-                                  {t("quotation.unitPrice")}:
-                                </Text>
-                                <Text
-                                  style={[
-                                    styles.lineDetailValue,
-                                    { color: colors.text },
-                                  ]}
-                                >
-                                  {line.unitPrice.toLocaleString("tr-TR", {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                  })}
-                                </Text>
+                              <View style={[styles.linePairRow, { borderBottomColor: innerBorder }]}>
+                                <View style={styles.lineHalf}>
+                                  <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.discount1")}</Text>
+                                  <Text style={[styles.lineMicroValue, { color: colors.textSecondary }]} numberOfLines={2}>
+                                    {line.discountRate1.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    % · {line.discountAmount1.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </Text>
+                                </View>
+                                <View style={[styles.lineHalf, styles.lineHalfTrailing]}>
+                                  <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.discount2")}</Text>
+                                  <Text style={[styles.lineMicroValue, { color: colors.textSecondary }]} numberOfLines={2}>
+                                    {line.discountRate2.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    % · {line.discountAmount2.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </Text>
+                                </View>
                               </View>
-
-                              <View style={styles.lineDetailRow}>
-                                <Text
-                                  style={[
-                                    styles.lineDetailLabel,
-                                    { color: colors.textMuted },
-                                  ]}
-                                >
-                                  {t("quotation.discount1")}:
-                                </Text>
-                                <Text
-                                  style={[
-                                    styles.lineDetailValue,
-                                    { color: colors.text },
-                                  ]}
-                                >
-                                  {line.discountRate1.toLocaleString("tr-TR", {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                  })}
-                                  % ·{" "}
-                                  {line.discountAmount1.toLocaleString("tr-TR", {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                  })}
-                                </Text>
+                              <View style={[styles.linePairRow, { borderBottomColor: innerBorder }]}>
+                                <View style={styles.lineHalf}>
+                                  <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.discount3")}</Text>
+                                  <Text style={[styles.lineMicroValue, { color: colors.textSecondary }]} numberOfLines={2}>
+                                    {line.discountRate3.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    % · {line.discountAmount3.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </Text>
+                                </View>
+                                <View style={[styles.lineHalf, styles.lineHalfTrailing]}>
+                                  <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.lineTotal")}</Text>
+                                  <Text style={[styles.lineMicroValue, { color: accent }]} numberOfLines={1}>
+                                    {line.lineTotal.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </Text>
+                                </View>
                               </View>
-
-                              <View style={styles.lineDetailRow}>
-                                <Text
-                                  style={[
-                                    styles.lineDetailLabel,
-                                    { color: colors.textMuted },
-                                  ]}
-                                >
-                                  {t("quotation.discount2")}:
-                                </Text>
-                                <Text
-                                  style={[
-                                    styles.lineDetailValue,
-                                    { color: colors.text },
-                                  ]}
-                                >
-                                  {line.discountRate2.toLocaleString("tr-TR", {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                  })}
-                                  % ·{" "}
-                                  {line.discountAmount2.toLocaleString("tr-TR", {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                  })}
-                                </Text>
+                              <View style={[styles.linePairRow, styles.linePairRowLast, { borderBottomColor: innerBorder }]}>
+                                <View style={styles.lineHalf}>
+                                  <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.vatRate")}</Text>
+                                  <Text style={[styles.lineMicroValue, { color: titleText }]} numberOfLines={1}>
+                                    {line.vatRate.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%
+                                  </Text>
+                                </View>
+                                <View style={[styles.lineHalf, styles.lineHalfTrailing]}>
+                                  <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.vatAmount")}</Text>
+                                  <Text style={[styles.lineMicroValue, { color: titleText }]} numberOfLines={1}>
+                                    {line.vatAmount.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </Text>
+                                </View>
                               </View>
-
-                              <View style={styles.lineDetailRow}>
-                                <Text
-                                  style={[
-                                    styles.lineDetailLabel,
-                                    { color: colors.textMuted },
-                                  ]}
-                                >
-                                  {t("quotation.discount3")}:
-                                </Text>
-                                <Text
-                                  style={[
-                                    styles.lineDetailValue,
-                                    { color: colors.text },
-                                  ]}
-                                >
-                                  {line.discountRate3.toLocaleString("tr-TR", {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                  })}
-                                  % ·{" "}
-                                  {line.discountAmount3.toLocaleString("tr-TR", {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                  })}
-                                </Text>
-                              </View>
-
-                              <View style={styles.lineDetailRow}>
-                                <Text
-                                  style={[
-                                    styles.lineDetailLabel,
-                                    { color: colors.textMuted },
-                                  ]}
-                                >
-                                  {t("quotation.lineTotal")}:
-                                </Text>
-                                <Text
-                                  style={[
-                                    styles.lineDetailValue,
-                                    { color: colors.text },
-                                  ]}
-                                >
-                                  {line.lineTotal.toLocaleString("tr-TR", {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                  })}
-                                </Text>
-                              </View>
-
-                              <View style={styles.lineDetailRow}>
-                                <Text
-                                  style={[
-                                    styles.lineDetailLabel,
-                                    { color: colors.textMuted },
-                                  ]}
-                                >
-                                  {t("quotation.vatRate")}:
-                                </Text>
-                                <Text
-                                  style={[
-                                    styles.lineDetailValue,
-                                    { color: colors.text },
-                                  ]}
-                                >
-                                  {line.vatRate.toLocaleString("tr-TR", {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                  })}
-                                  %
-                                </Text>
-                              </View>
-
-                              <View style={styles.lineDetailRow}>
-                                <Text
-                                  style={[
-                                    styles.lineDetailLabel,
-                                    { color: colors.textMuted },
-                                  ]}
-                                >
-                                  {t("quotation.vatAmount")}:
-                                </Text>
-                                <Text
-                                  style={[
-                                    styles.lineDetailValue,
-                                    { color: colors.text },
-                                  ]}
-                                >
-                                  {line.vatAmount.toLocaleString("tr-TR", {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                  })}
-                                </Text>
                               </View>
                             </View>
 
-                            <View
-                              style={[
-                                styles.lineGrandTotalRow,
-                                { borderTopColor: colors.border },
-                              ]}
-                            >
-                              <Text
-                                style={[
-                                  styles.lineGrandTotalLabel,
-                                  { color: colors.text },
-                                ]}
-                              >
+                            <View style={styles.lineGrandTotalRow}>
+                              <Text style={[styles.lineGrandTotalLabel, { color: titleText }]}>
                                 {t("quotation.lineGrandTotalLabel")}:
                               </Text>
-                              <Text
-                                style={[
-                                  styles.lineGrandTotalValue,
-                                  { color: colors.accent },
-                                ]}
-                              >
+                              <Text style={[styles.lineGrandTotalValue, { color: colors.accent }]}>
                                 {line.lineGrandTotal.toLocaleString("tr-TR", {
                                   minimumFractionDigits: 2,
                                   maximumFractionDigits: 2,
@@ -1660,14 +1687,28 @@ export function QuotationCreateScreen(): React.ReactElement {
                                   { backgroundColor: colors.warning + "20" },
                                 ]}
                               >
-                                <Text
-                                  style={[
-                                    styles.approvalBadgeText,
-                                    { color: colors.warning },
-                                  ]}
+                                <View
+                                  style={{
+                                    flexDirection: "row",
+                                    alignItems: "center",
+                                    gap: 6,
+                                  }}
                                 >
-                                  ⚠️ {t("quotation.approvalRequired")}
-                                </Text>
+                                  <Alert02Icon
+                                    size={14}
+                                    color={colors.warning}
+                                    variant="stroke"
+                                    strokeWidth={1.8}
+                                  />
+                                  <Text
+                                    style={[
+                                      styles.approvalBadgeText,
+                                      { color: colors.warning },
+                                    ]}
+                                  >
+                                    {t("quotation.approvalRequired")}
+                                  </Text>
+                                </View>
                               </View>
                             )}
                           </View>
@@ -1676,20 +1717,28 @@ export function QuotationCreateScreen(): React.ReactElement {
                             <TouchableOpacity
                               style={[
                                 styles.editButton,
-                                { backgroundColor: colors.accent },
+                                {
+                                  backgroundColor: isDark
+                                    ? "rgba(236,72,153,0.15)"
+                                    : "rgba(236,72,153,0.08)",
+                                },
                               ]}
                               onPress={() => handleEditLine(line)}
                             >
-                              <Text style={styles.editButtonText}>✏️</Text>
+                              <Edit02Icon size={14} color={colors.accent} variant="stroke" strokeWidth={1.8} />
                             </TouchableOpacity>
                             <TouchableOpacity
                               style={[
                                 styles.deleteButton,
-                                { backgroundColor: colors.error },
+                                {
+                                  backgroundColor: isDark
+                                    ? "rgba(239,68,68,0.15)"
+                                    : "rgba(239,68,68,0.08)",
+                                },
                               ]}
                               onPress={() => handleDeleteLine(line.id)}
                             >
-                              <Text style={styles.deleteButtonText}>🗑️</Text>
+                              <Delete02Icon size={14} color={colors.error} variant="stroke" strokeWidth={1.8} />
                             </TouchableOpacity>
                           </View>
                         </View>
@@ -1698,7 +1747,7 @@ export function QuotationCreateScreen(): React.ReactElement {
                           <View
                             style={[
                               styles.relatedLinesContainer,
-                              { borderTopColor: colors.border },
+                              { borderTopColor: innerBorder },
                             ]}
                           >
                             <Text
@@ -1716,15 +1765,16 @@ export function QuotationCreateScreen(): React.ReactElement {
                                 style={[
                                   styles.relatedLineCard,
                                   {
-                                    backgroundColor: colors.card,
-                                    borderColor: colors.border,
+                                    borderLeftColor: isDark
+                                      ? "rgba(236,72,153,0.4)"
+                                      : "rgba(236,72,153,0.3)",
                                   },
                                 ]}
                               >
                                 <Text
                                   style={[
                                     styles.relatedLineProductName,
-                                    { color: colors.text },
+                                    { color: titleText },
                                   ]}
                                   numberOfLines={2}
                                 >
@@ -1735,7 +1785,7 @@ export function QuotationCreateScreen(): React.ReactElement {
                                   <Text
                                     style={[
                                       styles.relatedLineProductCode,
-                                      { color: colors.textMuted },
+                                      { color: mutedText },
                                     ]}
                                   >
                                     {relatedLine.productCode}
@@ -1782,253 +1832,84 @@ export function QuotationCreateScreen(): React.ReactElement {
                                   </View>
                                 )}
 
-                                <View style={styles.relatedLineDetailRows}>
-                                  <View style={styles.lineDetailRow}>
-                                    <Text
-                                      style={[
-                                        styles.lineDetailLabel,
-                                        { color: colors.textMuted },
-                                      ]}
-                                    >
-                                      {t("quotation.quantity")}:
-                                    </Text>
-                                    <Text
-                                      style={[
-                                        styles.lineDetailValue,
-                                        { color: colors.text },
-                                      ]}
-                                    >
-                                      {relatedLine.quantity.toLocaleString(
-                                        "tr-TR",
-                                        {
-                                          minimumFractionDigits: 2,
-                                          maximumFractionDigits: 2,
-                                        }
-                                      )}
-                                    </Text>
+                                <View
+                                  style={[
+                                    styles.lineDetailRowsInset,
+                                    {
+                                      backgroundColor: colors.activeBackground,
+                                      borderColor: innerBorder,
+                                      marginTop: 8,
+                                    },
+                                  ]}
+                                >
+                                  <View style={styles.relatedLineDetailRows}>
+                                  <View style={[styles.linePairRow, { borderBottomColor: innerBorder }]}>
+                                    <View style={styles.lineHalf}>
+                                      <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.quantity")}</Text>
+                                      <Text style={[styles.lineMicroValue, { color: accent }]} numberOfLines={1}>
+                                        {relatedLine.quantity.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                      </Text>
+                                    </View>
+                                    <View style={[styles.lineHalf, styles.lineHalfTrailing]}>
+                                      <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.unitPrice")}</Text>
+                                      <Text style={[styles.lineMicroValue, { color: accent }]} numberOfLines={1}>
+                                        {relatedLine.unitPrice.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                      </Text>
+                                    </View>
                                   </View>
-
-                                  <View style={styles.lineDetailRow}>
-                                    <Text
-                                      style={[
-                                        styles.lineDetailLabel,
-                                        { color: colors.textMuted },
-                                      ]}
-                                    >
-                                      {t("quotation.unitPrice")}:
-                                    </Text>
-                                    <Text
-                                      style={[
-                                        styles.lineDetailValue,
-                                        { color: colors.text },
-                                      ]}
-                                    >
-                                      {relatedLine.unitPrice.toLocaleString(
-                                        "tr-TR",
-                                        {
-                                          minimumFractionDigits: 2,
-                                          maximumFractionDigits: 2,
-                                        }
-                                      )}
-                                    </Text>
+                                  <View style={[styles.linePairRow, { borderBottomColor: innerBorder }]}>
+                                    <View style={styles.lineHalf}>
+                                      <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.discount1")}</Text>
+                                      <Text style={[styles.lineMicroValue, { color: colors.textSecondary }]} numberOfLines={2}>
+                                        {relatedLine.discountRate1.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        % · {relatedLine.discountAmount1.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                      </Text>
+                                    </View>
+                                    <View style={[styles.lineHalf, styles.lineHalfTrailing]}>
+                                      <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.discount2")}</Text>
+                                      <Text style={[styles.lineMicroValue, { color: colors.textSecondary }]} numberOfLines={2}>
+                                        {relatedLine.discountRate2.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        % · {relatedLine.discountAmount2.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                      </Text>
+                                    </View>
                                   </View>
-
-                                  <View style={styles.lineDetailRow}>
-                                    <Text
-                                      style={[
-                                        styles.lineDetailLabel,
-                                        { color: colors.textMuted },
-                                      ]}
-                                    >
-                                      {t("quotation.discount1")}:
-                                    </Text>
-                                    <Text
-                                      style={[
-                                        styles.lineDetailValue,
-                                        { color: colors.text },
-                                      ]}
-                                    >
-                                      {relatedLine.discountRate1.toLocaleString(
-                                        "tr-TR",
-                                        {
-                                          minimumFractionDigits: 2,
-                                          maximumFractionDigits: 2,
-                                        }
-                                      )}
-                                      % ·{" "}
-                                      {relatedLine.discountAmount1.toLocaleString(
-                                        "tr-TR",
-                                        {
-                                          minimumFractionDigits: 2,
-                                          maximumFractionDigits: 2,
-                                        }
-                                      )}
-                                    </Text>
+                                  <View style={[styles.linePairRow, { borderBottomColor: innerBorder }]}>
+                                    <View style={styles.lineHalf}>
+                                      <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.discount3")}</Text>
+                                      <Text style={[styles.lineMicroValue, { color: colors.textSecondary }]} numberOfLines={2}>
+                                        {relatedLine.discountRate3.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        % · {relatedLine.discountAmount3.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                      </Text>
+                                    </View>
+                                    <View style={[styles.lineHalf, styles.lineHalfTrailing]}>
+                                      <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.lineTotal")}</Text>
+                                      <Text style={[styles.lineMicroValue, { color: accent }]} numberOfLines={1}>
+                                        {relatedLine.lineTotal.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                      </Text>
+                                    </View>
                                   </View>
-
-                                  <View style={styles.lineDetailRow}>
-                                    <Text
-                                      style={[
-                                        styles.lineDetailLabel,
-                                        { color: colors.textMuted },
-                                      ]}
-                                    >
-                                      {t("quotation.discount2")}:
-                                    </Text>
-                                    <Text
-                                      style={[
-                                        styles.lineDetailValue,
-                                        { color: colors.text },
-                                      ]}
-                                    >
-                                      {relatedLine.discountRate2.toLocaleString(
-                                        "tr-TR",
-                                        {
-                                          minimumFractionDigits: 2,
-                                          maximumFractionDigits: 2,
-                                        }
-                                      )}
-                                      % ·{" "}
-                                      {relatedLine.discountAmount2.toLocaleString(
-                                        "tr-TR",
-                                        {
-                                          minimumFractionDigits: 2,
-                                          maximumFractionDigits: 2,
-                                        }
-                                      )}
-                                    </Text>
+                                  <View style={[styles.linePairRow, styles.linePairRowLast, { borderBottomColor: innerBorder }]}>
+                                    <View style={styles.lineHalf}>
+                                      <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.vatRate")}</Text>
+                                      <Text style={[styles.lineMicroValue, { color: titleText }]} numberOfLines={1}>
+                                        {relatedLine.vatRate.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%
+                                      </Text>
+                                    </View>
+                                    <View style={[styles.lineHalf, styles.lineHalfTrailing]}>
+                                      <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.vatAmount")}</Text>
+                                      <Text style={[styles.lineMicroValue, { color: titleText }]} numberOfLines={1}>
+                                        {relatedLine.vatAmount.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                      </Text>
+                                    </View>
                                   </View>
-
-                                  <View style={styles.lineDetailRow}>
-                                    <Text
-                                      style={[
-                                        styles.lineDetailLabel,
-                                        { color: colors.textMuted },
-                                      ]}
-                                    >
-                                      {t("quotation.discount3")}:
-                                    </Text>
-                                    <Text
-                                      style={[
-                                        styles.lineDetailValue,
-                                        { color: colors.text },
-                                      ]}
-                                    >
-                                      {relatedLine.discountRate3.toLocaleString(
-                                        "tr-TR",
-                                        {
-                                          minimumFractionDigits: 2,
-                                          maximumFractionDigits: 2,
-                                        }
-                                      )}
-                                      % ·{" "}
-                                      {relatedLine.discountAmount3.toLocaleString(
-                                        "tr-TR",
-                                        {
-                                          minimumFractionDigits: 2,
-                                          maximumFractionDigits: 2,
-                                        }
-                                      )}
-                                    </Text>
-                                  </View>
-
-                                  <View style={styles.lineDetailRow}>
-                                    <Text
-                                      style={[
-                                        styles.lineDetailLabel,
-                                        { color: colors.textMuted },
-                                      ]}
-                                    >
-                                      {t("quotation.lineTotal")}:
-                                    </Text>
-                                    <Text
-                                      style={[
-                                        styles.lineDetailValue,
-                                        { color: colors.text },
-                                      ]}
-                                    >
-                                      {relatedLine.lineTotal.toLocaleString(
-                                        "tr-TR",
-                                        {
-                                          minimumFractionDigits: 2,
-                                          maximumFractionDigits: 2,
-                                        }
-                                      )}
-                                    </Text>
-                                  </View>
-
-                                  <View style={styles.lineDetailRow}>
-                                    <Text
-                                      style={[
-                                        styles.lineDetailLabel,
-                                        { color: colors.textMuted },
-                                      ]}
-                                    >
-                                      {t("quotation.vatRate")}:
-                                    </Text>
-                                    <Text
-                                      style={[
-                                        styles.lineDetailValue,
-                                        { color: colors.text },
-                                      ]}
-                                    >
-                                      {relatedLine.vatRate.toLocaleString(
-                                        "tr-TR",
-                                        {
-                                          minimumFractionDigits: 2,
-                                          maximumFractionDigits: 2,
-                                        }
-                                      )}
-                                      %
-                                    </Text>
-                                  </View>
-
-                                  <View style={styles.lineDetailRow}>
-                                    <Text
-                                      style={[
-                                        styles.lineDetailLabel,
-                                        { color: colors.textMuted },
-                                      ]}
-                                    >
-                                      {t("quotation.vatAmount")}:
-                                    </Text>
-                                    <Text
-                                      style={[
-                                        styles.lineDetailValue,
-                                        { color: colors.text },
-                                      ]}
-                                    >
-                                      {relatedLine.vatAmount.toLocaleString(
-                                        "tr-TR",
-                                        {
-                                          minimumFractionDigits: 2,
-                                          maximumFractionDigits: 2,
-                                        }
-                                      )}
-                                    </Text>
                                   </View>
                                 </View>
 
-                                <View
-                                  style={[
-                                    styles.lineGrandTotalRow,
-                                    { borderTopColor: colors.border },
-                                  ]}
-                                >
-                                  <Text
-                                    style={[
-                                      styles.lineGrandTotalLabel,
-                                      { color: colors.text },
-                                    ]}
-                                  >
+                                <View style={styles.lineGrandTotalRow}>
+                                  <Text style={[styles.lineGrandTotalLabel, { color: titleText }]}>
                                     {t("quotation.lineGrandTotalLabel")}:
                                   </Text>
-                                  <Text
-                                    style={[
-                                      styles.lineGrandTotalValue,
-                                      { color: colors.accent },
-                                    ]}
-                                  >
+                                  <Text style={[styles.lineGrandTotalValue, { color: colors.accent }]}>
                                     {relatedLine.lineGrandTotal.toLocaleString(
                                       "tr-TR",
                                       {
@@ -2053,7 +1934,7 @@ export function QuotationCreateScreen(): React.ReactElement {
               <View
                 style={[
                   styles.section,
-                  { backgroundColor: colors.card, borderColor: colors.cardBorder },
+                  { backgroundColor: shellBg, borderColor: sectionOutline },
                 ]}
               >
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>
@@ -2061,7 +1942,7 @@ export function QuotationCreateScreen(): React.ReactElement {
                 </Text>
                 <View style={styles.summaryRow}>
                   <Text
-                    style={[styles.summaryLabel, { color: colors.textSecondary }]}
+                    style={[styles.summaryLabel, { color: mutedText }]}
                   >
                     Ara Toplam:
                   </Text>
@@ -2071,7 +1952,7 @@ export function QuotationCreateScreen(): React.ReactElement {
                 </View>
                 <View style={styles.summaryRow}>
                   <Text
-                    style={[styles.summaryLabel, { color: colors.textSecondary }]}
+                    style={[styles.summaryLabel, { color: mutedText }]}
                   >
                     KDV Toplamı:
                   </Text>
@@ -2094,32 +1975,47 @@ export function QuotationCreateScreen(): React.ReactElement {
                 </View>
               </View>
             )}
+            </View>
 
             <View style={styles.submitRow}>
               <TouchableOpacity
-                style={[styles.cancelButton, { borderColor: colors.border }]}
+                style={[styles.cancelButton, { borderColor: innerBorder }]}
                 onPress={() => router.back()}
               >
-                <Text style={[styles.cancelButtonText, { color: colors.text }]}>
+                <Text style={[styles.cancelButtonText, { color: titleText }]}>
                   İptal
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={[
-                  styles.submitButton,
-                  { backgroundColor: colors.accent },
+                  styles.submitButtonWrap,
+                  { backgroundColor: shellBg, borderColor: shellBorder },
                   (isSubmitting || createQuotation.isPending) &&
                     styles.submitButtonDisabled,
                 ]}
-                onPress={handleSubmit(onSubmit, onInvalidSubmit)}
+                onPress={
+                  activeTab === "general"
+                    ? () => setActiveTab("lines")
+                    : handleSubmit(onSubmit, onInvalidSubmit)
+                }
                 disabled={isSubmitting || createQuotation.isPending}
+                activeOpacity={0.9}
               >
-                {isSubmitting || createQuotation.isPending ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.submitButtonText}>Teklifi Kaydet</Text>
-                )}
+                <LinearGradient
+                  colors={[colors.accent, colors.accentSecondary || "#f97316"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.submitButton}
+                >
+                  {isSubmitting || createQuotation.isPending ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.submitButtonText}>
+                      {activeTab === "general" ? "Devam Et" : "Teklifi Kaydet"}
+                    </Text>
+                  )}
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </FlatListScrollView>
@@ -2139,15 +2035,27 @@ export function QuotationCreateScreen(): React.ReactElement {
                 style={[
                   styles.modalContent,
                   {
-                    backgroundColor: colors.card,
+                    backgroundColor: shellBgAlt,
                     paddingBottom: insets.bottom + 16,
                   },
                 ]}
               >
                 <View
-                  style={[styles.modalHeader, { borderBottomColor: colors.border }]}
+                  style={{
+                    width: 42,
+                    height: 4,
+                    borderRadius: 2,
+                    marginBottom: 12,
+                    backgroundColor: isDark
+                      ? "rgba(255,255,255,0.24)"
+                      : "rgba(15,23,42,0.10)",
+                    alignSelf: "center",
+                  }}
+                />
+                <View
+                  style={[styles.modalHeader, { borderBottomColor: innerBorder }]}
                 >
-                  <Text style={[styles.modalTitle, { color: colors.text }]}>
+                  <Text style={[styles.modalTitle, { color: titleText }]}>
                     Teslimat Tarihi
                   </Text>
                 </View>
@@ -2192,15 +2100,27 @@ export function QuotationCreateScreen(): React.ReactElement {
                 style={[
                   styles.modalContent,
                   {
-                    backgroundColor: colors.card,
+                    backgroundColor: shellBgAlt,
                     paddingBottom: insets.bottom + 16,
                   },
                 ]}
               >
                 <View
-                  style={[styles.modalHeader, { borderBottomColor: colors.border }]}
+                  style={{
+                    width: 42,
+                    height: 4,
+                    borderRadius: 2,
+                    marginBottom: 12,
+                    backgroundColor: isDark
+                      ? "rgba(255,255,255,0.24)"
+                      : "rgba(15,23,42,0.10)",
+                    alignSelf: "center",
+                  }}
+                />
+                <View
+                  style={[styles.modalHeader, { borderBottomColor: innerBorder }]}
                 >
-                  <Text style={[styles.modalTitle, { color: colors.text }]}>
+                  <Text style={[styles.modalTitle, { color: titleText }]}>
                     Teklif Tarihi
                   </Text>
                 </View>
@@ -2411,7 +2331,77 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    padding: 20,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 28,
+  },
+  twoColumnRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 10,
+    alignItems: "flex-start",
+  },
+  twoColumnItem: {
+    flex: 1,
+    minWidth: 0,
+  },
+  fieldContainerTight: {
+    marginBottom: 10,
+  },
+  labelCompact: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 0.25,
+    marginBottom: 5,
+  },
+  pickerShellCompact: {
+    minHeight: 40,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+  },
+  pickerTextCompact: {
+    fontSize: 13,
+  },
+  dateCell: {
+    borderWidth: 1,
+    borderRadius: 12,
+    minHeight: 40,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    justifyContent: "center",
+  },
+  dateCellValue: {
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  tabBarCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 18,
+    padding: 6,
+    gap: 10,
+    marginBottom: 12,
+  },
+  tabPill: {
+    flex: 1,
+    minHeight: 42,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 12,
+  },
+  tabPillActive: {
+    borderWidth: 1.8,
+  },
+  tabPillInactive: {
+    borderWidth: 0,
+    backgroundColor: "transparent",
+  },
+  tabPillText: {
+    fontSize: 12,
+    fontWeight: "700",
   },
   errorSummary: {
     padding: 14,
@@ -2435,12 +2425,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   section: {
-    padding: 18,
+    padding: 14,
     borderRadius: 16,
     borderWidth: 1,
-    marginBottom: 20,
+    marginBottom: 12,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
@@ -2474,15 +2464,15 @@ const styles = StyleSheet.create({
     color: "#111827",
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 0.5,
-    marginBottom: 16,
+    marginBottom: 10,
     opacity: 0.8,
   },
   fieldContainer: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   label: {
     fontSize: 14,
@@ -2490,28 +2480,40 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   input: {
-    borderWidth: 1.5,
-    borderRadius: 12,
+    borderWidth: 1,
+    borderRadius: 16,
+    minHeight: 48,
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 12,
     fontSize: 15,
     fontWeight: "500",
   },
+  inputCompact: {
+    minHeight: 40,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    fontSize: 13,
+  },
   pickerButton: {
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: 16,
+    minHeight: 48,
     paddingHorizontal: 14,
     paddingVertical: 12,
+    justifyContent: "center",
   },
   pickerText: {
     fontSize: 15,
   },
   dateButton: {
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: 16,
+    minHeight: 48,
     paddingHorizontal: 14,
     paddingVertical: 12,
     marginBottom: 16,
+    justifyContent: "center",
   },
   dateButtonText: {
     fontSize: 15,
@@ -2527,83 +2529,132 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   lineCard: {
-    padding: 16,
-    borderRadius: 16,
+    padding: 8,
+    borderRadius: 12,
     borderWidth: 1,
-    marginBottom: 16,
-    backgroundColor: "white",
+    marginBottom: 6,
   },
   lineCardHeader: {
+    position: "relative",
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "flex-start",
   },
   lineCardContent: {
     flex: 1,
-    marginRight: 12,
+    marginRight: 0,
+    paddingRight: 68,
   },
   lineCardTitleRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
-    gap: 10,
-    marginBottom: 4,
+    gap: 6,
+    marginBottom: 1,
   },
   lineProductName: {
-    fontSize: 16,
-    fontWeight: "700",
-    lineHeight: 22,
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 0.12,
+    lineHeight: 16,
     flex: 1,
   },
   mainBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
   mainBadgeText: {
-    fontSize: 11,
+    fontSize: 8,
     fontWeight: "700",
   },
   lineProductCode: {
-    fontSize: 12,
-    marginBottom: 8,
+    fontSize: 9,
+    marginBottom: 2,
   },
   lineExtraBlock: {
-    marginBottom: 8,
-    gap: 2,
+    marginBottom: 3,
+    gap: 1,
   },
   lineExtraText: {
-    fontSize: 12,
+    fontSize: 9,
   },
   lineDetailRows: {
-    marginBottom: 4,
+    alignSelf: "stretch",
+    width: "100%",
+  },
+  lineDetailRowsInset: {
+    alignSelf: "stretch",
+    width: "100%",
+    borderRadius: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    marginTop: 5,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  linePairRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 8,
+    paddingVertical: 2,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  linePairRowLast: {
+    borderBottomWidth: 0,
+  },
+  lineHalf: {
+    flex: 1,
+    minWidth: 0,
+    gap: 1,
+  },
+  lineHalfTrailing: {
+    alignItems: "flex-end",
+  },
+  lineMicroLabel: {
+    fontSize: 7,
+    fontWeight: "600",
+    letterSpacing: 0.28,
+    textTransform: "uppercase",
+  },
+  lineMicroValue: {
+    fontSize: 9,
+    fontWeight: "500",
+    ...Platform.select({
+      ios: { fontVariant: ["tabular-nums"] as const },
+      default: {},
+    }),
   },
   lineDetailRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 4,
+    paddingVertical: 6,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  lineDetailRowLast: {
+    borderBottomWidth: 0,
   },
   lineDetailLabel: {
-    fontSize: 13,
+    fontSize: 12.5,
   },
   lineDetailValue: {
     fontSize: 13,
-    fontWeight: "500",
+    fontWeight: "600",
   },
   lineGrandTotalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
+    marginTop: 5,
+    paddingTop: 0,
   },
   lineGrandTotalLabel: {
-    fontSize: 14,
+    fontSize: 10,
     fontWeight: "600",
   },
   lineGrandTotalValue: {
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: "700",
   },
   approvalBadge: {
@@ -2618,59 +2669,64 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   lineActions: {
+    position: "absolute",
+    top: 0,
+    right: 0,
     flexDirection: "row",
-    gap: 8,
+    gap: 6,
   },
   editButton: {
-    width: 36,
-    height: 36,
+    width: 28,
+    height: 28,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-  },
-  editButtonText: {
-    fontSize: 16,
   },
   deleteButton: {
-    width: 36,
-    height: 36,
+    width: 28,
+    height: 28,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
   },
-  deleteButtonText: {
-    fontSize: 16,
-  },
   relatedLinesContainer: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(0, 0, 0, 0.1)",
+    marginTop: 6,
+    paddingTop: 6,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   relatedLinesTitle: {
-    fontSize: 13,
-    fontWeight: "500",
-    marginBottom: 8,
-  },
-  relatedLineCard: {
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 10,
-    marginLeft: 16,
-    borderLeftWidth: 3,
-    borderLeftColor: "rgba(236, 72, 153, 0.4)",
-  },
-  relatedLineProductName: {
-    fontSize: 14,
+    fontSize: 9,
     fontWeight: "600",
     marginBottom: 4,
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
+    opacity: 0.75,
+  },
+  relatedLineCard: {
+    paddingVertical: 6,
+    paddingRight: 6,
+    marginBottom: 4,
+    marginLeft: 6,
+    paddingLeft: 10,
+    borderLeftWidth: 2,
+    borderTopWidth: 0,
+    borderRightWidth: 0,
+    borderBottomWidth: 0,
+    backgroundColor: "transparent",
+  },
+  relatedLineProductName: {
+    fontSize: 11,
+    fontWeight: "600",
+    marginBottom: 2,
+    lineHeight: 15,
   },
   relatedLineProductCode: {
-    fontSize: 12,
-    marginBottom: 8,
+    fontSize: 9,
+    marginBottom: 4,
   },
   relatedLineDetailRows: {
+    alignSelf: "stretch",
+    width: "100%",
     marginBottom: 4,
   },
   currencyHeader: {
@@ -2689,14 +2745,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
   },
+  exchangeRateButtonCompact: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  exchangeRateButtonTextCompact: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "600",
+  },
   customerSelectButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    borderWidth: 1.5,
-    borderRadius: 14,
+    borderWidth: 1,
+    borderRadius: 16,
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 12,
     marginBottom: 16,
   },
   customerSelectContent: {
@@ -2725,10 +2791,12 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   notesButton: {
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: 16,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 10,
     marginBottom: 16,
   },
   notesButtonText: {
@@ -2741,7 +2809,7 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   lineCardWrapper: {
-    marginBottom: 12,
+    marginBottom: 6,
   },
   submitRow: {
     flexDirection: "row",
@@ -2751,8 +2819,8 @@ const styles = StyleSheet.create({
   cancelButton: {
     flex: 1,
     borderWidth: 1.5,
-    borderRadius: 16,
-    height: 56,
+    borderRadius: 14,
+    minHeight: 48,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -2774,17 +2842,18 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
   },
-  submitButton: {
+  submitButtonWrap: {
     flex: 2,
-    height: 56,
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 6,
+  },
+  submitButton: {
+    minHeight: 52,
     borderRadius: 16,
+    overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 5,
   },
   submitButtonDisabled: {
     opacity: 0.6,

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Controller, Control } from "react-hook-form";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
+import { ArrowDown01Icon } from "hugeicons-react-native";
 import { PickerModal } from "./PickerModal";
 import type { CreateDemandSchema } from "../schemas";
 import { OfferType } from "../types";
@@ -11,14 +12,20 @@ import { OfferType } from "../types";
 interface OfferTypePickerProps {
   control: Control<CreateDemandSchema>;
   disabled?: boolean;
+  /** Daha düşük yükseklik; iki sütunlu satırda kullanım için */
+  compact?: boolean;
 }
 
 export function OfferTypePicker({
   control,
   disabled = false,
+  compact = false,
 }: OfferTypePickerProps): React.ReactElement {
   const { t } = useTranslation();
-  const { colors } = useUIStore();
+  const { colors, themeMode } = useUIStore();
+  const isDark = themeMode === "dark";
+  const innerBg = isDark ? "rgba(255,255,255,0.06)" : "#FFFFFF";
+  const innerBorder = isDark ? "rgba(255,255,255,0.10)" : colors.border;
 
   const [modalVisible, setModalVisible] = React.useState(false);
 
@@ -36,20 +43,20 @@ export function OfferTypePicker({
       name="demand.offerType"
       rules={{ required: "Talep tipi seçilmelidir" }}
       render={({ field: { onChange, value }, fieldState: { error } }) => (
-        <View style={styles.container}>
-          <View style={styles.labelContainer}>
-            <Text style={styles.labelIcon}>📋</Text>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>
+        <View style={[styles.container, compact && styles.containerCompact]}>
+          <View style={[styles.labelContainer, compact && styles.labelContainerCompact]}>
+            <Text style={[styles.label, compact && styles.labelCompact, { color: colors.textSecondary }]}>
               {t("demand.offerType.label")}{" "}
-              <Text style={[styles.required, { color: colors.accent }]}>*</Text>
+              <Text style={[styles.required, compact && styles.requiredCompact, { color: colors.accent }]}>*</Text>
             </Text>
           </View>
           <TouchableOpacity
             style={[
               styles.pickerButton,
+              compact && styles.pickerButtonCompact,
               {
-                backgroundColor: colors.backgroundSecondary,
-                borderColor: error ? colors.error : colors.border,
+                backgroundColor: innerBg,
+                borderColor: error ? colors.error : innerBorder,
               },
             ]}
             onPress={() => !disabled && setModalVisible(true)}
@@ -59,6 +66,7 @@ export function OfferTypePicker({
             <Text
               style={[
                 styles.pickerText,
+                compact && styles.pickerTextCompact,
                 {
                   color: value ? colors.text : colors.textMuted,
                 },
@@ -69,7 +77,7 @@ export function OfferTypePicker({
                 ? offerTypeOptions.find((opt) => opt.id === value)?.name || t("common.select")
                 : t("common.select")}
             </Text>
-            <Text style={[styles.arrowIcon, { color: colors.textMuted }]}>›</Text>
+            <ArrowDown01Icon size={14} color={colors.textMuted} variant="stroke" strokeWidth={1.8} />
           </TouchableOpacity>
 
           {error && (
@@ -101,41 +109,56 @@ const styles = StyleSheet.create({
   container: {
     marginBottom: 16,
   },
+  containerCompact: {
+    marginBottom: 0,
+  },
   labelContainer: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 6,
   },
-  labelIcon: {
-    fontSize: 14,
-    marginRight: 6,
+  labelContainerCompact: {
+    marginBottom: 4,
   },
   label: {
     fontSize: 14,
     fontWeight: "500",
   },
+  labelCompact: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 0.2,
+  },
   required: {
     fontSize: 14,
     fontWeight: "600",
+  },
+  requiredCompact: {
+    fontSize: 11,
   },
   pickerButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    minHeight: 48,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    minHeight: 46,
+    gap: 6,
+  },
+  pickerButtonCompact: {
+    minHeight: 40,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 12,
   },
   pickerText: {
     fontSize: 15,
     flex: 1,
   },
-  arrowIcon: {
-    fontSize: 20,
-    fontWeight: "300",
-    marginLeft: 8,
+  pickerTextCompact: {
+    fontSize: 13,
   },
   errorText: {
     fontSize: 12,
