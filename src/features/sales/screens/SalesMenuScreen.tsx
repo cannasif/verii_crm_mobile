@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import { View, StyleSheet } from "react-native";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { useRouter } from "expo-router";
@@ -20,14 +20,26 @@ import {
   NoteIcon,
   ChartLineData01Icon,
   ArrowRight01Icon,
-  FlashIcon // Hızlı teklifleri temsil etmesi için eklendi (Eğer yoksa yerine ZapIcon veya Invoice01Icon kullanabilirsin)
+  FlashIcon,
 } from "hugeicons-react-native";
 
 export function SalesMenuScreen(): React.ReactElement {
   const { t } = useTranslation();
   const router = useRouter();
   
-  const { colors, themeMode } = useUIStore() as any;
+  const { colors, themeMode, menuViewType } = useUIStore() as any;
+  const menuLayoutStyle = useMemo(
+    () =>
+      menuViewType === "grid"
+        ? {
+            flexDirection: "row" as const,
+            flexWrap: "wrap" as const,
+            justifyContent: "space-between" as const,
+            width: "100%" as const,
+          }
+        : { flexDirection: "column" as const, gap: 0 },
+    [menuViewType]
+  );
   const insets = useSafeAreaInsets();
   const isDark = themeMode === "dark";
 
@@ -41,16 +53,13 @@ export function SalesMenuScreen(): React.ReactElement {
     ? ['rgba(236, 72, 153, 0.12)', 'transparent', 'rgba(249, 115, 22, 0.12)']
     : ['rgba(255, 235, 240, 0.6)', '#FFFFFF', 'rgba(255, 240, 225, 0.6)']) as [string, string, ...string[]];
 
-  // --- TEKLİF YÖNLENDİRMELERİ ---
   const handleCreateQuotationPress = useCallback(() => router.push("/(tabs)/sales/quotations/create"), [router]);
   const handleQuotationListPress = useCallback(() => router.push("/(tabs)/sales/quotations"), [router]);
   const handleWaitingApprovalsPress = useCallback(() => router.push("/(tabs)/sales/quotations/waiting-approvals"), [router]);
-  
-  // --- HIZLI TEKLİF YÖNLENDİRMELERİ (YENİ) ---
+
   const handleCreateQuickQuotationPress = useCallback(() => router.push("/(tabs)/sales/quotations/quick/create"), [router]);
   const handleQuickQuotationListPress = useCallback(() => router.push("/(tabs)/sales/quotations/quick/list"), [router]);
 
-  // --- DİĞER YÖNLENDİRMELER ---
   const handleCreateDemandPress = useCallback(() => router.push("/(tabs)/sales/demands/create"), [router]);
   const handleDemandListPress = useCallback(() => router.push("/(tabs)/sales/demands"), [router]);
   const handleDemandWaitingApprovalsPress = useCallback(() => router.push("/(tabs)/sales/demands/waiting-approvals"), [router]);
@@ -96,11 +105,15 @@ export function SalesMenuScreen(): React.ReactElement {
         >
           
           {/* --- BÖLÜM: TEKLİFLER (QUOTATIONS) --- */}
-          <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>{t("sales.quotations")}</Text>
-          
+          <Text style={[styles.sectionTitle, styles.sectionTitleFirst, { color: sectionTitleColor }]}>
+            {t("sales.quotations")}
+          </Text>
+
+          <View style={menuLayoutStyle}>
           <MenuCard
             title={t("sales.createQuotation")}
             description={t("sales.createQuotationDesc")}
+            viewType={menuViewType}
             icon={renderIcon(PlusSignIcon)}
             rightIcon={<ArrowRight01Icon size={20} color={arrowColor} />}
             onPress={handleCreateQuotationPress}
@@ -108,41 +121,45 @@ export function SalesMenuScreen(): React.ReactElement {
           <MenuCard
             title={t("sales.quotationList")}
             description={t("sales.quotationListDesc")}
+            viewType={menuViewType}
             icon={renderIcon(Invoice01Icon)}
             rightIcon={<ArrowRight01Icon size={20} color={arrowColor} />}
             onPress={handleQuotationListPress}
           />
-
-          {/* --- BÖLÜM: HIZLI TEKLİFLER (YENİ EKLENEN KISIM) --- */}
           <MenuCard
-            title={t("sales.createQuickQuotation") || "Hızlı Teklif Oluştur"} 
+            title={t("sales.waitingApprovals")}
+            description={t("sales.waitingApprovalsDesc")}
+            viewType={menuViewType}
+            icon={renderIcon(HourglassIcon)}
+            rightIcon={<ArrowRight01Icon size={20} color={arrowColor} />}
+            onPress={handleWaitingApprovalsPress}
+          />
+          <MenuCard
+            title={t("sales.createQuickQuotation") || "Hızlı Teklif Oluştur"}
             description={t("sales.createQuickQuotationDesc") || "Pratik şablonlarla hızlıca teklif hazırlayın"}
-            icon={renderIcon(PlusSignIcon)} 
+            viewType={menuViewType}
+            icon={renderIcon(PlusSignIcon)}
             rightIcon={<ArrowRight01Icon size={20} color={arrowColor} />}
             onPress={handleCreateQuickQuotationPress}
           />
           <MenuCard
             title={t("sales.quickQuotationList") || "Hızlı Teklif Listesi"}
             description={t("sales.quickQuotationListDesc") || "Oluşturduğunuz hızlı teklifleri yönetin"}
-            icon={renderIcon(Files01Icon)} // İsteğe bağlı olarak FlashIcon ile değiştirebilirsin
+            viewType={menuViewType}
+            icon={renderIcon(Files01Icon)}
             rightIcon={<ArrowRight01Icon size={20} color={arrowColor} />}
             onPress={handleQuickQuotationListPress}
           />
-          
-          <MenuCard
-            title={t("sales.waitingApprovals")}
-            description={t("sales.waitingApprovalsDesc")}
-            icon={renderIcon(HourglassIcon)}
-            rightIcon={<ArrowRight01Icon size={20} color={arrowColor} />}
-            onPress={handleWaitingApprovalsPress}
-          />
+          </View>
 
           {/* --- BÖLÜM: SİPARİŞLER (ORDERS) --- */}
           <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>{t("sales.orders")}</Text>
 
+          <View style={menuLayoutStyle}>
           <MenuCard
             title={t("sales.createOrder")}
             description={t("sales.createOrderDesc")}
+            viewType={menuViewType}
             icon={renderIcon(PlusSignIcon)}
             rightIcon={<ArrowRight01Icon size={20} color={arrowColor} />}
             onPress={handleCreateOrderPress}
@@ -150,6 +167,7 @@ export function SalesMenuScreen(): React.ReactElement {
           <MenuCard
             title={t("sales.orderList")}
             description={t("sales.orderListDesc")}
+            viewType={menuViewType}
             icon={renderIcon(ShoppingBag01Icon)}
             rightIcon={<ArrowRight01Icon size={20} color={arrowColor} />}
             onPress={handleOrderListPress}
@@ -157,17 +175,21 @@ export function SalesMenuScreen(): React.ReactElement {
           <MenuCard
             title={t("sales.orderWaitingApprovals")}
             description={t("sales.orderWaitingApprovalsDesc")}
+            viewType={menuViewType}
             icon={renderIcon(HourglassIcon)}
             rightIcon={<ArrowRight01Icon size={20} color={arrowColor} />}
             onPress={handleOrderWaitingApprovalsPress}
           />
+          </View>
 
           {/* --- BÖLÜM: TALEPLER (DEMANDS) --- */}
           <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>{t("sales.demands")}</Text>
 
+          <View style={menuLayoutStyle}>
           <MenuCard
             title={t("sales.createDemand")}
             description={t("sales.createDemandDesc")}
+            viewType={menuViewType}
             icon={renderIcon(PlusSignIcon)}
             rightIcon={<ArrowRight01Icon size={20} color={arrowColor} />}
             onPress={handleCreateDemandPress}
@@ -175,6 +197,7 @@ export function SalesMenuScreen(): React.ReactElement {
           <MenuCard
             title={t("sales.demandList")}
             description={t("sales.demandListDesc")}
+            viewType={menuViewType}
             icon={renderIcon(NoteIcon)}
             rightIcon={<ArrowRight01Icon size={20} color={arrowColor} />}
             onPress={handleDemandListPress}
@@ -182,20 +205,25 @@ export function SalesMenuScreen(): React.ReactElement {
           <MenuCard
             title={t("sales.demandWaitingApprovals")}
             description={t("sales.demandWaitingApprovalsDesc")}
+            viewType={menuViewType}
             icon={renderIcon(HourglassIcon)}
             rightIcon={<ArrowRight01Icon size={20} color={arrowColor} />}
             onPress={handleDemandWaitingApprovalsPress}
           />
+          </View>
 
           {/* --- KPI / RAPORLAR --- */}
            <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>{t("sidebar.reports")}</Text>
+          <View style={menuLayoutStyle}>
           <MenuCard
             title={t("salesman360.title")}
             description={t("salesman360.subtitle")}
+            viewType={menuViewType}
             icon={renderIcon(ChartLineData01Icon)}
             rightIcon={<ArrowRight01Icon size={20} color={arrowColor} />}
             onPress={handleSalesKpiPress}
           />
+          </View>
 
         </FlatListScrollView>
       </View>
@@ -220,8 +248,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textTransform: "uppercase",
     letterSpacing: 0.8,
-    marginTop: 24,
-    marginBottom: 12,
+    marginTop: -35,
+    marginBottom: 8,
     marginLeft: 4,
-  }
+  },
+  sectionTitleFirst: {
+    marginTop: 0,
+  },
 });
