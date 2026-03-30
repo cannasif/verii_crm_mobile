@@ -111,11 +111,14 @@ function OrderRowComponent({
     onOutlookMail(e, order);
   };
 
+  const canRevise = order.status === 0 || order.status === 3;
   const statusColor = order.status === 1 ? colors.green : colors.muted;
   const statusBg = order.status === 1 ? colors.greenSoft : colors.softBg;
   const statusText = order.status === 1 ? "Aktif" : "Pasif";
 
-  const totalFormatted = formatCurrency(order.grandTotal, order.currency, i18n.language);
+  const totalFormatted =
+    order.grandTotalDisplay?.trim() ||
+    formatCurrency(order.grandTotal, order.currencyCode || order.currency, i18n.language);
 
   return (
     <TouchableOpacity
@@ -203,7 +206,7 @@ function OrderRowComponent({
           >
             <Coins01Icon size={13} color={colors.blue} variant="stroke" />
             <Text style={[styles.metaChipText, { color: colors.text }]} numberOfLines={1}>
-              {getCurrencyDisplayLabel(order.currency)}
+              {order.currencyDisplay?.trim() || getCurrencyDisplayLabel(order.currencyCode || order.currency)}
             </Text>
           </View>
 
@@ -271,22 +274,24 @@ function OrderRowComponent({
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity
-        style={[
-          styles.revisionBtn,
-          {
-            backgroundColor: colors.softBg,
-            borderColor: colors.border,
-          },
-        ]}
-        onPress={handleRevisionPress}
-        disabled={isPending}
-        activeOpacity={0.78}
-      >
-        <Text style={[styles.revisionBtnText, { color: colors.text }]}>
-          {isPending ? "Yükleniyor..." : "Revize Et"}
-        </Text>
-      </TouchableOpacity>
+      {canRevise ? (
+        <TouchableOpacity
+          style={[
+            styles.revisionBtn,
+            {
+              backgroundColor: colors.softBg,
+              borderColor: colors.border,
+            },
+          ]}
+          onPress={handleRevisionPress}
+          disabled={isPending}
+          activeOpacity={0.78}
+        >
+          <Text style={[styles.revisionBtnText, { color: colors.text }]}>
+            {isPending ? "Yükleniyor..." : "Revize Et"}
+          </Text>
+        </TouchableOpacity>
+      ) : null}
     </TouchableOpacity>
   );
 }

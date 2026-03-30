@@ -4,7 +4,15 @@ import type { PagedFilter, PagedParams, PagedResponse, PagedApiResponse } from "
 export interface ApprovalActionGetDto {
   id: number;
   approvalRequestId: number;
+  entityId?: number | null;
   approvalRequestDescription?: string | null;
+  orderOfferNo?: string | null;
+  orderRevisionNo?: string | null;
+  orderCustomerName?: string | null;
+  orderCustomerCode?: string | null;
+  orderOwnerName?: string | null;
+  orderGrandTotal?: number | null;
+  orderGrandTotalDisplay?: string | null;
   stepOrder: number;
   approvedByUserId: number;
   approvedByUserFullName?: string | null;
@@ -77,8 +85,11 @@ export interface OrderGetDto {
   revisionNo?: string | null;
   revisionId?: number | null;
   currency: string;
+  currencyCode?: string | null;
+  currencyDisplay?: string | null;
   total: number;
   grandTotal: number;
+  grandTotalDisplay?: string | null;
   hasCustomerSpecificDiscount: boolean;
   validUntil?: string | null;
   contactId?: number | null;
@@ -466,7 +477,8 @@ export type OrderExchangeRateDetailListResponse = ApiResponse<OrderExchangeRateD
 export type OrderExchangeRateUpdateResponse = ApiResponse<boolean>;
 export type OrderApprovalFlowReportResponse = ApiResponse<OrderApprovalFlowReportDto>;
 
-export type WaitingApprovalsResponse = ApiResponse<ApprovalActionGetDto[]>;
+export type WaitingApprovalsResponse =
+  ApiResponse<ApprovalActionGetDto[] | PagedResponse<ApprovalActionGetDto>>;
 export type ApproveResponse = ApiResponse<boolean>;
 export type RejectResponse = ApiResponse<boolean>;
 export type OrderListResponse = PagedApiResponse<OrderGetDto>;
