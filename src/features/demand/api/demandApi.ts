@@ -96,7 +96,14 @@ export const demandApi = {
       );
     }
 
-    return response.data.data || [];
+    const payload = response.data.data;
+    if (Array.isArray(payload)) {
+      return payload;
+    }
+    if (payload && Array.isArray(payload.items)) {
+      return payload.items;
+    }
+    return [];
   },
 
   approve: async (data: ApproveActionDto): Promise<boolean> => {

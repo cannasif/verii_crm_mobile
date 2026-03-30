@@ -4,7 +4,15 @@ import type { PagedFilter, PagedParams, PagedResponse, PagedApiResponse } from "
 export interface ApprovalActionGetDto {
   id: number;
   approvalRequestId: number;
+  entityId?: number | null;
   approvalRequestDescription?: string | null;
+  demandOfferNo?: string | null;
+  demandRevisionNo?: string | null;
+  demandCustomerName?: string | null;
+  demandCustomerCode?: string | null;
+  demandOwnerName?: string | null;
+  demandGrandTotal?: number | null;
+  demandGrandTotalDisplay?: string | null;
   stepOrder: number;
   approvedByUserId: number;
   approvedByUserFullName?: string | null;
@@ -77,8 +85,11 @@ export interface DemandGetDto {
   revisionNo?: string | null;
   revisionId?: number | null;
   currency: string;
+  currencyCode?: string | null;
+  currencyDisplay?: string | null;
   total: number;
   grandTotal: number;
+  grandTotalDisplay?: string | null;
   hasCustomerSpecificDiscount: boolean;
   validUntil?: string | null;
   contactId?: number | null;
@@ -466,7 +477,8 @@ export type DemandExchangeRateDetailListResponse = ApiResponse<DemandExchangeRat
 export type DemandExchangeRateUpdateResponse = ApiResponse<boolean>;
 export type DemandApprovalFlowReportResponse = ApiResponse<DemandApprovalFlowReportDto>;
 
-export type WaitingApprovalsResponse = ApiResponse<ApprovalActionGetDto[]>;
+export type WaitingApprovalsResponse =
+  ApiResponse<ApprovalActionGetDto[] | PagedResponse<ApprovalActionGetDto>>;
 export type ApproveResponse = ApiResponse<boolean>;
 export type RejectResponse = ApiResponse<boolean>;
 export type DemandListResponse = PagedApiResponse<DemandGetDto>;
