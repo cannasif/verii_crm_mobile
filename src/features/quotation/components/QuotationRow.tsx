@@ -112,15 +112,14 @@ function QuotationRowComponent({
     onOutlookMail(e, quotation);
   };
 
+  const canRevise = quotation.status === 0 || quotation.status === 3;
   const statusColor = quotation.status === 1 ? colors.green : colors.muted;
   const statusBg = quotation.status === 1 ? colors.greenSoft : colors.softBg;
   const statusText = quotation.status === 1 ? "Aktif" : "Pasif";
 
-  const totalFormatted = formatCurrency(
-    quotation.grandTotal,
-    quotation.currency,
-    i18n.language
-  );
+  const totalFormatted =
+    quotation.grandTotalDisplay?.trim() ||
+    formatCurrency(quotation.grandTotal, quotation.currencyCode || quotation.currency, i18n.language);
 
   return (
     <TouchableOpacity
@@ -208,7 +207,7 @@ function QuotationRowComponent({
           >
             <Coins01Icon size={13} color={colors.blue} variant="stroke" />
             <Text style={[styles.metaChipText, { color: colors.text }]} numberOfLines={1}>
-              {getCurrencyDisplayLabel(quotation.currency)}
+              {quotation.currencyDisplay?.trim() || getCurrencyDisplayLabel(quotation.currencyCode || quotation.currency)}
             </Text>
           </View>
 
@@ -276,22 +275,24 @@ function QuotationRowComponent({
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity
-        style={[
-          styles.revisionBtn,
-          {
-            backgroundColor: colors.softBg,
-            borderColor: colors.border,
-          },
-        ]}
-        onPress={handleRevisionPress}
-        disabled={isPending}
-        activeOpacity={0.78}
-      >
-        <Text style={[styles.revisionBtnText, { color: colors.text }]}>
-          {isPending ? "Yükleniyor..." : "Revize Et"}
-        </Text>
-      </TouchableOpacity>
+      {canRevise ? (
+        <TouchableOpacity
+          style={[
+            styles.revisionBtn,
+            {
+              backgroundColor: colors.softBg,
+              borderColor: colors.border,
+            },
+          ]}
+          onPress={handleRevisionPress}
+          disabled={isPending}
+          activeOpacity={0.78}
+        >
+          <Text style={[styles.revisionBtnText, { color: colors.text }]}>
+            {isPending ? "Yükleniyor..." : "Revize Et"}
+          </Text>
+        </TouchableOpacity>
+      ) : null}
     </TouchableOpacity>
   );
 }

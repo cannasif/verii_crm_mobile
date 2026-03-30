@@ -4,7 +4,15 @@ import type { PagedFilter, PagedParams, PagedResponse, PagedApiResponse } from "
 export interface ApprovalActionGetDto {
   id: number;
   approvalRequestId: number;
+  entityId?: number | null;
   approvalRequestDescription?: string | null;
+  quotationOfferNo?: string | null;
+  quotationRevisionNo?: string | null;
+  quotationCustomerName?: string | null;
+  quotationCustomerCode?: string | null;
+  quotationOwnerName?: string | null;
+  quotationGrandTotal?: number | null;
+  quotationGrandTotalDisplay?: string | null;
   stepOrder: number;
   approvedByUserId: number;
   approvedByUserFullName?: string | null;
@@ -77,8 +85,11 @@ export interface QuotationGetDto {
   revisionNo?: string | null;
   revisionId?: number | null;
   currency: string;
+  currencyCode?: string | null;
+  currencyDisplay?: string | null;
   total: number;
   grandTotal: number;
+  grandTotalDisplay?: string | null;
   hasCustomerSpecificDiscount: boolean;
   validUntil?: string | null;
   contactId?: number | null;
@@ -560,7 +571,8 @@ export type QuotationExchangeRateDetailListResponse = ApiResponse<QuotationExcha
 export type QuotationExchangeRateUpdateResponse = ApiResponse<boolean>;
 export type QuotationApprovalFlowReportResponse = ApiResponse<QuotationApprovalFlowReportDto>;
 
-export type WaitingApprovalsResponse = ApiResponse<ApprovalActionGetDto[]>;
+export type WaitingApprovalsResponse =
+  ApiResponse<ApprovalActionGetDto[] | PagedResponse<ApprovalActionGetDto>>;
 export type ApproveResponse = ApiResponse<boolean>;
 export type RejectResponse = ApiResponse<boolean>;
 export type QuotationListResponse = PagedApiResponse<QuotationGetDto>;

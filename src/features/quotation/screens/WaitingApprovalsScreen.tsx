@@ -38,8 +38,8 @@ export function WaitingApprovalsScreen(): React.ReactElement {
   }, [refetch]);
 
   const handleRowClick = useCallback(
-    (approvalRequestId: number) => {
-      router.push(`/(tabs)/sales/quotations/${approvalRequestId}`);
+    (entityId: number) => {
+      router.push(`/(tabs)/sales/quotations/${entityId}`);
     },
     [router]
   );

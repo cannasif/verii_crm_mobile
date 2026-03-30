@@ -7,7 +7,7 @@ import type { ApprovalActionGetDto } from "../types";
 
 interface ApprovalRowProps {
   approval: ApprovalActionGetDto;
-  onPress: (approvalRequestId: number) => void;
+  onPress: (entityId: number) => void;
   onApprove: (e: any, approval: ApprovalActionGetDto) => void;
   onReject: (e: any, approval: ApprovalActionGetDto) => void;
   isPending: boolean;
@@ -35,7 +35,7 @@ function ApprovalRowComponent({
   };
 
   const handleRowPress = (): void => {
-    onPress(approval.approvalRequestId);
+    onPress(approval.entityId || approval.approvalRequestId);
   };
 
   const handleApprovePress = (e: any): void => {
@@ -60,7 +60,7 @@ function ApprovalRowComponent({
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={[styles.requestId, { color: colors.text }]}>
-            #{approval.approvalRequestId}
+            {approval.quotationOfferNo || `#${approval.approvalRequestId}`}
           </Text>
           <View style={[styles.statusBadge, { backgroundColor: colors.activeBackground }]}>
             <Text style={[styles.statusText, { color: statusColor }]}>
@@ -69,9 +69,9 @@ function ApprovalRowComponent({
           </View>
         </View>
 
-        {approval.approvalRequestDescription && (
+        {(approval.quotationCustomerName || approval.approvalRequestDescription) && (
           <Text style={[styles.description, { color: colors.textSecondary }]} numberOfLines={2}>
-            {approval.approvalRequestDescription}
+            {approval.quotationCustomerName || approval.approvalRequestDescription}
           </Text>
         )}
 
@@ -80,6 +80,20 @@ function ApprovalRowComponent({
             <Text style={[styles.detailLabel, { color: colors.textMuted }]}>Adım:</Text>
             <Text style={[styles.detailValue, { color: colors.text }]}>{approval.stepOrder}</Text>
           </View>
+
+          {approval.quotationRevisionNo ? (
+            <View style={styles.detailRow}>
+              <Text style={[styles.detailLabel, { color: colors.textMuted }]}>Revize:</Text>
+              <Text style={[styles.detailValue, { color: colors.text }]}>{approval.quotationRevisionNo}</Text>
+            </View>
+          ) : null}
+
+          {approval.quotationGrandTotalDisplay ? (
+            <View style={styles.detailRow}>
+              <Text style={[styles.detailLabel, { color: colors.textMuted }]}>Toplam:</Text>
+              <Text style={[styles.detailValue, { color: colors.text }]}>{approval.quotationGrandTotalDisplay}</Text>
+            </View>
+          ) : null}
 
           {approval.approvedByUserFullName && (
             <View style={styles.detailRow}>
