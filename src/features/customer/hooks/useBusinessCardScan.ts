@@ -142,6 +142,82 @@ function shouldUseDeterministicFastPath(result: BusinessCardOcrResult | null | u
   );
 }
 
+function shouldUseBalancedFastPath(result: BusinessCardOcrResult | null | undefined): boolean {
+  const review = result?.review;
+  if (!result || !review) return false;
+
+  const dominantScript = result.languageProfile?.dominantScript;
+  const isLatinLike = dominantScript === "latin" || dominantScript === "unknown";
+  if (!isLatinLike) return false;
+
+  const hasCompany = Boolean(result.customerName?.trim());
+  const hasContactName = Boolean(result.contactNameAndSurname?.trim());
+  const hasPrimaryPhone = Boolean(result.phone1);
+  const supportingSignals = [result.email, result.website, result.address, result.title, result.phone2].filter(Boolean).length;
+  const customerConfidence = review.fieldConfidence.customerName ?? 0;
+  const contactConfidence = review.fieldConfidence.contactNameAndSurname ?? 0;
+  const phoneConfidence = review.fieldConfidence.phone1 ?? 0;
+  const overallConfidence = review.overallConfidence ?? 0;
+  const hasBlockingCriticalFlag = review.flags.some(
+    (flag) =>
+      flag.severity === "high" &&
+      (flag.field === "customerName" ||
+        flag.field === "contactNameAndSurname" ||
+        flag.field === "phone1" ||
+        flag.field === "general")
+  );
+
+  return Boolean(
+    hasCompany &&
+      hasContactName &&
+      hasPrimaryPhone &&
+      supportingSignals >= 2 &&
+      customerConfidence >= 60 &&
+      contactConfidence >= 62 &&
+      phoneConfidence >= 80 &&
+      overallConfidence >= 72 &&
+      !hasBlockingCriticalFlag
+  );
+}
+
+function shouldUseTurkishFastPath(result: BusinessCardOcrResult | null | undefined): boolean {
+  const review = result?.review;
+  if (!result || !review) return false;
+
+  const locale = result.languageProfile?.suggestedLocale;
+  const dominantScript = result.languageProfile?.dominantScript;
+  if (locale !== "tr" || (dominantScript !== "latin" && dominantScript !== "unknown")) return false;
+
+  const hasCompany = Boolean(result.customerName?.trim());
+  const hasContactName = Boolean(result.contactNameAndSurname?.trim());
+  const hasPrimaryPhone = Boolean(result.phone1);
+  const supportingSignals = [result.email, result.website, result.address].filter(Boolean).length;
+  const customerConfidence = review.fieldConfidence.customerName ?? 0;
+  const contactConfidence = review.fieldConfidence.contactNameAndSurname ?? 0;
+  const phoneConfidence = review.fieldConfidence.phone1 ?? 0;
+  const overallConfidence = review.overallConfidence ?? 0;
+  const hasBlockingCriticalFlag = review.flags.some(
+    (flag) =>
+      flag.severity === "high" &&
+      (flag.field === "customerName" ||
+        flag.field === "contactNameAndSurname" ||
+        flag.field === "phone1" ||
+        flag.field === "general")
+  );
+
+  return Boolean(
+    hasCompany &&
+      hasContactName &&
+      hasPrimaryPhone &&
+      supportingSignals >= 1 &&
+      customerConfidence >= 58 &&
+      contactConfidence >= 60 &&
+      phoneConfidence >= 80 &&
+      overallConfidence >= 68 &&
+      !hasBlockingCriticalFlag
+  );
+}
+
 function shouldApplyDeskew(estimatedRotation: number | null | undefined, lineCount: number): boolean {
   if (typeof estimatedRotation !== "number" || !Number.isFinite(estimatedRotation)) return false;
   if (lineCount < 4) return false;
@@ -187,14 +263,17 @@ export function useBusinessCardScan(): {
       options?: { allowSecondPass?: boolean }
     ): Promise<BusinessCardOcrResult | null> => {
       const rawOcr = preloadedOcr ?? await runOCR(imageUri);
-      const normalizedOcr = preprocessBusinessCardOcr(rawOcr);
+      const normalizedOcr = preloadedOcr ?? preprocessBusinessCardOcr(rawOcr);
       ocrCacheRef.current.set(imageUri, normalizedOcr);
-      const variants = options?.allowSecondPass === false
-        ? [{ key: "primary" as const, payload: normalizedOcr }]
-        : buildBusinessCardOcrVariants(normalizedOcr);
+      const allowSecondPass = options?.allowSecondPass !== false;
+      const variants: Array<{ key: "primary" | "leftMajor" | "bottomUp"; payload: OcrResultPayload }> = [
+        { key: "primary", payload: normalizedOcr },
+      ];
       let bestResult: BusinessCardOcrResult | null = null;
+      let index = 0;
 
-      for (const variant of variants) {
+      while (index < variants.length) {
+        const variant = variants[index++];
         const ocr = variant.payload;
         const rawText = (ocr.rawText || ocr.lines.join("\n")).trim();
         if (!rawText) continue;
@@ -247,6 +326,16 @@ export function useBusinessCardScan(): {
 
         if (variant.key === "primary" && shouldUseDeterministicFastPath(fallbackCandidate)) {
           debugScanLog("finalBestExtraction", { variant: variant.key, best: fallbackCandidate, strategy: "deterministic-fast-path" });
+          return fallbackCandidate;
+        }
+
+        if (variant.key === "primary" && shouldUseBalancedFastPath(fallbackCandidate)) {
+          debugScanLog("finalBestExtraction", { variant: variant.key, best: fallbackCandidate, strategy: "balanced-fast-path" });
+          return fallbackCandidate;
+        }
+
+        if (variant.key === "primary" && shouldUseTurkishFastPath(fallbackCandidate)) {
+          debugScanLog("finalBestExtraction", { variant: variant.key, best: fallbackCandidate, strategy: "turkish-fast-path" });
           return fallbackCandidate;
         }
 
@@ -315,9 +404,12 @@ export function useBusinessCardScan(): {
           }
         }
 
-        if (!shouldRunBusinessCardSecondPass(bestResult)) {
+        if (variant.key !== "primary" || !allowSecondPass || !shouldRunBusinessCardSecondPass(bestResult)) {
           break;
         }
+
+        const additionalVariants = buildBusinessCardOcrVariants(normalizedOcr).filter((item) => item.key !== "primary");
+        variants.push(...additionalVariants);
       }
 
       if (!bestResult) {
@@ -415,7 +507,7 @@ export function useBusinessCardScan(): {
     async (
       imageUri: string
     ): Promise<{ shouldContinueWithOcr: boolean; qrResult: BusinessCardOcrResult | null }> => {
-      const qrDetection = await detectQrFromImage(imageUri, { timeoutMs: 500 });
+      const qrDetection = await detectQrFromImage(imageUri, { timeoutMs: 150 });
       if (!qrDetection.rawValue && !qrDetection.parsedCard) {
         return { shouldContinueWithOcr: true, qrResult: null };
       }
