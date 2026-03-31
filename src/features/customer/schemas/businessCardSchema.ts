@@ -95,6 +95,18 @@ const SLOGAN_NOISE_REGEX =
   /\b(everything simple|member of|official dealer|kap[ıi]\s+ve\s+pencere\s+aksesuarlar[ıi]|group member|made simple|komple lojistik|d[ıi]ş ticaret çözümleri|dis ticaret cozumleri|çözümleri|cozumleri|international road transport|since\s+\d{4})\b/i;
 const SERVICE_CONNECTOR_TOKENS = new Set(["ve", "and", "-", "/", "eşikli", "eşiksiz"]);
 const COMPANY_CONNECTOR_TOKENS = new Set(["ve", "and", "of", "und", "&"]);
+const FREE_EMAIL_PROVIDER_SET = new Set([
+  "gmail.com",
+  "hotmail.com",
+  "outlook.com",
+  "live.com",
+  "yahoo.com",
+  "yandex.ru",
+  "mail.ru",
+  "icloud.com",
+  "proton.me",
+  "protonmail.com",
+]);
 
 const SAFE_PROVINCES = new Set([
   "istanbul", "ankara", "izmir", "bursa", "kocaeli", "antalya", "konya",
@@ -131,6 +143,35 @@ const KNOWN_DISTRICTS = new Set([
   "selçuklu", "meram", "karatay",
   "chayán", "chayan", "eyüp", "eyup",
 ]);
+
+const rawTextLineCache = new Map<string, string[]>();
+const languageProfileCache = new Map<string, ReturnType<typeof detectBusinessCardLanguageProfile>>();
+
+function getCachedRawLines(rawText: string | undefined): string[] {
+  if (!rawText) return [];
+  const cached = rawTextLineCache.get(rawText);
+  if (cached) return cached;
+  const lines = rawText
+    .split(/\r?\n/)
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+  if (rawTextLineCache.size > 256) {
+    rawTextLineCache.clear();
+  }
+  rawTextLineCache.set(rawText, lines);
+  return lines;
+}
+
+function detectBusinessCardLanguageProfileCached(value: string): ReturnType<typeof detectBusinessCardLanguageProfile> {
+  const cached = languageProfileCache.get(value);
+  if (cached) return cached;
+  const detected = detectBusinessCardLanguageProfile(value);
+  if (languageProfileCache.size > 1024) {
+    languageProfileCache.clear();
+  }
+  languageProfileCache.set(value, detected);
+  return detected;
+}
 
 function normalizeNullable(value: string | null | undefined): string | null {
   if (typeof value !== "string") return null;
@@ -321,6 +362,12 @@ function sortPhonesByRawContext(phones: string[], rawText?: string): string[] {
     .split(/\r?\n/)
     .map((line) => line.replace(/\s+/g, " ").trim())
     .filter(Boolean);
+  const websiteSource = rawText.replace(/[^\s@]+@[^\s@]+\.[^\s@]+/g, " ");
+  const websiteCount = (websiteSource.match(/\b(?:https?:\/\/)?(?:www\.)?[a-z0-9][-a-z0-9.]*\.[a-z]{2,}(?:\/[^\s]*)?/gi) ?? [])
+    .map((value) => value.toLowerCase())
+    .filter((value, index, all) => all.indexOf(value) === index).length;
+  const hasMultipleBrandWebsites = websiteCount > 1;
+  const hasCyrillicScript = /[\u0400-\u04FF]/.test(rawText);
 
   return [...phones].sort((left, right) => {
     const findPriority = (phone: string): number => {
@@ -328,7 +375,10 @@ function sortPhonesByRawContext(phones: string[], rawText?: string): string[] {
       const line = lines.find((candidate) => candidate.replace(/\D/g, "").includes(tail));
       const defaultPriority = /^\+905\d{9}$/.test(phone) ? 0 : 1;
       if (!line) return defaultPriority;
-      if (/(gsm|mobile|mob\.?|cell|cep|моб\.?|мобильн)/i.test(line)) return 0;
+      if (/(gsm|mobil|mobile|mob\.?|cep)/i.test(line)) return 0;
+      if (/(?:моб\.?|мобильн)/i.test(line)) return 0;
+      if (/(?:office|direct|офис)/i.test(line)) return hasCyrillicScript || hasMultipleBrandWebsites ? 1 : 0;
+      if (/(?:cell)/i.test(line)) return hasMultipleBrandWebsites ? 0 : 1;
       return defaultPriority;
     };
 
@@ -457,6 +507,7 @@ function pickWebsiteFromRawText(rawText: string | undefined, emails: string[], n
 function pickWebsiteAlignedWithEmail(currentWebsite: string | null, rawText: string | undefined, emails: string[], notes: string[]): string | null {
   const emailDomains = emails.map((x) => x.split("@")[1]?.toLowerCase()).filter(Boolean) as string[];
   if (emailDomains.length === 0) return currentWebsite;
+  const primaryEmailDomain = emailDomains[0] ?? "";
 
   const currentDomain = extractDomainFromWebsite(currentWebsite ?? "");
   if (currentDomain && emailDomains.some((emailDomain) => currentDomain.includes(emailDomain) || emailDomain.includes(currentDomain))) {
@@ -476,6 +527,18 @@ function pickWebsiteAlignedWithEmail(currentWebsite: string | null, rawText: str
     return matched;
   }
 
+  const weakCurrentWebsite =
+    !currentDomain ||
+    currentDomain.length < 8 ||
+    /^(?:com|net|org|gov|edu|biz|info|co)\.[a-z]{2,}$/i.test(currentDomain);
+
+  if (primaryEmailDomain && weakCurrentWebsite && !FREE_EMAIL_PROVIDER_SET.has(primaryEmailDomain)) {
+    if (currentWebsite && currentWebsite !== `www.${primaryEmailDomain}`) {
+      pushNote(notes, `Marka/ek website: ${currentWebsite}`);
+    }
+    return `www.${primaryEmailDomain}`;
+  }
+
   return currentWebsite;
 }
 
@@ -489,10 +552,7 @@ function inferCompanyFromDomainLines(rawText: string | undefined, domains: strin
     .filter(Boolean);
   if (normalizedDomains.length === 0) return null;
 
-  const lines = rawText
-    .split(/\r?\n/)
-    .map((line) => line.replace(/\s+/g, " ").trim())
-    .filter(Boolean);
+  const lines = getCachedRawLines(rawText);
   const mergedPairLines = lines
     .slice(0, -1)
     .filter((line, index) => {
@@ -539,10 +599,7 @@ function inferExactBrandLineFromDomain(rawText: string | undefined, domainSource
   const stemFolded = foldLocaleToken(stem ?? "").replace(/[^\p{L}\d]/gu, "");
   if (!stemFolded) return null;
 
-  const lines = rawText
-    .split(/\r?\n/)
-    .map((line) => line.replace(/\s+/g, " ").trim())
-    .filter(Boolean);
+  const lines = getCachedRawLines(rawText);
 
   const exactLine = lines.find((line) => {
     const folded = foldLocaleToken(line).replace(/[^\p{L}\d]/gu, "");
@@ -1033,7 +1090,7 @@ function sanitizeName(value: string | null): string | null {
   if (tokens.length < 2) return null;
   if (tokens.some((token) => lineContainsLexiconToken(token, BUSINESS_CARD_INDUSTRY_KEYWORDS))) return null;
   const hasExplicitTurkishSignal = /[çğıöşüÇĞİÖŞÜ]/u.test(value);
-  const locale = hasExplicitTurkishSignal ? "tr" : detectBusinessCardLanguageProfile(value).suggestedLocale;
+  const locale = hasExplicitTurkishSignal ? "tr" : detectBusinessCardLanguageProfileCached(value).suggestedLocale;
   const casingLocale = locale === "tr" ? "tr-TR" : locale === "de" ? "de-DE" : locale === "ru" ? "ru-RU" : "en-US";
   return value
     .split(/\s+/)
@@ -1126,7 +1183,7 @@ function sanitizeCompany(value: string | null): string | null {
 
 function beautifyCompanyWithRawContext(company: string | null, rawText?: string): string | null {
   if (!company || !rawText) return company;
-  const locale = detectBusinessCardLanguageProfile(rawText).suggestedLocale;
+  const locale = detectBusinessCardLanguageProfileCached(rawText).suggestedLocale;
   const casingLocale = locale === "tr" ? "tr-TR" : locale === "de" ? "de-DE" : locale === "ru" ? "ru-RU" : "en-US";
   const rawTokens = rawText.match(/[\p{L}]+/gu) ?? [];
   const preferredByFold = new Map<string, string>();
@@ -1185,8 +1242,96 @@ function isWeakCompanyCandidate(value: string | null): boolean {
   return false;
 }
 
+function isGenericIndustryOnlyCompany(value: string | null, brandStemFolded: string): boolean {
+  if (!value) return false;
+  if (hasCompanyMarker(value)) return false;
+  const folded = foldLocaleToken(value).replace(/[^\p{L}\d]/gu, "");
+  if (brandStemFolded && folded.includes(brandStemFolded)) return false;
+
+  const tokens = value
+    .toLocaleLowerCase("tr-TR")
+    .replace(/[^\p{L}\s/-]/gu, " ")
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+  if (tokens.length === 0 || tokens.length > 4) return false;
+
+  const meaningful = tokens.filter((token) => !SERVICE_CONNECTOR_TOKENS.has(token));
+  if (meaningful.length === 0) return false;
+
+  const industryHits = meaningful.filter((token) => lineContainsLexiconToken(token, BUSINESS_CARD_INDUSTRY_KEYWORDS)).length;
+  return industryHits === meaningful.length;
+}
+
+function rescuePersonNearTitleFromRawLines(
+  rawLines: string[],
+  title: string | null,
+  customerName: string | null
+): string | null {
+  if (!title || rawLines.length === 0) return null;
+  const normalizedTitle = foldLocaleToken(title).replace(/[^\p{L}\d]/gu, "");
+  if (!normalizedTitle) return null;
+
+  const titleIndex = rawLines.findIndex(
+    (line) => {
+      const normalizedLine = foldLocaleToken(sanitizeTitle(line) ?? line).replace(/[^\p{L}\d]/gu, "");
+      return (
+        normalizedLine === normalizedTitle ||
+        normalizedLine.includes(normalizedTitle) ||
+        normalizedTitle.includes(normalizedLine)
+      );
+    }
+  );
+  if (titleIndex < 0) return null;
+
+  const nearby = rawLines
+    .map((line, index) => ({ line, index, distance: Math.abs(index - titleIndex) }))
+    .filter((item) => item.index !== titleIndex && item.distance > 0 && item.distance <= 2)
+    .sort((left, right) => left.distance - right.distance || left.index - right.index)
+    .map((item) => item.line);
+
+  const strong = nearby.find((line) => {
+    if (customerName && foldLocaleToken(line) === foldLocaleToken(customerName)) return false;
+    if (isIdentityNoiseLine(line) || looksLikeCompany(line) || hasTitleKeyword(line)) return false;
+    return isLikelyPersonNameLine(line);
+  });
+  if (strong) return sanitizeName(strong);
+
+  const nearbyWithIndex = rawLines
+    .map((line, index) => ({ line, index }))
+    .filter((item) => item.index !== titleIndex && Math.abs(item.index - titleIndex) <= 3)
+    .sort((left, right) => left.index - right.index);
+
+  for (let i = 0; i < nearbyWithIndex.length - 1; i += 1) {
+    const current = nearbyWithIndex[i];
+    const next = nearbyWithIndex[i + 1];
+    if (!current || !next || next.index !== current.index + 1) continue;
+
+    const merged = `${current.line} ${next.line}`.replace(/\s+/g, " ").trim();
+    if (!merged) continue;
+    if (customerName && foldLocaleToken(merged) === foldLocaleToken(customerName)) continue;
+    if (isIdentityNoiseLine(merged) || looksLikeCompany(merged) || hasTitleKeyword(merged)) continue;
+    const mergedTokens = merged.split(/\s+/).filter(Boolean);
+    const mergedName =
+      sanitizeName(merged) ??
+      (mergedTokens.length === 2 && mergedTokens.every((token) => /^[\p{L}.'-]+$/u.test(token)) ? merged : null);
+    if (mergedName) {
+      return mergedName;
+    }
+  }
+
+  const fallback = nearby.find((line) => {
+    if (customerName && foldLocaleToken(line) === foldLocaleToken(customerName)) return false;
+    if (isIdentityNoiseLine(line) || looksLikeCompany(line) || hasTitleKeyword(line)) return false;
+    const tokens = line.split(/\s+/).filter(Boolean);
+    return tokens.length >= 2 && tokens.length <= 4 && tokens.every((token) => /^[\p{L}.'-]+$/u.test(token));
+  });
+
+  return fallback ? sanitizeName(fallback) : null;
+}
+
 function collectIdentitySourceLines(rawText?: string, rawLines?: string[]): string[] {
-  const source = rawLines && rawLines.length > 0 ? rawLines : normalizeTextLines(rawText ?? "");
+  const source = rawLines && rawLines.length > 0 ? rawLines : getCachedRawLines(rawText);
   return uniqueStrings(
     source
       .map((line) => line.replace(/\s+/g, " ").trim())
@@ -1279,10 +1424,14 @@ type BusinessCardNormalizationHints = {
   recognizedLanguages?: string[];
 };
 
+type BusinessCardNormalizationOptions = {
+  mode?: "full" | "light";
+};
+
 function scoreNameCandidate(line: string, index: number, hints?: BusinessCardNormalizationHints): number {
   if (!isLikelyPersonNameLine(line)) return -1;
   let score = 4;
-  const locale = detectBusinessCardLanguageProfile(line).suggestedLocale;
+  const locale = detectBusinessCardLanguageProfileCached(line).suggestedLocale;
   const recognizedLanguages = hints?.recognizedLanguages ?? [];
   if (index >= 1 && index <= 5) score += 2;
   if (uppercaseRatio(line) >= 0.85) score += 1;
@@ -1295,7 +1444,7 @@ function scoreNameCandidate(line: string, index: number, hints?: BusinessCardNor
 function scoreTitleCandidate(line: string, index: number, nameIndex: number, hints?: BusinessCardNormalizationHints): number {
   if (!isLikelyTitleLine(line)) return -1;
   let score = 4;
-  const locale = detectBusinessCardLanguageProfile(line).suggestedLocale;
+  const locale = detectBusinessCardLanguageProfileCached(line).suggestedLocale;
   const recognizedLanguages = hints?.recognizedLanguages ?? [];
   if (nameIndex >= 0 && Math.abs(index - nameIndex) <= 2) score += 2;
   if (index <= 6) score += 1;
@@ -1308,7 +1457,7 @@ function scoreTitleCandidate(line: string, index: number, nameIndex: number, hin
 function scoreCompanyCandidate(line: string, index: number, nameIndex: number, hints?: BusinessCardNormalizationHints): number {
   if (!isLikelyCompanyLine(line, index)) return -1;
   let score = 4;
-  const locale = detectBusinessCardLanguageProfile(line).suggestedLocale;
+  const locale = detectBusinessCardLanguageProfileCached(line).suggestedLocale;
   const recognizedLanguages = hints?.recognizedLanguages ?? [];
   if (index <= 2) score += 2;
   if (nameIndex > 0 && index < nameIndex) score += 1;
@@ -1497,12 +1646,16 @@ export function validateAndNormalizeBusinessCardExtraction(
   rawText?: string,
   rawLines?: string[],
   preferredAddressLines?: string[],
-  normalizationHints?: BusinessCardNormalizationHints
+  normalizationHints?: BusinessCardNormalizationHints,
+  normalizationOptions?: BusinessCardNormalizationOptions
 ): BusinessCardExtraction {
   const parsed = BusinessCardExtractionSchema.safeParse(input);
   if (!parsed.success) {
     throw new Error("LLM extraction JSON schema validation failed.");
   }
+  const mode = normalizationOptions?.mode ?? "full";
+  const isLightMode = mode === "light";
+  const cachedRawLines = getCachedRawLines(rawText);
 
   const notes = uniqueStrings(parsed.data.notes);
   let phones = normalizePhones(parsed.data.phones, notes);
@@ -1523,15 +1676,19 @@ export function validateAndNormalizeBusinessCardExtraction(
 
   const assembledAddress = assembleAddressFromParts(addressParts);
   const sanitizedLlmAddress = sanitizeAddress(normalizeNullable(parsed.data.address));
-  const fallbackAddress = buildAddressFromRawText(rawText, notes, rawLines, preferredAddressLines);
+  const fallbackAddress = isLightMode ? null : buildAddressFromRawText(rawText, notes, rawLines, preferredAddressLines);
   const address = assembledAddress ?? sanitizedLlmAddress ?? fallbackAddress;
 
   addressParts = enrichAddressPartsFromText(addressParts, address);
-  addressParts = enrichAddressPartsByLocale(addressParts, address);
+  if (!isLightMode) {
+    addressParts = enrichAddressPartsByLocale(addressParts, address);
+  }
 
   const rawName = normalizeNullable(parsed.data.name);
   const rawCompany = normalizeNullable(parsed.data.company);
-  const inferredIdentity = inferIdentityFromRawText(rawText, rawLines, normalizationHints);
+  const inferredIdentity = isLightMode
+    ? { inferredName: null, inferredTitle: null, inferredCompany: null }
+    : inferIdentityFromRawText(rawText, rawLines, normalizationHints);
 
   let name = sanitizeName(rawName);
   let company = sanitizeCompany(rawCompany);
@@ -1573,8 +1730,7 @@ export function validateAndNormalizeBusinessCardExtraction(
     const domain = emails[0]?.split("@")[1]?.split(".")[0];
     if (domain && rawText) {
       const domainUpper = domain.toUpperCase();
-      const lines = rawText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-      for (const line of lines) {
+      for (const line of cachedRawLines) {
         if (line.toUpperCase().includes(domainUpper) && !CONTACT_TOKEN_REGEX.test(line) && !/@/.test(line)) {
           company = line.replace(/\s+/g, " ").trim();
           break;
@@ -1586,8 +1742,7 @@ export function validateAndNormalizeBusinessCardExtraction(
   if (!company && website && rawText) {
     const websiteStem = extractDomainFromWebsite(website).split(".")[0]?.replace(/[-_]/g, " ").trim();
     if (websiteStem) {
-      const lines = rawText.split(/\r?\n/).map((line) => line.replace(/\s+/g, " ").trim()).filter(Boolean);
-      const matchedLine = lines.find((line) => {
+      const matchedLine = cachedRawLines.find((line) => {
         const normalizedLine = line.toLocaleLowerCase("tr-TR");
         return normalizedLine.includes(websiteStem.toLocaleLowerCase("tr-TR")) && !CONTACT_TOKEN_REGEX.test(line);
       });
@@ -1597,54 +1752,56 @@ export function validateAndNormalizeBusinessCardExtraction(
     }
   }
 
-  const domainDrivenCompany = inferCompanyFromDomainLines(rawText, [
-    extractDomainFromWebsite(website ?? ""),
-    ...(emails[0] ? [emails[0].split("@")[1] ?? ""] : []),
-  ]);
-  const exactBrandCompany =
-    inferExactBrandLineFromDomain(rawText, extractDomainFromWebsite(website ?? "")) ??
-    inferExactBrandLineFromDomain(rawText, emails[0]?.split("@")[1] ?? "");
-  if (/^(?:ООО|ЗАО|ОАО)$/u.test(company ?? "") && rawText) {
-    const russianLegalLine = rawText
-      .split(/\r?\n/)
-      .map((line) => line.replace(/\s+/g, " ").trim())
-      .find((line) => /^(?:ООО|ЗАО|ОАО)\s+\p{L}+/u.test(line));
-    if (russianLegalLine) {
-      company = sanitizeCompany(russianLegalLine);
+  let domainDrivenCompany: string | null = null;
+  let exactBrandCompany: string | null = null;
+  if (!isLightMode) {
+    domainDrivenCompany = inferCompanyFromDomainLines(rawText, [
+      extractDomainFromWebsite(website ?? ""),
+      ...(emails[0] ? [emails[0].split("@")[1] ?? ""] : []),
+    ]);
+    exactBrandCompany =
+      inferExactBrandLineFromDomain(rawText, extractDomainFromWebsite(website ?? "")) ??
+      inferExactBrandLineFromDomain(rawText, emails[0]?.split("@")[1] ?? "");
+    if (/^(?:ООО|ЗАО|ОАО)$/u.test(company ?? "") && rawText) {
+      const russianLegalLine = cachedRawLines.find((line) => /^(?:ООО|ЗАО|ОАО)\s+\p{L}+/u.test(line));
+      if (russianLegalLine) {
+        company = sanitizeCompany(russianLegalLine);
+      }
     }
-  }
-  if (shouldPreferRicherCompanyCandidate(company, domainDrivenCompany)) {
-    company = sanitizeCompany(domainDrivenCompany);
-  } else if (company && domainDrivenCompany) {
-    const currentFolded = foldLocaleToken(company).replace(/[^\p{L}\d]/gu, "");
-    const domainFolded = foldLocaleToken(domainDrivenCompany).replace(/[^\p{L}\d]/gu, "");
-    const websiteStem = extractDomainFromWebsite(website ?? "").split(".")[0] ?? "";
-    const stemFolded = foldLocaleToken(websiteStem).replace(/[^\p{L}\d]/gu, "");
-    if (
-      stemFolded &&
-      !currentFolded.includes(stemFolded) &&
-      domainFolded.includes(stemFolded) &&
-      (isWeakCompanyCandidate(company) || !hasCompanyMarker(company) || /\b(?:group|grup)\b/i.test(company))
-    ) {
+    if (shouldPreferRicherCompanyCandidate(company, domainDrivenCompany)) {
       company = sanitizeCompany(domainDrivenCompany);
+    } else if (company && domainDrivenCompany) {
+      const currentFolded = foldLocaleToken(company).replace(/[^\p{L}\d]/gu, "");
+      const domainFolded = foldLocaleToken(domainDrivenCompany).replace(/[^\p{L}\d]/gu, "");
+      const websiteStem = extractDomainFromWebsite(website ?? "").split(".")[0] ?? "";
+      const stemFolded = foldLocaleToken(websiteStem).replace(/[^\p{L}\d]/gu, "");
+      if (
+        stemFolded &&
+        !currentFolded.includes(stemFolded) &&
+        domainFolded.includes(stemFolded) &&
+        (isWeakCompanyCandidate(company) || !hasCompanyMarker(company) || /\b(?:group|grup)\b/i.test(company))
+      ) {
+        company = sanitizeCompany(domainDrivenCompany);
+      }
     }
-  }
-  if (exactBrandCompany && (isWeakCompanyCandidate(company) || /\b(?:group|grup)\b/i.test(company ?? ""))) {
-    company = sanitizeCompany(exactBrandCompany);
-  }
-  if (exactBrandCompany && company) {
-    const currentFolded = foldLocaleToken(company).replace(/[^\p{L}\d]/gu, "");
-    const exactFolded = foldLocaleToken(exactBrandCompany).replace(/[^\p{L}\d]/gu, "");
-    if (
-      exactFolded &&
-      currentFolded !== exactFolded &&
-      (/\b(?:group|grup)\b/i.test(company) || isWeakCompanyCandidate(company) || !currentFolded.includes(exactFolded))
-    ) {
+    if (exactBrandCompany && (isWeakCompanyCandidate(company) || /\b(?:group|grup)\b/i.test(company ?? ""))) {
       company = sanitizeCompany(exactBrandCompany);
+    }
+    if (exactBrandCompany && company) {
+      const currentFolded = foldLocaleToken(company).replace(/[^\p{L}\d]/gu, "");
+      const exactFolded = foldLocaleToken(exactBrandCompany).replace(/[^\p{L}\d]/gu, "");
+      if (
+        exactFolded &&
+        currentFolded !== exactFolded &&
+        (/\b(?:group|grup)\b/i.test(company) || isWeakCompanyCandidate(company) || !currentFolded.includes(exactFolded))
+      ) {
+        company = sanitizeCompany(exactBrandCompany);
+      }
     }
   }
 
   if (
+    !isLightMode &&
     company &&
     rawText &&
     (
@@ -1658,8 +1815,7 @@ export function validateAndNormalizeBusinessCardExtraction(
     )
   ) {
     const websiteStem = extractDomainFromWebsite(website ?? "").split(".")[0]?.replace(/[-_]/g, " ").trim();
-    const lines = rawText.split(/\r?\n/).map((line) => line.replace(/\s+/g, " ").trim()).filter(Boolean);
-    const enrichedCompanyCandidates = [...lines]
+    const enrichedCompanyCandidates = [...cachedRawLines]
       .filter((line) => {
       const normalizedLine = line.toLocaleLowerCase("tr-TR");
       const matchesWebsiteStem = websiteStem
@@ -1687,16 +1843,75 @@ export function validateAndNormalizeBusinessCardExtraction(
   }
 
   if (/^(?:ООО|ЗАО|ОАО)$/u.test(company ?? "") && rawText) {
-    const russianLegalLine = rawText
-      .split(/\r?\n/)
-      .map((line) => line.replace(/\s+/g, " ").trim())
-      .find((line) => /^(?:ООО|ЗАО|ОАО)\s+\p{L}+/u.test(line));
+    const russianLegalLine = cachedRawLines.find((line) => /^(?:ООО|ЗАО|ОАО)\s+\p{L}+/u.test(line));
     if (russianLegalLine) {
       company = russianLegalLine.replace(/\s+/g, " ").trim();
     }
   }
 
-  company = normalizeCompanyConnectors(normalizeCompanySuffix(beautifyCompanyWithRawContext(company, rawText)));
+  const brandStemSource = extractDomainFromWebsite(website ?? "") || (emails[0]?.split("@")[1] ?? "");
+  const brandStem = brandStemSource.split(".")[0]?.trim() ?? "";
+  const brandStemFolded = foldLocaleToken(brandStem).replace(/[^\p{L}\d]/gu, "");
+  if (brandStemFolded) {
+    const cheapBrandLine = cachedRawLines.find((line) => {
+      if (CONTACT_TOKEN_REGEX.test(line) || ADDRESS_HINT_REGEX.test(line) || hasTitleKeyword(line)) return false;
+      const folded = foldLocaleToken(line).replace(/[^\p{L}\d]/gu, "");
+      if (!folded || line.length > 32) return false;
+      return folded.includes(brandStemFolded) || brandStemFolded.includes(folded);
+    });
+
+    if (cheapBrandLine) {
+      const sanitizedBrandLine = sanitizeCompany(cheapBrandLine);
+      const companyFolded = foldLocaleToken(company ?? "").replace(/[^\p{L}\d]/gu, "");
+      const brandLineFolded = foldLocaleToken(sanitizedBrandLine ?? "").replace(/[^\p{L}\d]/gu, "");
+
+      if (!company || isWeakCompanyCandidate(company) || isGenericIndustryOnlyCompany(company, brandStemFolded)) {
+        company = sanitizedBrandLine;
+      } else if (
+        sanitizedBrandLine &&
+        brandLineFolded &&
+        companyFolded &&
+        !companyFolded.includes(brandLineFolded) &&
+        (
+          hasCompanyMarker(company) ||
+          isGenericIndustryOnlyCompany(company, brandStemFolded) ||
+          (!companyFolded.includes(brandStemFolded) && !looksLikeSloganOrDecorativeLine(sanitizedBrandLine))
+        )
+      ) {
+        company = sanitizeCompany(`${sanitizedBrandLine} ${company}`);
+      }
+    }
+  }
+
+  company = normalizeCompanyConnectors(
+    normalizeCompanySuffix(isLightMode ? company : beautifyCompanyWithRawContext(company, rawText))
+  );
+
+  if (name && hasTitleKeyword(name)) {
+    if (!title) {
+      title = sanitizeTitle(name);
+    }
+    name = null;
+  }
+
+  if (!name && title) {
+    const rescuedName = rescuePersonNearTitleFromRawLines(cachedRawLines, title, company);
+    if (rescuedName) {
+      name = rescuedName;
+    }
+  }
+
+  if (name && looksLikeCompany(name) && (!company || isWeakCompanyCandidate(company))) {
+    company = normalizeCompanyConnectors(normalizeCompanySuffix(sanitizeCompany(name)));
+    name = null;
+  }
+
+  if ((!website || /^(?:com|net|org|gov|edu|biz|info|co)\.[a-z]{2,}$/i.test(website)) && emails.length > 0) {
+    const emailDomain = emails[0]?.split("@")[1]?.trim().toLowerCase();
+    if (emailDomain && !FREE_EMAIL_PROVIDER_SET.has(emailDomain)) {
+      website = `www.${emailDomain}`;
+    }
+  }
 
   const contactNameAndSurname = name;
 

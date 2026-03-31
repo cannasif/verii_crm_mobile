@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  InteractionManager,
   Image,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -36,7 +37,8 @@ import {
   useDeleteCustomer,
   useCustomerTypes,
   useBusinessCardScan,
-  useBusinessCardPotentialMatches
+  useBusinessCardPotentialMatches,
+  useQrCustomerScan
 } from "../hooks";
 import { useCustomerShippingAddresses } from "../../shipping-address/hooks/useShippingAddresses";
 import { BusinessCardReviewModal, FormField, LocationPicker, PremiumPicker } from "../components";
@@ -58,6 +60,56 @@ import {
   Briefcase01Icon,
   ArrowRight01Icon
 } from "hugeicons-react-native";
+
+type FormSectionProps = {
+  title: string;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+  theme: {
+    cardBg: string;
+    border: string;
+    shadow: string;
+    text: string;
+    primary: string;
+  };
+  isDark: boolean;
+};
+
+function FormSection({ title, icon, children, theme, isDark }: FormSectionProps): React.ReactElement | null {
+  const hasChildren = React.Children.count(children) > 0;
+  if (!hasChildren) return null;
+
+  return (
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: theme.cardBg,
+          borderColor: theme.border,
+          shadowColor: theme.shadow,
+          shadowOpacity: isDark ? 0.3 : 0.04,
+          shadowRadius: isDark ? 8 : 4,
+          elevation: isDark ? 0 : 2,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.sectionHeader,
+          { borderBottomColor: theme.border, borderBottomWidth: 1, paddingBottom: 6 },
+        ]}
+      >
+        {icon ? (
+          <View style={[styles.sectionIcon, { backgroundColor: isDark ? "rgba(219, 39, 119, 0.15)" : "#FFF1F2" }]}>
+            {icon}
+          </View>
+        ) : null}
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{title}</Text>
+      </View>
+      <View style={{ gap: 8 }}>{children}</View>
+    </View>
+  );
+}
 
 export function CustomerFormScreen(): React.ReactElement {
   const { t } = useTranslation();
@@ -114,15 +166,18 @@ export function CustomerFormScreen(): React.ReactElement {
   const [activeTab, setActiveTab] = useState<"general" | "details">("general");
 
   const [shippingAddressModalOpen, setShippingAddressModalOpen] = useState(false);
-  const [scannedImageUri, setScannedImageUri] = useState<string | null>(null);
+  const [scannedOriginalImageUri, setScannedOriginalImageUri] = useState<string | null>(null);
+  const [scannedPreviewUri, setScannedPreviewUri] = useState<string | null>(null);
   const [scannedContactName, setScannedContactName] = useState<string | null>(null);
   const [scannedTitle, setScannedTitle] = useState<string | null>(null);
   const [ocrCountryName, setOcrCountryName] = useState<string | null>(null);
   const [ocrCityName, setOcrCityName] = useState<string | null>(null);
   const [ocrDistrictName, setOcrDistrictName] = useState<string | null>(null);
   const [pendingBusinessCardResult, setPendingBusinessCardResult] = useState<BusinessCardOcrResult | null>(null);
+  const [pendingReviewSource, setPendingReviewSource] = useState<"businessCard" | "qr">("businessCard");
   const [isBusinessCardReviewOpen, setIsBusinessCardReviewOpen] = useState(false);
   const [isTranslatingBusinessCard, setIsTranslatingBusinessCard] = useState(false);
+  const [isPotentialMatchSearchEnabled, setIsPotentialMatchSearchEnabled] = useState(false);
 
   const { data: existingCustomer, isLoading: customerLoading } = useCustomer(customerId);
   const { data: customerTypes } = useCustomerTypes();
@@ -131,7 +186,11 @@ export function CustomerFormScreen(): React.ReactElement {
   const createCustomerFromMobile = useCreateCustomerFromMobile();
   const updateCustomer = useUpdateCustomer();
   const { scanBusinessCard, pickBusinessCardFromGallery, retryBusinessCardExtraction, isScanning, error: scanError } = useBusinessCardScan();
-  const potentialMatchesQuery = useBusinessCardPotentialMatches(pendingBusinessCardResult, isBusinessCardReviewOpen);
+  const { scanQrFromCamera, pickQrFromGallery, isScanningQr, qrError } = useQrCustomerScan();
+  const potentialMatchesQuery = useBusinessCardPotentialMatches(
+    pendingBusinessCardResult,
+    isBusinessCardReviewOpen && isPotentialMatchSearchEnabled
+  );
 
   const schema = useMemo(() => createCustomerSchema(), []);
 
@@ -139,6 +198,7 @@ export function CustomerFormScreen(): React.ReactElement {
     control,
     handleSubmit,
     setValue,
+    getValues,
     watch,
     reset,
     formState: { errors, isSubmitting },
@@ -174,6 +234,15 @@ export function CustomerFormScreen(): React.ReactElement {
   const { data: districts } = useDistricts(watchCityId);
 
   const selectedShippingAddress = customerShippingAddresses.find((address) => address.id === watchDefaultShippingAddressId);
+  const isMountedRef = useRef(true);
+  const applyingScanRef = useRef<string | null>(null);
+  const lastAppliedScanRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const customerTypeOptions = useMemo(() => {
     if (!customerTypes) return [];
@@ -312,7 +381,7 @@ export function CustomerFormScreen(): React.ReactElement {
         await updateCustomer.mutateAsync({ id: customerId, data: updatePayload });
         Alert.alert("", t("customer.updateSuccess"));
       } else {
-        const shouldUseMobileOcrFlow = Boolean(scannedImageUri);
+        const shouldUseMobileOcrFlow = Boolean(scannedOriginalImageUri);
 
         if (shouldUseMobileOcrFlow) {
           const contactNameParts = splitContactName(scannedContactName);
@@ -338,8 +407,8 @@ export function CustomerFormScreen(): React.ReactElement {
             creditLimit: base.creditLimit,
             branchCode: base.branchCode,
             businessUnitCode: base.businessUnitCode,
-            imageUri: scannedImageUri || undefined,
-            imageDescription: scannedImageUri ? "Kartvizit görseli" : undefined,
+            imageUri: scannedOriginalImageUri || undefined,
+            imageDescription: scannedOriginalImageUri ? "Kartvizit görseli" : undefined,
           });
 
           if (mobileCreateResult.imageUploaded === false && mobileCreateResult.imageUploadError) {
@@ -389,7 +458,6 @@ export function CustomerFormScreen(): React.ReactElement {
     t,
     toNumber,
     toNumberOptional,
-    scannedImageUri,
     scannedContactName,
     scannedTitle
   ]);
@@ -441,26 +509,77 @@ export function CustomerFormScreen(): React.ReactElement {
     }
   }, [ocrDistrictName, watchCityId, watchDistrictId, districts, findLookupByName, handleDistrictChange]);
 
+  const buildScanApplyKey = useCallback((data: BusinessCardOcrResult): string => {
+    return [
+      data.imageUri ?? "",
+      data.customerName ?? "",
+      data.contactNameAndSurname ?? "",
+      data.title ?? "",
+      data.phone1 ?? "",
+      data.email ?? "",
+    ].join("|");
+  }, []);
+
   const applyBusinessCardResult = useCallback((data: BusinessCardOcrResult) => {
-    if (data.customerName) setValue("name", data.customerName);
+    if (!isMountedRef.current) return;
+    const startedAt = Date.now();
+    console.log("[BusinessCardReview] apply_to_form_start", {
+      apply_to_form_start: startedAt,
+      imageUri: data.imageUri ?? null,
+    });
+
+    const current = getValues();
+    reset(
+      {
+        ...current,
+        name: data.customerName ?? current.name,
+        email: data.email ?? current.email,
+        phone: data.phone1 ?? current.phone,
+        phone2: data.phone2 ?? current.phone2,
+        address: data.address ?? current.address,
+        website: data.website ?? current.website,
+        notes: data.notes ?? current.notes,
+      },
+      { keepDefaultValues: true }
+    );
+
+    if (data.previewUri) setScannedPreviewUri(data.previewUri);
     if (data.contactNameAndSurname) setScannedContactName(data.contactNameAndSurname);
     if (data.title) setScannedTitle(data.title);
     if (data.countryName) setOcrCountryName(data.countryName);
     if (data.cityName) setOcrCityName(data.cityName);
     if (data.districtName) setOcrDistrictName(data.districtName);
-    if (data.email) setValue("email", data.email ?? "");
-    if (data.phone1) setValue("phone", data.phone1);
-    if (data.phone2) setValue("phone2", data.phone2);
-    if (data.address) setValue("address", data.address ?? "");
-    if (data.website) setValue("website", data.website ?? "");
-    if (data.notes) setValue("notes", data.notes);
-    if (data.imageUri) setScannedImageUri(data.imageUri);
-  }, [setValue]);
+    if (data.imageUri) setScannedOriginalImageUri(data.imageUri);
+
+    console.log("[BusinessCardReview] apply_to_form_end", {
+      apply_to_form_end: Date.now(),
+      durationMs: Date.now() - startedAt,
+      imageUri: data.imageUri ?? null,
+    });
+  }, [getValues, reset]);
 
   const openBusinessCardReview = useCallback((result: BusinessCardOcrResult | null) => {
     if (!result) return;
+    setPendingReviewSource("businessCard");
     setPendingBusinessCardResult(result);
     setIsBusinessCardReviewOpen(true);
+    console.log("[BusinessCardReview] review_state_set", {
+      review_state_set: Date.now(),
+      source: "businessCard",
+      imageUri: result.imageUri ?? null,
+    });
+  }, []);
+
+  const openQrReview = useCallback((result: BusinessCardOcrResult | null) => {
+    if (!result) return;
+    setPendingReviewSource("qr");
+    setPendingBusinessCardResult(result);
+    setIsBusinessCardReviewOpen(true);
+    console.log("[BusinessCardReview] review_state_set", {
+      review_state_set: Date.now(),
+      source: "qr",
+      imageUri: result.imageUri ?? null,
+    });
   }, []);
 
   const handleScanBusinessCard = useCallback(async () => {
@@ -472,6 +591,16 @@ export function CustomerFormScreen(): React.ReactElement {
     const result = await pickBusinessCardFromGallery();
     openBusinessCardReview(result);
   }, [pickBusinessCardFromGallery, openBusinessCardReview]);
+
+  const handleScanQr = useCallback(async () => {
+    const result = await scanQrFromCamera();
+    openQrReview(result);
+  }, [openQrReview, scanQrFromCamera]);
+
+  const handlePickQrFromGallery = useCallback(async () => {
+    const result = await pickQrFromGallery();
+    openQrReview(result);
+  }, [openQrReview, pickQrFromGallery]);
 
   const [hasAutoScanned, setHasAutoScanned] = useState(false);
 
@@ -489,19 +618,41 @@ export function CustomerFormScreen(): React.ReactElement {
     setPendingBusinessCardResult(null);
   }, []);
 
-  const handleConfirmBusinessCardReview = useCallback(() => {
-    if (pendingBusinessCardResult) {
+  const handleConfirmBusinessCardReview = useCallback((confirmedResult?: BusinessCardOcrResult) => {
+    const resultToApply = confirmedResult ?? pendingBusinessCardResult;
+    if (resultToApply) {
       void trackBusinessCardTelemetry({
         type: "review_confirmed",
-        details: { overallConfidence: pendingBusinessCardResult.review?.overallConfidence ?? null },
+        details: { overallConfidence: resultToApply.review?.overallConfidence ?? null },
       });
-      applyBusinessCardResult(pendingBusinessCardResult);
     }
     setIsBusinessCardReviewOpen(false);
     setPendingBusinessCardResult(null);
-  }, [pendingBusinessCardResult, applyBusinessCardResult]);
+    if (!resultToApply) return;
+
+    const applyKey = buildScanApplyKey(resultToApply);
+    if (applyingScanRef.current === applyKey || lastAppliedScanRef.current === applyKey) {
+      return;
+    }
+
+    applyingScanRef.current = applyKey;
+    InteractionManager.runAfterInteractions(() => {
+      if (!isMountedRef.current) {
+        applyingScanRef.current = null;
+        return;
+      }
+      applyBusinessCardResult(resultToApply);
+      lastAppliedScanRef.current = applyKey;
+      applyingScanRef.current = null;
+    });
+  }, [pendingBusinessCardResult, buildScanApplyKey, applyBusinessCardResult]);
 
   const handleRetryBusinessCardReview = useCallback(async () => {
+    if (pendingReviewSource === "qr") {
+      setIsBusinessCardReviewOpen(false);
+      setPendingBusinessCardResult(null);
+      return;
+    }
     if (!pendingBusinessCardResult?.imageUri) {
       Alert.alert(t("customer.scanCard"), t("customer.retryImageMissing"));
       return;
@@ -510,15 +661,11 @@ export function CustomerFormScreen(): React.ReactElement {
       type: "review_retry",
       details: { overallConfidence: pendingBusinessCardResult.review?.overallConfidence ?? null },
     });
-    setIsBusinessCardReviewOpen(false);
     const retriedResult = await retryBusinessCardExtraction(pendingBusinessCardResult.imageUri);
     if (retriedResult) {
       setPendingBusinessCardResult(retriedResult);
-      setIsBusinessCardReviewOpen(true);
-      return;
     }
-    setIsBusinessCardReviewOpen(true);
-  }, [pendingBusinessCardResult, retryBusinessCardExtraction, t]);
+  }, [pendingBusinessCardResult, pendingReviewSource, retryBusinessCardExtraction, t]);
 
   const handleTranslateBusinessCardReview = useCallback(async () => {
     if (!pendingBusinessCardResult) return;
@@ -538,39 +685,30 @@ export function CustomerFormScreen(): React.ReactElement {
     }
   }, [pendingBusinessCardResult]);
 
-  const FormSection = ({ title, icon, children }: { title: string, icon?: React.ReactNode, children: React.ReactNode }) => {
-    const hasChildren = React.Children.count(children) > 0;
-    if (!hasChildren) return null;
+  useEffect(() => {
+    if (!isBusinessCardReviewOpen || !pendingBusinessCardResult || pendingReviewSource !== "businessCard") {
+      setIsPotentialMatchSearchEnabled(false);
+      return;
+    }
 
-    return (
-      <View 
-        style={[
-          styles.card, 
-          { 
-            backgroundColor: THEME.cardBg, 
-            borderColor: THEME.border, 
-            shadowColor: THEME.shadow,
-            shadowOpacity: isDark ? 0.3 : 0.04, 
-            shadowRadius: isDark ? 8 : 4,
-            elevation: isDark ? 0 : 2,
-          }
-        ]}
-      >
-        <View style={[
-            styles.sectionHeader, 
-            { borderBottomColor: THEME.border, borderBottomWidth: 1, paddingBottom: 6 }
-        ]}>
-          {icon && (
-            <View style={[styles.sectionIcon, { backgroundColor: isDark ? 'rgba(219, 39, 119, 0.15)' : '#FFF1F2' }]}>
-              {icon}
-            </View>
-          )}
-          <Text style={[styles.sectionTitle, { color: THEME.text }]}>{title}</Text>
-        </View>
-        <View style={{ gap: 8 }}>{children}</View> 
-      </View>
-    );
-  };
+    setIsPotentialMatchSearchEnabled(false);
+    const startedAt = Date.now();
+    const task = InteractionManager.runAfterInteractions(() => {
+      const timeoutId = setTimeout(() => {
+        console.log("[BusinessCardReview] potentialMatchesEnabled", {
+          delayMs: Date.now() - startedAt,
+        });
+        setIsPotentialMatchSearchEnabled(true);
+      }, 1200);
+
+      return () => clearTimeout(timeoutId);
+    });
+
+    return () => {
+      task.cancel();
+      setIsPotentialMatchSearchEnabled(false);
+    };
+  }, [isBusinessCardReviewOpen, pendingBusinessCardResult, pendingReviewSource]);
 
   if (isEditMode && customerLoading) {
     return (
@@ -663,8 +801,10 @@ export function CustomerFormScreen(): React.ReactElement {
               </TouchableOpacity>
             </View>
         
-            <View style={{ display: activeTab === "general" ? "flex" : "none", gap: 10 }}>
+            {activeTab === "general" ? (
+            <View style={{ gap: 10 }}>
               {(!isEditMode && formConfig.showBusinessCardScan) && (
+                <>
                 <View style={[styles.scannerContainer, { borderColor: THEME.primary, backgroundColor: `${THEME.primary}08` }]}>
                   <View style={styles.scannerContent}>
                     
@@ -677,31 +817,61 @@ export function CustomerFormScreen(): React.ReactElement {
                     </View>
 
                     <View style={styles.scannerButtonsRow}>
-                      <TouchableOpacity style={[styles.scannerIconButton, { borderColor: THEME.primary, backgroundColor: isDark ? 'rgba(0,0,0,0.3)' : '#FFF' }]} onPress={handleScanBusinessCard} disabled={isScanning}>
+                      <TouchableOpacity style={[styles.scannerIconButton, { borderColor: THEME.primary, backgroundColor: isDark ? 'rgba(0,0,0,0.3)' : '#FFF' }]} onPress={handleScanBusinessCard} disabled={isScanning || isScanningQr}>
                         {isScanning ? <ActivityIndicator size="small" color={THEME.primary} /> : <Camera01Icon size={16} color={THEME.primary} />}
                       </TouchableOpacity>
-                      <TouchableOpacity style={[styles.scannerIconButton, { borderColor: THEME.primary, backgroundColor: isDark ? 'rgba(0,0,0,0.3)' : '#FFF' }]} onPress={handlePickBusinessCardFromGallery} disabled={isScanning}>
+                      <TouchableOpacity style={[styles.scannerIconButton, { borderColor: THEME.primary, backgroundColor: isDark ? 'rgba(0,0,0,0.3)' : '#FFF' }]} onPress={handlePickBusinessCardFromGallery} disabled={isScanning || isScanningQr}>
                         {isScanning ? <ActivityIndicator size="small" color={THEME.primary} /> : <Image01Icon size={16} color={THEME.primary} />}
                       </TouchableOpacity>
                     </View>
 
                   </View>
 
-                  {scannedImageUri ? (
+                  {scannedOriginalImageUri ? (
                     <View style={[styles.previewContainer, { borderColor: THEME.border, backgroundColor: isDark ? "rgba(15,23,42,0.6)" : "#FFFFFF" }]}>
-                      <Image source={{ uri: scannedImageUri }} style={styles.previewImage} resizeMode="cover" />
+                      {scannedPreviewUri ? (
+                        <Image source={{ uri: scannedPreviewUri }} style={styles.previewImage} resizeMode="cover" />
+                      ) : null}
                       <View style={styles.previewTextContainer}>
-                        <Text style={[styles.previewTitle, { color: THEME.text }]}>Görsel Eklendi</Text>
+                        <Text style={[styles.previewTitle, { color: THEME.text }]}>Görsel hazır</Text>
+                        <Text style={[styles.previewSubtitle, { color: THEME.textMute }]}>Kartvizit görseli kayıt ve gelişmiş arama için saklanıyor.</Text>
                       </View>
-                      <TouchableOpacity onPress={() => setScannedImageUri(null)} style={[styles.previewRemoveBtn, { backgroundColor: THEME.primary + '15' }]}>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setScannedOriginalImageUri(null);
+                          setScannedPreviewUri(null);
+                        }}
+                        style={[styles.previewRemoveBtn, { backgroundColor: THEME.primary + '15' }]}
+                      >
                         <Text style={[styles.previewRemoveText, { color: THEME.primary }]}>SİL</Text>
                       </TouchableOpacity>
                     </View>
                   ) : null}
                 </View>
+                <View style={[styles.scannerContainer, { borderColor: THEME.border, backgroundColor: isDark ? "rgba(15,23,42,0.55)" : "#FFFFFF" }]}>
+                  <View style={styles.scannerContent}>
+                    <View style={styles.scannerLeft}>
+                      <ContactBookIcon size={20} color={THEME.text} variant="stroke" />
+                      <View>
+                        <Text style={[styles.scannerTitle, { color: THEME.text }]}>{t("customer.qrImportTitle")}</Text>
+                        <Text style={[styles.scannerSubtitle, { color: THEME.textMute }]}>{t("customer.qrImportSubtitle")}</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.scannerButtonsRow}>
+                      <TouchableOpacity style={[styles.scannerIconButton, { borderColor: THEME.border, backgroundColor: isDark ? 'rgba(0,0,0,0.3)' : '#FFF' }]} onPress={handleScanQr} disabled={isScanning || isScanningQr}>
+                        {isScanningQr ? <ActivityIndicator size="small" color={THEME.primary} /> : <Camera01Icon size={16} color={THEME.text} />}
+                      </TouchableOpacity>
+                      <TouchableOpacity style={[styles.scannerIconButton, { borderColor: THEME.border, backgroundColor: isDark ? 'rgba(0,0,0,0.3)' : '#FFF' }]} onPress={handlePickQrFromGallery} disabled={isScanning || isScanningQr}>
+                        {isScanningQr ? <ActivityIndicator size="small" color={THEME.primary} /> : <Image01Icon size={16} color={THEME.text} />}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+                </>
               )}
 
-              <FormSection title="Genel Bilgiler" icon={<UserCircleIcon size={16} color={THEME.primary} variant="stroke" />}>
+              <FormSection title="Genel Bilgiler" icon={<UserCircleIcon size={16} color={THEME.primary} variant="stroke" />} theme={THEME} isDark={isDark}>
                 <Controller
                   control={control}
                   name="name"
@@ -741,7 +911,7 @@ export function CustomerFormScreen(): React.ReactElement {
               </FormSection>
 
               {(formConfig.showPhone || formConfig.showPhone2 || formConfig.showEmail || formConfig.showWebsite) && (
-                <FormSection title="İletişim Bilgileri" icon={<ContactBookIcon size={16} color={THEME.primary} variant="stroke" />}>
+                <FormSection title="İletişim Bilgileri" icon={<ContactBookIcon size={16} color={THEME.primary} variant="stroke" />} theme={THEME} isDark={isDark}>
                   {(formConfig.showPhone || formConfig.showPhone2) && (
                       <View style={styles.row}>
                           {formConfig.showPhone && (
@@ -774,10 +944,12 @@ export function CustomerFormScreen(): React.ReactElement {
                 </FormSection>
               )}
             </View>
+            ) : null}
 
-            <View style={{ display: activeTab === "details" ? "flex" : "none", gap: 10 }}>
+            {activeTab === "details" ? (
+            <View style={{ gap: 10 }}>
               {(formConfig.showSalesRep || formConfig.showGroupCode || formConfig.showCreditLimit || formConfig.showBranchCode || formConfig.showBusinessUnit) && (
-                <FormSection title="Ticari Detaylar" icon={<Briefcase01Icon size={16} color={THEME.primary} variant="stroke" />}>
+                <FormSection title="Ticari Detaylar" icon={<Briefcase01Icon size={16} color={THEME.primary} variant="stroke" />} theme={THEME} isDark={isDark}>
                   
                   {(formConfig.showSalesRep || formConfig.showGroupCode) && (
                       <View style={styles.row}>
@@ -816,7 +988,7 @@ export function CustomerFormScreen(): React.ReactElement {
               )}
 
               {(formConfig.showAddress || formConfig.showLocation || formConfig.showShippingAddress) && (
-                <FormSection title="Adres Bilgileri" icon={<Location01Icon size={16} color={THEME.primary} variant="stroke" />}>
+                <FormSection title="Adres Bilgileri" icon={<Location01Icon size={16} color={THEME.primary} variant="stroke" />} theme={THEME} isDark={isDark}>
                   {formConfig.showLocation && (
                     <View style={styles.locationSection}>
                       <Text style={[styles.subSectionTitle, { color: THEME.textMute }]}>{t("lookup.location")}</Text>
@@ -843,7 +1015,7 @@ export function CustomerFormScreen(): React.ReactElement {
               )}
 
               {(formConfig.showTaxNumber || formConfig.showTaxOffice || formConfig.showTCKN) && (
-                <FormSection title="Yasal Bilgiler" icon={<Invoice01Icon size={16} color={THEME.primary} variant="stroke" />}>
+                <FormSection title="Yasal Bilgiler" icon={<Invoice01Icon size={16} color={THEME.primary} variant="stroke" />} theme={THEME} isDark={isDark}>
                   {(formConfig.showTaxOffice || formConfig.showTaxNumber) && (
                       <View style={styles.row}>
                           {formConfig.showTaxOffice && (
@@ -866,11 +1038,12 @@ export function CustomerFormScreen(): React.ReactElement {
               )}
 
               {formConfig.showNotes && (
-                <FormSection title="Notlar" icon={<NoteIcon size={16} color={THEME.primary} variant="stroke" />}>
+                <FormSection title="Notlar" icon={<NoteIcon size={16} color={THEME.primary} variant="stroke" />} theme={THEME} isDark={isDark}>
                   <Controller control={control} name="notes" render={({ field: { onChange, value, ref } }) => <FormField inputRef={ref} label={t("customer.notes")} value={value || ""} onChangeText={onChange} multiline numberOfLines={2} maxLength={250} />} />
                 </FormSection>
               )}
             </View>
+            ) : null}
 
         
             {activeTab === "general" ? (
@@ -957,11 +1130,12 @@ export function CustomerFormScreen(): React.ReactElement {
       <BusinessCardReviewModal
         visible={isBusinessCardReviewOpen}
         result={pendingBusinessCardResult}
-        isScanning={isScanning}
+        isScanning={isScanning || isScanningQr}
         isTranslating={isTranslatingBusinessCard}
         isDark={isDark}
         theme={THEME}
         potentialMatches={potentialMatchesQuery.data ?? []}
+        allowRetry={pendingReviewSource === "businessCard"}
         onCancel={handleCancelBusinessCardReview}
         onRetry={handleRetryBusinessCardReview}
         onConfirm={handleConfirmBusinessCardReview}
@@ -976,7 +1150,20 @@ const styles = StyleSheet.create({
   content: { flex: 1 },
   contentContainer: { padding: 10, gap: 5 }, 
   loadingContainer: { flex: 1, alignItems: "center", justifyContent: "center" },
-  
+  ocrReviewContent: {
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    gap: 12,
+  },
+  ocrReviewTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  ocrReviewSubtitle: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
   tabContainer: {
     flexDirection: 'row',
     marginHorizontal: 12, 
@@ -1098,9 +1285,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8, 
   },
-  previewImage: { width: 30, height: 30, borderRadius: 6 }, 
+  previewImage: {
+    width: 72,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: "#e5e7eb",
+  },
   previewTextContainer: { flex: 1, justifyContent: 'center' },
   previewTitle: { fontSize: 11, fontWeight: "600" }, 
+  previewSubtitle: { fontSize: 10, lineHeight: 14 },
   previewRemoveBtn: {
     borderRadius: 6,
     paddingHorizontal: 8, 

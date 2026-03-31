@@ -1,20 +1,17 @@
 import { useCallback, useRef, useState } from "react";
-import { Alert } from "react-native";
 import { useTranslation } from "react-i18next";
 import { runOCR } from "../services/ocrService";
 import { preprocessBusinessCardOcr } from "../services/businessCardOcrPreprocessService";
 import { buildBusinessCardOcrVariants } from "../services/businessCardSecondPassService";
-import { estimateBusinessCardRotation } from "../services/businessCardOcrGeometryService";
-import { rotateAndDeskewBusinessCardImage } from "../services/businessCardNativeImageProcessor";
 import { extractBusinessCardViaLLM } from "../services/businessCardLlmService";
 import { buildBusinessCardCandidateHints } from "../services/businessCardHeuristics";
 import { captureBusinessCardFromCamera, pickBusinessCardImageFromGallery } from "../services/businessCardCaptureService";
-import { assessBusinessCardImageQuality } from "../services/businessCardImageQualityService";
+import { createBusinessCardPreviewImage } from "../services/businessCardNativeImageProcessor";
 import { assessBusinessCardOcrQuality, mergeReviewWithQualityAssessment } from "../services/businessCardQualityService";
-import { detectQrFromImage } from "../services/businessCardQrService";
 import { trackBusinessCardTelemetry } from "../services/businessCardTelemetryService";
 import { detectBusinessCardLanguageProfile } from "../services/businessCardLanguageProfileService";
 import {
+  mergeBusinessCardExtractions,
   pickBestBusinessCardExtraction,
   repairJsonString,
   toBusinessCardOcrResult,
@@ -25,6 +22,7 @@ import type { BusinessCardOcrResult } from "../types/businessCard";
 import type { OcrResultPayload } from "../services/ocrService";
 
 function fallbackToStructuredInput(parsed: BusinessCardOcrResult): {
+  contactNameAndSurname: string | null;
   name: string | null;
   title: string | null;
   company: string | null;
@@ -36,10 +34,11 @@ function fallbackToStructuredInput(parsed: BusinessCardOcrResult): {
   notes: string[];
 } {
   return {
-    name: parsed.customerName ?? null,
-    title: null,
+    contactNameAndSurname: parsed.contactNameAndSurname ?? null,
+    name: parsed.contactNameAndSurname ?? null,
+    title: parsed.title ?? null,
     company: parsed.customerName ?? null,
-    phones: parsed.phone1 ? [parsed.phone1] : [],
+    phones: [parsed.phone1, parsed.phone2].filter(Boolean) as string[],
     emails: parsed.email ? [parsed.email] : [],
     website: parsed.website ?? null,
     address: parsed.address ?? null,
@@ -49,29 +48,70 @@ function fallbackToStructuredInput(parsed: BusinessCardOcrResult): {
       x: null,
       facebook: null,
     },
-    notes: [],
+    notes: parsed.notes ? [parsed.notes] : [],
   };
 }
 
-type SourceChoice = "businessCard" | "qr" | "cancel";
-type QualityGateChoice = "continue" | "retry" | "cancel";
-type ScanSource = "camera" | "gallery";
+type ScanLane = "fast" | "advanced";
 type ScanStageTimings = {
-  qrMs?: number;
-  previewOcrMs?: number;
-  qualityGateMs?: number;
-  processMs?: number;
-  totalMs?: number;
+  lane: ScanLane;
+  acquire_time?: number;
+  image_handling_time: number;
+  preview_generate_time: number;
+  ocr_time: number;
+  parse_time: number;
+  normalize_time: number;
+  llm_time: number;
+  second_pass_time: number;
+  total_time: number;
+  llm_called: boolean;
 };
-type PreparedBusinessCardScan = {
-  effectiveImageUri: string;
-  effectiveOcr: OcrResultPayload;
+type CachedOcrEntry = {
+  raw: OcrResultPayload;
+  preprocessed?: OcrResultPayload;
 };
 
-function mergeQrNotes(current: string | undefined, qrNote: string): string {
-  if (!current) return qrNote;
-  if (current.includes(qrNote)) return current;
-  return `${current}\n${qrNote}`;
+function buildPreferredRawText(ocr: OcrResultPayload): string {
+  const lineText = ocr.lines.join("\n").trim();
+  const rawText = (ocr.rawText || "").trim();
+  if (!rawText) return lineText;
+  if (ocr.lines.length >= 3 && rawText.split(/\r?\n/).length <= 1) {
+    return lineText || rawText;
+  }
+  return rawText.length >= lineText.length ? rawText : lineText || rawText;
+}
+
+function buildFastLaneOcrWindow(ocr: OcrResultPayload): {
+  rawText: string;
+  lines: string[];
+} {
+  const limitedLines = ocr.lines
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 28);
+
+  const truncatedLines = limitedLines.map((line) => (line.length > 96 ? line.slice(0, 96).trim() : line));
+  const joined = truncatedLines.join("\n").trim();
+  const rawText = joined.length > 0 ? joined : buildPreferredRawText(ocr).slice(0, 1400).trim();
+
+  return {
+    rawText: rawText.length > 1400 ? rawText.slice(0, 1400).trim() : rawText,
+    lines: truncatedLines,
+  };
+}
+
+function isLikelyBusinessCardSignal(rawText: string, lines: string[]): boolean {
+  const normalized = rawText.replace(/\s+/g, " ").trim();
+  const contactSignals = (normalized.match(/@|www\.|https?:\/\/|\+\d|\b(?:tel|telefon|gsm|mobile|fax|email|e-mail|web)\b/gi) ?? []).length;
+  const uppercaseShortLines = lines.filter((line) => /^[\p{L}\s&.-]{2,40}$/u.test(line) && line === line.toUpperCase()).length;
+  const personLikeLines = lines.filter((line) => {
+    const tokens = line.replace(/[^\p{L}\s'.-]/gu, " ").split(/\s+/).filter(Boolean);
+    return tokens.length >= 2 && tokens.length <= 4;
+  }).length;
+  const uiNoiseHits = (normalized.match(/\b(?:giriş yap|şube seçin|beni hatırla|şifremi unuttum|login|sign in|password)\b/gi) ?? []).length;
+
+  if (uiNoiseHits >= 2 && contactSignals === 0) return false;
+  return contactSignals >= 1 || uppercaseShortLines >= 1 || personLikeLines >= 1;
 }
 
 function applyQualityReview(
@@ -85,6 +125,54 @@ function applyQualityReview(
     ...result,
     review: mergeReviewWithQualityAssessment(result.review, quality),
   };
+}
+
+function rescueNameFromTitleNeighbor(result: BusinessCardOcrResult, orderedLines: string[]): BusinessCardOcrResult {
+  if (result.contactNameAndSurname?.trim() || !result.title?.trim()) return result;
+
+  const normalizedTitle = result.title.trim().toLocaleLowerCase("tr-TR");
+  const titleIndex = orderedLines.findIndex((line) => {
+    const normalizedLine = line.trim().toLocaleLowerCase("tr-TR");
+    return normalizedLine === normalizedTitle || normalizedLine.includes(normalizedTitle) || normalizedTitle.includes(normalizedLine);
+  });
+
+  if (titleIndex <= 0) return result;
+
+  const isNoise = (value: string): boolean =>
+    /@|www\.|https?:\/\/|\+?\d{6,}|\b(?:mah|mh|cad|cd|sok|sk|no|kat|fax|gsm|tel|telefon|email|e-?posta|web|website)\b/i.test(
+      value
+    );
+  const isCompanyish = (value: string): boolean =>
+    /\b(?:ltd|a\.ş|aş|san|tic|gmbh|llc|inc|corp|makine|machine|otomasyon|automation|systems|sistemleri|holding|group|grup)\b/i.test(
+      value
+    ) || value === value.toUpperCase();
+  const isSimpleName = (value: string): boolean => {
+    const tokens = value.replace(/[^\p{L}\s'.-]/gu, " ").split(/\s+/).filter(Boolean);
+    if (tokens.length < 2 || tokens.length > 4) return false;
+    return tokens.every((token) => /^[\p{L}.'-]+$/u.test(token));
+  };
+
+  const prev = orderedLines[titleIndex - 1]?.trim() ?? "";
+  if (prev && !isNoise(prev) && !isCompanyish(prev) && isSimpleName(prev)) {
+    return { ...result, contactNameAndSurname: prev };
+  }
+
+  const prev2 = orderedLines[titleIndex - 2]?.trim() ?? "";
+  if (
+    prev2 &&
+    prev &&
+    !isNoise(prev2) &&
+    !isNoise(prev) &&
+    !isCompanyish(prev2) &&
+    !isCompanyish(prev)
+  ) {
+    const merged = `${prev2} ${prev}`.replace(/\s+/g, " ").trim();
+    if (isSimpleName(merged)) {
+      return { ...result, contactNameAndSurname: merged };
+    }
+  }
+
+  return result;
 }
 
 function withLanguageProfile(
@@ -218,16 +306,125 @@ function shouldUseTurkishFastPath(result: BusinessCardOcrResult | null | undefin
   );
 }
 
-function shouldApplyDeskew(estimatedRotation: number | null | undefined, lineCount: number): boolean {
-  if (typeof estimatedRotation !== "number" || !Number.isFinite(estimatedRotation)) return false;
-  if (lineCount < 4) return false;
-  const absRotation = Math.abs(estimatedRotation);
-  return absRotation >= 12 && absRotation <= 45;
+function isWeakIdentityValue(value: string | null | undefined): boolean {
+  const normalized = value?.trim() ?? "";
+  if (!normalized) return true;
+  if (normalized.length < 4) return true;
+  if (/^(group|grup|trade|arma|btso|company|firma)$/i.test(normalized)) return true;
+  return false;
+}
+
+function shouldRunFastIdentityAssist(result: BusinessCardOcrResult, rawText: string): boolean {
+  const review = result.review;
+  const supportSignals = [result.phone1, result.email, result.website, result.address].filter(Boolean).length;
+  if (supportSignals < 2) return false;
+  if (rawText.length < 60) return false;
+
+  const weakCompany = isWeakIdentityValue(result.customerName) || (review?.fieldConfidence.customerName ?? 100) < 58;
+  const weakContact =
+    isWeakIdentityValue(result.contactNameAndSurname) || (review?.fieldConfidence.contactNameAndSurname ?? 100) < 58;
+  const weakTitle = !result.title || (review?.fieldConfidence.title ?? 100) < 45;
+
+  return weakCompany || weakContact || weakTitle;
+}
+
+function mergeFastIdentityAssistResult(
+  baseResult: BusinessCardOcrResult,
+  candidateResult: BusinessCardOcrResult
+): BusinessCardOcrResult {
+  const merged = { ...baseResult };
+  const mergedFieldConfidence = { ...(baseResult.review?.fieldConfidence ?? {}) };
+  const mergedFlags = [...(baseResult.review?.flags ?? [])];
+
+  if (candidateResult.customerName && isWeakIdentityValue(baseResult.customerName)) {
+    merged.customerName = candidateResult.customerName;
+    if (candidateResult.review?.fieldConfidence.customerName != null) {
+      mergedFieldConfidence.customerName = candidateResult.review.fieldConfidence.customerName;
+    }
+  }
+
+  if (candidateResult.contactNameAndSurname && isWeakIdentityValue(baseResult.contactNameAndSurname)) {
+    merged.contactNameAndSurname = candidateResult.contactNameAndSurname;
+    if (candidateResult.review?.fieldConfidence.contactNameAndSurname != null) {
+      mergedFieldConfidence.contactNameAndSurname = candidateResult.review.fieldConfidence.contactNameAndSurname;
+    }
+  }
+
+  if (candidateResult.title && !baseResult.title) {
+    merged.title = candidateResult.title;
+    if (candidateResult.review?.fieldConfidence.title != null) {
+      mergedFieldConfidence.title = candidateResult.review.fieldConfidence.title;
+    }
+  }
+
+  if (baseResult.review) {
+    merged.review = {
+      ...baseResult.review,
+      fieldConfidence: mergedFieldConfidence,
+      flags: mergedFlags,
+      overallConfidence: Math.max(baseResult.review.overallConfidence ?? 0, candidateResult.review?.overallConfidence ?? 0),
+    };
+  }
+
+  return merged;
+}
+
+function mergeFastLayoutHintsResult(
+  baseResult: BusinessCardOcrResult,
+  candidateHints: ReturnType<typeof buildBusinessCardCandidateHints>
+): BusinessCardOcrResult {
+  const merged = { ...baseResult };
+  const topCompany = candidateHints.layoutProfile.preferredCompanyLines[0] ?? candidateHints.topCandidates.companies[0];
+  const topName = candidateHints.layoutProfile.preferredNameLines[0] ?? candidateHints.topCandidates.names[0];
+  const topTitle = candidateHints.layoutProfile.preferredTitleLines[0] ?? candidateHints.topCandidates.titles[0];
+
+  if (isWeakIdentityValue(merged.customerName) && topCompany) {
+    merged.customerName = topCompany;
+  }
+
+  if (isWeakIdentityValue(merged.contactNameAndSurname) && topName) {
+    merged.contactNameAndSurname = topName;
+  }
+
+  if (!merged.title && topTitle) {
+    merged.title = topTitle;
+  }
+
+  const emailDomain = merged.email?.split("@")[1]?.trim().toLowerCase() ?? "";
+  const websiteDomain = merged.website
+    ?.replace(/^https?:\/\//i, "")
+    .replace(/^www\./i, "")
+    .split("/")[0]
+    ?.trim()
+    .toLowerCase() ?? "";
+  if (emailDomain) {
+    const weakWebsite =
+      !websiteDomain ||
+      websiteDomain.length < 8 ||
+      /^(?:com|net|org|gov|edu|biz|info|co)\.[a-z]{2,}$/i.test(websiteDomain) ||
+      (!websiteDomain.includes(emailDomain) && !emailDomain.includes(websiteDomain));
+    if (weakWebsite) {
+      merged.website = `www.${emailDomain}`;
+    }
+  }
+
+  if (
+    merged.customerName &&
+    merged.contactNameAndSurname &&
+    merged.customerName.trim().toLocaleLowerCase("tr-TR") === merged.contactNameAndSurname.trim().toLocaleLowerCase("tr-TR") &&
+    topName &&
+    topName.trim().toLocaleLowerCase("tr-TR") !== merged.customerName.trim().toLocaleLowerCase("tr-TR")
+  ) {
+    merged.contactNameAndSurname = topName;
+  }
+
+  return merged;
 }
 
 export function useBusinessCardScan(): {
   scanBusinessCard: () => Promise<BusinessCardOcrResult | null>;
   pickBusinessCardFromGallery: () => Promise<BusinessCardOcrResult | null>;
+  scanBusinessCardFromImageUri: (imageUri: string) => Promise<BusinessCardOcrResult | null>;
   retryBusinessCardExtraction: (imageUri: string) => Promise<BusinessCardOcrResult | null>;
   isScanning: boolean;
   error: string | null;
@@ -235,37 +432,217 @@ export function useBusinessCardScan(): {
   const { t } = useTranslation();
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const ocrCacheRef = useRef(new Map<string, OcrResultPayload>());
-  const createStageTimer = useCallback(() => {
-    const startedAt = Date.now();
-    return {
-      measure<T>(label: keyof ScanStageTimings, target: ScanStageTimings, fn: () => Promise<T>): Promise<T> {
-        const stepStartedAt = Date.now();
-        return fn().finally(() => {
-          target[label] = Date.now() - stepStartedAt;
-        });
-      },
-      finish(target: ScanStageTimings): ScanStageTimings {
-        return { ...target, totalMs: Date.now() - startedAt };
-      },
-    };
-  }, []);
+  const ocrCacheRef = useRef(new Map<string, CachedOcrEntry>());
+  const previewCacheRef = useRef(new Map<string, string>());
 
   const debugScanLog = useCallback((stage: string, payload: unknown) => {
-    if (!__DEV__) return;
     console.log(`[BusinessCardScan] ${stage}`, payload);
   }, []);
 
-  const processImage = useCallback(
-    async (
+  const finalizeResult = useCallback(
+    (
+      normalized: ReturnType<typeof validateAndNormalizeBusinessCardExtraction>,
       imageUri: string,
-      preloadedOcr?: OcrResultPayload | null,
-      options?: { allowSecondPass?: boolean }
-    ): Promise<BusinessCardOcrResult | null> => {
-      const rawOcr = preloadedOcr ?? await runOCR(imageUri);
-      const normalizedOcr = preloadedOcr ?? preprocessBusinessCardOcr(rawOcr);
-      ocrCacheRef.current.set(imageUri, normalizedOcr);
-      const allowSecondPass = options?.allowSecondPass !== false;
+      rawText: string,
+      ocr: OcrResultPayload
+    ): BusinessCardOcrResult =>
+      applyQualityReview(
+        withLanguageProfile(
+          {
+            ...toBusinessCardOcrResult(normalized),
+            imageUri,
+          },
+          rawText,
+          ocr.recognizedLanguages
+        ),
+        rawText,
+        ocr.lines,
+        ocr.lineItems
+      ),
+    []
+  );
+
+  const getOrRunRawOcr = useCallback(async (imageUri: string): Promise<OcrResultPayload> => {
+    const cached = ocrCacheRef.current.get(imageUri);
+    if (cached?.raw) return cached.raw;
+    const raw = await runOCR(imageUri);
+    ocrCacheRef.current.set(imageUri, { raw, preprocessed: cached?.preprocessed });
+    return raw;
+  }, []);
+
+  const getOrBuildPreprocessedOcr = useCallback((imageUri: string, rawOcr: OcrResultPayload): OcrResultPayload => {
+    const cached = ocrCacheRef.current.get(imageUri);
+    if (cached?.preprocessed) return cached.preprocessed;
+    const preprocessed = preprocessBusinessCardOcr(rawOcr);
+    ocrCacheRef.current.set(imageUri, { raw: cached?.raw ?? rawOcr, preprocessed });
+    return preprocessed;
+  }, []);
+
+  const logLaneTimings = useCallback(
+    (timings: ScanStageTimings): void => {
+      debugScanLog("stageTimings", timings);
+      void trackBusinessCardTelemetry({
+        type: "scan_completed",
+        details: timings,
+      });
+    },
+    [debugScanLog]
+  );
+
+  const getOrCreatePreviewUri = useCallback(async (imageUri: string): Promise<{ previewUri: string; durationMs: number }> => {
+    const cached = previewCacheRef.current.get(imageUri);
+    if (cached) {
+      return { previewUri: cached, durationMs: 0 };
+    }
+
+    const startedAt = Date.now();
+    const previewUri = await createBusinessCardPreviewImage(imageUri, 420);
+    const durationMs = Date.now() - startedAt;
+    const nextPreviewUri = previewUri || imageUri;
+    previewCacheRef.current.set(imageUri, nextPreviewUri);
+    return { previewUri: nextPreviewUri, durationMs };
+  }, []);
+
+  const processImageFast = useCallback(
+    async (imageUri: string): Promise<BusinessCardOcrResult | null> => {
+      const startedAt = Date.now();
+      let llmCalled = false;
+      let llmTime = 0;
+      let previewGenerateTime = 0;
+      const ocrStartedAt = Date.now();
+      const ocr = await getOrRunRawOcr(imageUri);
+      const ocrTime = Date.now() - ocrStartedAt;
+      const fastWindow = buildFastLaneOcrWindow(ocr);
+      const rawText = fastWindow.rawText;
+      if (!rawText) {
+        setError(t("customer.noTextExtracted"));
+        return null;
+      }
+
+      const parseStartedAt = Date.now();
+      const parsed = parseBusinessCardText(rawText);
+      const parseTime = Date.now() - parseStartedAt;
+
+      if (!isLikelyBusinessCardSignal(rawText, fastWindow.lines)) {
+        const earlyResult = applyQualityReview(
+          withLanguageProfile(
+            {
+              ...parsed,
+              imageUri,
+              review: {
+                overallConfidence: 24,
+                fieldConfidence: {
+                  general: 24,
+                  customerName: parsed.customerName ? 36 : 8,
+                  contactNameAndSurname: parsed.contactNameAndSurname ? 32 : 8,
+                  email: parsed.email ? 72 : 12,
+                  phone1: parsed.phone1 ? 68 : 12,
+                  website: parsed.website ? 62 : 12,
+                  address: parsed.address ? 28 : 8,
+                },
+                flags: [
+                  {
+                    field: "general",
+                    reason: "OCR içeriği kartvizit yerine uygulama veya farklı bir ekran olabilir.",
+                    severity: "high",
+                  },
+                ],
+              },
+            },
+            rawText,
+            ocr.recognizedLanguages
+          ),
+          rawText,
+          fastWindow.lines,
+          ocr.lineItems
+        );
+
+        debugScanLog("lowSignalEarlyExit", {
+          imageUri,
+          rawText,
+          lines: fastWindow.lines,
+        });
+        logLaneTimings({
+          lane: "fast",
+          image_handling_time: 0,
+          preview_generate_time: 0,
+          ocr_time: ocrTime,
+          parse_time: parseTime,
+          normalize_time: 0,
+          llm_time: 0,
+          second_pass_time: 0,
+          total_time: Date.now() - startedAt,
+          llm_called: false,
+        });
+        return earlyResult;
+      }
+
+      const normalizeStartedAt = Date.now();
+      const normalized = validateAndNormalizeBusinessCardExtraction(
+        fallbackToStructuredInput(parsed),
+        rawText,
+        fastWindow.lines,
+        undefined,
+        { recognizedLanguages: ocr.recognizedLanguages },
+        { mode: "light" }
+      );
+      const normalizeTime = Date.now() - normalizeStartedAt;
+      let result = finalizeResult(normalized, imageUri, rawText, ocr);
+      result = rescueNameFromTitleNeighbor(result, fastWindow.lines);
+      const previewInfo = await getOrCreatePreviewUri(imageUri);
+      previewGenerateTime = previewInfo.durationMs;
+      result = {
+        ...result,
+        previewUri: previewInfo.previewUri,
+      };
+
+      debugScanLog("js_result_received", {
+        lane: "fast",
+        js_result_received: Date.now(),
+        imageUri,
+        customerName: result.customerName ?? null,
+        contactNameAndSurname: result.contactNameAndSurname ?? null,
+      });
+
+      debugScanLog("fastOcr", {
+        imageUri,
+        rawText,
+        lines: fastWindow.lines,
+        originalLineCount: ocr.lines.length,
+        fastLineCount: fastWindow.lines.length,
+      });
+      debugScanLog("fastNormalized", normalized);
+      debugScanLog("fastFinalExtraction", result);
+      logLaneTimings({
+        lane: "fast",
+        image_handling_time: 0,
+        preview_generate_time: previewGenerateTime,
+        ocr_time: ocrTime,
+        parse_time: parseTime,
+        normalize_time: normalizeTime,
+        llm_time: llmTime,
+        second_pass_time: 0,
+        total_time: Date.now() - startedAt,
+        llm_called: llmCalled,
+      });
+      return result;
+    },
+    [debugScanLog, finalizeResult, getOrCreatePreviewUri, getOrRunRawOcr, logLaneTimings, t]
+  );
+
+  const processImageAdvanced = useCallback(
+    async (imageUri: string): Promise<BusinessCardOcrResult | null> => {
+      const startedAt = Date.now();
+      let llmCalled = false;
+      let llmTime = 0;
+      let secondPassTime = 0;
+      let parseTimeTotal = 0;
+      let normalizeTimeTotal = 0;
+      let previewGenerateTime = 0;
+      const ocrStartedAt = Date.now();
+      const rawOcr = await getOrRunRawOcr(imageUri);
+      const ocrTime = Date.now() - ocrStartedAt;
+      const normalizedOcr = getOrBuildPreprocessedOcr(imageUri, rawOcr);
       const variants: Array<{ key: "primary" | "leftMajor" | "bottomUp"; payload: OcrResultPayload }> = [
         { key: "primary", payload: normalizedOcr },
       ];
@@ -275,11 +652,14 @@ export function useBusinessCardScan(): {
       while (index < variants.length) {
         const variant = variants[index++];
         const ocr = variant.payload;
-        const rawText = (ocr.rawText || ocr.lines.join("\n")).trim();
+        const rawText = buildPreferredRawText(ocr);
         if (!rawText) continue;
 
+        const parseStartedAt = Date.now();
         const candidateHints = buildBusinessCardCandidateHints(rawText, ocr.lines, ocr.lineItems);
         const parsedFallback = parseBusinessCardText(rawText);
+        const parseTime = Date.now() - parseStartedAt;
+        parseTimeTotal += parseTime;
         debugScanLog("ocr", {
           imageUri,
           variant: variant.key,
@@ -297,6 +677,7 @@ export function useBusinessCardScan(): {
         });
         debugScanLog("candidateHints", { variant: variant.key, candidateHints });
 
+        const normalizeStartedAt = Date.now();
         const normalizedFallback = validateAndNormalizeBusinessCardExtraction(
           fallbackToStructuredInput(parsedFallback),
           rawText,
@@ -309,33 +690,80 @@ export function useBusinessCardScan(): {
             recognizedLanguages: ocr.recognizedLanguages,
           }
         );
+        const normalizeTime = Date.now() - normalizeStartedAt;
+        normalizeTimeTotal += normalizeTime;
         debugScanLog("fallbackNormalized", { variant: variant.key, normalizedFallback });
-        const fallbackCandidate = applyQualityReview(
-          withLanguageProfile(
-            {
-              ...toBusinessCardOcrResult(normalizedFallback),
-              imageUri,
-            },
-            rawText,
-            ocr.recognizedLanguages
-          ),
-          rawText,
-          ocr.lines,
-          ocr.lineItems
-        );
+        const fallbackCandidate = finalizeResult(normalizedFallback, imageUri, rawText, ocr);
 
         if (variant.key === "primary" && shouldUseDeterministicFastPath(fallbackCandidate)) {
+          logLaneTimings({
+            lane: "advanced",
+            image_handling_time: 0,
+            preview_generate_time: 0,
+            ocr_time: ocrTime,
+            parse_time: parseTimeTotal,
+            normalize_time: normalizeTimeTotal,
+            llm_time: llmTime,
+            second_pass_time: secondPassTime,
+            total_time: Date.now() - startedAt,
+            llm_called: llmCalled,
+          });
           debugScanLog("finalBestExtraction", { variant: variant.key, best: fallbackCandidate, strategy: "deterministic-fast-path" });
+          debugScanLog("js_result_received", {
+            lane: "advanced",
+            js_result_received: Date.now(),
+            imageUri,
+            customerName: fallbackCandidate.customerName ?? null,
+            contactNameAndSurname: fallbackCandidate.contactNameAndSurname ?? null,
+          });
           return fallbackCandidate;
         }
 
         if (variant.key === "primary" && shouldUseBalancedFastPath(fallbackCandidate)) {
+          logLaneTimings({
+            lane: "advanced",
+            image_handling_time: 0,
+            preview_generate_time: 0,
+            ocr_time: ocrTime,
+            parse_time: parseTimeTotal,
+            normalize_time: normalizeTimeTotal,
+            llm_time: llmTime,
+            second_pass_time: secondPassTime,
+            total_time: Date.now() - startedAt,
+            llm_called: llmCalled,
+          });
           debugScanLog("finalBestExtraction", { variant: variant.key, best: fallbackCandidate, strategy: "balanced-fast-path" });
+          debugScanLog("js_result_received", {
+            lane: "advanced",
+            js_result_received: Date.now(),
+            imageUri,
+            customerName: fallbackCandidate.customerName ?? null,
+            contactNameAndSurname: fallbackCandidate.contactNameAndSurname ?? null,
+          });
           return fallbackCandidate;
         }
 
         if (variant.key === "primary" && shouldUseTurkishFastPath(fallbackCandidate)) {
+          logLaneTimings({
+            lane: "advanced",
+            image_handling_time: 0,
+            preview_generate_time: 0,
+            ocr_time: ocrTime,
+            parse_time: parseTimeTotal,
+            normalize_time: normalizeTimeTotal,
+            llm_time: llmTime,
+            second_pass_time: secondPassTime,
+            total_time: Date.now() - startedAt,
+            llm_called: llmCalled,
+          });
           debugScanLog("finalBestExtraction", { variant: variant.key, best: fallbackCandidate, strategy: "turkish-fast-path" });
+          debugScanLog("js_result_received", {
+            lane: "advanced",
+            js_result_received: Date.now(),
+            imageUri,
+            customerName: fallbackCandidate.customerName ?? null,
+            contactNameAndSurname: fallbackCandidate.contactNameAndSurname ?? null,
+          });
           return fallbackCandidate;
         }
 
@@ -344,11 +772,14 @@ export function useBusinessCardScan(): {
           if (variant.key !== "primary") {
             throw new Error("SECOND_PASS_FALLBACK_ONLY");
           }
+          llmCalled = true;
+          const llmStartedAt = Date.now();
           const llmRawOutput = await extractBusinessCardViaLLM({
             rawText,
             ocrLines: ocr.lines,
             candidateHints,
           });
+          llmTime += Date.now() - llmStartedAt;
           debugScanLog("llmRawOutput", { variant: variant.key, llmRawOutput });
           const repaired = repairJsonString(llmRawOutput);
           if (!repaired) {
@@ -372,19 +803,7 @@ export function useBusinessCardScan(): {
           debugScanLog("llmNormalized", { variant: variant.key, normalized });
           const best = pickBestBusinessCardExtraction(normalized, normalizedFallback);
           debugScanLog("finalBestExtraction", { variant: variant.key, best });
-          candidateResult = applyQualityReview(
-            withLanguageProfile(
-              {
-                ...toBusinessCardOcrResult(best),
-                imageUri,
-              },
-              rawText,
-              ocr.recognizedLanguages
-            ),
-            rawText,
-            ocr.lines,
-            ocr.lineItems
-          );
+          candidateResult = finalizeResult(best, imageUri, rawText, ocr);
         } catch {
           if (__DEV__) {
             console.log("[BusinessCardScan] LLM extraction failed, regex fallback used.");
@@ -404,11 +823,13 @@ export function useBusinessCardScan(): {
           }
         }
 
-        if (variant.key !== "primary" || !allowSecondPass || !shouldRunBusinessCardSecondPass(bestResult)) {
+        if (variant.key !== "primary" || !shouldRunBusinessCardSecondPass(bestResult)) {
           break;
         }
 
+        const secondPassStartedAt = Date.now();
         const additionalVariants = buildBusinessCardOcrVariants(normalizedOcr).filter((item) => item.key !== "primary");
+        secondPassTime += Date.now() - secondPassStartedAt;
         variants.push(...additionalVariants);
       }
 
@@ -417,208 +838,35 @@ export function useBusinessCardScan(): {
         return null;
       }
 
+      const previewInfo = await getOrCreatePreviewUri(imageUri);
+      previewGenerateTime = previewInfo.durationMs;
+      bestResult = {
+        ...bestResult,
+        previewUri: previewInfo.previewUri,
+      };
+
+      logLaneTimings({
+        lane: "advanced",
+        image_handling_time: 0,
+        preview_generate_time: previewGenerateTime,
+        ocr_time: ocrTime,
+        parse_time: parseTimeTotal,
+        normalize_time: normalizeTimeTotal,
+        llm_time: llmTime,
+        second_pass_time: secondPassTime,
+        total_time: Date.now() - startedAt,
+        llm_called: llmCalled,
+      });
+      debugScanLog("js_result_received", {
+        lane: "advanced",
+        js_result_received: Date.now(),
+        imageUri,
+        customerName: bestResult.customerName ?? null,
+        contactNameAndSurname: bestResult.contactNameAndSurname ?? null,
+      });
       return bestResult;
     },
-    [debugScanLog, t]
-  );
-
-  const askDetectedSourceChoice = useCallback(async (): Promise<SourceChoice> => {
-    return await new Promise((resolve) => {
-      Alert.alert(
-        t("customer.qrDetectedTitle"),
-        t("customer.qrDetectedMessage"),
-        [
-          {
-            text: t("common.cancel"),
-            style: "cancel",
-            onPress: () => resolve("cancel"),
-          },
-          {
-            text: t("customer.processAsQr"),
-            onPress: () => resolve("qr"),
-          },
-          {
-            text: t("customer.processAsBusinessCard"),
-            onPress: () => resolve("businessCard"),
-          },
-        ],
-        { cancelable: true, onDismiss: () => resolve("cancel") }
-      );
-    });
-  }, [t]);
-
-  const askImageQualityChoice = useCallback(
-    async (assessment: Awaited<ReturnType<typeof assessBusinessCardImageQuality>>): Promise<QualityGateChoice> => {
-      const messageLines = [
-        t("customer.ocrImageQualityWarning", { score: assessment.score }),
-        ...assessment.flags.slice(0, 3).map((flag) => `• ${t(flag.reasonKey)}`),
-      ];
-
-      return await new Promise((resolve) => {
-        Alert.alert(
-          t("customer.ocrImageQualityTitle"),
-          messageLines.join("\n"),
-          [
-            {
-              text: t("common.cancel"),
-              style: "cancel",
-              onPress: () => resolve("cancel"),
-            },
-            {
-              text: t("common.retry"),
-              onPress: () => resolve("retry"),
-            },
-            {
-              text: t("customer.ocrImageQualityContinue"),
-              onPress: () => resolve("continue"),
-            },
-          ],
-          { cancelable: true, onDismiss: () => resolve("cancel") }
-        );
-      });
-    },
-    [t]
-  );
-
-  const runImageQualityGate = useCallback(
-    async (imageUri: string, usedScanner: boolean, imageRotation?: number | null): Promise<QualityGateChoice> => {
-      const assessment = await assessBusinessCardImageQuality(imageUri, { usedScanner, imageRotation });
-      if (!assessment.shouldWarn) {
-        return "continue";
-      }
-
-      void trackBusinessCardTelemetry({
-        type: "image_quality_warned",
-        details: {
-          score: assessment.score,
-          usedScanner,
-          width: assessment.width,
-          height: assessment.height,
-          flagCount: assessment.flags.length,
-        },
-      });
-
-      return await askImageQualityChoice(assessment);
-    },
-    [askImageQualityChoice]
-  );
-
-  const resolveImageInput = useCallback(
-    async (
-      imageUri: string
-    ): Promise<{ shouldContinueWithOcr: boolean; qrResult: BusinessCardOcrResult | null }> => {
-      const qrDetection = await detectQrFromImage(imageUri, { timeoutMs: 150 });
-      if (!qrDetection.rawValue && !qrDetection.parsedCard) {
-        return { shouldContinueWithOcr: true, qrResult: null };
-      }
-      void trackBusinessCardTelemetry({ type: "qr_detected", details: { hasStructuredPayload: Boolean(qrDetection.parsedCard) } });
-
-      const choice = await askDetectedSourceChoice();
-      if (choice === "cancel") {
-        void trackBusinessCardTelemetry({ type: "qr_cancelled" });
-        return { shouldContinueWithOcr: false, qrResult: null };
-      }
-
-      if (choice === "businessCard") {
-        return { shouldContinueWithOcr: true, qrResult: null };
-      }
-
-      if (!qrDetection.parsedCard) {
-        setError(t("customer.unsupportedQrPayload"));
-        return { shouldContinueWithOcr: false, qrResult: null };
-      }
-
-      void trackBusinessCardTelemetry({ type: "qr_processed", details: { hasStructuredPayload: true } });
-
-      return {
-        shouldContinueWithOcr: false,
-        qrResult: {
-          ...qrDetection.parsedCard,
-          imageUri,
-          notes: mergeQrNotes(qrDetection.parsedCard.notes, t("customer.qrImportedNote")),
-        },
-      };
-    },
-    [askDetectedSourceChoice, t]
-  );
-
-  const prepareImageForScan = useCallback(
-    async (
-      source: ScanSource,
-      imageUri: string,
-      usedScanner: boolean,
-      stageTimer: ReturnType<typeof createStageTimer>,
-      stageTimings: ScanStageTimings
-    ): Promise<PreparedBusinessCardScan | "retry" | null> => {
-      const previewOcrPromise = stageTimer.measure("previewOcrMs", stageTimings, () =>
-        runOCR(imageUri).then(preprocessBusinessCardOcr)
-      );
-      const resolution = await stageTimer.measure("qrMs", stageTimings, () => resolveImageInput(imageUri));
-      if (resolution.qrResult) {
-        return null;
-      }
-      if (!resolution.shouldContinueWithOcr) {
-        return null;
-      }
-
-      const previewOcr = await previewOcrPromise;
-      const estimatedRotation = estimateBusinessCardRotation(previewOcr.lineItems);
-      const correctedImageUri =
-        shouldApplyDeskew(estimatedRotation, previewOcr.lineItems.length)
-          ? await rotateAndDeskewBusinessCardImage(imageUri, estimatedRotation)
-          : imageUri;
-      const effectiveImageUri = correctedImageUri || imageUri;
-      const effectiveRotation = correctedImageUri !== imageUri ? 0 : estimatedRotation;
-      const qualityChoice = await stageTimer.measure("qualityGateMs", stageTimings, () =>
-        runImageQualityGate(effectiveImageUri, usedScanner, effectiveRotation)
-      );
-      if (qualityChoice === "cancel") {
-        return null;
-      }
-      if (qualityChoice === "retry") {
-        void trackBusinessCardTelemetry({ type: "image_quality_retry_selected", details: { source } });
-        return "retry";
-      }
-
-      const effectiveOcr =
-        effectiveImageUri === imageUri
-          ? previewOcr
-          : preprocessBusinessCardOcr(await runOCR(effectiveImageUri));
-      ocrCacheRef.current.set(effectiveImageUri, effectiveOcr);
-      return { effectiveImageUri, effectiveOcr };
-    },
-    [createStageTimer, resolveImageInput, runImageQualityGate]
-  );
-
-  const finalizeScannedResult = useCallback(
-    async (
-      source: ScanSource,
-      prepared: PreparedBusinessCardScan,
-      stageTimer: ReturnType<typeof createStageTimer>,
-      stageTimings: ScanStageTimings
-    ): Promise<BusinessCardOcrResult | null> => {
-      const result = await stageTimer.measure("processMs", stageTimings, () =>
-        processImage(prepared.effectiveImageUri, prepared.effectiveOcr, { allowSecondPass: false })
-      );
-      if (result) {
-        const finishedTimings = stageTimer.finish(stageTimings);
-        debugScanLog("stageTimings", { source, ...finishedTimings });
-        void trackBusinessCardTelemetry({
-          type: "scan_completed",
-          details: {
-            source,
-            reviewConfidence: result.review?.overallConfidence ?? null,
-            qrMs: finishedTimings.qrMs ?? null,
-            previewOcrMs: finishedTimings.previewOcrMs ?? null,
-            qualityGateMs: finishedTimings.qualityGateMs ?? null,
-            processMs: finishedTimings.processMs ?? null,
-            totalMs: finishedTimings.totalMs ?? null,
-          },
-        });
-      }
-      return result;
-    },
-    [debugScanLog, processImage]
+    [debugScanLog, finalizeResult, getOrBuildPreprocessedOcr, getOrCreatePreviewUri, getOrRunRawOcr, logLaneTimings, t]
   );
 
   const scanBusinessCard = useCallback(
@@ -627,21 +875,16 @@ export function useBusinessCardScan(): {
       setIsScanning(true);
       void trackBusinessCardTelemetry({ type: "scan_started", details: { source: "camera" } });
       try {
-        for (;;) {
-          const stageTimings: ScanStageTimings = {};
-          const stageTimer = createStageTimer();
-          const { imageUri, usedScanner } = await captureBusinessCardFromCamera();
-          void trackBusinessCardTelemetry({ type: usedScanner ? "scanner_used" : "camera_fallback_used" });
-          if (!imageUri) return null;
-          const prepared = await prepareImageForScan("camera", imageUri, usedScanner, stageTimer, stageTimings);
-          if (prepared === "retry") {
-            continue;
-          }
-          if (!prepared) {
-            return null;
-          }
-          return await finalizeScannedResult("camera", prepared, stageTimer, stageTimings);
+        const acquireStartedAt = Date.now();
+        const { imageUri, usedScanner } = await captureBusinessCardFromCamera();
+        const acquireTime = Date.now() - acquireStartedAt;
+        void trackBusinessCardTelemetry({ type: usedScanner ? "scanner_used" : "camera_fallback_used" });
+        if (!imageUri) return null;
+        const result = await processImageFast(imageUri);
+        if (__DEV__) {
+          debugScanLog("acquireTiming", { source: "camera", acquire_time: acquireTime, imageUri });
         }
+        return result;
       } catch (e) {
         const message = e instanceof Error ? e.message : "";
         if (message === "CAMERA_PERMISSION_REQUIRED") {
@@ -657,7 +900,7 @@ export function useBusinessCardScan(): {
         setIsScanning(false);
       }
     },
-    [createStageTimer, finalizeScannedResult, prepareImageForScan, t]
+    [processImageFast, t]
   );
 
   const pickBusinessCardFromGallery = useCallback(
@@ -667,20 +910,15 @@ export function useBusinessCardScan(): {
       void trackBusinessCardTelemetry({ type: "scan_started", details: { source: "gallery" } });
       try {
         void trackBusinessCardTelemetry({ type: "gallery_used" });
-        for (;;) {
-          const stageTimings: ScanStageTimings = {};
-          const stageTimer = createStageTimer();
-          const imageUri = await pickBusinessCardImageFromGallery();
-          if (!imageUri) return null;
-          const prepared = await prepareImageForScan("gallery", imageUri, false, stageTimer, stageTimings);
-          if (prepared === "retry") {
-            continue;
-          }
-          if (!prepared) {
-            return null;
-          }
-          return await finalizeScannedResult("gallery", prepared, stageTimer, stageTimings);
+        const acquireStartedAt = Date.now();
+        const imageUri = await pickBusinessCardImageFromGallery();
+        const acquireTime = Date.now() - acquireStartedAt;
+        if (!imageUri) return null;
+        const result = await processImageFast(imageUri);
+        if (__DEV__) {
+          debugScanLog("acquireTiming", { source: "gallery", acquire_time: acquireTime, imageUri });
         }
+        return result;
       } catch (e) {
         const message = e instanceof Error ? e.message : "";
         if (message === "MEDIA_LIBRARY_PERMISSION_REQUIRED") {
@@ -694,7 +932,7 @@ export function useBusinessCardScan(): {
         setIsScanning(false);
       }
     },
-    [createStageTimer, finalizeScannedResult, prepareImageForScan, t]
+    [processImageFast, t]
   );
 
   const retryBusinessCardExtraction = useCallback(
@@ -702,7 +940,7 @@ export function useBusinessCardScan(): {
       setError(null);
       setIsScanning(true);
       try {
-        return await processImage(imageUri, ocrCacheRef.current.get(imageUri) ?? null, { allowSecondPass: true });
+        return await processImageAdvanced(imageUri);
       } catch (e) {
         setError(e instanceof Error ? e.message : t("customer.retryScanFailed"));
         return null;
@@ -710,8 +948,25 @@ export function useBusinessCardScan(): {
         setIsScanning(false);
       }
     },
-    [processImage, t]
+    [processImageAdvanced, t]
   );
 
-  return { scanBusinessCard, pickBusinessCardFromGallery, retryBusinessCardExtraction, isScanning, error };
+  const scanBusinessCardFromImageUri = useCallback(
+    async (imageUri: string): Promise<BusinessCardOcrResult | null> => {
+      setError(null);
+      setIsScanning(true);
+      try {
+        return await processImageFast(imageUri);
+      } catch (e) {
+        const message = e instanceof Error ? e.message : "";
+        setError(message || t("customer.scanFailed"));
+        return null;
+      } finally {
+        setIsScanning(false);
+      }
+    },
+    [processImageFast, t]
+  );
+
+  return { scanBusinessCard, pickBusinessCardFromGallery, scanBusinessCardFromImageUri, retryBusinessCardExtraction, isScanning, error };
 }

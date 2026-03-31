@@ -1,5 +1,6 @@
 import { Platform } from "react-native";
 import TextRecognition from "@react-native-ml-kit/text-recognition";
+import * as FileSystem from "expo-file-system/legacy";
 
 export interface OcrLineItem {
   blockIndex: number;
@@ -43,6 +44,60 @@ type OcrNativeLine = {
 };
 type OcrNativeBlock = { lines?: unknown; text?: unknown; frame?: unknown; cornerPoints?: unknown; recognizedLanguages?: unknown };
 type OcrNativeResult = { text?: unknown; lines?: unknown; blocks?: unknown };
+const ocrUriCache = new Map<string, string>();
+
+function debugOcrLog(stage: string, payload: unknown): void {
+  console.log(`[BusinessCardOCR] ${stage}`, payload);
+}
+
+function getUriScheme(uri: string): string {
+  const match = uri.match(/^([a-z]+):\/\//i);
+  return match?.[1]?.toLowerCase() ?? (uri.startsWith("/") ? "path" : "unknown");
+}
+
+function guessExtension(uri: string): string {
+  const cleaned = uri.split("?")[0]?.split("#")[0] ?? uri;
+  const ext = cleaned.split(".").pop()?.toLowerCase();
+  if (ext && /^[a-z0-9]{2,5}$/.test(ext)) return ext;
+  return "jpg";
+}
+
+async function materializeOcrUri(imageUri: string): Promise<string> {
+  if (!imageUri.startsWith("content://")) {
+    return imageUri;
+  }
+
+  const cached = ocrUriCache.get(imageUri);
+  if (cached) {
+    return cached;
+  }
+
+  const baseDir = FileSystem.cacheDirectory ?? FileSystem.documentDirectory;
+  if (!baseDir) {
+    return imageUri;
+  }
+
+  const targetUri = `${baseDir}business-card-ocr-${Date.now()}.${guessExtension(imageUri)}`;
+  try {
+    const startedAt = Date.now();
+    await FileSystem.copyAsync({ from: imageUri, to: targetUri });
+    const info = await FileSystem.getInfoAsync(targetUri);
+    ocrUriCache.set(imageUri, targetUri);
+    debugOcrLog("materializedUri", {
+      sourceScheme: "content",
+      targetUri,
+      size: (info as { size?: number }).size ?? null,
+      materializeMs: Date.now() - startedAt,
+    });
+    return targetUri;
+  } catch (error) {
+    debugOcrLog("materializeFailed", {
+      imageUri,
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return imageUri;
+  }
+}
 
 function toCleanText(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -220,11 +275,45 @@ export async function runOCR(imageUri: string): Promise<OcrResultPayload> {
     return { rawText: "", lines: [], lineItems: [], recognizedLanguages: [], metrics: { blockCount: 0, lineCount: 0, elementCount: 0 } };
   }
   try {
+    const startedAt = Date.now();
+    debugOcrLog("ocr_start", { ocr_start: startedAt, imageUri, sourceScheme: getUriScheme(imageUri) });
+    let readableUri = imageUri;
+    const sourceInfo = await FileSystem.getInfoAsync(imageUri).catch(() => null);
+    if (Platform.OS === "android") {
+      readableUri = await materializeOcrUri(imageUri);
+    }
+    const readableInfo =
+      readableUri === imageUri ? sourceInfo : await FileSystem.getInfoAsync(readableUri).catch(() => null);
+
     if (Platform.OS === "ios") {
-      return await visionOCR(imageUri);
+      const result = await visionOCR(readableUri);
+      debugOcrLog("completed", {
+        platform: Platform.OS,
+        sourceScheme: getUriScheme(imageUri),
+        readableScheme: getUriScheme(readableUri),
+        sourceSize: (sourceInfo as { size?: number } | null)?.size ?? null,
+        readableSize: (readableInfo as { size?: number } | null)?.size ?? null,
+        ocrMs: Date.now() - startedAt,
+        lines: result.lines.length,
+        blocks: result.metrics?.blockCount ?? null,
+      });
+      debugOcrLog("ocr_end", { ocr_end: Date.now(), ocrMs: Date.now() - startedAt, lines: result.lines.length });
+      return result;
     }
     if (Platform.OS === "android") {
-      return await mlKitOCR(imageUri);
+      const result = await mlKitOCR(readableUri);
+      debugOcrLog("completed", {
+        platform: Platform.OS,
+        sourceScheme: getUriScheme(imageUri),
+        readableScheme: getUriScheme(readableUri),
+        sourceSize: (sourceInfo as { size?: number } | null)?.size ?? null,
+        readableSize: (readableInfo as { size?: number } | null)?.size ?? null,
+        ocrMs: Date.now() - startedAt,
+        lines: result.lines.length,
+        blocks: result.metrics?.blockCount ?? null,
+      });
+      debugOcrLog("ocr_end", { ocr_end: Date.now(), ocrMs: Date.now() - startedAt, lines: result.lines.length });
+      return result;
     }
     return { rawText: "", lines: [], lineItems: [], recognizedLanguages: [], metrics: { blockCount: 0, lineCount: 0, elementCount: 0 } };
   } catch (e) {

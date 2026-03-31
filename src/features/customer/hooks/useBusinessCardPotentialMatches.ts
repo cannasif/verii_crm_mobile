@@ -11,6 +11,7 @@ export function useBusinessCardPotentialMatches(result: BusinessCardOcrResult | 
     queryKey: ["customer", "businessCardPotentialMatches", filters],
     enabled: enabled && filters.length > 0,
     queryFn: async () => {
+      const startedAt = Date.now();
       const response = await customerApi.getList({
         pageNumber: 1,
         pageSize: 10,
@@ -19,7 +20,13 @@ export function useBusinessCardPotentialMatches(result: BusinessCardOcrResult | 
         sortBy: "Id",
         sortDirection: "desc",
       });
-      return scoreBusinessCardPotentialMatches(result!, response.items);
+      const scored = scoreBusinessCardPotentialMatches(result!, response.items);
+      console.log("[BusinessCardReview] potentialMatchesQuery", {
+        durationMs: Date.now() - startedAt,
+        filterCount: filters.length,
+        resultCount: scored.length,
+      });
+      return scored;
     },
     staleTime: 30 * 1000,
   });

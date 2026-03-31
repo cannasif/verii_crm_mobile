@@ -28,6 +28,7 @@ export interface BusinessCardOcrResult {
   website?: string;
   notes?: string;
   imageUri?: string;
+  previewUri?: string;
   review?: BusinessCardReviewSummary;
   languageProfile?: BusinessCardResultLanguageProfile;
   translationMeta?: BusinessCardTranslationMeta;

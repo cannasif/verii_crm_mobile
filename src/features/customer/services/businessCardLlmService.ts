@@ -9,6 +9,7 @@ export interface ExtractBusinessCardViaLlmInput {
   rawText: string;
   ocrLines?: string[];
   candidateHints?: BusinessCardPromptCandidateHints;
+  timeoutMs?: number;
 }
 
 type LlmExtractRequest = {
@@ -43,6 +44,7 @@ export async function extractBusinessCardViaLLM(input: string | ExtractBusinessC
   const rawText = typeof input === "string" ? input : input.rawText;
   const ocrLines = typeof input === "string" ? undefined : input.ocrLines;
   const candidateHints = typeof input === "string" ? undefined : input.candidateHints;
+  const timeoutMs = typeof input === "string" ? 5000 : input.timeoutMs ?? 5000;
   const text = rawText?.trim();
   if (!text) {
     throw new Error("Empty OCR text.");
@@ -58,7 +60,7 @@ export async function extractBusinessCardViaLLM(input: string | ExtractBusinessC
 
   const response = await apiClient.post<LlmExtractResponse>("/api/ai/business-card/extract", payload, {
     // Keep the review flow responsive; fall back to deterministic parsing on timeout.
-    timeout: 5000,
+    timeout: timeoutMs,
   });
   const body = response.data;
 

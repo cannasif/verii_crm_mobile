@@ -315,13 +315,23 @@ function buildLayoutProfile(rawText: string, lines?: string[], lineItems?: OcrLi
   const preferredCompanyLines = uniqueStrings(
     topZoneLines.filter((line, index) => isLikelyCompanyZoneLine(line, index)).slice(0, 3)
   );
-  const preferredNameLines = uniqueStrings(
-    [...topZoneLines.slice(-2), ...middleZoneLines].filter((line) => isLikelyNameLine(line)).slice(0, 3)
-  );
   const preferredTitleLines = uniqueStrings(
     [...topZoneLines.slice(-2), ...middleZoneLines, ...bottomZoneLines.slice(0, 1)]
       .filter((line) => lineContainsLexiconToken(line, BUSINESS_CARD_TITLE_KEYWORDS))
       .slice(0, 3)
+  );
+  const titleAnchor = preferredTitleLines[0];
+  const titleIndex = titleAnchor ? orderedLines.findIndex((line) => line === titleAnchor) : -1;
+  const nearTitleNameLines =
+    titleIndex >= 0
+      ? uniqueStrings(
+          orderedLines
+            .slice(Math.max(0, titleIndex - 2), Math.min(orderedLines.length, titleIndex + 3))
+            .filter((line) => line !== titleAnchor && isLikelyNameLine(line))
+        )
+      : [];
+  const preferredNameLines = uniqueStrings(
+    [...nearTitleNameLines, ...topZoneLines.slice(-2), ...middleZoneLines].filter((line) => isLikelyNameLine(line)).slice(0, 3)
   );
   const contactClusterLines = uniqueStrings(
     bottomZoneLines.filter((line) => CONTACT_TOKEN_REGEX.test(line) || ADDRESS_HINT_REGEX.test(line) || POSTAL_CODE_REGEX.test(line))

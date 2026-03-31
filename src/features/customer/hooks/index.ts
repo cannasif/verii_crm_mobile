@@ -5,3 +5,4 @@ export { useCustomerImages } from "./useCustomerImages";
 export { useCreateCustomer, useCreateCustomerFromMobile, useUpdateCustomer, useDeleteCustomer, useUploadCustomerImage } from "./useCustomerMutation";
 export { useBusinessCardScan } from "./useBusinessCardScan";
 export { useBusinessCardPotentialMatches } from "./useBusinessCardPotentialMatches";
+export { useQrCustomerScan } from "./useQrCustomerScan";
