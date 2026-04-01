@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useState } from "react";
+import React, { useMemo, useCallback, useState, useRef } from "react";
 import {
   View,
   StyleSheet,
@@ -12,6 +12,9 @@ import {
   Modal,
   Pressable,
   Dimensions,
+  FlatList,
+  type NativeSyntheticEvent,
+  type NativeScrollEvent,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
@@ -40,6 +43,7 @@ import {
   Image02Icon,
   Add01Icon,
   ArrowRight01Icon,
+  ArrowLeft01Icon,
   Cancel01Icon,
 } from "hugeicons-react-native";
 
@@ -423,7 +427,7 @@ interface CustomerDetailContentProps {
   isUploadingImage: boolean;
   isUpdatingLocation?: boolean;
   insets: { bottom: number };
-  t: (key: string) => string;
+  t: (key: string, options?: Record<string, string | number>) => string;
   on360Press: () => void;
   onQuickQuotationPress: () => void;
   onQuickActivityPress: () => void;
@@ -452,7 +456,9 @@ export function CustomerDetailContent({
 }: CustomerDetailContentProps): React.ReactElement {
   const { themeMode } = useUIStore();
   const isDark = themeMode === "dark";
-  const [imagePreview, setImagePreview] = useState<{ uri: string; caption: string } | null>(null);
+  const [previewModalIndex, setPreviewModalIndex] = useState<number | null>(null);
+  const [previewActiveIndex, setPreviewActiveIndex] = useState(0);
+  const previewListRef = useRef<FlatList<CustomerImageDto>>(null);
 
   const safeCustomerName = customer?.name?.trim() || t("customer.unnamedCustomer");
   const initials = getInitials(safeCustomerName);
@@ -521,6 +527,46 @@ export function CustomerDetailContent({
   const noteDate = getNoteDate(customer);
 
   const { width: previewWinW, height: previewWinH } = Dimensions.get("window");
+  const previewW = previewWinW * 0.92;
+  const previewFrameH = previewWinH * 0.72;
+
+  const handlePreviewMomentumEnd = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (visibleImages.length === 0) return;
+      const x = e.nativeEvent.contentOffset.x;
+      const idx = Math.round(x / previewW);
+      setPreviewActiveIndex(Math.max(0, Math.min(idx, visibleImages.length - 1)));
+    },
+    [previewW, visibleImages.length]
+  );
+
+  const closeImagePreview = useCallback(() => {
+    setPreviewModalIndex(null);
+  }, []);
+
+  const openImagePreviewAt = useCallback((index: number) => {
+    setPreviewModalIndex(index);
+    setPreviewActiveIndex(index);
+  }, []);
+
+  const goPreviewPrev = useCallback(() => {
+    if (visibleImages.length <= 1) return;
+    const next = Math.max(0, previewActiveIndex - 1);
+    previewListRef.current?.scrollToIndex({ index: next, animated: true });
+    setPreviewActiveIndex(next);
+  }, [previewActiveIndex, visibleImages.length]);
+
+  const goPreviewNext = useCallback(() => {
+    if (visibleImages.length <= 1) return;
+    const next = Math.min(visibleImages.length - 1, previewActiveIndex + 1);
+    previewListRef.current?.scrollToIndex({ index: next, animated: true });
+    setPreviewActiveIndex(next);
+  }, [previewActiveIndex, visibleImages.length]);
+
+  const previewCaption =
+    previewModalIndex !== null && visibleImages[previewActiveIndex]
+      ? visibleImages[previewActiveIndex].imageDescription?.trim() || t("customer.imageDefaultDescription")
+      : "";
 
   return (
     <View style={[styles.container, { backgroundColor: mainBg }]}>
@@ -666,29 +712,48 @@ export function CustomerDetailContent({
           />
 
           {visibleImages.length > 0 ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.imageScrollContent}>
-              {visibleImages.map((item) => {
-                const imageUri = toAbsoluteImageUrl(item.imageUrl);
-                if (!imageUri) return null;
+            <View style={styles.imageStripOuter}>
+              <View style={styles.imageStripScrollWrap}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.imageScrollContent}>
+                  {visibleImages.map((item, index) => {
+                    const imageUri = toAbsoluteImageUrl(item.imageUrl);
+                    if (!imageUri) return null;
 
-                const caption = item.imageDescription?.trim() || t("customer.imageDefaultDescription");
+                    const caption = item.imageDescription?.trim() || t("customer.imageDefaultDescription");
 
-                return (
-                  <TouchableOpacity
-                    key={item.id}
-                    activeOpacity={0.88}
-                    style={[
-                      styles.imageCard,
-                      { borderColor: theme.divider, backgroundColor: theme.cardBgSoft },
-                    ]}
-                    onPress={() => setImagePreview({ uri: imageUri, caption })}
-                  >
-                    <Image source={{ uri: imageUri }} style={styles.customerImage} resizeMode="cover" />
-                    <Text style={[styles.imageCaption, { color: theme.text }]}>{caption}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+                    return (
+                      <TouchableOpacity
+                        key={item.id}
+                        activeOpacity={0.88}
+                        style={[
+                          styles.imageCard,
+                          { borderColor: theme.divider, backgroundColor: theme.cardBgSoft },
+                        ]}
+                        onPress={() => openImagePreviewAt(index)}
+                      >
+                        <Image source={{ uri: imageUri }} style={styles.customerImage} resizeMode="cover" />
+                        <Text style={[styles.imageCaption, { color: theme.text }]}>{caption}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+                {visibleImages.length > 1 ? (
+                  <>
+                    <View style={[styles.imageStripHintChevron, styles.imageStripHintLeft]} pointerEvents="none">
+                      <ArrowLeft01Icon size={20} color={theme.textMute} variant="stroke" strokeWidth={2} />
+                    </View>
+                    <View style={[styles.imageStripHintChevron, styles.imageStripHintRight]} pointerEvents="none">
+                      <ArrowRight01Icon size={20} color={theme.textMute} variant="stroke" strokeWidth={2} />
+                    </View>
+                  </>
+                ) : null}
+              </View>
+              {visibleImages.length > 1 ? (
+                <Text style={[styles.imageStripHintText, { color: theme.textMute }]} pointerEvents="none">
+                  {t("customer.imageGallerySwipeHint")}
+                </Text>
+              ) : null}
+            </View>
           ) : (
             <EmptyState
               theme={theme}
@@ -998,11 +1063,11 @@ export function CustomerDetailContent({
       </ScrollView>
 
       <Modal
-        visible={imagePreview !== null}
+        visible={previewModalIndex !== null}
         transparent
         animationType="fade"
         statusBarTranslucent
-        onRequestClose={() => setImagePreview(null)}
+        onRequestClose={closeImagePreview}
       >
         <View style={styles.imagePreviewRoot}>
           <Pressable
@@ -1010,25 +1075,57 @@ export function CustomerDetailContent({
               styles.imagePreviewBackdrop,
               { backgroundColor: isDark ? "rgba(0,0,0,0.94)" : "rgba(0,0,0,0.82)" },
             ]}
-            onPress={() => setImagePreview(null)}
+            onPress={closeImagePreview}
             accessibilityRole="button"
             accessibilityLabel={t("common.close")}
           />
-          {imagePreview ? (
-            <View
-              style={[styles.imagePreviewColumn, { width: previewWinW * 0.92 }]}
-              pointerEvents="box-none"
-            >
+          {previewModalIndex !== null && visibleImages.length > 0 ? (
+            <View style={[styles.imagePreviewColumn, { width: previewW }]} pointerEvents="box-none">
               <View
                 style={[
                   styles.imagePreviewFrame,
                   {
-                    height: previewWinH * 0.72,
+                    height: previewFrameH,
                     borderColor: isDark ? "rgba(219, 39, 119, 0.42)" : "rgba(219, 39, 119, 0.26)",
                     backgroundColor: isDark ? "rgba(15, 23, 42, 0.5)" : "rgba(255, 255, 255, 0.98)",
                   },
                 ]}
               >
+                <FlatList
+                  ref={previewListRef}
+                  data={visibleImages}
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  keyExtractor={(item) => String(item.id)}
+                  initialScrollIndex={previewModalIndex}
+                  getItemLayout={(_, index) => ({
+                    length: previewW,
+                    offset: previewW * index,
+                    index,
+                  })}
+                  onMomentumScrollEnd={handlePreviewMomentumEnd}
+                  onScrollToIndexFailed={(info) => {
+                    setTimeout(() => {
+                      previewListRef.current?.scrollToOffset({
+                        offset: info.index * previewW,
+                        animated: false,
+                      });
+                    }, 120);
+                  }}
+                  style={[styles.imagePreviewFlatList, { height: previewFrameH }]}
+                  renderItem={({ item }) => {
+                    const uri = toAbsoluteImageUrl(item.imageUrl);
+                    if (!uri) {
+                      return <View style={{ width: previewW, height: previewFrameH }} />;
+                    }
+                    return (
+                      <View style={[styles.imagePreviewSlide, { width: previewW, height: previewFrameH }]}>
+                        <Image source={{ uri }} style={styles.imagePreviewImage} resizeMode="contain" />
+                      </View>
+                    );
+                  }}
+                />
                 <Pressable
                   style={[
                     styles.imagePreviewCloseBtn,
@@ -1037,21 +1134,64 @@ export function CustomerDetailContent({
                       borderColor: isDark ? "rgba(219, 39, 119, 0.35)" : "rgba(219, 39, 119, 0.2)",
                     },
                   ]}
-                  onPress={() => setImagePreview(null)}
+                  onPress={closeImagePreview}
                   hitSlop={8}
                   accessibilityRole="button"
                   accessibilityLabel={t("common.close")}
                 >
                   <Cancel01Icon size={18} color={isDark ? "#e2e8f0" : "#475569"} variant="stroke" />
                 </Pressable>
-                <Image
-                  source={{ uri: imagePreview.uri }}
-                  style={styles.imagePreviewImage}
-                  resizeMode="contain"
-                />
+                {visibleImages.length > 1 ? (
+                  <>
+                    <Pressable
+                      style={[
+                        styles.imagePreviewNavBtn,
+                        styles.imagePreviewNavLeft,
+                        {
+                          backgroundColor: isDark ? "rgba(15, 23, 42, 0.55)" : "rgba(255, 255, 255, 0.88)",
+                          borderColor: isDark ? "rgba(219, 39, 119, 0.35)" : "rgba(219, 39, 119, 0.2)",
+                          opacity: previewActiveIndex <= 0 ? 0.4 : 1,
+                        },
+                      ]}
+                      onPress={goPreviewPrev}
+                      disabled={previewActiveIndex <= 0}
+                      hitSlop={10}
+                      accessibilityRole="button"
+                      accessibilityLabel={t("customer.imagePreviewPrevious")}
+                    >
+                      <ArrowLeft01Icon size={20} color={isDark ? "#e2e8f0" : "#475569"} variant="stroke" />
+                    </Pressable>
+                    <Pressable
+                      style={[
+                        styles.imagePreviewNavBtn,
+                        styles.imagePreviewNavRight,
+                        {
+                          backgroundColor: isDark ? "rgba(15, 23, 42, 0.55)" : "rgba(255, 255, 255, 0.88)",
+                          borderColor: isDark ? "rgba(219, 39, 119, 0.35)" : "rgba(219, 39, 119, 0.2)",
+                          opacity: previewActiveIndex >= visibleImages.length - 1 ? 0.4 : 1,
+                        },
+                      ]}
+                      onPress={goPreviewNext}
+                      disabled={previewActiveIndex >= visibleImages.length - 1}
+                      hitSlop={10}
+                      accessibilityRole="button"
+                      accessibilityLabel={t("customer.imagePreviewNext")}
+                    >
+                      <ArrowRight01Icon size={20} color={isDark ? "#e2e8f0" : "#475569"} variant="stroke" />
+                    </Pressable>
+                  </>
+                ) : null}
               </View>
+              {visibleImages.length > 1 ? (
+                <Text style={[styles.imagePreviewCounterText, { color: theme.textMute }]}>
+                  {t("customer.imagePreviewCounter", {
+                    current: previewActiveIndex + 1,
+                    total: visibleImages.length,
+                  })}
+                </Text>
+              ) : null}
               <Text style={[styles.imagePreviewCaption, { color: theme.textSoft }]} numberOfLines={3}>
-                {imagePreview.caption}
+                {previewCaption}
               </Text>
             </View>
           ) : null}
@@ -1340,6 +1480,42 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
+  imageStripOuter: {
+    width: "100%",
+  },
+
+  imageStripScrollWrap: {
+    position: "relative",
+    width: "100%",
+  },
+
+  imageStripHintChevron: {
+    position: "absolute",
+    top: 70,
+    zIndex: 2,
+    opacity: 0.85,
+    backgroundColor: "rgba(15, 23, 42, 0.35)",
+    borderRadius: 999,
+    padding: 6,
+  },
+
+  imageStripHintLeft: {
+    left: 4,
+  },
+
+  imageStripHintRight: {
+    right: 4,
+  },
+
+  imageStripHintText: {
+    fontSize: 11,
+    fontWeight: "500",
+    textAlign: "center",
+    marginTop: 8,
+    lineHeight: 15,
+    paddingHorizontal: 8,
+  },
+
   imageScrollContent: {
     gap: 12,
     paddingRight: 6,
@@ -1389,16 +1565,53 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
 
+  imagePreviewFlatList: {
+    width: "100%",
+  },
+
+  imagePreviewSlide: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
   imagePreviewImage: {
     width: "100%",
     height: "100%",
+  },
+
+  imagePreviewNavBtn: {
+    position: "absolute",
+    top: "50%",
+    marginTop: -22,
+    zIndex: 3,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  imagePreviewNavLeft: {
+    left: 8,
+  },
+
+  imagePreviewNavRight: {
+    right: 8,
+  },
+
+  imagePreviewCounterText: {
+    marginTop: 8,
+    fontSize: 12,
+    fontWeight: "600",
+    textAlign: "center",
   },
 
   imagePreviewCloseBtn: {
     position: "absolute",
     top: 10,
     right: 10,
-    zIndex: 2,
+    zIndex: 5,
     width: 36,
     height: 36,
     borderRadius: 18,

@@ -90,14 +90,15 @@ export function BusinessCardReviewModal({
       <View style={styles.modalOverlay}>
         <TouchableOpacity style={styles.modalBackdrop} onPress={onCancel} />
         <View style={[styles.ocrReviewContent, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
-          <ScrollView
-            style={styles.ocrScroll}
-            contentContainerStyle={styles.ocrScrollContent}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            <Text style={[styles.ocrReviewTitle, { color: theme.text }]}>{t("customer.ocrReviewTitle")}</Text>
-            <Text style={[styles.ocrReviewSubtitle, { color: theme.textMute }]}>{t("customer.ocrReviewSubtitle")}</Text>
+          <View style={styles.ocrScrollWrap}>
+            <ScrollView
+              style={styles.ocrScroll}
+              contentContainerStyle={styles.ocrScrollContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              <Text style={[styles.ocrReviewTitle, { color: theme.text }]}>{t("customer.ocrReviewTitle")}</Text>
+              <Text style={[styles.ocrReviewSubtitle, { color: theme.textMute }]}>{t("customer.ocrReviewSubtitle")}</Text>
 
             {draftResult?.previewUri ? <Image source={{ uri: draftResult.previewUri }} style={styles.ocrPreviewImage} resizeMode="cover" /> : null}
 
@@ -172,61 +173,62 @@ export function BusinessCardReviewModal({
               </View>
             ) : null}
 
-            <View style={styles.ocrFieldsWrap}>
-              {([
-                ["customerName", draftResult?.customerName || ""],
-                ["contactNameAndSurname", draftResult?.contactNameAndSurname || ""],
-                ["title", draftResult?.title || ""],
-                ["phone1", draftResult?.phone1 || ""],
-                ["phone2", draftResult?.phone2 || ""],
-                ["email", draftResult?.email || ""],
-                ["website", draftResult?.website || ""],
-                ["address", draftResult?.address || ""],
-              ] as const).map(([field, value]) => {
-                const confidence = draftReview?.fieldConfidence[field];
-                const isLowConfidence = typeof confidence === "number" && confidence < 70;
-                const isEditing = editingField === field;
-                return (
-                  <View key={field} style={styles.ocrFieldRow}>
-                    <View style={styles.ocrFieldContent}>
-                      <Text style={[styles.ocrFieldLabel, { color: theme.textMute }]}>{reviewFieldLabels[field]}</Text>
-                      {isEditing ? (
-                        <TextInput
-                          value={value}
-                          onChangeText={(nextValue) =>
-                            setDraftResult((current) => (current ? { ...current, [field]: nextValue || undefined } : current))
-                          }
-                          placeholder={reviewFieldLabels[field]}
-                          placeholderTextColor={theme.textMute}
-                          style={[
-                            styles.ocrFieldInput,
-                            {
-                              color: theme.text,
-                              borderColor: isLowConfidence ? "#ef4444" : theme.border,
-                              backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "#fff",
-                            },
-                          ]}
-                          multiline={field === "address"}
-                        />
-                      ) : (
-                        <Text style={[styles.ocrFieldLine, { color: isLowConfidence ? "#ef4444" : theme.text }]}>
-                          {value || "-"}
-                          {typeof confidence === "number" ? ` (${confidence}%)` : ""}
-                        </Text>
-                      )}
+              <View style={styles.ocrFieldsWrap}>
+                {([
+                  ["customerName", draftResult?.customerName || ""],
+                  ["contactNameAndSurname", draftResult?.contactNameAndSurname || ""],
+                  ["title", draftResult?.title || ""],
+                  ["phone1", draftResult?.phone1 || ""],
+                  ["phone2", draftResult?.phone2 || ""],
+                  ["email", draftResult?.email || ""],
+                  ["website", draftResult?.website || ""],
+                  ["address", draftResult?.address || ""],
+                ] as const).map(([field, value]) => {
+                  const confidence = draftReview?.fieldConfidence[field];
+                  const isLowConfidence = typeof confidence === "number" && confidence < 70;
+                  const isEditing = editingField === field;
+                  return (
+                    <View key={field} style={styles.ocrFieldRow}>
+                      <View style={styles.ocrFieldContent}>
+                        <Text style={[styles.ocrFieldLabel, { color: theme.textMute }]}>{reviewFieldLabels[field]}</Text>
+                        {isEditing ? (
+                          <TextInput
+                            value={value}
+                            onChangeText={(nextValue) =>
+                              setDraftResult((current) => (current ? { ...current, [field]: nextValue || undefined } : current))
+                            }
+                            placeholder={reviewFieldLabels[field]}
+                            placeholderTextColor={theme.textMute}
+                            style={[
+                              styles.ocrFieldInput,
+                              {
+                                color: theme.text,
+                                borderColor: isLowConfidence ? "#ef4444" : theme.border,
+                                backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "#fff",
+                              },
+                            ]}
+                            multiline={field === "address"}
+                          />
+                        ) : (
+                          <Text style={[styles.ocrFieldLine, { color: isLowConfidence ? "#ef4444" : theme.text }]}>
+                            {value || "-"}
+                            {typeof confidence === "number" ? ` (${confidence}%)` : ""}
+                          </Text>
+                        )}
+                      </View>
+                      <TouchableOpacity
+                        style={[styles.ocrEditBtn, { borderColor: theme.border, backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#f8fafc" }]}
+                        onPress={() => setEditingField((current) => (current === field ? null : field))}
+                        disabled={isScanning}
+                      >
+                        <Text style={[styles.ocrEditBtnText, { color: theme.text }]}>{t("common.edit")}</Text>
+                      </TouchableOpacity>
                     </View>
-                    <TouchableOpacity
-                      style={[styles.ocrEditBtn, { borderColor: theme.border, backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#f8fafc" }]}
-                      onPress={() => setEditingField((current) => (current === field ? null : field))}
-                      disabled={isScanning}
-                    >
-                      <Text style={[styles.ocrEditBtnText, { color: theme.text }]}>{t("common.edit")}</Text>
-                    </TouchableOpacity>
-                  </View>
-                );
-              })}
-            </View>
-          </ScrollView>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          </View>
 
           <View style={styles.ocrActionRow}>
             <TouchableOpacity
@@ -269,20 +271,28 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     justifyContent: "center",
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(15, 23, 42, 0.45)",
   },
   ocrReviewContent: {
+    width: "100%",
     borderRadius: 20,
     borderWidth: 1,
-    maxHeight: "88%",
+    height: "82%",
     overflow: "hidden",
+    flexDirection: "column",
   },
   ocrScroll: {
-    flexGrow: 0,
+    flex: 1,
+    minHeight: 0,
+  },
+  ocrScrollWrap: {
+    height: "80%",
   },
   ocrScrollContent: {
     padding: 16,
@@ -398,8 +408,8 @@ const styles = StyleSheet.create({
   ocrActionRow: {
     flexDirection: "row",
     gap: 10,
-    padding: 16,
-    paddingTop: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   ocrActionBtn: {
