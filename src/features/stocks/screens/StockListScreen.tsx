@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState, useEffect } from "react";
+import React, { useCallback, useMemo, useState, useEffect, useRef } from "react";
 import {
   View,
   StyleSheet,
@@ -33,9 +33,12 @@ import {
   ArrowDown01Icon,
   ArrowUp01Icon,
   PackageIcon,
+  FilterIcon,
 } from "hugeicons-react-native";
 import type { StockGetDto, StockGroupDto } from "../types";
-import { StockCard } from "../components/StockCard";
+import { StockCard, type StockCardUnitPrice } from "../components/StockCard";
+import { quotationApi } from "../../quotation/api/quotationApi";
+import type { PriceOfProductDto } from "../../quotation/types";
 
 const { width } = Dimensions.get("window");
 const GAP = 12;
@@ -44,6 +47,77 @@ const GRID_WIDTH = (width - PADDING * 2 - GAP) / 2;
 
 const BRAND_COLOR = "#db2777";
 const BRAND_COLOR_DARK = "#ec4899";
+
+/** GET price-of-product URL uzunluğu için güvenli parti boyutu */
+const STOCK_PRICE_CHUNK = 18;
+
+function priceRowToEntry(p: PriceOfProductDto): StockCardUnitPrice {
+  return {
+    listPrice: Number(p.listPrice) || 0,
+    currency: String(p.currency ?? "TRY").trim(),
+  };
+}
+
+/**
+ * API satırı `groupCode` ile listedeki `grupKodu` birebir aynı olmayabiliyor (şirket/ERP farkı).
+ * Önce ham anahtarlarla doldurur; sonra her istek için stok koduna göre satır eşleştirir.
+ */
+function buildPriceMapFromResponse(
+  missing: Array<{ productCode: string; groupCode: string }>,
+  flatRows: PriceOfProductDto[]
+): Record<string, StockCardUnitPrice> {
+  const updates: Record<string, StockCardUnitPrice> = {};
+
+  for (const p of flatRows) {
+    const pc = (p.productCode ?? "").trim();
+    const gc = (p.groupCode ?? "").trim();
+    if (!pc) continue;
+    updates[`${pc}|${gc}`] = priceRowToEntry(p);
+  }
+
+  for (const req of missing) {
+    const k = `${req.productCode}|${req.groupCode}`;
+    if (updates[k] !== undefined) continue;
+
+    const matches = flatRows.filter(
+      (r) => (r.productCode ?? "").trim() === req.productCode
+    );
+    if (matches.length === 0) continue;
+
+    const grpReq = req.groupCode.trim();
+    const prefer = matches.find((r) => (r.groupCode ?? "").trim() === grpReq);
+    const pick = prefer ?? matches[0];
+    updates[k] = priceRowToEntry(pick);
+  }
+
+  return updates;
+}
+
+/** Kartın kullandığı anahtar + olası ERP sapmaları */
+function getPriceEntryForStock(
+  map: Record<string, StockCardUnitPrice>,
+  item: StockGetDto
+): StockCardUnitPrice | undefined {
+  const code = (item.erpStockCode ?? "").trim();
+  if (!code) return undefined;
+  const grp = (item.grupKodu ?? "").trim();
+  const exact = `${code}|${grp}`;
+  if (map[exact] !== undefined) return map[exact];
+  if (map[`${code}|`] !== undefined) return map[`${code}|`];
+
+  const prefix = `${code}|`;
+  const keys = Object.keys(map).filter((key) => key.startsWith(prefix));
+  if (keys.length === 1) return map[keys[0]];
+  return undefined;
+}
+
+function chunkStockPriceRequests<T>(arr: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) {
+    out.push(arr.slice(i, i + size));
+  }
+  return out;
+}
 
 const normalizeText = (text: string) => {
   if (!text) return "";
@@ -100,6 +174,10 @@ export function StockListScreen() {
   const [appliedFilterRows, setAppliedFilterRows] = useState<PagedAdvancedFilterRow[]>([]);
   const [tempFilterLogic, setTempFilterLogic] = useState<"and" | "or">("and");
   const [appliedFilterLogic, setAppliedFilterLogic] = useState<"and" | "or">("and");
+  const [productPrices, setProductPrices] = useState<Record<string, StockCardUnitPrice>>({});
+  const [pricesLoading, setPricesLoading] = useState(false);
+  const productPricesRef = useRef(productPrices);
+  productPricesRef.current = productPrices;
 
   const mainBg = isDark ? "#0c0516" : "#FFFFFF";
   const gradientColors = (
@@ -211,17 +289,89 @@ export function StockListScreen() {
 
   const totalCount = data?.pages?.[0]?.totalCount || 0;
 
+  useEffect(() => {
+    setProductPrices({});
+  }, [debouncedQuery, appliedFilterRows, appliedFilterLogic]);
+
+  useEffect(() => {
+    let aborted = false;
+    const timer = setTimeout(() => {
+      if (aborted) return;
+      if (stocks.length === 0) {
+        setPricesLoading(false);
+        return;
+      }
+
+      const prev = productPricesRef.current;
+      const seen = new Set<string>();
+      const missing: Array<{ productCode: string; groupCode: string }> = [];
+
+      for (const s of stocks) {
+        const code = (s.erpStockCode ?? "").trim();
+        if (!code) continue;
+        const grp = (s.grupKodu ?? "").trim();
+        const key = `${code}|${grp}`;
+        if (prev[key] !== undefined) continue;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        missing.push({ productCode: code, groupCode: grp });
+      }
+
+      if (missing.length === 0) {
+        setPricesLoading(false);
+        return;
+      }
+
+      setPricesLoading(true);
+
+      void (async () => {
+        try {
+          const chunks = chunkStockPriceRequests(missing, STOCK_PRICE_CHUNK);
+          const results = await Promise.all(
+            chunks.map((chunk) => quotationApi.getPriceOfProduct(chunk))
+          );
+          if (aborted) return;
+
+          const flatRows = results.flat();
+          const updates = buildPriceMapFromResponse(missing, flatRows);
+
+          if (aborted) return;
+          setProductPrices((current) => ({ ...current, ...updates }));
+        } catch {
+          /* sessiz: liste çalışmaya devam */
+        } finally {
+          if (!aborted) {
+            setPricesLoading(false);
+          }
+        }
+      })();
+    }, 380);
+
+    return () => {
+      aborted = true;
+      clearTimeout(timer);
+    };
+  }, [stocks]);
+
   const renderItem = useCallback(
-    ({ item }: { item: StockGetDto }) => (
-      <StockCard
-        item={item}
-        viewMode={viewMode}
-        isDark={isDark}
-        theme={theme}
-        gridWidth={GRID_WIDTH}
-      />
-    ),
-    [viewMode, isDark, theme]
+    ({ item }: { item: StockGetDto }) => {
+      const code = (item.erpStockCode ?? "").trim();
+      const entry = getPriceEntryForStock(productPrices, item);
+      const showPrice = Boolean(code);
+
+      return (
+        <StockCard
+          item={item}
+          viewMode={viewMode}
+          isDark={isDark}
+          theme={theme}
+          gridWidth={GRID_WIDTH}
+          unitPriceInfo={showPrice ? entry ?? null : null}
+          unitPriceLoading={showPrice && pricesLoading && entry === undefined}
+        />
+      );
+    },
+    [viewMode, isDark, theme, productPrices, pricesLoading]
   );
 
   const handleLoadMore = () => {
@@ -324,8 +474,6 @@ export function StockListScreen() {
             searchValue={searchText}
             onSearchChange={setSearchText}
             searchPlaceholder={t("common.search")}
-            onOpenFilters={openFilterModal}
-            activeFilterCount={apiFilters.length}
             toolbarActions={toolbarActions}
             metaContent={
               <View style={styles.metaRow}>
@@ -334,6 +482,30 @@ export function StockListScreen() {
                     ? t("stock.foundCount", { count: totalCount })
                     : `${totalCount}`}
                 </Text>
+                <TouchableOpacity
+                  style={styles.metaFilterBtn}
+                  onPress={openFilterModal}
+                  activeOpacity={0.72}
+                >
+                  <FilterIcon
+                    size={14}
+                    color={apiFilters.length > 0 ? theme.primary : theme.textMute}
+                    strokeWidth={1.9}
+                  />
+                  <Text
+                    style={[
+                      styles.metaFilterText,
+                      { color: apiFilters.length > 0 ? theme.primary : theme.textMute },
+                    ]}
+                  >
+                    {t("common.filter", "Filtrele")}
+                  </Text>
+                  {apiFilters.length > 0 ? (
+                    <Text style={[styles.metaFilterCount, { color: theme.primary }]}>
+                      {apiFilters.length}
+                    </Text>
+                  ) : null}
+                </TouchableOpacity>
               </View>
             }
             isLoading={Boolean(isPending && !data)}
@@ -344,7 +516,7 @@ export function StockListScreen() {
             contentContainerStyle={{
               paddingHorizontal: PADDING,
               paddingTop: 12,
-              paddingBottom: 24,
+              paddingBottom: insets.bottom + 84,
               gap: GAP,
             }}
             keyboardShouldPersistTaps="handled"
@@ -469,6 +641,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "500",
     letterSpacing: 0.1,
+  },
+
+  metaFilterBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 2,
+    paddingVertical: 2,
+  },
+
+  metaFilterText: {
+    fontSize: 12,
+    fontWeight: "500",
+    marginLeft: 6,
+    letterSpacing: 0.1,
+  },
+
+  metaFilterCount: {
+    fontSize: 11,
+    fontWeight: "600",
+    marginLeft: 5,
   },
 
   metaActionChip: {

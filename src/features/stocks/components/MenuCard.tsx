@@ -44,15 +44,15 @@ export function MenuCard({
   const currentBorder = isPressed ? PRESS_BORDER : normalBorder;
   const gridBorderWidth = isPressed ? 1.6 : isDark ? 1 : 1.15;
 
-  const iconBoxBg = isDark ? "rgba(236, 72, 153, 0.15)" : "#FFF0F5";
-
-  const normalIconColor = colors?.text || (isDark ? "#F8FAFC" : "#1E293B");
-  const currentIconColor = isPressed ? ACTIVE_PINK : normalIconColor;
+  const iconBoxBgList = isDark ? "rgba(255,255,255,0.08)" : "rgba(232, 72, 85, 0.1)";
+  const iconBoxBgPressed = isDark ? "rgba(236, 72, 153, 0.2)" : "rgba(236, 72, 153, 0.15)";
+  const listIconBg = isPressed ? iconBoxBgPressed : iconBoxBgList;
 
   const gridTitleColor = isDark ? "#F8FAFC" : "#334155";
   const titleColor = isDark ? "#F8FAFC" : "#1E293B";
+  const listTitleColor = isPressed ? ACTIVE_PINK : titleColor;
   const descColor = isDark ? "#94A3B8" : "#64748B";
-  const arrowColor = isPressed ? ACTIVE_PINK : isDark ? "#F472B6" : "#94A3B8";
+  const arrowColor = isPressed ? ACTIVE_PINK : isDark ? "#94A3B8" : "#94A3B8";
 
   const shadowColor = isPressed
     ? "rgba(219, 39, 119, 0.28)"
@@ -89,15 +89,14 @@ export function MenuCard({
         <View style={styles.gridIconWrap}>
           {React.isValidElement(icon) ? (
             React.cloneElement(icon as React.ReactElement<any>, {
-              color: currentIconColor,
+              color: isPressed ? ACTIVE_PINK : isDark ? "#F8FAFC" : "#1E293B",
               variant: "stroke",
               size: 24,
               strokeWidth: 2,
             })
           ) : (
             <Text
-              style={[styles.gridEmoji, { color: currentIconColor }]}
-              numberOfLines={1}
+              style={[styles.gridEmoji, { color: isPressed ? ACTIVE_PINK : undefined }]}
             >
               {icon}
             </Text>
@@ -135,25 +134,24 @@ export function MenuCard({
       accessibilityLabel={title}
       accessibilityHint={description}
     >
-      <View style={[styles.iconContainer, { backgroundColor: iconBoxBg }]}>
+      <View style={[styles.iconContainer, { backgroundColor: listIconBg }]}>
         {React.isValidElement(icon) ? (
           React.cloneElement(icon as React.ReactElement<any>, {
-            color: currentIconColor,
+            color: isPressed ? ACTIVE_PINK : isDark ? "#F8FAFC" : "#1E293B",
             variant: "stroke",
           })
         ) : (
-          icon
+          <Text style={[styles.iconEmoji, { color: isPressed ? ACTIVE_PINK : undefined }]}>
+            {icon}
+          </Text>
         )}
       </View>
 
       <View style={styles.content}>
-        <Text style={[styles.title, { color: titleColor }]} numberOfLines={1}>
+        <Text style={[styles.title, { color: listTitleColor }]} numberOfLines={1}>
           {title}
         </Text>
-        <Text
-          style={[styles.description, { color: descColor }]}
-          numberOfLines={2}
-        >
+        <Text style={[styles.description, { color: descColor }]} numberOfLines={2}>
           {description}
         </Text>
       </View>
@@ -210,32 +208,34 @@ const styles = StyleSheet.create({
     letterSpacing: -0.43,
   },
   iconContainer: {
-    width: 44,
-    height: 44,
+    width: 48,
+    height: 48,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 16,
   },
+  iconEmoji: {
+    fontSize: 24,
+  },
   content: {
     flex: 1,
-    paddingRight: 12,
+    paddingRight: 8,
     justifyContent: "center",
   },
   title: {
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: "600",
     marginBottom: 4,
-    letterSpacing: -0.3,
   },
   description: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "500",
     lineHeight: 18,
   },
   rightContainer: {
     justifyContent: "center",
     alignItems: "center",
-    paddingLeft: 4,
+    minWidth: 24,
   },
 });
