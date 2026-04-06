@@ -91,6 +91,7 @@ function mapDetailLineToFormState(d: QuotationLineDetailGetDto): QuotationLineFo
     productId: d.productId ?? null,
     productCode: d.productCode ?? "",
     productName: d.productName,
+    unit: (d as { unit?: string | null }).unit ?? null,
     groupCode: d.groupCode ?? null,
     quantity: d.quantity,
     unitPrice: d.unitPrice,

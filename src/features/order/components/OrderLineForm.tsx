@@ -93,6 +93,7 @@ export function OrderLineForm({
       productId: selectedStock?.id || null,
       productCode: selectedStock?.erpStockCode || "",
       productName: selectedStock?.stockName || "",
+      unit: selectedStock?.unit ?? line?.unit ?? null,
       groupCode: selectedStock?.grupKodu || null,
       quantity: qty,
       unitPrice: price,
@@ -144,6 +145,7 @@ export function OrderLineForm({
           id: line.productId ?? 0,
           erpStockCode: line.productCode || "",
           stockName: line.productName || "",
+          unit: line.unit ?? undefined,
           branchCode: 0,
           grupKodu: line.groupCode ?? undefined,
         } as StockGetDto);
@@ -475,6 +477,24 @@ export function OrderLineForm({
                   : undefined
               }
             />
+
+            {(selectedStock?.unit || line?.unit) ? (
+              <View
+                style={[
+                  styles.approvalWarning,
+                  {
+                    backgroundColor: `${colors.accent}12`,
+                    borderWidth: 1,
+                    borderColor: `${colors.accent}33`,
+                    marginBottom: 12,
+                  },
+                ]}
+              >
+                <Text style={[styles.approvalWarningText, { color: colors.text, fontWeight: "700" }]}>
+                  Olcu Birimi: {selectedStock?.unit || line?.unit}
+                </Text>
+              </View>
+            ) : null}
 
             {isLoadingPrice && (
               <View style={styles.loadingContainer}>

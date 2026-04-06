@@ -51,6 +51,7 @@ function formatStockBalance(item: StockGetDto): string | null {
 
 function getStockMetaRows(item: StockGetDto, t: (key: string) => string): Array<{ label: string; value: string }> {
   return [
+    item.unit ? { label: t("stockPicker.unit"), value: item.unit } : null,
     item.grupKodu || item.grupAdi
       ? { label: t("stockPicker.group"), value: [item.grupKodu, item.grupAdi].filter(Boolean).join(" · ") }
       : null,

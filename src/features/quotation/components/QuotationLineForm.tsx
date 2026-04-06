@@ -195,6 +195,7 @@ export function QuotationLineForm({
       productId: selectedStock?.id || null,
       productCode: selectedStock?.erpStockCode || "",
       productName: selectedStock?.stockName || "",
+      unit: selectedStock?.unit ?? line?.unit ?? null,
       imagePath,
       groupCode: selectedStock?.grupKodu || null,
       quantity: qty,
@@ -304,6 +305,7 @@ export function QuotationLineForm({
           id: line.productId ?? 0,
           erpStockCode: line.productCode || "",
           stockName: line.productName || "",
+          unit: line.unit ?? undefined,
           branchCode: 0,
           grupKodu: line.groupCode ?? undefined,
         } as StockGetDto);
@@ -696,6 +698,22 @@ export function QuotationLineForm({
                       : undefined
                     }
                 />
+
+                {(selectedStock?.unit || line?.unit) ? (
+                  <View
+                    style={[
+                      styles.formCard,
+                      { borderColor, backgroundColor: cardBg, paddingVertical: 12 },
+                    ]}
+                  >
+                    <Text style={[styles.sectionMiniTitle, { color: textColor }]}>
+                      Olcu Birimi
+                    </Text>
+                    <Text style={{ color: mutedColor, fontSize: 14, fontWeight: "600", marginTop: 6 }}>
+                      {selectedStock?.unit || line?.unit}
+                    </Text>
+                  </View>
+                ) : null}
 
                 {allowImageUpload ? (
                   <View style={[styles.formCard, { borderColor, backgroundColor: cardBg }]}>

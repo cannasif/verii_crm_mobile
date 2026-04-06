@@ -193,6 +193,7 @@ export interface DemandLineFormState {
   productId?: number | null;
   productCode: string;
   productName: string;
+  unit?: string | null;
   groupCode?: string | null;
   quantity: number;
   unitPrice: number;

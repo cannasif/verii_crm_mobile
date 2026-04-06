@@ -83,6 +83,11 @@ function QuotationDetailLineRowComponent({
       {line.productCode && (
         <Text style={[styles.productCode, { color: colors.textMuted }]}>{line.productCode}</Text>
       )}
+      {!!(line as { unit?: string | null }).unit && (
+        <Text style={[styles.productCode, { color: colors.accent }]}>
+          {t("quotation.unit")}: {(line as { unit?: string | null }).unit}
+        </Text>
+      )}
       <View style={styles.row}>
         <Text style={[styles.label, { color: colors.textMuted }]}>{t("quotation.quantity")}:</Text>
         <Text style={[styles.value, { color: colors.text }]}>

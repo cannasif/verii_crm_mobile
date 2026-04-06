@@ -41,6 +41,7 @@ export interface QuotationLineGetDto {
   lineNo: number;
   stockCode?: string | null;
   stockName?: string | null;
+  unit?: string | null;
   quantity: number;
   unitPrice: number;
   discountRate: number;
@@ -265,6 +266,7 @@ export interface QuotationLineFormState {
   productId?: number | null;
   productCode: string;
   productName: string;
+  unit?: string | null;
   imagePath?: string | null;
   groupCode?: string | null;
   quantity: number;
