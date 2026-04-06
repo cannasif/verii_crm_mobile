@@ -92,6 +92,24 @@ www.ravbariach.ru
   assert(robLocks.cityName === "Moscow", "Russian address should infer city");
   assert((robLocks.phone1 ?? "").includes("495"), "Office phone should remain primary on the Russian sample");
 
+  const robLocksCyrillic = parseBusinessCardText(`
+ООО Роб Локс Секьюрити Системс
+Дмитрий А. Холодков
+Менеджер по продажам
+офис: +7 495 223 80 03 доб. 200
+моб.: +7 917 507 33 17
+hd@rob-locks.ru
+109428, Россия, Москва,
+Рязанский проспект, д. 24, стр. 1
+www.rob-locks.ru
+  `);
+
+  assert(/дмитрий/i.test(robLocksCyrillic.contactNameAndSurname ?? ""), "Cyrillic person should be preserved");
+  assert(/менеджер/i.test(robLocksCyrillic.title ?? ""), "Cyrillic title should be preserved");
+  assert(/ооо|роб локс/i.test(robLocksCyrillic.customerName ?? ""), "Cyrillic company line should be preserved");
+  assert((robLocksCyrillic.website ?? "").includes("rob-locks.ru"), "Cyrillic sample website should stay aligned");
+  assert(robLocksCyrillic.countryName === "Russia" || /россия/i.test(robLocksCyrillic.countryName ?? ""), "Cyrillic country should be inferred");
+
   const derivedWebsite = parseBusinessCardText(`
 Acme Industrial Solutions Ltd.
 Jane Cooper

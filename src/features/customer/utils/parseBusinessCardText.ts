@@ -330,6 +330,27 @@ function findSplitNameAroundTitle(lines: string[], title: string, customerName: 
   return undefined;
 }
 
+function findDirectNameAboveTitle(lines: string[], title: string, customerName: string | undefined): string | undefined {
+  const normalizedTitle = normalizeForMatch(sanitizeTitleLine(title));
+  const titleIndex = lines.findIndex((line) => {
+    const normalizedLine = normalizeForMatch(sanitizeTitleLine(line));
+    return normalizedLine === normalizedTitle || normalizedLine.includes(normalizedTitle) || normalizedTitle.includes(normalizedLine);
+  });
+  if (titleIndex <= 0) return undefined;
+
+  const candidate = trimAndClean(lines[titleIndex - 1] ?? "");
+  if (!candidate) return undefined;
+  if (customerName && normalizeForMatch(candidate) === normalizeForMatch(customerName)) return undefined;
+  if (isEmailLike(candidate) || isPhoneLike(candidate) || isTitleLike(candidate)) return undefined;
+  if (/@|www\.|https?:\/\//i.test(candidate)) return undefined;
+  if (/\d/.test(candidate)) return undefined;
+  if (candidate.length > 64) return undefined;
+  const tokens = candidate.replace(/[^\p{L}\s'.-]/gu, " ").split(/\s+/).filter(Boolean);
+  if (tokens.length < 2 || tokens.length > 4) return undefined;
+  if (!tokens.every((token) => /^[\p{L}.'-]+$/u.test(token))) return undefined;
+  return truncate(candidate, 150);
+}
+
 function isSimpleNameCandidate(line: string, customerName: string | undefined, title: string | undefined): boolean {
   const cleaned = trimAndClean(line);
   if (!cleaned || /@|\d/.test(cleaned)) return false;
@@ -793,6 +814,9 @@ export function parseBusinessCardText(rawText: string): BusinessCardOcrResult {
     !looksLikePersonName(contactNameAndSurname)
   ) {
     contactNameAndSurname = undefined;
+  }
+  if (!contactNameAndSurname && title) {
+    contactNameAndSurname = findDirectNameAboveTitle(rawLines, title, customerName);
   }
   if (!contactNameAndSurname && title) {
     contactNameAndSurname = findSplitNameAroundTitle(rawLines, title, customerName);

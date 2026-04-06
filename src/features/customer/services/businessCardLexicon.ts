@@ -113,6 +113,17 @@ export const BUSINESS_CARD_TITLE_KEYWORDS = [
   "руководитель",
   "менеджер по продажам",
   "председатель",
+  "заместитель директора",
+  "руководитель отдела продаж",
+  "начальник отдела продаж",
+  "специалист",
+  "ведущий специалист",
+  "инженер",
+  "главный инженер",
+  "директор по продажам",
+  "директор по развитию",
+  "менеджер по развитию",
+  "руководитель проекта",
 ] as const;
 
 export const BUSINESS_CARD_COMPANY_MARKERS = [
@@ -159,6 +170,10 @@ export const BUSINESS_CARD_COMPANY_MARKERS = [
   "зао",
   "oao",
   "оао",
+  "ao",
+  "ао",
+  "pao",
+  "пао",
 ] as const;
 
 export const BUSINESS_CARD_INDUSTRY_KEYWORDS = [
@@ -234,6 +249,13 @@ export const BUSINESS_CARD_INDUSTRY_KEYWORDS = [
   "металл",
   "торговля",
   "био",
+  "системс",
+  "системы",
+  "безопасность",
+  "автоматизация",
+  "инжиниринг",
+  "логистика",
+  "промышленность",
 ] as const;
 
 export const BUSINESS_CARD_ADDRESS_HINTS = [
@@ -311,6 +333,22 @@ export const BUSINESS_CARD_ADDRESS_HINTS = [
   "проспект",
   "дом",
   "стр",
+  "д",
+  "д.",
+  "стр.",
+  "пр-т",
+  "пр.",
+  "шоссе",
+  "наб",
+  "наб.",
+  "пом",
+  "пом.",
+  "каб",
+  "каб.",
+  "корп",
+  "корп.",
+  "обл",
+  "обл.",
 ] as const;
 
 export const BUSINESS_CARD_CONTACT_TOKENS = [
@@ -326,6 +364,14 @@ export const BUSINESS_CARD_CONTACT_TOKENS = [
   "office",
   "fax",
   "faks",
+  "тел",
+  "тел.",
+  "моб",
+  "моб.",
+  "доб",
+  "доб.",
+  "почта",
+  "e-mail",
   "linkedin",
   "instagram",
   "facebook",
