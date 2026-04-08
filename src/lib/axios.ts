@@ -14,6 +14,71 @@ export const apiClient = axios.create({
   },
 });
 
+function getCurrentTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  } catch {
+    return "UTC";
+  }
+}
+
+function isIsoDateTimeWithoutOffset(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/.test(value);
+}
+
+function convertLocalDateTimeStringToUtc(value: string): string {
+  if (!isIsoDateTimeWithoutOffset(value)) {
+    return value;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return parsed.toISOString();
+}
+
+function normalizeUtcDateStrings<T>(payload: T): T {
+  if (payload == null || typeof payload !== "object" || payload instanceof Date) {
+    if (typeof payload === "string" && isIsoDateTimeWithoutOffset(payload)) {
+      return `${payload}Z` as T;
+    }
+    return payload;
+  }
+
+  if (Array.isArray(payload)) {
+    return payload.map((item) => normalizeUtcDateStrings(item)) as T;
+  }
+
+  const source = payload as Record<string, unknown>;
+  const normalized: Record<string, unknown> = {};
+  Object.entries(source).forEach(([key, value]) => {
+    normalized[key] = normalizeUtcDateStrings(value);
+  });
+  return normalized as T;
+}
+
+function normalizeOutgoingUtcDateStrings<T>(payload: T): T {
+  if (payload == null || typeof payload !== "object" || payload instanceof Date) {
+    if (typeof payload === "string") {
+      return convertLocalDateTimeStringToUtc(payload) as T;
+    }
+    return payload;
+  }
+
+  if (Array.isArray(payload)) {
+    return payload.map((item) => normalizeOutgoingUtcDateStrings(item)) as T;
+  }
+
+  const source = payload as Record<string, unknown>;
+  const normalized: Record<string, unknown> = {};
+  Object.entries(source).forEach(([key, value]) => {
+    normalized[key] = normalizeOutgoingUtcDateStrings(value);
+  });
+  return normalized as T;
+}
+
 export async function initializeApiClient(): Promise<void> {
   const baseUrl = await initializeApiBaseUrl();
   apiClient.defaults.baseURL = baseUrl;
@@ -35,7 +100,12 @@ apiClient.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
+    if (config.data !== undefined) {
+      config.data = normalizeOutgoingUtcDateStrings(config.data);
+    }
+
     config.headers["X-Language"] = language || "tr";
+    config.headers["X-Time-Zone"] = getCurrentTimeZone();
 
     const branchCode = branch?.code;
     if (branchCode !== undefined && branchCode !== null && String(branchCode).trim() !== "") {
@@ -60,6 +130,7 @@ apiClient.interceptors.request.use(
 
 apiClient.interceptors.response.use(
   (response) => {
+    response.data = normalizeUtcDateStrings(response.data);
     if (__DEV__) {
       const payload = response.data as { data?: unknown; success?: boolean } | undefined;
       const pageData = payload?.data as { items?: unknown[]; Items?: unknown[]; totalCount?: number; TotalCount?: number } | undefined;
