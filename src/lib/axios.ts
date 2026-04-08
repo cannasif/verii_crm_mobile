@@ -14,14 +14,6 @@ export const apiClient = axios.create({
   },
 });
 
-function getCurrentTimeZone(): string {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-  } catch {
-    return "UTC";
-  }
-}
-
 function isIsoDateTimeWithoutOffset(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/.test(value);
 }
@@ -105,7 +97,6 @@ apiClient.interceptors.request.use(
     }
 
     config.headers["X-Language"] = language || "tr";
-    config.headers["X-Time-Zone"] = getCurrentTimeZone();
 
     const branchCode = branch?.code;
     if (branchCode !== undefined && branchCode !== null && String(branchCode).trim() !== "") {
