@@ -1,5 +1,12 @@
 import React, { useState } from "react";
-import { View, TextInput, StyleSheet, type StyleProp, type ViewStyle } from "react-native";
+import {
+  View,
+  TextInput,
+  StyleSheet,
+  type StyleProp,
+  type ViewStyle,
+  type TextInputProps,
+} from "react-native";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 
@@ -17,7 +24,12 @@ interface FormFieldProps {
   editable?: boolean;
   maxLength?: number;
   containerStyle?: StyleProp<ViewStyle>;
-  inputRef?: React.Ref<TextInput>; // <-- Referansı buradan alacağız
+  inputRef?: React.Ref<TextInput>;
+  returnKeyType?: TextInputProps["returnKeyType"];
+  blurOnSubmit?: boolean;
+  onSubmitEditing?: TextInputProps["onSubmitEditing"];
+  onKeyPress?: TextInputProps["onKeyPress"];
+  onInputFocus?: () => void;
 }
 
 export function FormField({
@@ -34,7 +46,12 @@ export function FormField({
   editable = true,
   maxLength,
   containerStyle,
-  inputRef, // <-- Prop olarak içeri aldık
+  inputRef,
+  returnKeyType,
+  blurOnSubmit,
+  onSubmitEditing,
+  onKeyPress,
+  onInputFocus,
 }: FormFieldProps): React.ReactElement {
   const { colors, themeMode } = useUIStore();
   const [isFocused, setIsFocused] = useState(false);
@@ -90,8 +107,15 @@ export function FormField({
         autoCapitalize={autoCapitalize}
         editable={editable}
         maxLength={maxLength}
-        onFocus={() => setIsFocused(true)}
+        onFocus={() => {
+          setIsFocused(true);
+          onInputFocus?.();
+        }}
         onBlur={() => setIsFocused(false)}
+        returnKeyType={returnKeyType}
+        blurOnSubmit={blurOnSubmit ?? (multiline ? false : Boolean(onSubmitEditing))}
+        onSubmitEditing={onSubmitEditing}
+        onKeyPress={onKeyPress}
       />
       
       {error && <Text style={[styles.error, { color: THEME.error }]}>{error}</Text>}

@@ -73,7 +73,7 @@ const CustomerCardComponent = ({ customer, viewMode, onPress, onQuickActivityPre
     surface: isDark ? "rgba(255, 255, 255, 0.04)" : "#FFFFFF",
     surfaceActive: isDark ? "rgba(219, 39, 119, 0.08)" : "#F8FAFC",
     
-    border: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)",
+    border: isDark ? "rgba(255, 255, 255, 0.22)" : "rgba(100, 116, 139, 0.4)",
     activeBorder: isDark ? BRAND_COLOR_DARK : BRAND_COLOR,
     separator: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.08)",
     
@@ -334,8 +334,8 @@ const styles = StyleSheet.create({
     width: GRID_WIDTH,
     height: 185, // İki öğe aynı satıra gelince yer açıldı, biraz toparladık
     borderRadius: 16,
-    padding: 12, 
-    borderWidth: 1,
+    padding: 12,
+    borderWidth: 1.5,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 6,
   },
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
     width: '100%',
     padding: 12,
     borderRadius: 16,
-    borderWidth: 1,
+    borderWidth: 1.5,
     marginBottom: 8,
   },
   listInnerContainer: {

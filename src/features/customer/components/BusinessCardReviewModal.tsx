@@ -1,5 +1,17 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useTranslation } from "react-i18next";
 import type { BusinessCardOcrResult } from "../types/businessCard";
 import type { BusinessCardMatchCandidate } from "../services/businessCardEntityResolutionService";
@@ -89,14 +101,15 @@ export function BusinessCardReviewModal({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <View style={styles.modalOverlay}>
         <TouchableOpacity style={styles.modalBackdrop} onPress={onCancel} />
-        <View style={[styles.ocrReviewContent, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
-          <View style={styles.ocrScrollWrap}>
-            <ScrollView
-              style={styles.ocrScroll}
-              contentContainerStyle={styles.ocrScrollContent}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-            >
+        <KeyboardAvoidingView style={styles.keyboardAvoidingView} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+          <View style={[styles.ocrReviewContent, { backgroundColor: isDark ? "#111827" : theme.cardBg, borderColor: theme.border }]}>
+            <View style={styles.ocrScrollWrap}>
+              <ScrollView
+                style={styles.ocrScroll}
+                contentContainerStyle={styles.ocrScrollContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
               <Text style={[styles.ocrReviewTitle, { color: theme.text }]}>{t("customer.ocrReviewTitle")}</Text>
               <Text style={[styles.ocrReviewSubtitle, { color: theme.textMute }]}>{t("customer.ocrReviewSubtitle")}</Text>
 
@@ -183,12 +196,15 @@ export function BusinessCardReviewModal({
                   ["email", draftResult?.email || ""],
                   ["website", draftResult?.website || ""],
                   ["address", draftResult?.address || ""],
-                ] as const).map(([field, value]) => {
+                ] as const).map(([field, value], index, arr) => {
                   const confidence = draftReview?.fieldConfidence[field];
                   const isLowConfidence = typeof confidence === "number" && confidence < 70;
                   const isEditing = editingField === field;
                   return (
-                    <View key={field} style={styles.ocrFieldRow}>
+                    <View
+                      key={field}
+                      style={[styles.ocrFieldRow, index < arr.length - 1 ? styles.ocrFieldRowDivider : null, { borderColor: theme.border }]}
+                    >
                       <View style={styles.ocrFieldContent}>
                         <Text style={[styles.ocrFieldLabel, { color: theme.textMute }]}>{reviewFieldLabels[field]}</Text>
                         {isEditing ? (
@@ -227,41 +243,42 @@ export function BusinessCardReviewModal({
                   );
                 })}
               </View>
-            </ScrollView>
-          </View>
+              </ScrollView>
+            </View>
 
-          <View style={styles.ocrActionRow}>
-            <TouchableOpacity
-              style={[styles.ocrActionBtn, { borderColor: theme.border, backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#f8fafc" }]}
-              onPress={onCancel}
-              disabled={isScanning}
-            >
-              <Text style={[styles.ocrActionText, { color: theme.text }]}>{t("common.cancel")}</Text>
-            </TouchableOpacity>
-            {allowRetry ? (
+            <View style={styles.ocrActionRow}>
               <TouchableOpacity
-                style={[styles.ocrActionBtn, { borderColor: theme.primary, backgroundColor: `${theme.primary}14` }]}
-                onPress={onRetry}
+                style={[styles.ocrActionBtn, { borderColor: theme.border, backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#f8fafc" }]}
+                onPress={onCancel}
                 disabled={isScanning}
               >
-                {isScanning ? (
-                  <ActivityIndicator size="small" color={theme.primary} />
-                ) : (
-                  <Text style={[styles.ocrActionText, { color: theme.primary }]}>{t("customer.advancedSearch")}</Text>
-                )}
+                <Text style={[styles.ocrActionText, { color: theme.text }]}>{t("common.cancel")}</Text>
               </TouchableOpacity>
-            ) : null}
-            <TouchableOpacity
-              style={[styles.ocrActionBtn, { borderColor: theme.primary, backgroundColor: theme.primary }]}
-              onPress={() => {
-                if (draftResult) onConfirm(draftResult);
-              }}
-              disabled={isScanning}
-            >
-              <Text style={[styles.ocrActionText, { color: "#ffffff" }]}>{t("common.confirm")}</Text>
-            </TouchableOpacity>
+              {allowRetry ? (
+                <TouchableOpacity
+                  style={[styles.ocrActionBtn, { borderColor: theme.primary, backgroundColor: `${theme.primary}14` }]}
+                  onPress={onRetry}
+                  disabled={isScanning}
+                >
+                  {isScanning ? (
+                    <ActivityIndicator size="small" color={theme.primary} />
+                  ) : (
+                    <Text style={[styles.ocrActionText, { color: theme.primary }]}>{t("customer.advancedSearch")}</Text>
+                  )}
+                </TouchableOpacity>
+              ) : null}
+              <TouchableOpacity
+                style={[styles.ocrActionBtn, { borderColor: theme.primary, backgroundColor: theme.primary }]}
+                onPress={() => {
+                  if (draftResult) onConfirm(draftResult);
+                }}
+                disabled={isScanning}
+              >
+                <Text style={[styles.ocrActionText, { color: "#ffffff" }]}>{t("common.confirm")}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );
@@ -274,6 +291,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 12,
+  },
+  keyboardAvoidingView: {
+    width: "100%",
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -369,6 +389,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 10,
     alignItems: "flex-start",
+    paddingBottom: 10,
+  },
+  ocrFieldRowDivider: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   ocrFieldContent: {
     flex: 1,

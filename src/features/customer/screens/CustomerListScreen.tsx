@@ -35,6 +35,7 @@ import {
   AddTeamIcon,
   ArrowDown01Icon,
   ArrowUp01Icon,
+  UserGroupIcon,
 } from "hugeicons-react-native";
 import { CustomerCard } from "../components/CustomerCard";
 
@@ -307,11 +308,9 @@ export function CustomerListScreen() {
             topRightActions={topRightActions}
             bottomRightActions={bottomRightActions}
             metaContent={
-              <View style={styles.metaRow}>
-                <Text style={[styles.metaText, { color: theme.textMute }]}>
-                  {t("customer.foundCount", { count: totalCount })}
-                </Text>
-              </View>
+              <Text style={[styles.metaText, { color: theme.textMute }]} numberOfLines={1}>
+                {t("customer.foundCount", { count: totalCount })}
+              </Text>
             }
             isLoading={Boolean(isLoading && !data)}
             refreshing={isRefetching && !isFetchingNextPage}
@@ -342,7 +341,7 @@ export function CustomerListScreen() {
                     },
                   ]}
                 >
-                  <Text style={{ fontSize: 30, opacity: 0.8 }}>📍</Text>
+                  <UserGroupIcon size={28} color={theme.textMute} variant="stroke" strokeWidth={1.8} />
                 </View>
                 <Text style={[styles.emptyText, { color: theme.textMute }]}>
                   {t("customer.emptyState")}
@@ -437,14 +436,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: "transparent",
-  },
-
-  metaRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 18,
-    paddingBottom: 10,
   },
 
   metaText: {

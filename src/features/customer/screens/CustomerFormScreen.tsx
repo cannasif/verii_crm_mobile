@@ -12,6 +12,9 @@ import {
   ScrollView,
   InteractionManager,
   Image,
+  TextInput,
+  Keyboard,
+  Dimensions,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -75,6 +78,24 @@ type FormSectionProps = {
   isDark: boolean;
 };
 
+function assignRef<T>(...refs: Array<React.Ref<T> | null | undefined>) {
+  return (node: T | null) => {
+    refs.forEach((r) => {
+      if (r == null) return;
+      if (typeof r === "function") (r as (instance: T | null) => void)(node);
+      else (r as React.MutableRefObject<T | null>).current = node;
+    });
+  };
+}
+
+function keyboardTabForward(onAdvance: () => void) {
+  return (e: { nativeEvent: { key: string; shiftKey?: boolean } }) => {
+    if (e.nativeEvent.key === "Tab" && !e.nativeEvent.shiftKey) {
+      onAdvance();
+    }
+  };
+}
+
 function FormSection({ title, icon, children, theme, isDark }: FormSectionProps): React.ReactElement | null {
   const hasChildren = React.Children.count(children) > 0;
   if (!hasChildren) return null;
@@ -115,7 +136,7 @@ export function CustomerFormScreen(): React.ReactElement {
   const { t } = useTranslation();
   const router = useRouter();
   const { id, autoScan } = useLocalSearchParams<{ id?: string; autoScan?: string }>();
-  const { colors, themeMode } = useUIStore();
+  const { colors, themeMode, uppercaseCompanyNameAfterScan } = useUIStore();
   const { branch, user } = useAuthStore();
   const insets = useSafeAreaInsets();
   const showToast = useToastStore((state) => state.showToast);
@@ -238,10 +259,146 @@ export function CustomerFormScreen(): React.ReactElement {
   const applyingScanRef = useRef<string | null>(null);
   const lastAppliedScanRef = useRef<string | null>(null);
 
+  const nameInputRef = useRef<TextInput | null>(null);
+  const phoneInputRef = useRef<TextInput | null>(null);
+  const phone2InputRef = useRef<TextInput | null>(null);
+  const emailInputRef = useRef<TextInput | null>(null);
+  const websiteInputRef = useRef<TextInput | null>(null);
+  const salesRepInputRef = useRef<TextInput | null>(null);
+  const groupCodeInputRef = useRef<TextInput | null>(null);
+  const addressInputRef = useRef<TextInput | null>(null);
+  const notesInputRef = useRef<TextInput | null>(null);
+
+  const scrollViewRef = useRef<ScrollView | null>(null);
+  const scrollOffsetYRef = useRef(0);
+  const keyboardHeightRef = useRef(0);
+
   useEffect(() => {
     return () => {
       isMountedRef.current = false;
     };
+  }, []);
+
+  useEffect(() => {
+    const showEvt = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const showSub = Keyboard.addListener(showEvt, (e) => {
+      keyboardHeightRef.current = e.endCoordinates.height;
+    });
+    const hideSub = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => {
+        keyboardHeightRef.current = 0;
+      }
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  const scrollInputIntoView = useCallback(
+    (inputRef: React.RefObject<TextInput | null>) => {
+      const run = () => {
+        const input = inputRef.current;
+        const sv = scrollViewRef.current;
+        if (!input || !sv) return;
+        const windowH = Dimensions.get("window").height;
+        const kb =
+          keyboardHeightRef.current > 0
+            ? keyboardHeightRef.current
+            : Math.round(windowH * 0.36);
+        const margin = 20;
+        const safeBottom = windowH - kb - insets.bottom - margin;
+        input.measureInWindow((_, y, __, h) => {
+          const bottom = y + h;
+          if (bottom > safeBottom) {
+            const delta = bottom - safeBottom + 12;
+            sv.scrollTo({ y: scrollOffsetYRef.current + delta, animated: true });
+          }
+        });
+      };
+      InteractionManager.runAfterInteractions(() => {
+        requestAnimationFrame(() => setTimeout(run, 16));
+      });
+    },
+    [insets.bottom]
+  );
+
+  const focusFirstDetailsField = useCallback((): React.RefObject<TextInput | null> | null => {
+    if (formConfig.showSalesRep) {
+      salesRepInputRef.current?.focus();
+      return salesRepInputRef;
+    }
+    if (formConfig.showGroupCode) {
+      groupCodeInputRef.current?.focus();
+      return groupCodeInputRef;
+    }
+    if (formConfig.showAddress) {
+      addressInputRef.current?.focus();
+      return addressInputRef;
+    }
+    if (formConfig.showNotes) {
+      notesInputRef.current?.focus();
+      return notesInputRef;
+    }
+    return null;
+  }, []);
+
+  const goToDetailsTabAndFocus = useCallback(() => {
+    setActiveTab("details");
+    InteractionManager.runAfterInteractions(() => {
+      setTimeout(() => {
+        const targetRef = focusFirstDetailsField();
+        if (targetRef) {
+          setTimeout(() => {
+            targetRef.current?.focus();
+            scrollInputIntoView(targetRef);
+          }, 48);
+          setTimeout(() => scrollInputIntoView(targetRef), 320);
+        }
+      }, 110);
+    });
+  }, [focusFirstDetailsField, scrollInputIntoView]);
+
+  const focusAfterName = useCallback(() => {
+    if (formConfig.showPhone) phoneInputRef.current?.focus();
+    else if (formConfig.showPhone2) phone2InputRef.current?.focus();
+    else if (formConfig.showEmail) emailInputRef.current?.focus();
+    else if (formConfig.showWebsite) websiteInputRef.current?.focus();
+    else goToDetailsTabAndFocus();
+  }, [goToDetailsTabAndFocus]);
+
+  const focusAfterPhone = useCallback(() => {
+    if (formConfig.showPhone2) phone2InputRef.current?.focus();
+    else if (formConfig.showEmail) emailInputRef.current?.focus();
+    else if (formConfig.showWebsite) websiteInputRef.current?.focus();
+    else goToDetailsTabAndFocus();
+  }, [goToDetailsTabAndFocus]);
+
+  const focusAfterPhone2 = useCallback(() => {
+    if (formConfig.showEmail) emailInputRef.current?.focus();
+    else if (formConfig.showWebsite) websiteInputRef.current?.focus();
+    else goToDetailsTabAndFocus();
+  }, [goToDetailsTabAndFocus]);
+
+  const focusAfterEmail = useCallback(() => {
+    if (formConfig.showWebsite) websiteInputRef.current?.focus();
+    else goToDetailsTabAndFocus();
+  }, [goToDetailsTabAndFocus]);
+
+  const focusAfterSalesRep = useCallback(() => {
+    if (formConfig.showGroupCode) groupCodeInputRef.current?.focus();
+    else if (formConfig.showAddress) addressInputRef.current?.focus();
+    else if (formConfig.showNotes) notesInputRef.current?.focus();
+  }, []);
+
+  const focusAfterGroupCode = useCallback(() => {
+    if (formConfig.showAddress) addressInputRef.current?.focus();
+    else if (formConfig.showNotes) notesInputRef.current?.focus();
+  }, []);
+
+  const addressTabToNotes = useCallback(() => {
+    if (formConfig.showNotes) notesInputRef.current?.focus();
   }, []);
 
   const customerTypeOptions = useMemo(() => {
@@ -442,7 +599,11 @@ export function CustomerFormScreen(): React.ReactElement {
 
         Alert.alert("", t("customer.createSuccess"));
       }
-      router.back();
+      if (isEditMode) {
+        router.back();
+      } else {
+        router.replace("/(tabs)/customers/list");
+      }
     } catch (error) {
       const message = error instanceof Error && error.message ? error.message : t("common.error");
       Alert.alert(t("common.error"), message);
@@ -458,6 +619,7 @@ export function CustomerFormScreen(): React.ReactElement {
     t,
     toNumber,
     toNumberOptional,
+    scannedOriginalImageUri,
     scannedContactName,
     scannedTitle
   ]);
@@ -529,10 +691,15 @@ export function CustomerFormScreen(): React.ReactElement {
     });
 
     const current = getValues();
+    const mergedName = data.customerName ?? current.name;
+    const nameForForm =
+      typeof mergedName === "string" && uppercaseCompanyNameAfterScan
+        ? mergedName.toLocaleUpperCase("tr-TR")
+        : mergedName;
     reset(
       {
         ...current,
-        name: data.customerName ?? current.name,
+        name: nameForForm,
         email: data.email ?? current.email,
         phone: data.phone1 ?? current.phone,
         phone2: data.phone2 ?? current.phone2,
@@ -556,7 +723,7 @@ export function CustomerFormScreen(): React.ReactElement {
       durationMs: Date.now() - startedAt,
       imageUri: data.imageUri ?? null,
     });
-  }, [getValues, reset]);
+  }, [getValues, reset, uppercaseCompanyNameAfterScan]);
 
   const openBusinessCardReview = useCallback((result: BusinessCardOcrResult | null) => {
     if (!result) return;
@@ -750,10 +917,15 @@ export function CustomerFormScreen(): React.ReactElement {
 
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <ScrollView
+            ref={scrollViewRef}
             style={{ flex: 1, backgroundColor: 'transparent' }}
-            contentContainerStyle={[styles.contentContainer, { flexGrow: 1, paddingBottom: insets.bottom + 75}]}            
+            contentContainerStyle={[styles.contentContainer, { flexGrow: 1, paddingBottom: insets.bottom + 200 }]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            onScroll={(e) => {
+              scrollOffsetYRef.current = e.nativeEvent.contentOffset.y;
+            }}
+            scrollEventThrottle={16}
           >
             <View style={[
               styles.tabContainer, 
@@ -876,7 +1048,19 @@ export function CustomerFormScreen(): React.ReactElement {
                   control={control}
                   name="name"
                   render={({ field: { onChange, value, ref } }) => (
-                    <FormField inputRef={ref}label={t("customer.name")} value={value} onChangeText={onChange} error={errors.name?.message} required maxLength={250} />
+                    <FormField
+                      inputRef={assignRef(ref, nameInputRef)}
+                      label={t("customer.name")}
+                      value={value}
+                      onChangeText={onChange}
+                      error={errors.name?.message}
+                      required
+                      maxLength={250}
+                      returnKeyType="next"
+                      onSubmitEditing={focusAfterName}
+                      onKeyPress={keyboardTabForward(focusAfterName)}
+                      onInputFocus={() => scrollInputIntoView(nameInputRef)}
+                    />
                   )}
                 />
 
@@ -916,12 +1100,46 @@ export function CustomerFormScreen(): React.ReactElement {
                       <View style={styles.row}>
                           {formConfig.showPhone && (
                           <View style={styles.flex1}>
-                              <Controller control={control} name="phone" render={({ field: { onChange, value, ref } }) => <FormField inputRef={ref} label={t("customer.phone")} value={value || ""} onChangeText={onChange} keyboardType="phone-pad" maxLength={100} />} />
+                              <Controller
+                                control={control}
+                                name="phone"
+                                render={({ field: { onChange, value, ref } }) => (
+                                  <FormField
+                                    inputRef={assignRef(ref, phoneInputRef)}
+                                    label={t("customer.phone")}
+                                    value={value || ""}
+                                    onChangeText={onChange}
+                                    keyboardType="phone-pad"
+                                    maxLength={100}
+                                    returnKeyType="next"
+                                    onSubmitEditing={focusAfterPhone}
+                                    onKeyPress={keyboardTabForward(focusAfterPhone)}
+                                    onInputFocus={() => scrollInputIntoView(phoneInputRef)}
+                                  />
+                                )}
+                              />
                           </View>
                           )}
                           {formConfig.showPhone2 && (
                           <View style={styles.flex1}>
-                              <Controller control={control} name="phone2" render={({ field: { onChange, value, ref } }) => <FormField inputRef={ref} label={t("customer.phone2")} value={value || ""} onChangeText={onChange} keyboardType="phone-pad" maxLength={100} />} />
+                              <Controller
+                                control={control}
+                                name="phone2"
+                                render={({ field: { onChange, value, ref } }) => (
+                                  <FormField
+                                    inputRef={assignRef(ref, phone2InputRef)}
+                                    label={t("customer.phone2")}
+                                    value={value || ""}
+                                    onChangeText={onChange}
+                                    keyboardType="phone-pad"
+                                    maxLength={100}
+                                    returnKeyType="next"
+                                    onSubmitEditing={focusAfterPhone2}
+                                    onKeyPress={keyboardTabForward(focusAfterPhone2)}
+                                    onInputFocus={() => scrollInputIntoView(phone2InputRef)}
+                                  />
+                                )}
+                              />
                           </View>
                           )}
                       </View>
@@ -931,12 +1149,48 @@ export function CustomerFormScreen(): React.ReactElement {
                       <View style={styles.row}>
                           {formConfig.showEmail && (
                           <View style={styles.flex1}>
-                              <Controller control={control} name="email" render={({ field: { onChange, value, ref } }) => <FormField inputRef={ref}label={t("customer.email")} value={value || ""} onChangeText={onChange} error={errors.email?.message} keyboardType="email-address" autoCapitalize="none" maxLength={100} />} />
+                              <Controller
+                                control={control}
+                                name="email"
+                                render={({ field: { onChange, value, ref } }) => (
+                                  <FormField
+                                    inputRef={assignRef(ref, emailInputRef)}
+                                    label={t("customer.email")}
+                                    value={value || ""}
+                                    onChangeText={onChange}
+                                    error={errors.email?.message}
+                                    keyboardType="email-address"
+                                    autoCapitalize="none"
+                                    maxLength={100}
+                                    returnKeyType="next"
+                                    onSubmitEditing={focusAfterEmail}
+                                    onKeyPress={keyboardTabForward(focusAfterEmail)}
+                                    onInputFocus={() => scrollInputIntoView(emailInputRef)}
+                                  />
+                                )}
+                              />
                           </View>
                           )}
                           {formConfig.showWebsite && (
                           <View style={styles.flex1}>
-                              <Controller control={control} name="website" render={({ field: { onChange, value, ref } }) => <FormField inputRef={ref}label={t("customer.website")} value={value || ""} onChangeText={onChange} autoCapitalize="none" maxLength={100} />} />
+                              <Controller
+                                control={control}
+                                name="website"
+                                render={({ field: { onChange, value, ref } }) => (
+                                  <FormField
+                                    inputRef={assignRef(ref, websiteInputRef)}
+                                    label={t("customer.website")}
+                                    value={value || ""}
+                                    onChangeText={onChange}
+                                    autoCapitalize="none"
+                                    maxLength={100}
+                                    returnKeyType="next"
+                                    onSubmitEditing={goToDetailsTabAndFocus}
+                                    onKeyPress={keyboardTabForward(goToDetailsTabAndFocus)}
+                                    onInputFocus={() => scrollInputIntoView(websiteInputRef)}
+                                  />
+                                )}
+                              />
                           </View>
                           )}
                       </View>
@@ -955,12 +1209,44 @@ export function CustomerFormScreen(): React.ReactElement {
                       <View style={styles.row}>
                           {formConfig.showSalesRep && (
                           <View style={styles.flex1}>
-                              <Controller control={control} name="salesRepCode" render={({ field: { onChange, value, ref } }) => <FormField inputRef={ref} label={t("customer.salesRepCode")} value={value || ""} onChangeText={onChange} maxLength={50} />} />
+                              <Controller
+                                control={control}
+                                name="salesRepCode"
+                                render={({ field: { onChange, value, ref } }) => (
+                                  <FormField
+                                    inputRef={assignRef(ref, salesRepInputRef)}
+                                    label={t("customer.salesRepCode")}
+                                    value={value || ""}
+                                    onChangeText={onChange}
+                                    maxLength={50}
+                                    returnKeyType="next"
+                                    onSubmitEditing={focusAfterSalesRep}
+                                    onKeyPress={keyboardTabForward(focusAfterSalesRep)}
+                                    onInputFocus={() => scrollInputIntoView(salesRepInputRef)}
+                                  />
+                                )}
+                              />
                           </View>
                           )}
                           {formConfig.showGroupCode && (
                           <View style={styles.flex1}>
-                              <Controller control={control} name="groupCode" render={({ field: { onChange, value, ref } }) => <FormField inputRef={ref} label={t("customer.groupCode")} value={value || ""} onChangeText={onChange} maxLength={50} />} />
+                              <Controller
+                                control={control}
+                                name="groupCode"
+                                render={({ field: { onChange, value, ref } }) => (
+                                  <FormField
+                                    inputRef={assignRef(ref, groupCodeInputRef)}
+                                    label={t("customer.groupCode")}
+                                    value={value || ""}
+                                    onChangeText={onChange}
+                                    maxLength={50}
+                                    returnKeyType="next"
+                                    onSubmitEditing={focusAfterGroupCode}
+                                    onKeyPress={keyboardTabForward(focusAfterGroupCode)}
+                                    onInputFocus={() => scrollInputIntoView(groupCodeInputRef)}
+                                  />
+                                )}
+                              />
                           </View>
                           )}
                       </View>
@@ -997,7 +1283,23 @@ export function CustomerFormScreen(): React.ReactElement {
                   )}
 
                   {formConfig.showAddress && (
-                    <Controller control={control} name="address" render={({ field: { onChange, value, ref } }) => <FormField inputRef={ref} label={t("customer.address")} value={value || ""} onChangeText={onChange} multiline numberOfLines={2} maxLength={500} />} />
+                    <Controller
+                      control={control}
+                      name="address"
+                      render={({ field: { onChange, value, ref } }) => (
+                        <FormField
+                          inputRef={assignRef(ref, addressInputRef)}
+                          label={t("customer.address")}
+                          value={value || ""}
+                          onChangeText={onChange}
+                          multiline
+                          numberOfLines={2}
+                          maxLength={500}
+                          onKeyPress={keyboardTabForward(addressTabToNotes)}
+                          onInputFocus={() => scrollInputIntoView(addressInputRef)}
+                        />
+                      )}
+                    />
                   )}
 
                   {formConfig.showShippingAddress && (
@@ -1039,7 +1341,24 @@ export function CustomerFormScreen(): React.ReactElement {
 
               {formConfig.showNotes && (
                 <FormSection title="Notlar" icon={<NoteIcon size={16} color={THEME.primary} variant="stroke" />} theme={THEME} isDark={isDark}>
-                  <Controller control={control} name="notes" render={({ field: { onChange, value, ref } }) => <FormField inputRef={ref} label={t("customer.notes")} value={value || ""} onChangeText={onChange} multiline numberOfLines={2} maxLength={250} />} />
+                  <Controller
+                    control={control}
+                    name="notes"
+                    render={({ field: { onChange, value, ref } }) => (
+                      <FormField
+                        inputRef={assignRef(ref, notesInputRef)}
+                        label={t("customer.notes")}
+                        value={value || ""}
+                        onChangeText={onChange}
+                        multiline
+                        numberOfLines={2}
+                        maxLength={250}
+                        returnKeyType="default"
+                        blurOnSubmit={false}
+                        onInputFocus={() => scrollInputIntoView(notesInputRef)}
+                      />
+                    )}
+                  />
                 </FormSection>
               )}
             </View>
