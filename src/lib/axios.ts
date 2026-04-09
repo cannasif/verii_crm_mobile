@@ -92,7 +92,7 @@ apiClient.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    if (config.data !== undefined) {
+    if (config.data !== undefined && !(config.data instanceof FormData)) {
       config.data = normalizeOutgoingUtcDateStrings(config.data);
     }
 
