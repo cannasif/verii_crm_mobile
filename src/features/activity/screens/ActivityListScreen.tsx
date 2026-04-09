@@ -54,8 +54,7 @@ export function ActivityListScreen(): React.ReactElement {
     surfaceBg: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF',
     borderColor: isDark ? 'rgba(236, 72, 153, 0.3)' : 'rgba(219, 39, 119, 0.2)',
     error: "#ef4444",
-    cardBg: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF',
-    cardBorder: isDark ? 'rgba(236, 72, 153, 0.3)' : 'rgba(219, 39, 119, 0.2)',
+    cardBg: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF',
   };
 
   const [searchText, setSearchText] = useState("");
@@ -172,13 +171,7 @@ export function ActivityListScreen(): React.ReactElement {
     ({ item }: { item: ActivityDto }) => {
       if (!item) return null;
       return (
-        <View style={[
-            styles.cardWrapper, 
-            { 
-                backgroundColor: theme.cardBg,
-                borderColor: theme.cardBorder
-            }
-        ]}>
+        <View style={[styles.cardWrapper, { backgroundColor: theme.cardBg }]}>
              <ActivityCard 
                 activity={item} 
                 onPress={() => handleActivityPress(item)}
@@ -362,8 +355,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   cardWrapper: {
-    borderRadius: 16,
-    borderWidth: 1,
+    borderRadius: 14,
     overflow: 'hidden',
   },
   footerLoading: {

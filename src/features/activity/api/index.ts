@@ -110,6 +110,65 @@ async function ensureReadableUploadUri(imageUri: string): Promise<string> {
   return normalizeLocalMediaUri(imageUri);
 }
 
+/** Backend may return PascalCase, Turkish property names, or wrap the list in items/data (like paged payloads). */
+type RawActivityImageRow = {
+  id?: number;
+  Id?: number;
+  activityId?: number;
+  ActivityId?: number;
+  imageUrl?: string;
+  ImageUrl?: string;
+  resimUrl?: string;
+  ResimUrl?: string;
+  imageDescription?: string;
+  ImageDescription?: string;
+  resimAciklama?: string;
+  ResimAciklama?: string;
+  createdDate?: string;
+  CreatedDate?: string;
+};
+
+function extractActivityImageRows(data: unknown): RawActivityImageRow[] {
+  if (data == null) return [];
+  if (Array.isArray(data)) {
+    return data.filter((row): row is RawActivityImageRow => row != null && typeof row === "object");
+  }
+  if (typeof data === "object") {
+    const o = data as Record<string, unknown>;
+    const nested = o.items ?? o.Items ?? o.data ?? o.Data;
+    if (Array.isArray(nested)) {
+      return nested.filter((row): row is RawActivityImageRow => row != null && typeof row === "object");
+    }
+  }
+  return [];
+}
+
+function normalizeActivityImageDto(raw: RawActivityImageRow): ActivityImageDto {
+  const id = raw.id ?? raw.Id ?? 0;
+  const activityId = raw.activityId ?? raw.ActivityId ?? 0;
+  const imageUrl =
+    raw.imageUrl ?? raw.ImageUrl ?? raw.resimUrl ?? raw.ResimUrl ?? "";
+  const imageDescription =
+    raw.imageDescription ?? raw.ImageDescription ?? raw.resimAciklama ?? raw.ResimAciklama;
+  const createdDate = raw.createdDate ?? raw.CreatedDate;
+  const dto: ActivityImageDto = {
+    id,
+    activityId,
+    imageUrl,
+  };
+  if (imageDescription != null && imageDescription !== "") {
+    dto.imageDescription = imageDescription;
+  }
+  if (createdDate != null && createdDate !== "") {
+    dto.createdDate = createdDate;
+  }
+  return dto;
+}
+
+function normalizeActivityImageList(data: unknown): ActivityImageDto[] {
+  return extractActivityImageRows(data).map(normalizeActivityImageDto);
+}
+
 export const activityApi = {
   getList: async (params: PagedParams = {}): Promise<PagedResponse<ActivityDto>> => {
     const queryParams = buildQueryParams(params);
@@ -183,7 +242,7 @@ export const activityImageApi = {
       );
     }
 
-    return response.data.data ?? [];
+    return normalizeActivityImageList(response.data.data);
   },
 
   upload: async (
@@ -222,7 +281,7 @@ export const activityImageApi = {
       );
     }
 
-    return response.data.data ?? [];
+    return normalizeActivityImageList(response.data.data);
   },
 
   delete: async (id: number): Promise<void> => {

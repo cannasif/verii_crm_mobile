@@ -10,6 +10,7 @@ import {
   Platform,
   Image,
   KeyboardAvoidingView,
+  ScrollView,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -19,6 +20,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { ScreenHeader } from "../../../components/navigation";
 import { Text } from "../../../components/ui/text";
@@ -52,6 +54,9 @@ import {
   ArrowDown01Icon,
   Tick02Icon,
   Notification03Icon,
+  Image02Icon,
+  ArrowLeft01Icon,
+  ArrowRight01Icon,
 } from "hugeicons-react-native";
 
 interface PickerOption {
@@ -64,6 +69,7 @@ type AndroidPickerStep = "start-date" | "start-time" | "end-date" | "end-time" |
 export function ActivityFormScreen(): React.ReactElement {
   const { t } = useTranslation();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const {
     id,
     initialDate,
@@ -143,8 +149,9 @@ export function ActivityFormScreen(): React.ReactElement {
   const [selectedContact, setSelectedContact] = useState<ContactDto | undefined>();
   const [activityImages, setActivityImages] = useState<ActivityImageDto[]>([]);
   const [imagesLoading, setImagesLoading] = useState(false);
-  const [imagesUploading, setImagesUploading] = useState(false);
   const [deletingImageId, setDeletingImageId] = useState<number | null>(null);
+  const [previewPickedAssets, setPreviewPickedAssets] = useState<ImagePicker.ImagePickerAsset[] | null>(null);
+  const [pendingImageAssets, setPendingImageAssets] = useState<ImagePicker.ImagePickerAsset[]>([]);
 
   const user = useAuthStore((state) => state.user);
   const { data: existingActivity, isLoading: activityLoading } = useActivity(activityId);
@@ -720,47 +727,20 @@ export function ActivityFormScreen(): React.ReactElement {
     });
   };
 
-  const uploadPickedAssets = useCallback(
-    async (assets: ImagePicker.ImagePickerAsset[]) => {
-      if (!activityId) {
-        Alert.alert(t("common.warning"), t("activity.imageSaveFirst"));
-        return;
-      }
+  const handleCancelImagePreview = useCallback(() => {
+    setPreviewPickedAssets(null);
+  }, []);
 
-      if (!assets.length) return;
+  const handleConfirmImagePreview = useCallback(() => {
+    if (!previewPickedAssets?.length) return;
+    setPendingImageAssets((prev) => [...prev, ...previewPickedAssets]);
+    setPreviewPickedAssets(null);
+    setActiveTab("details");
+  }, [previewPickedAssets]);
 
-      setImagesUploading(true);
-      try {
-        const uploaded = await activityImageApi.upload(
-          activityId,
-          assets.map((asset) => ({
-            uri: asset.uri,
-            description: t("activity.imageDefaultDescription"),
-          }))
-        );
-
-        setActivityImages((prev) => {
-          const existingIds = new Set(prev.map((item) => item.id));
-          const next = [...prev];
-          uploaded.forEach((item) => {
-            if (!existingIds.has(item.id)) {
-              next.push(item);
-            }
-          });
-          return next;
-        });
-
-        Alert.alert("", t("activity.imageUploadSuccess"));
-      } catch (error) {
-        const message =
-          error instanceof Error && error.message ? error.message : t("activity.imageUploadError");
-        Alert.alert(t("common.error"), message);
-      } finally {
-        setImagesUploading(false);
-      }
-    },
-    [activityId, t]
-  );
+  const removePendingImageAt = useCallback((index: number) => {
+    setPendingImageAssets((prev) => prev.filter((_, i) => i !== index));
+  }, []);
 
   const handlePickFromGallery = useCallback(async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -781,8 +761,8 @@ export function ActivityFormScreen(): React.ReactElement {
       return;
     }
 
-    await uploadPickedAssets(result.assets);
-  }, [t, uploadPickedAssets]);
+    setPreviewPickedAssets(result.assets);
+  }, [t]);
 
   const handlePickFromCamera = useCallback(async () => {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
@@ -802,8 +782,8 @@ export function ActivityFormScreen(): React.ReactElement {
       return;
     }
 
-    await uploadPickedAssets(result.assets);
-  }, [t, uploadPickedAssets]);
+    setPreviewPickedAssets(result.assets);
+  }, [t]);
 
   const handlePickAndUploadImages = useCallback(() => {
     if (!activityId) {
@@ -865,6 +845,28 @@ export function ActivityFormScreen(): React.ReactElement {
 
         if (isEditMode && activityId) {
           await updateActivity.mutateAsync({ id: activityId, data: payload });
+
+          if (pendingImageAssets.length > 0) {
+            try {
+              await activityImageApi.upload(
+                activityId,
+                pendingImageAssets.map((asset) => ({
+                  uri: asset.uri,
+                  description: t("activity.imageDefaultDescription"),
+                }))
+              );
+              setPendingImageAssets([]);
+              const fresh = await activityImageApi.getByActivityId(activityId);
+              setActivityImages(fresh);
+              void queryClient.invalidateQueries({ queryKey: ["activity", "images", activityId] });
+            } catch (imgErr) {
+              const message =
+                imgErr instanceof Error && imgErr.message ? imgErr.message : t("activity.imageUploadError");
+              Alert.alert(t("common.error"), message);
+              return;
+            }
+          }
+
           Alert.alert("", t("activity.updateSuccess"));
           router.back();
           return;
@@ -899,6 +901,8 @@ export function ActivityFormScreen(): React.ReactElement {
       selectedCustomer?.name,
       selectedContact?.fullName,
       toDefaultEndDateTime,
+      pendingImageAssets,
+      queryClient,
     ]
   );
 
@@ -925,7 +929,13 @@ export function ActivityFormScreen(): React.ReactElement {
       setDeletingImageId(imageId);
       try {
         await activityImageApi.delete(imageId);
-        setActivityImages((prev) => prev.filter((item) => item.id !== imageId));
+        if (activityId) {
+          const fresh = await activityImageApi.getByActivityId(activityId);
+          setActivityImages(fresh);
+          void queryClient.invalidateQueries({ queryKey: ["activity", "images", activityId] });
+        } else {
+          setActivityImages((prev) => prev.filter((item) => item.id !== imageId));
+        }
       } catch (error) {
         const message =
           error instanceof Error && error.message ? error.message : t("activity.imageDeleteError");
@@ -934,7 +944,7 @@ export function ActivityFormScreen(): React.ReactElement {
         setDeletingImageId(null);
       }
     },
-    [t]
+    [activityId, queryClient, t]
   );
 
   const renderTypeItem = useCallback(
@@ -1102,6 +1112,27 @@ export function ActivityFormScreen(): React.ReactElement {
     ],
     [t]
   );
+
+  const activityImagePreviewTheme = useMemo(
+    () => ({
+      cardBg: isDark ? "rgba(23,10,38,0.99)" : "rgba(255,255,255,0.98)",
+      borderColor: innerBorder,
+      title: titleText,
+      text: mutedText,
+      cancelBg: isDark ? "rgba(255,255,255,0.08)" : "rgba(148,163,184,0.12)",
+      cancelText: titleText,
+      confirmBg: isDark ? "rgba(236,72,153,0.22)" : "rgba(236,72,153,0.12)",
+      confirmBorder: `${accent}44`,
+      confirmText: accent,
+    }),
+    [accent, innerBorder, isDark, mutedText, titleText]
+  );
+
+  const visibleServerImageCount = useMemo(
+    () => activityImages.filter((img) => !!toAbsoluteImageUrl(img.imageUrl)).length,
+    [activityImages, toAbsoluteImageUrl]
+  );
+
   const getFieldBorderColor = useCallback(
     (fieldName: string, hasError?: boolean) => {
       if (hasError) return colors.error;
@@ -1828,7 +1859,7 @@ export function ActivityFormScreen(): React.ReactElement {
                       { backgroundColor: `${accent}10`, borderColor: `${accent}18` },
                     ]}
                   >
-                    <TaskDaily01Icon size={14} color={accent} variant="stroke" />
+                    <Image02Icon size={14} color={accent} variant="stroke" />
                   </View>
                   <Text style={[styles.sectionTitle, { color: titleText }]}>{t("activity.images")}</Text>
                 </View>
@@ -1839,60 +1870,123 @@ export function ActivityFormScreen(): React.ReactElement {
                     {
                       borderColor: innerBorder,
                       backgroundColor: innerBg,
-                      opacity: !activityId || imagesUploading ? 0.7 : 1,
+                      opacity: !activityId || isSubmitting ? 0.7 : 1,
                     },
                   ]}
                   onPress={handlePickAndUploadImages}
-                  disabled={!activityId || imagesUploading}
+                  disabled={!activityId || isSubmitting}
                   activeOpacity={0.82}
                 >
-                  {imagesUploading ? (
-                    <ActivityIndicator size="small" color={accent} />
-                  ) : (
-                    <Text style={[styles.secondaryActionButtonText, { color: titleText }]}>
-                      {activityId ? t("activity.addImage") : t("activity.imageSaveFirst")}
-                    </Text>
-                  )}
+                  <Text style={[styles.secondaryActionButtonText, { color: titleText }]}>
+                    {activityId ? t("activity.addImage") : t("activity.imageSaveFirst")}
+                  </Text>
                 </TouchableOpacity>
 
-                {imagesLoading ? (
+                {pendingImageAssets.length > 0 ? (
+                  <Text style={[styles.activityPendingImagesHint, { color: mutedText }]}>
+                    {t("activity.pendingImagesSaveHint")}
+                  </Text>
+                ) : null}
+
+                {imagesLoading && visibleServerImageCount === 0 && pendingImageAssets.length === 0 ? (
                   <ActivityIndicator size="small" color={accent} style={styles.imageLoadingIndicator} />
-                ) : activityImages.length === 0 ? (
+                ) : visibleServerImageCount === 0 && pendingImageAssets.length === 0 ? (
                   <Text style={[styles.emptyHelperText, { color: mutedText }]}>{t("activity.noImages")}</Text>
                 ) : (
-                  <View style={styles.imageGrid}>
-                    {activityImages.map((image) => {
-                      const imageUri = toAbsoluteImageUrl(image.imageUrl);
-                      if (!imageUri) return null;
-
-                      return (
-                        <View
-                          key={image.id}
-                          style={[
-                            styles.imageCard,
-                            { backgroundColor: innerBg, borderColor: innerBorder },
-                          ]}
-                        >
-                          <Image source={{ uri: imageUri }} style={styles.activityImage} resizeMode="cover" />
-                          <TouchableOpacity
-                            style={[
-                              styles.deleteImageButton,
-                              { backgroundColor: isDark ? "rgba(15,23,42,0.78)" : "rgba(255,255,255,0.92)" },
-                            ]}
-                            onPress={() => handleDeleteImage(image.id)}
-                            disabled={deletingImageId === image.id}
-                          >
-                            {deletingImageId === image.id ? (
-                              <ActivityIndicator size="small" color={accent} />
-                            ) : (
-                              <Text style={[styles.deleteImageButtonText, { color: accent }]}>
-                                {t("common.delete")}
+                  <View style={styles.activityImageStripOuter}>
+                    <View style={styles.activityImageStripScrollWrap}>
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.activityImageScrollContent}
+                      >
+                        {activityImages.map((image) => {
+                          const imageUri = toAbsoluteImageUrl(image.imageUrl);
+                          if (!imageUri) return null;
+                          const caption =
+                            image.imageDescription?.trim() || t("activity.imageDefaultDescription");
+                          return (
+                            <View
+                              key={image.id}
+                              style={[
+                                styles.activityImageStripCard,
+                                { backgroundColor: innerBg, borderColor: innerBorder },
+                              ]}
+                            >
+                              <Image source={{ uri: imageUri }} style={styles.activityImageStripPhoto} resizeMode="cover" />
+                              <Text style={[styles.activityImageStripCaption, { color: titleText }]} numberOfLines={2}>
+                                {caption}
                               </Text>
-                            )}
-                          </TouchableOpacity>
-                        </View>
-                      );
-                    })}
+                              <TouchableOpacity
+                                style={[
+                                  styles.activityImageStripRemoveBtn,
+                                  { backgroundColor: isDark ? "rgba(15,23,42,0.78)" : "rgba(255,255,255,0.92)" },
+                                ]}
+                                onPress={() => handleDeleteImage(image.id)}
+                                disabled={deletingImageId === image.id}
+                              >
+                                {deletingImageId === image.id ? (
+                                  <ActivityIndicator size="small" color={accent} />
+                                ) : (
+                                  <Text style={[styles.activityImageStripRemoveText, { color: accent }]}>
+                                    {t("common.delete")}
+                                  </Text>
+                                )}
+                              </TouchableOpacity>
+                            </View>
+                          );
+                        })}
+                        {pendingImageAssets.map((asset, idx) => (
+                          <View
+                            key={`pending-${idx}-${asset.uri}`}
+                            style={[
+                              styles.activityImageStripCard,
+                              {
+                                backgroundColor: innerBg,
+                                borderColor: accent,
+                                borderStyle: "dashed",
+                              },
+                            ]}
+                          >
+                            <View style={[styles.activityPendingBadge, { backgroundColor: `${accent}18` }]}>
+                              <Text style={[styles.activityPendingBadgeText, { color: accent }]}>
+                                {t("activity.pendingImageBadge")}
+                              </Text>
+                            </View>
+                            <Image source={{ uri: asset.uri }} style={styles.activityImageStripPhoto} resizeMode="cover" />
+                            <Text style={[styles.activityImageStripCaption, { color: mutedText }]} numberOfLines={2}>
+                              {t("activity.pendingImageCaption")}
+                            </Text>
+                            <TouchableOpacity
+                              style={[
+                                styles.activityImageStripRemoveBtn,
+                                { backgroundColor: isDark ? "rgba(15,23,42,0.78)" : "rgba(255,255,255,0.92)" },
+                              ]}
+                              onPress={() => removePendingImageAt(idx)}
+                            >
+                              <Text style={[styles.activityImageStripRemoveText, { color: accent }]}>
+                                {t("activity.removePendingImage")}
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        ))}
+                      </ScrollView>
+                      {visibleServerImageCount + pendingImageAssets.length > 1 ? (
+                        <>
+                          <View style={[styles.activityImageStripHintChevron, styles.activityImageStripHintLeft]} pointerEvents="none">
+                            <ArrowLeft01Icon size={18} color={mutedText} variant="stroke" strokeWidth={2} />
+                          </View>
+                          <View style={[styles.activityImageStripHintChevron, styles.activityImageStripHintRight]} pointerEvents="none">
+                            <ArrowRight01Icon size={18} color={mutedText} variant="stroke" strokeWidth={2} />
+                          </View>
+                        </>
+                      ) : null}
+                    </View>
+                    {visibleServerImageCount + pendingImageAssets.length > 1 ? (
+                      <Text style={[styles.activityImageStripHintText, { color: mutedText }]} pointerEvents="none">
+                        {t("customer.imageGallerySwipeHint")}
+                      </Text>
+                    ) : null}
                   </View>
                 )}
               </View>
@@ -2364,6 +2458,79 @@ export function ActivityFormScreen(): React.ReactElement {
           </Modal>
         </>
       ) : null}
+
+      <Modal
+        visible={previewPickedAssets != null && previewPickedAssets.length > 0}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCancelImagePreview}
+      >
+        <View style={styles.activityPickPreviewOverlay}>
+          <View
+            style={[
+              styles.activityPickPreviewCard,
+              {
+                backgroundColor: activityImagePreviewTheme.cardBg,
+                borderColor: activityImagePreviewTheme.borderColor,
+              },
+            ]}
+          >
+            <Text style={[styles.activityPickPreviewTitle, { color: activityImagePreviewTheme.title }]}>
+              {t("activity.imagePreviewTitle")}
+            </Text>
+            <Text style={[styles.activityPickPreviewSubtitle, { color: activityImagePreviewTheme.text }]}>
+              {t("activity.confirmAddImages")}
+            </Text>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.activityPickPreviewScroll}
+              contentContainerStyle={styles.activityPickPreviewScrollContent}
+            >
+              {(previewPickedAssets ?? []).map((asset, idx) => (
+                <Image
+                  key={`pv-${idx}-${asset.uri}`}
+                  source={{ uri: asset.uri }}
+                  style={styles.activityPickPreviewThumb}
+                  resizeMode="cover"
+                />
+              ))}
+            </ScrollView>
+
+            <View style={styles.activityPickPreviewActions}>
+              <TouchableOpacity
+                style={[
+                  styles.activityPickPreviewButton,
+                  { backgroundColor: activityImagePreviewTheme.cancelBg },
+                ]}
+                onPress={handleCancelImagePreview}
+                disabled={isSubmitting}
+              >
+                <Text style={[styles.activityPickPreviewButtonText, { color: activityImagePreviewTheme.cancelText }]}>
+                  {t("common.cancel")}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.activityPickPreviewButton,
+                  {
+                    backgroundColor: activityImagePreviewTheme.confirmBg,
+                    borderColor: activityImagePreviewTheme.confirmBorder,
+                    borderWidth: 1,
+                  },
+                ]}
+                onPress={handleConfirmImagePreview}
+                disabled={isSubmitting}
+              >
+                <Text style={[styles.activityPickPreviewButtonText, { color: activityImagePreviewTheme.confirmText }]}>
+                  {t("activity.addToPendingList")}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }
@@ -2646,38 +2813,146 @@ const styles = StyleSheet.create({
   imageLoadingIndicator: {
     marginTop: 16,
   },
+  activityPendingImagesHint: {
+    marginTop: 10,
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: "600",
+  },
   emptyHelperText: {
     marginTop: 14,
     fontSize: 13,
   },
-  imageGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-    marginTop: 16,
+  activityImageStripOuter: {
+    width: "100%",
+    marginTop: 14,
   },
-  imageCard: {
-    width: "48%",
-    aspectRatio: 1,
+  activityImageStripScrollWrap: {
+    position: "relative",
+    width: "100%",
+  },
+  activityImageScrollContent: {
+    gap: 12,
+    paddingRight: 6,
+    paddingVertical: 4,
+  },
+  activityImageStripCard: {
+    width: 176,
     borderRadius: 18,
     borderWidth: 1,
     overflow: "hidden",
     position: "relative",
   },
-  activityImage: {
+  activityImageStripPhoto: {
     width: "100%",
-    height: "100%",
+    height: 128,
+    backgroundColor: "rgba(0,0,0,0.06)",
   },
-  deleteImageButton: {
-    position: "absolute",
-    right: 10,
-    top: 10,
+  activityImageStripCaption: {
+    fontSize: 11,
+    lineHeight: 15,
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 8,
+    fontWeight: "500",
+  },
+  activityImageStripRemoveBtn: {
+    position: "absolute",
+    right: 8,
+    top: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
     borderRadius: 999,
   },
-  deleteImageButtonText: {
-    fontSize: 12,
+  activityImageStripRemoveText: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  activityPendingBadge: {
+    position: "absolute",
+    left: 8,
+    top: 8,
+    zIndex: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  activityPendingBadgeText: {
+    fontSize: 10,
+    fontWeight: "800",
+  },
+  activityImageStripHintChevron: {
+    position: "absolute",
+    top: 52,
+    zIndex: 2,
+    opacity: 0.85,
+    backgroundColor: "rgba(15, 23, 42, 0.35)",
+    borderRadius: 999,
+    padding: 5,
+  },
+  activityImageStripHintLeft: {
+    left: 2,
+  },
+  activityImageStripHintRight: {
+    right: 2,
+  },
+  activityImageStripHintText: {
+    fontSize: 11,
+    fontWeight: "500",
+    textAlign: "center",
+    marginTop: 8,
+    lineHeight: 15,
+    paddingHorizontal: 8,
+  },
+  activityPickPreviewOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    padding: 20,
+    backgroundColor: "rgba(0,0,0,0.72)",
+  },
+  activityPickPreviewCard: {
+    borderRadius: 24,
+    padding: 16,
+    borderWidth: 1,
+  },
+  activityPickPreviewTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  activityPickPreviewSubtitle: {
+    fontSize: 13,
+    lineHeight: 20,
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  activityPickPreviewScroll: {
+    maxHeight: 200,
+    marginBottom: 14,
+  },
+  activityPickPreviewScrollContent: {
+    gap: 10,
+    alignItems: "center",
+  },
+  activityPickPreviewThumb: {
+    width: 120,
+    height: 168,
+    borderRadius: 14,
+    backgroundColor: "rgba(0,0,0,0.08)",
+  },
+  activityPickPreviewActions: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  activityPickPreviewButton: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  activityPickPreviewButtonText: {
+    fontSize: 14,
     fontWeight: "700",
   },
 

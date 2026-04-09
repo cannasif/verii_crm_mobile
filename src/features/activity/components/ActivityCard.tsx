@@ -1,32 +1,30 @@
-import React, { memo, useEffect, useRef } from "react";
-import { View, TouchableOpacity, StyleSheet, Animated } from "react-native";
+import React, { memo } from "react";
+import { View, TouchableOpacity, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import type { ActivityDto } from "../types";
 
-
-import { 
-  Calendar01Icon, 
-  UserCircleIcon, 
+import {
+  Calendar01Icon,
+  UserCircleIcon,
   Notification01Icon,
   Building03Icon,
+  TelephoneIcon,
+  UserGroupIcon,
+  Mail01Icon,
+  Task01Icon,
+  Building01Icon,
+  Note01Icon,
+  Invoice01Icon,
+  ShoppingCart01Icon,
+  Time02Icon,
   Cancel01Icon,
   TickDouble01Icon,
-  TelephoneIcon, 
-  UserGroupIcon, 
-  Mail01Icon, 
-  Task01Icon, 
-  Building01Icon, 
-  Note01Icon, 
-  Invoice01Icon, 
-  ShoppingCart01Icon, 
-  RefreshIcon, 
-  FireIcon, 
-  Alert01Icon, 
-  ArrowDown01Icon, 
-  Time02Icon 
 } from "hugeicons-react-native";
+
+const CARD_HEIGHT = 124;
+const PRIMARY = "#db2777";
 
 interface ActivityCardProps {
   activity: ActivityDto;
@@ -34,8 +32,7 @@ interface ActivityCardProps {
   onReportPress?: () => void;
 }
 
-
-const getLocText = (t: any, key: string, fallback: string) => {
+const getLocText = (t: (k: string) => string, key: string, fallback: string) => {
   const res = t(key);
   return res === key || !res ? fallback : res;
 };
@@ -45,338 +42,320 @@ function ActivityCardComponent({ activity, onPress, onReportPress }: ActivityCar
   const { t } = useTranslation();
   const isDark = themeMode === "dark";
 
-  const primaryColor =  "#db2777";
-
-
   const pVal = activity.priority;
   const isHighPriority = pVal === 2 || String(pVal).toLowerCase() === "high";
   const isMediumPriority = pVal === 1 || String(pVal).toLowerCase() === "medium";
   const isLowPriority = pVal === 0 || String(pVal).toLowerCase() === "low";
 
-
   const statusVal = activity.status;
-  const isCancelled = statusVal === 2 || String(statusVal).toLowerCase() === "cancelled" || String(statusVal).toLowerCase() === "canceled";
-  const isCompleted = statusVal === 1 || String(statusVal).toLowerCase() === "completed" || activity.isCompleted;
-  const isScheduled = !isCancelled && !isCompleted;
-
-
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  
-  useEffect(() => {
-    if (isHighPriority && !isCompleted && !isCancelled) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 0.5, duration: 800, useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true })
-        ])
-      ).start();
-    } else {
-      pulseAnim.setValue(1);
-    }
-  }, [isHighPriority, isCompleted, isCancelled]);
+  const isCancelled =
+    statusVal === 2 ||
+    String(statusVal).toLowerCase() === "cancelled" ||
+    String(statusVal).toLowerCase() === "canceled";
+  const isCompleted =
+    statusVal === 1 || String(statusVal).toLowerCase() === "completed" || activity.isCompleted;
 
   const getStatusColor = (): string => {
     if (isCompleted) return colors.success || "#10b981";
     if (isCancelled) return colors.error || "#ef4444";
-    return primaryColor; 
+    return PRIMARY;
   };
 
   const getStatusText = (): string => {
     if (isCompleted) return getLocText(t, "activity.statusCompleted", "Tamamlandı");
-    if (isCancelled) return getLocText(t, "activity.statusCancelled", "İptal Edildi");
+    if (isCancelled) return getLocText(t, "activity.statusCancelled", "İptal");
     return getLocText(t, "activity.statusScheduled", "Planlandı");
   };
 
-  const getPriorityConfig = () => {
-    if (isHighPriority) return { color: "#ef4444", text: getLocText(t, "activity.priorityHigh", "Yüksek"), icon: <FireIcon size={12} color="#ef4444" variant="stroke" /> };
-    if (isMediumPriority) return { color: "#f59e0b", text: getLocText(t, "activity.priorityMedium", "Orta"), icon: <Alert01Icon size={12} color="#f59e0b" variant="stroke" /> };
-    if (isLowPriority) return { color: "#10b981", text: getLocText(t, "activity.priorityLow", "Düşük"), icon: <ArrowDown01Icon size={12} color="#10b981" variant="stroke" /> };
+  const getPriorityBadge = (): { text: string; color: string } | null => {
+    if (isCancelled || isCompleted) return null;
+    if (isHighPriority) {
+      return { text: getLocText(t, "activity.priorityHigh", "Yüksek"), color: "#ef4444" };
+    }
+    if (isMediumPriority) {
+      return { text: getLocText(t, "activity.priorityMedium", "Orta"), color: "#f59e0b" };
+    }
+    if (isLowPriority) {
+      return { text: getLocText(t, "activity.priorityLow", "Düşük"), color: "#10b981" };
+    }
     return null;
   };
-  const priorityConfig = getPriorityConfig();
+  const priorityBadge = getPriorityBadge();
+  const isScheduled = !isCancelled && !isCompleted;
 
-
-  let cardBgColor = isDark ? "rgba(255,255,255,0.03)" : "#FFFFFF";
-  let cardBorderColor = isDark ? "rgba(255,255,255,0.08)" : "transparent"; 
+  let cardBgColor = isDark ? "rgba(255,255,255,0.04)" : "#FFFFFF";
 
   if (isCancelled) {
-    cardBgColor = isDark ? "rgba(239, 68, 68, 0.08)" : "rgba(239, 68, 68, 0.05)"; 
+    cardBgColor = isDark ? "rgba(239, 68, 68, 0.07)" : "rgba(239, 68, 68, 0.04)";
   } else if (isCompleted) {
-    cardBgColor = isDark ? "rgba(16, 185, 129, 0.12)" : "rgba(16, 185, 129, 0.08)";
+    cardBgColor = isDark ? "rgba(16, 185, 129, 0.08)" : "rgba(16, 185, 129, 0.06)";
   } else if (isHighPriority) {
-    cardBgColor = isDark ? "rgba(239, 68, 68, 0.06)" : "rgba(239, 68, 68, 0.04)";
+    cardBgColor = isDark ? "rgba(239, 68, 68, 0.05)" : "rgba(239, 68, 68, 0.03)";
   }
 
- 
   const getActivityTypeText = (activityType: ActivityDto["activityType"]): string => {
     if (typeof activityType === "string") return activityType;
-    if (activityType && typeof activityType === "object" && typeof activityType.name === "string") return activityType.name;
+    if (activityType && typeof activityType === "object" && typeof activityType.name === "string") {
+      return activityType.name;
+    }
     return getLocText(t, "activity.unknownType", "Aktivite");
   };
   const activityTypeName = getActivityTypeText(activity.activityType);
-  
+
   const getActivityTypeIcon = () => {
     const typeLower = activityTypeName.toLowerCase().replace(/\s+/g, "");
-    const iconProps = { size: 14, color: primaryColor, variant: "stroke" as const }; 
+    const iconProps = { size: 12, color: PRIMARY, variant: "stroke" as const };
     switch (typeLower) {
-      case "call": case "telefon": case "arama": return <TelephoneIcon {...iconProps} />;
-      case "meeting": case "toplantı": case "görüşme": return <UserGroupIcon {...iconProps} />;
-      case "email": case "e-posta": case "eposta": case "mail": return <Mail01Icon {...iconProps} />;
-      case "visit": case "ziyaret": return <Building01Icon {...iconProps} />;
-      case "note": case "not": case "notlar": return <Note01Icon {...iconProps} />;
-      case "quote": case "teklif": return <Invoice01Icon {...iconProps} />;
-      case "order": case "sipariş": return <ShoppingCart01Icon {...iconProps} />;
-      default: return <Task01Icon {...iconProps} />;
+      case "call":
+      case "telefon":
+      case "arama":
+        return <TelephoneIcon {...iconProps} />;
+      case "meeting":
+      case "toplantı":
+      case "görüşme":
+        return <UserGroupIcon {...iconProps} />;
+      case "email":
+      case "e-posta":
+      case "eposta":
+      case "mail":
+        return <Mail01Icon {...iconProps} />;
+      case "visit":
+      case "ziyaret":
+        return <Building01Icon {...iconProps} />;
+      case "note":
+      case "not":
+      case "notlar":
+        return <Note01Icon {...iconProps} />;
+      case "quote":
+      case "teklif":
+        return <Invoice01Icon {...iconProps} />;
+      case "order":
+      case "sipariş":
+        return <ShoppingCart01Icon {...iconProps} />;
+      default:
+        return <Task01Icon {...iconProps} />;
     }
   };
 
- 
   const customerName = activity.potentialCustomer?.name || activity.contact?.fullName;
   const hasCustomer = !!customerName;
   const assignedUserName = activity.assignedUser?.fullName;
   const hasAssignedUser = !!assignedUserName;
   const hasReminder = activity.reminders && activity.reminders.length > 0;
-  const detailChips = [
-    activity.paymentTypeName
-      ? { key: "payment", label: getLocText(t, "activity.paymentType", "Odeme"), value: activity.paymentTypeName, icon: <Invoice01Icon size={12} color={primaryColor} variant="stroke" /> }
-      : null,
-    activity.activityMeetingTypeName
-      ? { key: "meeting", label: getLocText(t, "activity.activityMeetingType", "Gorusme"), value: activity.activityMeetingTypeName, icon: <UserGroupIcon size={12} color={primaryColor} variant="stroke" /> }
-      : null,
-    activity.activityTopicPurposeName
-      ? { key: "topic", label: getLocText(t, "activity.activityTopicPurpose", "Ilgilenilen Konular"), value: activity.activityTopicPurposeName, icon: <Note01Icon size={12} color={primaryColor} variant="stroke" /> }
-      : null,
-    activity.activityShippingName
-      ? { key: "shipping", label: getLocText(t, "activity.activityShipping", "Teslimat"), value: activity.activityShippingName, icon: <RefreshIcon size={12} color={primaryColor} variant="stroke" /> }
-      : null,
-  ].filter(Boolean) as Array<{ key: string; label: string; value: string; icon: React.ReactNode }>;
+
+  const metaParts = [
+    activity.paymentTypeName,
+    activity.activityMeetingTypeName,
+    activity.activityTopicPurposeName,
+    activity.activityShippingName,
+  ].filter(Boolean) as string[];
+  const metaLine = metaParts.join(" · ");
 
   const getRemainingTimeText = () => {
     const targetDateStr = activity.startDateTime || activity.endDateTime;
     if (!targetDateStr || isCompleted || isCancelled) return null;
-    
     const targetTime = new Date(targetDateStr).getTime();
-    const nowTime = new Date().getTime(); 
+    const nowTime = new Date().getTime();
     const diffMs = targetTime - nowTime;
-    
-    if (diffMs <= 0) return null; 
-    
+    if (diffMs <= 0) return null;
     const diffMins = Math.floor(diffMs / (1000 * 60));
     const diffHours = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHours / 24);
-
-    if (diffDays > 0) return `${diffDays} ${getLocText(t, "common.daysLeft", "gün")}`;
-    if (diffHours > 0) return `${diffHours} ${getLocText(t, "common.hoursLeft", "saat")}`;
-    return `${diffMins} ${getLocText(t, "common.minsLeft", "dk")}`;
+    if (diffDays > 0) return `${diffDays}g`;
+    if (diffHours > 0) return `${diffHours}s`;
+    return `${diffMins}dk`;
   };
-  const remainingTime = getRemainingTimeText();
-
+  const remainingShort = getRemainingTimeText();
 
   const formatSmartDate = (dateString: string): string => {
-    if (!dateString) return getLocText(t, "activity.noDate", "Tarih Yok");
+    if (!dateString) return getLocText(t, "activity.noDate", "—");
     const date = new Date(dateString);
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const isToday = date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
-    const isTomorrow = date.getDate() === tomorrow.getDate() && date.getMonth() === tomorrow.getMonth() && date.getFullYear() === tomorrow.getFullYear();
+    const isToday =
+      date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear();
+    const isTomorrow =
+      date.getDate() === tomorrow.getDate() &&
+      date.getMonth() === tomorrow.getMonth() &&
+      date.getFullYear() === tomorrow.getFullYear();
     const time = date.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
-
-    if (isToday) return `${getLocText(t, "common.today", "Bugün")}, ${time}`;
-    if (isTomorrow) return `${getLocText(t, "common.tomorrow", "Yarın")}, ${time}`;
-
-    return date.toLocaleDateString("tr-TR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+    if (isToday) return `${getLocText(t, "common.today", "Bugün")} ${time}`;
+    if (isTomorrow) return `${getLocText(t, "common.tomorrow", "Yarın")} ${time}`;
+    return date.toLocaleDateString("tr-TR", { day: "2-digit", month: "short" }) + ` ${time}`;
   };
   const activityDateStr = activity.activityDate ?? activity.startDateTime ?? activity.createdDate;
 
-
-  const animatedBorderColor = isHighPriority && !isCompleted && !isCancelled 
-    ? pulseAnim.interpolate({
-        inputRange: [0.5, 1],
-        outputRange: [isDark ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.1)', isDark ? 'rgba(239, 68, 68, 0.6)' : 'rgba(239, 68, 68, 0.4)']
-      }) 
-    : cardBorderColor;
+  const statusColor = getStatusColor();
+  const muted = colors.textMuted || (isDark ? "#94a3b8" : "#64748b");
+  const secondary = colors.textSecondary || muted;
 
   return (
-
-    <TouchableOpacity onPress={onPress} activeOpacity={0.7} style={{ width: '100%' }}>
-      <Animated.View
+    <TouchableOpacity onPress={onPress} activeOpacity={0.72} style={styles.touch}>
+      <View
         style={[
-          styles.cardContainer,
-          { 
+          styles.card,
+          {
+            height: CARD_HEIGHT,
             backgroundColor: cardBgColor,
-            borderColor: animatedBorderColor,
-            opacity: isCancelled ? 0.65 : 1
-          }
+            opacity: isCancelled ? 0.72 : 1,
+            borderColor: isDark ? "rgba(244, 114, 182, 0.42)" : "rgba(219, 39, 119, 0.22)",
+          },
         ]}
       >
-        {/* FİLİGRAN EFEKTLERİ (PLANLANDI İÇİN TAKVİM EKLENDİ) */}
-        {isCancelled && (
-          <View style={styles.watermarkContainer}>
-            <Cancel01Icon size={110} color={isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)"} variant="stroke" strokeWidth={1.5} />
+        {isCancelled ? (
+          <View style={styles.watermark} pointerEvents="none">
+            <Cancel01Icon
+              size={100}
+              color={isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)"}
+              variant="stroke"
+              strokeWidth={1.5}
+            />
           </View>
-        )}
-        {isCompleted && (
-          <View style={styles.watermarkContainer}>
-            <TickDouble01Icon size={110} color={isDark ? "rgba(16, 185, 129, 0.04)" : "rgba(16, 185, 129, 0.04)"} variant="stroke" strokeWidth={1.5} />
+        ) : isCompleted ? (
+          <View style={styles.watermark} pointerEvents="none">
+            <TickDouble01Icon
+              size={100}
+              color={isDark ? "rgba(16, 185, 129, 0.07)" : "rgba(16, 185, 129, 0.06)"}
+              variant="stroke"
+              strokeWidth={1.5}
+            />
           </View>
-        )}
-        {isScheduled && (
-          <View style={styles.watermarkContainer}>
-            <Calendar01Icon size={110} color={isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)"} variant="stroke" strokeWidth={1} />
+        ) : isScheduled ? (
+          <View style={styles.watermark} pointerEvents="none">
+            <Calendar01Icon
+              size={100}
+              color={isDark ? "rgba(255,255,255,0.035)" : "rgba(0,0,0,0.035)"}
+              variant="stroke"
+              strokeWidth={1}
+            />
           </View>
-        )}
+        ) : null}
 
-        {/* İÇERİK */}
-        <View style={styles.contentArea}>
-          
-          {/* ÜST BÖLÜM: Etiketler */}
-          <View style={styles.topBadgesRow}>
-            
-            {/* TİP ETİKETİ: Artık sönük gri değil, temanın pembe rengiyle uyumlu, canlı bir hap! */}
-            <View style={[styles.typeBadge, { backgroundColor: primaryColor + "15", borderColor: primaryColor + "30", borderWidth: 1 }]}>
+        {isHighPriority && !isCompleted && !isCancelled ? (
+          <View style={[styles.accentBar, { backgroundColor: "#ef4444" }]} />
+        ) : null}
+
+        <View style={styles.body}>
+          <View style={styles.topRow}>
+            <View style={styles.typeCluster}>
               {getActivityTypeIcon()}
-              <Text style={[styles.typeBadgeText, { color: primaryColor }]}>{activityTypeName}</Text>
-            </View>
-
-            <View style={styles.rightBadges}>
-              {/* Öncelik Etiketi */}
-              {priorityConfig && !isCancelled && !isCompleted && (
-                <Animated.View style={[
-                  styles.priorityBadge, 
-                  { 
-                    backgroundColor: priorityConfig.color + "15", 
-                    borderColor: priorityConfig.color + "50",
-                    opacity: isHighPriority ? pulseAnim : 1
-                  }
-                ]}>
-                  {priorityConfig.icon}
-                  <Text style={[styles.priorityText, { color: priorityConfig.color }]}>{priorityConfig.text}</Text>
-                </Animated.View>
-              )}
-
-              {/* Durum Etiketi */}
-              <View style={[styles.statusBadge, { backgroundColor: getStatusColor() + "15", borderColor: getStatusColor() + "30", borderWidth: 1 }]}>
-                <Text style={[styles.statusText, { color: getStatusColor() }]}>{getStatusText()}</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* ORTA BÖLÜM: Konu ve Müşteri */}
-          <View style={styles.mainInfo}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-               <Text 
-                  style={[styles.subject, { color: colors.text, textDecorationLine: isCancelled ? "line-through" : "none" }]} 
-                  numberOfLines={1}
-                >
-                  {activity.subject || getLocText(t, "activity.noSubject", "Konu Belirtilmedi")}
-                </Text>
-                {hasReminder && !isCompleted && !isCancelled && (
-                  <View style={{ marginLeft: 6 }}>
-                    <Notification01Icon size={16} color={colors.warning || "#f59e0b"} variant="stroke" strokeWidth={2} />
-                  </View>
-                )}
-            </View>
-
-            <View style={styles.customerRow}>
-              <Building03Icon size={14} color={hasCustomer ? colors.textSecondary : colors.textMuted} variant="stroke" strokeWidth={2} />
-              <Text style={[
-                styles.customerText, 
-                { color: hasCustomer ? colors.textSecondary : colors.textMuted, fontStyle: hasCustomer ? 'normal' : 'italic' }
-              ]} numberOfLines={1}>
-                {hasCustomer ? customerName : getLocText(t, "activity.noCustomer", "Kişi / Firma Yok")}
+              <Text unstyled style={styles.typeText} color={PRIMARY} numberOfLines={1}>
+                {activityTypeName}
               </Text>
             </View>
 
-            {detailChips.length > 0 && (
-              <View style={styles.detailChipsWrap}>
-                {detailChips.map((chip) => (
-                  <View
-                    key={chip.key}
-                    style={[
-                      styles.detailChip,
-                      {
-                        backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "#F8FAFC",
-                        borderColor: isDark ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.08)",
-                      },
-                    ]}
-                  >
-                    {chip.icon}
-                    <Text style={[styles.detailChipLabel, { color: colors.textMuted }]}>
-                      {chip.label}:
-                    </Text>
-                    <Text style={[styles.detailChipValue, { color: colors.textSecondary }]} numberOfLines={1}>
-                      {chip.value}
-                    </Text>
-                  </View>
-                ))}
+            <View style={styles.topRight}>
+              {priorityBadge ? (
+                <View
+                  style={[
+                    styles.pillBadge,
+                    {
+                      backgroundColor: `${priorityBadge.color}18`,
+                      borderColor: `${priorityBadge.color}38`,
+                    },
+                  ]}
+                >
+                  <Text unstyled style={styles.pillBadgeText} color={priorityBadge.color} numberOfLines={1}>
+                    {priorityBadge.text}
+                  </Text>
+                </View>
+              ) : null}
+              <View
+                style={[
+                  styles.pillBadge,
+                  { backgroundColor: `${statusColor}18`, borderColor: `${statusColor}38` },
+                ]}
+              >
+                <Text unstyled style={styles.pillBadgeText} color={statusColor} numberOfLines={1}>
+                  {getStatusText()}
+                </Text>
               </View>
-            )}
+              {hasReminder && !isCompleted && !isCancelled ? (
+                <Notification01Icon size={14} color={colors.warning || "#f59e0b"} variant="stroke" strokeWidth={2} />
+              ) : null}
+            </View>
           </View>
 
-          {/* İNCE AYIRICI ÇİZGİ (Divider) - Alt bölümü üstten şıkça ayırır */}
-          <View style={[styles.divider, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }]} />
+          <Text
+            unstyled
+            style={[styles.subject, { textDecorationLine: isCancelled ? "line-through" : "none" }]}
+            color={colors.text}
+            numberOfLines={1}
+          >
+            {activity.subject || getLocText(t, "activity.noSubject", "Konu yok")}
+          </Text>
 
-          {/* ALT BÖLÜM: Hap Tasarımlı (Pill) Tarih, Süre, Kişi */}
-          <View style={styles.bottomPillsRow}>
-            
-            <View style={[styles.pill, { 
-                backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "#F9FAFB",
-                borderColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
-              }]}>
-              <Calendar01Icon size={12} color={colors.textSecondary} variant="stroke" strokeWidth={2} />
-              <Text style={[styles.pillText, { color: colors.textSecondary }]}>{formatSmartDate(activityDateStr)}</Text>
+          <View style={styles.customerRow}>
+            <Building03Icon size={12} color={hasCustomer ? secondary : muted} variant="stroke" strokeWidth={2} />
+            <Text
+              unstyled
+              style={[styles.customerText, { fontStyle: hasCustomer ? "normal" : "italic" }]}
+              color={hasCustomer ? secondary : muted}
+              numberOfLines={1}
+            >
+              {hasCustomer ? customerName : getLocText(t, "activity.noCustomer", "Cari / kişi yok")}
+            </Text>
+          </View>
+
+          <View style={styles.metaSlot}>
+            {metaLine ? (
+              <Text unstyled style={styles.metaLine} color={muted} numberOfLines={1} ellipsizeMode="tail">
+                {metaLine}
+              </Text>
+            ) : null}
+          </View>
+
+          <View style={[styles.footerRow, { borderTopColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.06)" }]}>
+            <View style={styles.footerLeft}>
+              <Calendar01Icon size={11} color={secondary} variant="stroke" strokeWidth={2} />
+              <Text unstyled style={styles.footerText} color={secondary} numberOfLines={1}>
+                {formatSmartDate(activityDateStr)}
+              </Text>
             </View>
 
-            {remainingTime && (
-              <View style={[styles.pill, { 
-                  backgroundColor: (colors.warning || "#f59e0b") + "10",
-                  borderColor: (colors.warning || "#f59e0b") + "40",
-                }]}>
-                <Time02Icon size={12} color={colors.warning || "#f59e0b"} variant="stroke" strokeWidth={2} />
-                <Text style={[styles.pillText, { color: colors.warning || "#f59e0b", fontWeight: '700' }]}>{remainingTime}</Text>
+            {remainingShort ? (
+              <View style={styles.footerTime}>
+                <Time02Icon size={11} color={colors.warning || "#f59e0b"} variant="stroke" strokeWidth={2} />
+                <Text unstyled style={styles.footerText} color={colors.warning || "#f59e0b"}>
+                  {remainingShort}
+                </Text>
               </View>
-            )}
+            ) : null}
 
-            <View style={[styles.pill, { 
-                backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "#F9FAFB",
-                borderColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
-                marginLeft: 'auto' 
-              }]}>
-              <UserCircleIcon size={12} color={hasAssignedUser ? colors.textSecondary : colors.textMuted} variant="stroke" strokeWidth={2} />
-              <Text style={[styles.pillText, { color: hasAssignedUser ? colors.textSecondary : colors.textMuted }]} numberOfLines={1}>
-                {hasAssignedUser ? assignedUserName?.split(' ')[0] : getLocText(t, "activity.unassigned", "Atanmadı")}
+            <View style={styles.footerSpacer} />
+
+            <View style={styles.footerAssignee}>
+              <UserCircleIcon size={11} color={hasAssignedUser ? secondary : muted} variant="stroke" strokeWidth={2} />
+              <Text
+                unstyled
+                style={styles.footerText}
+                color={hasAssignedUser ? secondary : muted}
+                numberOfLines={1}
+              >
+                {hasAssignedUser ? assignedUserName?.split(" ")[0] : getLocText(t, "activity.unassigned", "—")}
               </Text>
             </View>
 
             {onReportPress ? (
               <TouchableOpacity
-                onPress={(event) => {
-                  event.stopPropagation?.();
+                onPress={(e) => {
+                  e.stopPropagation?.();
                   onReportPress();
                 }}
                 activeOpacity={0.82}
-                style={[
-                  styles.pill,
-                  styles.reportPill,
-                  {
-                    backgroundColor: primaryColor + "12",
-                    borderColor: primaryColor + "32",
-                  },
-                ]}
+                accessibilityRole="button"
+                accessibilityLabel={t("activity.reportPdf", "Rapor / belge")}
+                style={[styles.reportIconBtn, { borderColor: `${PRIMARY}38`, backgroundColor: `${PRIMARY}10` }]}
               >
-                <Invoice01Icon size={12} color={primaryColor} variant="stroke" strokeWidth={2} />
-                <Text style={[styles.pillText, styles.reportPillText, { color: primaryColor }]}>
-                  PDF
-                </Text>
+                <Invoice01Icon size={14} color={PRIMARY} variant="stroke" strokeWidth={2} />
               </TouchableOpacity>
             ) : null}
-
           </View>
-
         </View>
-      </Animated.View>
+      </View>
     </TouchableOpacity>
   );
 }
@@ -384,146 +363,152 @@ function ActivityCardComponent({ activity, onPress, onReportPress }: ActivityCar
 export const ActivityCard = memo(ActivityCardComponent);
 
 const styles = StyleSheet.create({
-  cardContainer: {
-    width: '100%',
-    borderRadius: 16,
-    borderWidth: 1, 
-    position: 'relative', 
-    overflow: 'hidden',
+  touch: {
+    width: "100%",
   },
-  watermarkContainer: {
-    position: 'absolute',
-    right: -10,
-    bottom: -10,
-    zIndex: 0,
-    transform: [{ rotate: '-10deg' }], 
-  },
-  contentArea: {
-    padding: 16,
-    zIndex: 1, 
-  },
-  topBadgesRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  typeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 8,
-  },
-  typeBadgeText: {
-    fontSize: 12,
-    fontWeight: "700",
-    marginLeft: 6,
-  },
-  rightBadges: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6, 
-  },
-  priorityBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    borderRadius: 6,
+  card: {
+    width: "100%",
+    flexDirection: "row",
+    borderRadius: 14,
+    overflow: "hidden",
     borderWidth: 1,
+    position: "relative",
   },
-  priorityText: {
+  watermark: {
+    position: "absolute",
+    right: -8,
+    bottom: -12,
+    zIndex: 0,
+    transform: [{ rotate: "-10deg" }],
+  },
+  accentBar: {
+    width: 3,
+    alignSelf: "stretch",
+  },
+  body: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 8,
+    justifyContent: "space-between",
+    minWidth: 0,
+    zIndex: 1,
+  },
+  topRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    minHeight: 18,
+  },
+  typeCluster: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    flex: 1,
+    minWidth: 0,
+    marginRight: 6,
+  },
+  typeText: {
     fontSize: 10,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    marginLeft: 4,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  statusText: {
-    fontSize: 10,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 0.3,
-  },
-  mainInfo: {
-
-  },
-  subject: {
-    fontSize: 17,
-    fontWeight: "700",
+    fontWeight: "600",
     letterSpacing: 0.2,
     flexShrink: 1,
   },
-  customerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  topRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    flexShrink: 1,
+    justifyContent: "flex-end",
+    flexWrap: "nowrap",
+  },
+  pillBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    maxWidth: 100,
+  },
+  pillBadgeText: {
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 0.2,
+  },
+  subject: {
+    fontSize: 14,
+    fontWeight: "600",
+    letterSpacing: 0.1,
     marginTop: 2,
+    lineHeight: 18,
+  },
+  customerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginTop: 2,
+    minHeight: 16,
   },
   customerText: {
-    fontSize: 13,
-    marginLeft: 6,
+    fontSize: 11,
     flex: 1,
   },
-  detailChipsWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 10,
+  metaSlot: {
+    minHeight: 13,
+    justifyContent: "center",
+    marginTop: 1,
   },
-  detailChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    maxWidth: '100%',
+  metaLine: {
+    fontSize: 9,
+    fontWeight: "500",
+    letterSpacing: 0.15,
+    lineHeight: 12,
   },
-  detailChipLabel: {
+  footerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+    paddingTop: 6,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    gap: 6,
+    minHeight: 26,
+  },
+  footerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    maxWidth: "38%",
+    flexShrink: 1,
+  },
+  footerTime: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    flexShrink: 0,
+  },
+  footerSpacer: {
+    flex: 1,
+    minWidth: 4,
+  },
+  footerAssignee: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    maxWidth: "26%",
+    flexShrink: 1,
+  },
+  footerText: {
     fontSize: 10,
-    fontWeight: '700',
-    marginLeft: 4,
-    marginRight: 4,
-  },
-  detailChipValue: {
-    fontSize: 11,
-    fontWeight: '600',
-    maxWidth: 150,
-  },
-
-  divider: {
-    height: 1,
-    width: '100%',
-    marginVertical: 14,
-  },
-  bottomPillsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  reportPill: {
-    marginLeft: 0,
-  },
-  reportPillText: {
-    fontWeight: '800',
-  },
-  pill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-    borderWidth: 1, 
-  },
-  pillText: {
-    fontSize: 12,
     fontWeight: "600",
-    marginLeft: 6,
+  },
+  reportIconBtn: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: 32,
+    height: 28,
+    borderRadius: 8,
+    borderWidth: 1,
+    flexShrink: 0,
+    marginLeft: 2,
   },
 });

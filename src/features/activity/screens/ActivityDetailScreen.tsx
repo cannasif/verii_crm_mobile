@@ -1,14 +1,23 @@
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   StyleSheet,
   FlatList,
   ActivityIndicator,
   TouchableOpacity,
+  Pressable,
   Alert,
   Animated,
   Easing,
+  Image,
+  ScrollView,
+  Modal,
+  Dimensions,
+  type NativeSyntheticEvent,
+  type NativeScrollEvent,
 } from "react-native";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { StatusBar } from "expo-status-bar";
@@ -18,7 +27,9 @@ import { ScreenHeader } from "../../../components/navigation";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useActivity, useDeleteActivity, useUpdateActivity } from "../hooks";
-import type { ActivityDto } from "../types";
+import { activityImageApi } from "../api";
+import type { ActivityDto, ActivityImageDto } from "../types";
+import { getApiBaseUrl } from "../../../constants/config";
 import { ACTIVITY_STATUS_NUMERIC, ACTIVITY_PRIORITY_NUMERIC } from "../types";
 import { ReportTab, DocumentRuleType } from "../../quotation";
 import {
@@ -34,7 +45,17 @@ import {
   Task01Icon,
   ArrowRight01Icon,
   Alert02Icon,
+  Image02Icon,
+  Cancel01Icon,
+  ArrowLeft01Icon,
 } from "hugeicons-react-native";
+
+function toAbsoluteActivityImageUrl(path: string | null | undefined): string | undefined {
+  if (!path) return undefined;
+  if (/^https?:\/\//i.test(path)) return path;
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  return `${getApiBaseUrl()}${normalized}`;
+}
 
 function normalizeStatusForDisplay(status: ActivityDto["status"]): string {
   if (status == null) return "";
@@ -244,6 +265,7 @@ export function ActivityDetailScreen(): React.ReactElement {
       card: isDark ? "rgba(17, 10, 28, 0.84)" : "rgba(255,255,255,0.92)",
       cardStrong: isDark ? "rgba(23, 10, 38, 0.9)" : "rgba(255,255,255,0.96)",
       cardBorder: isDark ? "rgba(236,72,153,0.13)" : "rgba(244,114,182,0.12)",
+      sectionBorder: isDark ? "rgba(244,114,182,0.38)" : "rgba(219,39,119,0.22)",
       soft: isDark ? "rgba(255,255,255,0.028)" : "#FCFCFD",
       softBorder: isDark ? "rgba(255,255,255,0.06)" : "rgba(226,232,240,0.95)",
       labelBg: isDark ? "rgba(255,255,255,0.03)" : "rgba(248,250,252,0.95)",
@@ -263,9 +285,159 @@ export function ActivityDetailScreen(): React.ReactElement {
     [isDark, colors]
   );
 
+  const queryClient = useQueryClient();
   const { data: activity, isLoading, isError, refetch } = useActivity(activityId);
   const deleteActivity = useDeleteActivity();
   const updateActivity = useUpdateActivity();
+
+  const [pickActivityImagePreviewUri, setPickActivityImagePreviewUri] = useState<string | null>(null);
+  const [isUploadingActivityImage, setIsUploadingActivityImage] = useState(false);
+
+  const [previewModalIndex, setPreviewModalIndex] = useState<number | null>(null);
+  const [previewActiveIndex, setPreviewActiveIndex] = useState(0);
+  const activityImagePreviewListRef = useRef<FlatList<ActivityImageDto>>(null);
+
+  const { width: previewWinW, height: previewWinH } = Dimensions.get("window");
+  const activityPreviewW = previewWinW * 0.92;
+  const activityPreviewFrameH = previewWinH * 0.72;
+
+  const { data: activityImages = [], isLoading: imagesLoading, refetch: refetchActivityImages } = useQuery({
+    queryKey: ["activity", "images", activityId],
+    queryFn: () => activityImageApi.getByActivityId(activityId!),
+    enabled: typeof activityId === "number" && activityId > 0,
+  });
+
+  const visibleActivityImages = useMemo(
+    () => activityImages.filter((item) => !!toAbsoluteActivityImageUrl(item.imageUrl)),
+    [activityImages]
+  );
+
+  const handleActivityImagePreviewMomentumEnd = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (visibleActivityImages.length === 0) return;
+      const x = e.nativeEvent.contentOffset.x;
+      const idx = Math.round(x / activityPreviewW);
+      setPreviewActiveIndex(Math.max(0, Math.min(idx, visibleActivityImages.length - 1)));
+    },
+    [activityPreviewW, visibleActivityImages.length]
+  );
+
+  const closeActivityImagePreview = useCallback(() => {
+    setPreviewModalIndex(null);
+  }, []);
+
+  const openActivityImagePreviewAt = useCallback((index: number) => {
+    setPreviewModalIndex(index);
+    setPreviewActiveIndex(index);
+  }, []);
+
+  const goActivityPreviewPrev = useCallback(() => {
+    if (visibleActivityImages.length <= 1) return;
+    const next = Math.max(0, previewActiveIndex - 1);
+    activityImagePreviewListRef.current?.scrollToIndex({ index: next, animated: true });
+    setPreviewActiveIndex(next);
+  }, [previewActiveIndex, visibleActivityImages.length]);
+
+  const goActivityPreviewNext = useCallback(() => {
+    if (visibleActivityImages.length <= 1) return;
+    const next = Math.min(visibleActivityImages.length - 1, previewActiveIndex + 1);
+    activityImagePreviewListRef.current?.scrollToIndex({ index: next, animated: true });
+    setPreviewActiveIndex(next);
+  }, [previewActiveIndex, visibleActivityImages.length]);
+
+  const activityImagePreviewCaption =
+    previewModalIndex !== null && visibleActivityImages[previewActiveIndex]
+      ? visibleActivityImages[previewActiveIndex].imageDescription?.trim() || t("activity.imageDefaultDescription")
+      : "";
+
+  const activityDetailPickPreviewTheme = useMemo(
+    () => ({
+      cardBg: isDark ? "rgba(23,10,38,0.99)" : "rgba(255,255,255,0.98)",
+      borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(226,232,240,0.95)",
+      title: palette.text,
+      text: palette.textMuted,
+      cancelBg: isDark ? "rgba(255,255,255,0.08)" : "rgba(148,163,184,0.12)",
+      cancelText: palette.text,
+      confirmBg: isDark ? "rgba(236,72,153,0.22)" : "rgba(236,72,153,0.12)",
+      confirmBorder: `${colors.accent}44`,
+      confirmText: colors.accent,
+    }),
+    [colors.accent, isDark, palette.text, palette.textMuted]
+  );
+
+  const openActivityDetailGalleryPicker = useCallback(async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (permission.status !== "granted") {
+      Alert.alert(t("common.warning"), t("activity.imagePermissionRequired"));
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.85,
+      allowsEditing: false,
+      selectionLimit: 1,
+    });
+    if (result.canceled || !result.assets?.[0]?.uri) return;
+    setPickActivityImagePreviewUri(result.assets[0].uri);
+  }, [t]);
+
+  const openActivityDetailCameraPicker = useCallback(async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (permission.status !== "granted") {
+      Alert.alert(t("common.warning"), t("activity.imagePermissionRequired"));
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.85,
+      allowsEditing: false,
+    });
+    if (result.canceled || !result.assets?.[0]?.uri) return;
+    setPickActivityImagePreviewUri(result.assets[0].uri);
+  }, [t]);
+
+  const handleAddActivityImageFromDetail = useCallback(() => {
+    if (!activityId || isUploadingActivityImage) return;
+    Alert.alert(t("activity.addImage"), t("customer.chooseImageSource"), [
+      { text: t("common.cancel"), style: "cancel" },
+      {
+        text: t("customer.fromGallery"),
+        onPress: () => {
+          void openActivityDetailGalleryPicker();
+        },
+      },
+      {
+        text: t("customer.fromCamera"),
+        onPress: () => {
+          void openActivityDetailCameraPicker();
+        },
+      },
+    ]);
+  }, [activityId, isUploadingActivityImage, openActivityDetailCameraPicker, openActivityDetailGalleryPicker, t]);
+
+  const handleCancelActivityDetailImagePick = useCallback(() => {
+    if (isUploadingActivityImage) return;
+    setPickActivityImagePreviewUri(null);
+  }, [isUploadingActivityImage]);
+
+  const handleConfirmActivityDetailImagePick = useCallback(async () => {
+    if (!activityId || !pickActivityImagePreviewUri) return;
+    setIsUploadingActivityImage(true);
+    try {
+      await activityImageApi.upload(activityId, [
+        { uri: pickActivityImagePreviewUri, description: t("activity.imageDefaultDescription") },
+      ]);
+      setPickActivityImagePreviewUri(null);
+      void queryClient.invalidateQueries({ queryKey: ["activity", "images", activityId] });
+      await refetchActivityImages();
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message ? err.message : t("activity.imageUploadError");
+      Alert.alert(t("common.error"), message);
+    } finally {
+      setIsUploadingActivityImage(false);
+    }
+  }, [activityId, pickActivityImagePreviewUri, queryClient, refetchActivityImages, t]);
 
   const handleEdit = useCallback(() => {
     if (activityId) {
@@ -670,15 +842,6 @@ export function ActivityDetailScreen(): React.ReactElement {
                   </View>
                 </View>
               </View>
-
-              {!activity.isCompleted ? (
-                <View style={styles.heroFooterInfo}>
-                  <ArrowRight01Icon size={14} color={colors.accent} variant="stroke" />
-                  <Text style={[styles.heroFooterText, { color: palette.textSoft }]}>
-                    {t("activity.markComplete")}
-                  </Text>
-                </View>
-              ) : null}
             </LinearGradient>
 
             <View
@@ -686,7 +849,7 @@ export function ActivityDetailScreen(): React.ReactElement {
                 styles.section,
                 {
                   backgroundColor: palette.card,
-                  borderColor: palette.cardBorder,
+                  borderColor: palette.sectionBorder,
                   shadowColor: palette.shadow,
                 },
               ]}
@@ -800,7 +963,7 @@ export function ActivityDetailScreen(): React.ReactElement {
                   styles.section,
                   {
                     backgroundColor: palette.card,
-                    borderColor: palette.cardBorder,
+                    borderColor: palette.sectionBorder,
                     shadowColor: palette.shadow,
                   },
                 ]}
@@ -850,13 +1013,152 @@ export function ActivityDetailScreen(): React.ReactElement {
               </View>
             )}
 
+            {activityId != null && activityId > 0 ? (
+              <View
+                style={[
+                  styles.section,
+                  {
+                    backgroundColor: palette.card,
+                    borderColor: palette.sectionBorder,
+                    shadowColor: palette.shadow,
+                  },
+                ]}
+              >
+                <View style={styles.activityImagesHeaderRow}>
+                  <View style={styles.activityImagesHeaderLeft}>
+                    <View
+                      style={[
+                        styles.activityImagesHeaderIcon,
+                        {
+                          backgroundColor: `${colors.accent}12`,
+                          borderColor: `${colors.accent}22`,
+                        },
+                      ]}
+                    >
+                      <Image02Icon size={16} color={colors.accent} variant="stroke" />
+                    </View>
+                    <Text style={[styles.activityImagesHeaderTitle, { color: palette.text }]} numberOfLines={1}>
+                      {t("activity.images")}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.activityImagesHeaderAddBtn}
+                    onPress={handleAddActivityImageFromDetail}
+                    disabled={imagesLoading || isUploadingActivityImage}
+                    activeOpacity={0.82}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    {isUploadingActivityImage ? (
+                      <ActivityIndicator size="small" color={colors.accent} />
+                    ) : (
+                      <Text style={[styles.activityImagesHeaderAddText, { color: colors.success }]}>
+                        {t("activity.addImage")}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+
+                {imagesLoading ? (
+                  <ActivityIndicator size="small" color={colors.accent} style={styles.activityImagesLoader} />
+                ) : visibleActivityImages.length === 0 ? (
+                  <View style={styles.activityDetailImagesEmpty}>
+                    <Image02Icon size={22} color={colors.accent} variant="stroke" />
+                    <Text style={[styles.activityDetailImagesEmptyTitle, { color: palette.text }]}>
+                      {t("activity.noImages")}
+                    </Text>
+                    <TouchableOpacity
+                      style={[
+                        styles.activityDetailImagesEmptyAddBtn,
+                        {
+                          backgroundColor: `${colors.success}14`,
+                          borderColor: `${colors.success}35`,
+                        },
+                      ]}
+                      onPress={handleAddActivityImageFromDetail}
+                      disabled={isUploadingActivityImage}
+                      activeOpacity={0.88}
+                    >
+                      {isUploadingActivityImage ? (
+                        <ActivityIndicator size="small" color={colors.success} />
+                      ) : (
+                        <Text style={[styles.activityDetailImagesEmptyAddText, { color: colors.success }]}>
+                          {t("activity.addImage")}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={styles.activityDetailImageStripOuter}>
+                    <View style={styles.activityDetailImageStripScrollWrap}>
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.activityDetailImageScrollContent}
+                      >
+                        {visibleActivityImages.map((item, index) => {
+                          const uri = toAbsoluteActivityImageUrl(item.imageUrl);
+                          if (!uri) return null;
+                          const caption =
+                            item.imageDescription?.trim() || t("activity.imageDefaultDescription");
+                          return (
+                            <TouchableOpacity
+                              key={item.id}
+                              activeOpacity={0.88}
+                              onPress={() => openActivityImagePreviewAt(index)}
+                              style={[
+                                styles.activityDetailImageCard,
+                                {
+                                  borderColor: isDark ? "rgba(244, 114, 182, 0.62)" : "rgba(219, 39, 119, 0.48)",
+                                  backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#ffffff",
+                                },
+                              ]}
+                            >
+                              <Image
+                                source={{ uri }}
+                                style={styles.activityDetailImagePhoto}
+                                resizeMode="cover"
+                              />
+                              <Text style={[styles.activityDetailImageCaption, { color: palette.text }]} numberOfLines={2}>
+                                {caption}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </ScrollView>
+                      {visibleActivityImages.length > 1 ? (
+                        <>
+                          <View
+                            style={[styles.activityDetailImageStripChevron, styles.activityDetailImageStripChevronLeft]}
+                            pointerEvents="none"
+                          >
+                            <ArrowLeft01Icon size={20} color={palette.textMuted} variant="stroke" strokeWidth={2} />
+                          </View>
+                          <View
+                            style={[styles.activityDetailImageStripChevron, styles.activityDetailImageStripChevronRight]}
+                            pointerEvents="none"
+                          >
+                            <ArrowRight01Icon size={20} color={palette.textMuted} variant="stroke" strokeWidth={2} />
+                          </View>
+                        </>
+                      ) : null}
+                    </View>
+                    {visibleActivityImages.length > 1 ? (
+                      <Text style={[styles.activityDetailImageStripHint, { color: palette.textMuted }]} pointerEvents="none">
+                        {t("customer.imageGallerySwipeHint")}
+                      </Text>
+                    ) : null}
+                  </View>
+                )}
+              </View>
+            ) : null}
+
             {(activity.productName || activity.productCode || activity.erpCustomerCode) && (
               <View
                 style={[
                   styles.section,
                   {
                     backgroundColor: palette.card,
-                    borderColor: palette.cardBorder,
+                    borderColor: palette.sectionBorder,
                     shadowColor: palette.shadow,
                   },
                 ]}
@@ -904,7 +1206,7 @@ export function ActivityDetailScreen(): React.ReactElement {
                 styles.section,
                 {
                   backgroundColor: palette.card,
-                  borderColor: palette.cardBorder,
+                  borderColor: palette.sectionBorder,
                   shadowColor: palette.shadow,
                 },
               ]}
@@ -956,7 +1258,7 @@ export function ActivityDetailScreen(): React.ReactElement {
       styles.section,
       {
         backgroundColor: palette.card,
-        borderColor: palette.cardBorder,
+        borderColor: palette.sectionBorder,
         shadowColor: palette.shadow,
       },
     ]}
@@ -986,6 +1288,213 @@ export function ActivityDetailScreen(): React.ReactElement {
           </>
         )}
       />
+
+      <Modal
+        visible={pickActivityImagePreviewUri != null}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCancelActivityDetailImagePick}
+      >
+        <View style={styles.activityDetailPickPreviewOverlay}>
+          <View
+            style={[
+              styles.activityDetailPickPreviewCard,
+              {
+                backgroundColor: activityDetailPickPreviewTheme.cardBg,
+                borderColor: activityDetailPickPreviewTheme.borderColor,
+              },
+            ]}
+          >
+            <Text style={[styles.activityDetailPickPreviewTitle, { color: activityDetailPickPreviewTheme.title }]}>
+              {t("customer.imagePreview")}
+            </Text>
+            <Text style={[styles.activityDetailPickPreviewSubtitle, { color: activityDetailPickPreviewTheme.text }]}>
+              {t("customer.confirmAddImage")}
+            </Text>
+            {pickActivityImagePreviewUri ? (
+              <Image
+                source={{ uri: pickActivityImagePreviewUri }}
+                style={styles.activityDetailPickPreviewImage}
+                resizeMode="cover"
+              />
+            ) : null}
+            <View style={styles.activityDetailPickPreviewActions}>
+              <TouchableOpacity
+                style={[
+                  styles.activityDetailPickPreviewButton,
+                  { backgroundColor: activityDetailPickPreviewTheme.cancelBg },
+                ]}
+                onPress={handleCancelActivityDetailImagePick}
+                disabled={isUploadingActivityImage}
+              >
+                <Text style={[styles.activityDetailPickPreviewButtonText, { color: activityDetailPickPreviewTheme.cancelText }]}>
+                  {t("common.cancel")}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.activityDetailPickPreviewButton,
+                  {
+                    backgroundColor: activityDetailPickPreviewTheme.confirmBg,
+                    borderColor: activityDetailPickPreviewTheme.confirmBorder,
+                    borderWidth: 1,
+                  },
+                ]}
+                onPress={() => {
+                  void handleConfirmActivityDetailImagePick();
+                }}
+                disabled={isUploadingActivityImage}
+              >
+                {isUploadingActivityImage ? (
+                  <ActivityIndicator size="small" color={activityDetailPickPreviewTheme.confirmText} />
+                ) : (
+                  <Text
+                    style={[styles.activityDetailPickPreviewButtonText, { color: activityDetailPickPreviewTheme.confirmText }]}
+                  >
+                    {t("common.upload")}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={previewModalIndex !== null}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={closeActivityImagePreview}
+      >
+        <View style={styles.activityImageGalleryPreviewRoot}>
+          <Pressable
+            style={[
+              styles.activityImageGalleryPreviewBackdrop,
+              { backgroundColor: isDark ? "rgba(0,0,0,0.94)" : "rgba(0,0,0,0.82)" },
+            ]}
+            onPress={closeActivityImagePreview}
+            accessibilityRole="button"
+            accessibilityLabel={t("common.close")}
+          />
+          {previewModalIndex !== null && visibleActivityImages.length > 0 ? (
+            <View style={[styles.activityImageGalleryPreviewColumn, { width: activityPreviewW }]} pointerEvents="box-none">
+              <View
+                style={[
+                  styles.activityImageGalleryPreviewFrame,
+                  {
+                    height: activityPreviewFrameH,
+                    borderColor: isDark ? "rgba(219, 39, 119, 0.42)" : "rgba(219, 39, 119, 0.26)",
+                    backgroundColor: isDark ? "rgba(15, 23, 42, 0.5)" : "rgba(255, 255, 255, 0.98)",
+                  },
+                ]}
+              >
+                <FlatList
+                  ref={activityImagePreviewListRef}
+                  data={visibleActivityImages}
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  keyExtractor={(item) => String(item.id)}
+                  initialScrollIndex={previewModalIndex}
+                  getItemLayout={(_, index) => ({
+                    length: activityPreviewW,
+                    offset: activityPreviewW * index,
+                    index,
+                  })}
+                  onMomentumScrollEnd={handleActivityImagePreviewMomentumEnd}
+                  onScrollToIndexFailed={(info) => {
+                    setTimeout(() => {
+                      activityImagePreviewListRef.current?.scrollToOffset({
+                        offset: info.index * activityPreviewW,
+                        animated: false,
+                      });
+                    }, 120);
+                  }}
+                  style={[styles.activityImageGalleryPreviewFlatList, { height: activityPreviewFrameH }]}
+                  renderItem={({ item }) => {
+                    const uri = toAbsoluteActivityImageUrl(item.imageUrl);
+                    if (!uri) {
+                      return <View style={{ width: activityPreviewW, height: activityPreviewFrameH }} />;
+                    }
+                    return (
+                      <View style={[styles.activityImageGalleryPreviewSlide, { width: activityPreviewW, height: activityPreviewFrameH }]}>
+                        <Image source={{ uri }} style={styles.activityImageGalleryPreviewImage} resizeMode="contain" />
+                      </View>
+                    );
+                  }}
+                />
+                <Pressable
+                  style={[
+                    styles.activityImageGalleryPreviewCloseBtn,
+                    {
+                      backgroundColor: isDark ? "rgba(15, 23, 42, 0.72)" : "rgba(255, 255, 255, 0.94)",
+                      borderColor: isDark ? "rgba(219, 39, 119, 0.35)" : "rgba(219, 39, 119, 0.2)",
+                    },
+                  ]}
+                  onPress={closeActivityImagePreview}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("common.close")}
+                >
+                  <Cancel01Icon size={18} color={isDark ? "#e2e8f0" : "#475569"} variant="stroke" />
+                </Pressable>
+                {visibleActivityImages.length > 1 ? (
+                  <>
+                    <Pressable
+                      style={[
+                        styles.activityImageGalleryPreviewNavBtn,
+                        styles.activityImageGalleryPreviewNavLeft,
+                        {
+                          backgroundColor: isDark ? "rgba(15, 23, 42, 0.55)" : "rgba(255, 255, 255, 0.88)",
+                          borderColor: isDark ? "rgba(219, 39, 119, 0.35)" : "rgba(219, 39, 119, 0.2)",
+                          opacity: previewActiveIndex <= 0 ? 0.4 : 1,
+                        },
+                      ]}
+                      onPress={goActivityPreviewPrev}
+                      disabled={previewActiveIndex <= 0}
+                      hitSlop={10}
+                      accessibilityRole="button"
+                      accessibilityLabel={t("customer.imagePreviewPrevious")}
+                    >
+                      <ArrowLeft01Icon size={20} color={isDark ? "#e2e8f0" : "#475569"} variant="stroke" />
+                    </Pressable>
+                    <Pressable
+                      style={[
+                        styles.activityImageGalleryPreviewNavBtn,
+                        styles.activityImageGalleryPreviewNavRight,
+                        {
+                          backgroundColor: isDark ? "rgba(15, 23, 42, 0.55)" : "rgba(255, 255, 255, 0.88)",
+                          borderColor: isDark ? "rgba(219, 39, 119, 0.35)" : "rgba(219, 39, 119, 0.2)",
+                          opacity: previewActiveIndex >= visibleActivityImages.length - 1 ? 0.4 : 1,
+                        },
+                      ]}
+                      onPress={goActivityPreviewNext}
+                      disabled={previewActiveIndex >= visibleActivityImages.length - 1}
+                      hitSlop={10}
+                      accessibilityRole="button"
+                      accessibilityLabel={t("customer.imagePreviewNext")}
+                    >
+                      <ArrowRight01Icon size={20} color={isDark ? "#e2e8f0" : "#475569"} variant="stroke" />
+                    </Pressable>
+                  </>
+                ) : null}
+              </View>
+              {visibleActivityImages.length > 1 ? (
+                <Text style={[styles.activityImageGalleryPreviewCounter, { color: palette.textMuted }]}>
+                  {t("customer.imagePreviewCounter", {
+                    current: previewActiveIndex + 1,
+                    total: visibleActivityImages.length,
+                  })}
+                </Text>
+              ) : null}
+              <Text style={[styles.activityImageGalleryPreviewCaption, { color: palette.textSoft }]} numberOfLines={3}>
+                {activityImagePreviewCaption}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1226,22 +1735,10 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  heroFooterInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 12,
-  },
-
-  heroFooterText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-
   section: {
     padding: 16,
     borderRadius: 22,
-    borderWidth: 1,
+    borderWidth: 1.5,
     marginBottom: 16,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.04,
@@ -1337,6 +1834,297 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 14,
     lineHeight: 21,
+  },
+
+  activityImagesHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 14,
+  },
+
+  activityImagesHeaderLeft: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    minWidth: 0,
+  },
+
+  activityImagesHeaderAddBtn: {
+    minWidth: 88,
+    minHeight: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+
+  activityImagesHeaderAddText: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+
+  activityImagesHeaderIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  activityImagesHeaderTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    letterSpacing: 0.2,
+    flex: 1,
+    minWidth: 0,
+  },
+
+  activityImagesLoader: {
+    marginTop: 4,
+    alignSelf: "flex-start",
+  },
+
+  activityDetailImagesEmpty: {
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 20,
+    paddingHorizontal: 12,
+  },
+
+  activityDetailImagesEmptyTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+
+  activityDetailImagesEmptySub: {
+    fontSize: 12,
+    fontWeight: "500",
+    textAlign: "center",
+    lineHeight: 17,
+  },
+
+  activityDetailImagesEmptyAddBtn: {
+    marginTop: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    minWidth: 160,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  activityDetailImagesEmptyAddText: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
+  activityDetailPickPreviewOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    padding: 20,
+    backgroundColor: "rgba(0,0,0,0.72)",
+  },
+
+  activityDetailPickPreviewCard: {
+    borderRadius: 24,
+    padding: 16,
+    borderWidth: 1,
+  },
+
+  activityDetailPickPreviewTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+
+  activityDetailPickPreviewSubtitle: {
+    fontSize: 13,
+    lineHeight: 20,
+    textAlign: "center",
+    marginBottom: 14,
+  },
+
+  activityDetailPickPreviewImage: {
+    width: "100%",
+    height: 280,
+    borderRadius: 18,
+    marginBottom: 14,
+    backgroundColor: "rgba(0,0,0,0.08)",
+  },
+
+  activityDetailPickPreviewActions: {
+    flexDirection: "row",
+    gap: 12,
+  },
+
+  activityDetailPickPreviewButton: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  activityDetailPickPreviewButtonText: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
+  activityDetailImageStripOuter: {
+    width: "100%",
+  },
+
+  activityDetailImageStripScrollWrap: {
+    position: "relative",
+    width: "100%",
+  },
+
+  activityDetailImageScrollContent: {
+    gap: 14,
+    paddingRight: 8,
+    paddingVertical: 6,
+    paddingLeft: 2,
+  },
+
+  activityDetailImageCard: {
+    width: 200,
+    borderRadius: 20,
+    borderWidth: 2.5,
+    overflow: "hidden",
+  },
+
+  activityDetailImagePhoto: {
+    width: "100%",
+    height: 156,
+    backgroundColor: "rgba(0,0,0,0.08)",
+  },
+
+  activityDetailImageCaption: {
+    fontSize: 12,
+    lineHeight: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontWeight: "500",
+  },
+
+  activityDetailImageStripChevron: {
+    position: "absolute",
+    top: 70,
+    zIndex: 2,
+    opacity: 0.85,
+    backgroundColor: "rgba(15, 23, 42, 0.35)",
+    borderRadius: 999,
+    padding: 6,
+  },
+
+  activityDetailImageStripChevronLeft: {
+    left: 4,
+  },
+
+  activityDetailImageStripChevronRight: {
+    right: 4,
+  },
+
+  activityDetailImageStripHint: {
+    fontSize: 11,
+    fontWeight: "500",
+    textAlign: "center",
+    marginTop: 8,
+    lineHeight: 15,
+    paddingHorizontal: 8,
+  },
+
+  activityImageGalleryPreviewRoot: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  activityImageGalleryPreviewBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  activityImageGalleryPreviewColumn: {
+    alignItems: "center",
+    zIndex: 1,
+  },
+
+  activityImageGalleryPreviewFrame: {
+    width: "100%",
+    position: "relative",
+    borderRadius: 18,
+    borderWidth: 1.5,
+    overflow: "hidden",
+  },
+
+  activityImageGalleryPreviewFlatList: {
+    width: "100%",
+  },
+
+  activityImageGalleryPreviewSlide: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  activityImageGalleryPreviewImage: {
+    width: "100%",
+    height: "100%",
+  },
+
+  activityImageGalleryPreviewNavBtn: {
+    position: "absolute",
+    top: "50%",
+    marginTop: -22,
+    zIndex: 3,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  activityImageGalleryPreviewNavLeft: {
+    left: 8,
+  },
+
+  activityImageGalleryPreviewNavRight: {
+    right: 8,
+  },
+
+  activityImageGalleryPreviewCounter: {
+    marginTop: 8,
+    fontSize: 12,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+
+  activityImageGalleryPreviewCloseBtn: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    zIndex: 5,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  activityImageGalleryPreviewCaption: {
+    marginTop: 14,
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: "center",
+    paddingHorizontal: 8,
+    maxWidth: "92%",
   },
 
   completeButtonWrap: {
