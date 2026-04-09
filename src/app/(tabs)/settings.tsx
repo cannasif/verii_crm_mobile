@@ -68,7 +68,10 @@ export default function SettingsScreen(): React.ReactElement {
 
   const clearAuth = useAuthStore((state) => state.clearAuth);
   const authUser = useAuthStore((state) => state.user);
-  const { themeMode, toggleTheme } = useUIStore();
+  const themeMode = useUIStore((s) => s.themeMode);
+  const toggleTheme = useUIStore((s) => s.toggleTheme);
+  const uppercaseCompanyNameAfterScan = useUIStore((s) => s.uppercaseCompanyNameAfterScan);
+  const setUppercaseCompanyNameAfterScan = useUIStore((s) => s.setUppercaseCompanyNameAfterScan);
 
   const [currentLang, setCurrentLang] = useState(getCurrentLanguage());
   const [apiUrlInput, setApiUrlInput] = useState(getApiBaseUrl());
@@ -347,6 +350,27 @@ export default function SettingsScreen(): React.ReactElement {
                 trackColor={{ false: "#E2E8F0", true: "#10B981" }}
                 thumbColor="#FFFFFF"
                 style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
+              />
+            </View>
+          </MenuGroup>
+
+          <Text style={[styles.groupTitle, { color: mutedColor }]}>{t("settings.preferences")}</Text>
+          <MenuGroup cardBg={cardBg} borderColor={borderColor}>
+            <View style={styles.preferenceRow}>
+              <View style={styles.preferenceTextCol}>
+                <Text style={[styles.preferenceTitle, { color: textColor }]}>
+                  {t("settings.uppercaseCompanyAfterScan")}
+                </Text>
+                <Text style={[styles.preferenceHint, { color: mutedColor }]}>
+                  {t("settings.uppercaseCompanyAfterScanHint")}
+                </Text>
+              </View>
+              <Switch
+                value={uppercaseCompanyNameAfterScan}
+                onValueChange={setUppercaseCompanyNameAfterScan}
+                trackColor={{ false: "#E2E8F0", true: "#10B981" }}
+                thumbColor="#FFFFFF"
+                style={{ transform: [{ scaleX: 0.72 }, { scaleY: 0.72 }] }}
               />
             </View>
           </MenuGroup>
@@ -698,6 +722,27 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: "500",
+  },
+  preferenceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  preferenceTextCol: {
+    flex: 1,
+    marginRight: 6,
+    paddingRight: 4,
+  },
+  preferenceTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  preferenceHint: {
+    fontSize: 11,
+    fontWeight: "400",
+    marginTop: 3,
+    lineHeight: 15,
   },
   langScrollContainer: {
     paddingHorizontal: 16,
