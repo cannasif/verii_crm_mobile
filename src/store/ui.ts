@@ -11,6 +11,8 @@ interface UIState {
   colors: ThemeColors;
   isSidebarOpen: boolean;
   menuViewType: MenuViewType;
+  /** Kartvizit/QR uygulandığında firma adı alanını büyük harfe çevir (elle yazımda zorlanmaz). */
+  uppercaseCompanyNameAfterScan: boolean;
   setIsLoading: (value: boolean) => void;
   setThemeMode: (mode: ThemeMode) => void;
   toggleTheme: () => void;
@@ -18,6 +20,7 @@ interface UIState {
   closeSidebar: () => void;
   toggleSidebar: () => void;
   setMenuViewType: (type: MenuViewType) => void;
+  setUppercaseCompanyNameAfterScan: (value: boolean) => void;
 }
 
 export const useUIStore = create<UIState>()(
@@ -28,6 +31,7 @@ export const useUIStore = create<UIState>()(
       colors: COLORS.light,
       isSidebarOpen: false,
       menuViewType: "list",
+      uppercaseCompanyNameAfterScan: true,
       setIsLoading: (value: boolean) => set({ isLoading: value }),
       setThemeMode: (mode: ThemeMode) =>
         set({ themeMode: mode, colors: COLORS[mode] }),
@@ -40,6 +44,7 @@ export const useUIStore = create<UIState>()(
       closeSidebar: () => set({ isSidebarOpen: false }),
       toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
       setMenuViewType: (type: MenuViewType) => set({ menuViewType: type }),
+      setUppercaseCompanyNameAfterScan: (value: boolean) => set({ uppercaseCompanyNameAfterScan: value }),
     }),
     {
       name: "ui-storage",
@@ -47,8 +52,9 @@ export const useUIStore = create<UIState>()(
       partialize: (state) => ({
         themeMode: state.themeMode,
         menuViewType: state.menuViewType,
+        uppercaseCompanyNameAfterScan: state.uppercaseCompanyNameAfterScan,
       }),
-      version: 3,
+      version: 4,
       migrate: (persistedState, version) => {
         const state = (persistedState ?? {}) as Partial<UIState>;
         const savedMode = state.themeMode;
@@ -63,11 +69,17 @@ export const useUIStore = create<UIState>()(
           menuViewType = "list";
         }
 
+        const uppercaseCompanyNameAfterScan =
+          typeof state.uppercaseCompanyNameAfterScan === "boolean"
+            ? state.uppercaseCompanyNameAfterScan
+            : true;
+
         return {
           ...state,
           themeMode: validMode,
           colors: COLORS[validMode],
           menuViewType,
+          uppercaseCompanyNameAfterScan,
         };
       },
       onRehydrateStorage: () => (state) => {
