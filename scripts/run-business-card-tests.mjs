@@ -1,10 +1,13 @@
 import { existsSync, readdirSync, rmSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { basename, join, relative, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
+import { tmpdir } from "node:os";
+import { fileURLToPath } from "node:url";
 
-const projectRoot = resolve(new URL("..", import.meta.url).pathname);
+const projectRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const customerRoot = join(projectRoot, "src", "features", "customer");
-const outDir = "/tmp/verii_crm_mobile_business_card_tests";
+const outDir = join(tmpdir(), "verii_crm_mobile_business_card_tests");
+const tscCli = join(projectRoot, "node_modules", "typescript", "lib", "tsc.js");
 const skippedTests = new Set([
   "businessCardTranslationService.test.ts",
 ]);
@@ -34,7 +37,7 @@ function run(command, args) {
 }
 
 const testFiles = walk(customerRoot)
-  .filter((file) => !skippedTests.has(file.split("/").pop() ?? ""))
+  .filter((file) => !skippedTests.has(basename(file)))
   .sort();
 
 if (testFiles.length === 0) {
@@ -44,7 +47,8 @@ if (testFiles.length === 0) {
 
 rmSync(outDir, { recursive: true, force: true });
 
-run("./node_modules/.bin/tsc", [
+run(process.execPath, [
+  tscCli,
   "--target",
   "es2020",
   "--module",
