@@ -109,46 +109,48 @@ export function PagedFlatList<ItemT>({
         ) : null}
       </View>
 
-      {/* 2. SATIR: FILTER + SORT */}
-      {(onOpenFilters || bottomRightActions) ? (
+      {/* 2. SATIR: META (sol) + FİLTRE + SORT */}
+      {onOpenFilters || bottomRightActions || metaContent ? (
         <View style={styles.toolbarBottomRow}>
-          <View style={styles.bottomRowRight}>
-            {onOpenFilters ? (
+          <View style={styles.toolbarBottomMetaSlot}>{metaContent ?? null}</View>
+          {onOpenFilters || bottomRightActions ? (
+            <View style={styles.bottomRowRight}>
+              {onOpenFilters ? (
                 <TouchableOpacity
-  style={styles.filterInlineBtn}
-  onPress={onOpenFilters}
-  activeOpacity={0.72}
->
-  <FilterIcon
-    size={14}
-    color={activeFilterCount > 0 ? theme.accent : theme.textMuted}
-    strokeWidth={1.9}
-  />
-  <Text
-    style={[
-      styles.filterInlineText,
-      { color: activeFilterCount > 0 ? theme.accent : theme.textMuted },
-    ]}
-  >
-    {t("common.filter", "Filtrele")}
-  </Text>
-  {activeFilterCount > 0 ? (
-    <Text style={[styles.filterInlineCount, { color: theme.accent }]}>
-      {activeFilterCount}
-    </Text>
-  ) : null}
-</TouchableOpacity>
-            ) : null}
+                  style={styles.filterInlineBtn}
+                  onPress={onOpenFilters}
+                  activeOpacity={0.72}
+                >
+                  <FilterIcon
+                    size={14}
+                    color={activeFilterCount > 0 ? theme.accent : theme.textMuted}
+                    strokeWidth={1.9}
+                  />
+                  <Text
+                    style={[
+                      styles.filterInlineText,
+                      { color: activeFilterCount > 0 ? theme.accent : theme.textMuted },
+                    ]}
+                  >
+                    {t("common.filter", "Filtrele")}
+                  </Text>
+                  {activeFilterCount > 0 ? (
+                    <Text style={[styles.filterInlineCount, { color: theme.accent }]}>
+                      {activeFilterCount}
+                    </Text>
+                  ) : null}
+                </TouchableOpacity>
+              ) : null}
 
-            {bottomRightActions ? (
-              <View style={styles.bottomRightActions}>{bottomRightActions}</View>
-            ) : null}
-          </View>
+              {bottomRightActions ? (
+                <View style={styles.bottomRightActions}>{bottomRightActions}</View>
+              ) : null}
+            </View>
+          ) : null}
         </View>
       ) : null}
 
       {afterToolbarContent ? <View style={styles.afterToolbar}>{afterToolbarContent}</View> : null}
-      {metaContent ? <View style={styles.metaRow}>{metaContent}</View> : null}
 
       {isLoading && data.length === 0 ? (
         <View style={styles.loaderWrap}>
@@ -188,9 +190,16 @@ const styles = StyleSheet.create({
 
   toolbarBottomRow: {
     flexDirection: "row",
-    justifyContent: "flex-end",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingBottom: 10,
+  },
+
+  toolbarBottomMetaSlot: {
+    flex: 1,
+    minWidth: 0,
+    marginRight: 8,
+    justifyContent: "center",
   },
 
   searchWrap: {
@@ -207,6 +216,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
+    flexShrink: 0,
   },
 
 bottomRightActions: {
@@ -218,11 +228,6 @@ bottomRightActions: {
   afterToolbar: {
     paddingHorizontal: 16,
     paddingBottom: 12,
-  },
-
-  metaRow: {
-    paddingHorizontal: 18,
-    paddingBottom: 10,
   },
 
   loaderWrap: {
