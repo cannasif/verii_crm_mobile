@@ -1199,6 +1199,7 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
           onSave={handleSaveLine}
           currency={currencyCode}
           allowImageUpload
+          imageUploadScope="quick-quotation"
           currencyOptions={(currencyOptions ?? []).map((x) => ({
             code: x.code,
             dovizTipi: x.dovizTipi,

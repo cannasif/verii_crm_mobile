@@ -62,6 +62,19 @@ export interface PdfTemplateAssetDto {
   relativeUrl: string;
   contentType: string;
   sizeBytes: number;
+  reportTemplateId?: number | null;
+  elementId?: string | null;
+  pageNumber?: number | null;
+  tempQuotattionId?: number | null;
+  tempQuotattionLineId?: number | null;
+  productCode?: string | null;
+}
+
+export interface UploadReportAssetOptions {
+  assetScope?: "quick-quotation" | "pdf-designer" | "report-builder" | "template";
+  tempQuotattionId?: number;
+  tempQuotattionLineId?: number;
+  productCode?: string;
 }
 
 export type ErpProjectCodesResponse = ApiResponse<ProjeDto[]>;
@@ -649,7 +662,10 @@ export const quotationApi = {
     return (paged && "items" in paged ? paged.items : []) ?? [];
   },
 
-  uploadReportAsset: async (fileUri: string): Promise<PdfTemplateAssetDto> => {
+  uploadReportAsset: async (
+    fileUri: string,
+    options?: UploadReportAssetOptions
+  ): Promise<PdfTemplateAssetDto> => {
     const cleanedUri = fileUri.split("?")[0]?.split("#")[0] ?? fileUri;
     const rawTail = decodeURIComponent(cleanedUri).split("/").pop()?.trim() || `fast_quotation_${Date.now()}.jpg`;
     const ext = rawTail.includes(".") ? rawTail.substring(rawTail.lastIndexOf(".") + 1).toLowerCase() : "jpg";
@@ -665,15 +681,23 @@ export const quotationApi = {
       name: rawTail,
       type: mimeType,
     } as any);
+    if (options?.assetScope) {
+      formData.append("assetScope", options.assetScope);
+    }
+    if (typeof options?.tempQuotattionId === "number" && options.tempQuotattionId > 0) {
+      formData.append("tempQuotattionId", String(options.tempQuotattionId));
+    }
+    if (typeof options?.tempQuotattionLineId === "number" && options.tempQuotattionLineId > 0) {
+      formData.append("tempQuotattionLineId", String(options.tempQuotattionLineId));
+    }
+    if (options?.productCode) {
+      formData.append("productCode", options.productCode);
+    }
 
     const response = await apiClient.post<ApiResponse<PdfTemplateAssetDto>>(
       "/api/pdf-report-templates/assets/upload",
       formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      }
+      {}
     );
 
     if (!response.data.success || !response.data.data) {

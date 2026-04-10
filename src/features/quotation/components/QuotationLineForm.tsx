@@ -54,6 +54,7 @@ interface QuotationLineFormProps {
   userDiscountLimits?: UserDiscountLimitDto[];
   exchangeRates?: Array<{ dovizTipi: number; kurDegeri: number }>;
   allowImageUpload?: boolean;
+  imageUploadScope?: "quick-quotation" | "pdf-designer" | "report-builder" | "template";
 }
 
 function normalizeCurrencyCode(value?: string | null): string {
@@ -138,6 +139,7 @@ export function QuotationLineForm({
   userDiscountLimits,
   exchangeRates,
   allowImageUpload = false,
+  imageUploadScope = "pdf-designer",
 }: QuotationLineFormProps): React.ReactElement {
   const { t } = useTranslation();
   const { themeMode } = useUIStore();
@@ -339,12 +341,14 @@ export function QuotationLineForm({
 
     setIsUploadingImage(true);
     try {
-      const uploaded = await quotationApi.uploadReportAsset(result.assets[0].uri);
+      const uploaded = await quotationApi.uploadReportAsset(result.assets[0].uri, {
+        assetScope: imageUploadScope,
+      });
       setImagePath(uploaded.relativeUrl);
     } finally {
       setIsUploadingImage(false);
     }
-  }, []);
+  }, [imageUploadScope]);
 
   const openImagePickerMenu = useCallback(() => {
     Alert.alert("Kalem Görseli", "Görsel kaynağını seç", [
