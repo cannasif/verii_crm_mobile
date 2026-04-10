@@ -21,6 +21,7 @@ import {
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
+import { CatalogStockPickerModal } from "@/components/shared/CatalogStockPickerModal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { Text } from "../../../components/ui/text";
@@ -594,6 +595,7 @@ function ProductPickerInner(
   const dashedBgColor = isDark ? "rgba(236,72,153,0.05)" : "rgba(219,39,119,0.03)";
 
   const [isOpen, setIsOpen] = useState(false);
+  const [catalogModalVisible, setCatalogModalVisible] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [debouncedSearchText, setDebouncedSearchText] = useState("");
   const [relationDetailStock, setRelationDetailStock] = useState<StockGetDto | null>(null);
@@ -786,6 +788,14 @@ function ProductPickerInner(
     setIsOpen(false);
     setSearchText("");
     setIsFilterModalVisible(false);
+  }, []);
+
+  const handleOpenCatalog = useCallback(() => {
+    setCatalogModalVisible(true);
+  }, []);
+
+  const handleCloseCatalog = useCallback(() => {
+    setCatalogModalVisible(false);
   }, []);
 
   useImperativeHandle(ref, () => ({ close: handleClose }), [handleClose]);
@@ -1350,6 +1360,22 @@ function ProductPickerInner(
                   <VoiceSearchButton onResult={setSearchText} />
                   <TouchableOpacity
                     style={[
+                      styles.catalogButton,
+                      {
+                        backgroundColor: brandColor + "14",
+                        borderColor: brandColor + "55",
+                      },
+                    ]}
+                    onPress={handleOpenCatalog}
+                    activeOpacity={0.8}
+                  >
+                    <MaterialCommunityIcons name="view-grid-plus-outline" size={16} color={brandColor} />
+                    <Text style={[styles.catalogButtonText, { color: brandColor }]}>
+                      {t("stockPicker.catalogOpenButton")}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
                       styles.filterButton,
                       {
                         backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "#FFFFFF",
@@ -1404,6 +1430,19 @@ function ProductPickerInner(
           </View>
         </View>
       </Modal>
+
+      <CatalogStockPickerModal
+        visible={catalogModalVisible}
+        selectedStock={{ code: value, name: productName }}
+        onClose={handleCloseCatalog}
+        onApply={async (stock) => {
+          if (!stock) {
+            handleClear();
+            return;
+          }
+          await handleSelect(stock);
+        }}
+      />
 
       <Modal
         visible={isFilterModalVisible}
@@ -1880,6 +1919,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginLeft: 10,
     position: "relative",
+  },
+  catalogButton: {
+    minHeight: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  catalogButtonText: {
+    fontSize: 12,
+    fontWeight: "700",
   },
   filterBadge: {
     position: "absolute",

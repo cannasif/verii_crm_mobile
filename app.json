@@ -3,6 +3,9 @@
     "name": "V3RII CRM",
     "slug": "v3rii-octopus",
     "version": "1.0.1",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "newArchEnabled": false,
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -23,10 +26,14 @@
       }
     },
     "android": {
+      "versionCode": 2,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "permissions": [
+        "REQUEST_INSTALL_PACKAGES"
+      ],
       "usesCleartextTraffic": true,
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,

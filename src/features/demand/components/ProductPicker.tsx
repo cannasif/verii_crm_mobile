@@ -9,6 +9,7 @@ import {
   TextInput,
 } from "react-native";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
+import { CatalogStockPickerModal } from "@/components/shared/CatalogStockPickerModal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { Text } from "../../../components/ui/text";
@@ -158,6 +159,7 @@ function ProductPickerInner(
 
   const [isOpen, setIsOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
+  const [catalogModalVisible, setCatalogModalVisible] = useState(false);
   const [debouncedSearchText, setDebouncedSearchText] = useState("");
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
   const [relationDetailStock, setRelationDetailStock] = useState<StockGetDto | null>(null);
@@ -272,6 +274,14 @@ function ProductPickerInner(
     setSearchText("");
     setDebouncedSearchText("");
     setIsFilterModalVisible(false);
+  }, []);
+
+  const handleOpenCatalog = useCallback(() => {
+    setCatalogModalVisible(true);
+  }, []);
+
+  const handleCloseCatalog = useCallback(() => {
+    setCatalogModalVisible(false);
   }, []);
 
   const handleApplyFilters = useCallback(() => {
@@ -594,6 +604,14 @@ function ProductPickerInner(
                       {t("common.filter")}
                     </Text>
                   </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.catalogButton, { borderColor: colors.accent, backgroundColor: colors.accent + "12" }]}
+                    onPress={handleOpenCatalog}
+                  >
+                    <Text style={[styles.catalogButtonText, { color: colors.accent }]}>
+                      {t("stockPicker.catalogOpenButton")}
+                    </Text>
+                  </TouchableOpacity>
                   <VoiceSearchButton onResult={setSearchText} />
                 </View>
 
@@ -632,6 +650,18 @@ function ProductPickerInner(
           </View>
         </View>
       </Modal>
+      <CatalogStockPickerModal
+        visible={catalogModalVisible}
+        selectedStock={{ code: value, name: productName }}
+        onClose={handleCloseCatalog}
+        onApply={async (stock) => {
+          if (!stock) {
+            handleClear();
+            return;
+          }
+          await handleSelect(stock);
+        }}
+      />
       <Modal visible={isFilterModalVisible} transparent animationType="fade" onRequestClose={() => setIsFilterModalVisible(false)}>
         <View style={styles.filterModalOverlay}>
           <TouchableOpacity style={styles.modalBackdrop} onPress={() => setIsFilterModalVisible(false)} />
@@ -870,6 +900,16 @@ const styles = StyleSheet.create({
   filterButtonText: {
     fontSize: 13,
     fontWeight: "600",
+  },
+  catalogButton: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  catalogButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
   },
   loadingContainer: {
     paddingVertical: 40,
