@@ -920,6 +920,10 @@
     "catalogOpenButton": "Pick From Catalog",
     "catalogTitle": "Pick Stock From Catalog",
     "catalogDescription": "Choose a catalog, drill into categories, then apply the stock to the line.",
+    "catalogHierarchyTitle": "Recommended category flow",
+    "catalogHierarchyDescription": "Keep the same structure: main category, subcategory, brand, series, and finally products.",
+    "catalogHierarchyExampleLabel": "Example",
+    "catalogHierarchyExampleValue": "Phones > Feature Phones > iPhone > 17 Series > Products",
     "catalogStep1Label": "Step 1",
     "catalogStep1Title": "Select Catalog",
     "catalogStep2Label": "Step 2",
@@ -935,6 +939,9 @@
     "catalogLeafCategory": "Leaf Category",
     "catalogEmptyCategories": "There are no categories to show at this level.",
     "catalogSelectedLeaf": "Selected category",
+    "catalogSelectedPathLabel": "Selected path",
+    "catalogCurrentPathLabel": "Current path",
+    "catalogLevelBadge": "Level {{level}}",
     "catalogSearchPlaceholder": "Search within category stocks...",
     "catalogSelectLeafTitle": "Select a leaf category first",
     "catalogSelectLeafHint": "Select a leaf category to see its stocks on the right.",
@@ -951,7 +958,29 @@
     "catalogSelectStock": "Select Stock",
     "catalogLoadMore": "Load More",
     "catalogApplySelection": "Apply Selection",
-    "catalogFooterHint": "A stock chosen here is applied exactly like the normal product picker."
+    "catalogFooterHint": "A stock chosen here is applied exactly like the normal product picker.",
+    "catalogHierarchyStages": {
+      "root": {
+        "title": "Main Category",
+        "description": "Top product space. Example: Phones"
+      },
+      "subcategory": {
+        "title": "Subcategory",
+        "description": "Clarifies the product group. Example: Feature Phones"
+      },
+      "brand": {
+        "title": "Brand",
+        "description": "Brand or manufacturer breakdown. Example: iPhone"
+      },
+      "series": {
+        "title": "Series",
+        "description": "Model family or series level. Example: 17 Series"
+      },
+      "products": {
+        "title": "Products",
+        "description": "This should be the final leaf level and stock selection should happen here."
+      }
+    }
   },
   "quotation": {
     "list": "Quotation List",

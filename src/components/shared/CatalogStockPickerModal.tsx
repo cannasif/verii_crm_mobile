@@ -181,6 +181,17 @@ export function CatalogStockPickerModal({
   }, [stockSearch, selectedLeafCategory?.catalogCategoryId, visible]);
 
   const selectedLeafLabel = selectedLeafCategory?.name ?? t("stockPicker.catalogNoLeafSelected");
+  const selectedLeafPathLabel =
+    selectedLeafCategory?.fullPath ?? selectedLeafCategory?.name ?? t("stockPicker.catalogNoLeafSelected");
+  const currentHierarchyPath = useMemo(() => {
+    const parts = [
+      selectedCatalog?.name,
+      ...navigationPath.map((item) => item.name),
+      selectedLeafCategory?.name,
+    ].filter(Boolean);
+
+    return parts.length > 0 ? parts.join(" / ") : t("stockPicker.catalogNoCatalog");
+  }, [navigationPath, selectedCatalog?.name, selectedLeafCategory?.name, t]);
 
   const handleCatalogChange = useCallback((catalog: ProductCatalogDto) => {
     setSelectedCatalog(catalog);
@@ -318,6 +329,41 @@ export function CatalogStockPickerModal({
             )}
           </View>
 
+          <View style={[styles.blueprintCard, { borderColor: colors.border, backgroundColor: colors.backgroundSecondary }]}>
+            <Text style={[styles.blueprintEyebrow, { color: colors.textMuted }]}>
+              {t("stockPicker.catalogHierarchyTitle")}
+            </Text>
+            <Text style={[styles.blueprintDescription, { color: colors.textSecondary }]}>
+              {t("stockPicker.catalogHierarchyDescription")}
+            </Text>
+            <View style={[styles.blueprintExampleBox, { borderColor: colors.border, backgroundColor: colors.card }]}>
+              <Text style={[styles.blueprintExampleText, { color: colors.textSecondary }]}>
+                <Text style={[styles.blueprintExampleLabel, { color: colors.text }]}>{t("stockPicker.catalogHierarchyExampleLabel")}: </Text>
+                {t("stockPicker.catalogHierarchyExampleValue")}
+              </Text>
+            </View>
+            <View style={styles.blueprintStages}>
+              {(["root", "subcategory", "brand", "series", "products"] as const).map((stage, index) => (
+                <View
+                  key={stage}
+                  style={[styles.blueprintStageCard, { borderColor: colors.border, backgroundColor: colors.card }]}
+                >
+                  <View style={styles.blueprintStageHeader}>
+                    <View style={[styles.blueprintStageIndex, { backgroundColor: colors.text }]}>
+                      <Text style={styles.blueprintStageIndexText}>{index + 1}</Text>
+                    </View>
+                    <Text style={[styles.blueprintStageTitle, { color: colors.text }]}>
+                      {t(`stockPicker.catalogHierarchyStages.${stage}.title`)}
+                    </Text>
+                  </View>
+                  <Text style={[styles.blueprintStageDescription, { color: colors.textSecondary }]}>
+                    {t(`stockPicker.catalogHierarchyStages.${stage}.description`)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
           <View style={styles.content}>
             <View style={styles.leftPane}>
               <View style={styles.sectionHeader}>
@@ -380,6 +426,21 @@ export function CatalogStockPickerModal({
                         <Text style={[styles.categoryCode, { color: colors.textMuted }]} numberOfLines={1}>
                           {category.code}
                         </Text>
+                        <View style={styles.categoryMetaRow}>
+                          <Text
+                            style={[
+                              styles.categoryMetaBadge,
+                              { color: colors.textSecondary, backgroundColor: colors.card, borderColor: colors.border },
+                            ]}
+                          >
+                            {t("stockPicker.catalogLevelBadge", { level: category.level })}
+                          </Text>
+                          {category.fullPath ? (
+                            <Text style={[styles.categoryMetaPath, { color: colors.textMuted }]} numberOfLines={1}>
+                              {category.fullPath}
+                            </Text>
+                          ) : null}
+                        </View>
                       </TouchableOpacity>
                     );
                   })
@@ -393,6 +454,28 @@ export function CatalogStockPickerModal({
                 <Text style={[styles.sectionSubtle, { color: colors.textMuted }]} numberOfLines={1}>
                   {t("stockPicker.catalogSelectedLeaf")}: {selectedLeafLabel}
                 </Text>
+              </View>
+
+              <View style={styles.selectionMetaWrap}>
+                <Text
+                  style={[
+                    styles.selectionMetaBadge,
+                    { color: colors.textSecondary, backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {t("stockPicker.catalogCurrentPathLabel")}: {currentHierarchyPath}
+                </Text>
+                {selectedLeafCategory ? (
+                  <Text
+                    style={[
+                      styles.selectionMetaBadge,
+                      { color: colors.textSecondary, backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
+                    ]}
+                  >
+                    {t("stockPicker.catalogLevelBadge", { level: selectedLeafCategory.level })}
+                  </Text>
+                ) : null}
               </View>
 
               <View style={[styles.searchWrapper, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
@@ -425,6 +508,14 @@ export function CatalogStockPickerModal({
                         ? t("stockPicker.catalogStocksHint")
                         : t("stockPicker.catalogEmptyStocksHint")}
                 </Text>
+                {selectedLeafCategory ? (
+                  <View style={[styles.helperPathBox, { borderColor: colors.border, backgroundColor: colors.card }]}>
+                    <Text style={[styles.helperPathText, { color: colors.textSecondary }]}>
+                      <Text style={[styles.helperPathLabel, { color: colors.text }]}>{t("stockPicker.catalogSelectedPathLabel")}: </Text>
+                      {selectedLeafPathLabel}
+                    </Text>
+                  </View>
+                ) : null}
               </View>
 
               {tempSelectedStock ? (
@@ -572,6 +663,19 @@ const styles = StyleSheet.create({
   catalogPill: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 },
   catalogPillName: { fontSize: 13, fontWeight: "700" },
   catalogPillCode: { fontSize: 11, marginTop: 2 },
+  blueprintCard: { borderWidth: 1, borderRadius: 18, marginHorizontal: 16, marginTop: 12, padding: 14, gap: 10 },
+  blueprintEyebrow: { fontSize: 10, fontWeight: "800", textTransform: "uppercase", letterSpacing: 1 },
+  blueprintDescription: { fontSize: 13, lineHeight: 18 },
+  blueprintExampleBox: { borderWidth: 1, borderStyle: "dashed", borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10 },
+  blueprintExampleText: { fontSize: 12, lineHeight: 18 },
+  blueprintExampleLabel: { fontWeight: "700" },
+  blueprintStages: { gap: 8 },
+  blueprintStageCard: { borderWidth: 1, borderRadius: 14, padding: 10 },
+  blueprintStageHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+  blueprintStageIndex: { width: 24, height: 24, borderRadius: 999, alignItems: "center", justifyContent: "center" },
+  blueprintStageIndexText: { color: "#fff", fontSize: 11, fontWeight: "800" },
+  blueprintStageTitle: { flex: 1, fontSize: 13, fontWeight: "700" },
+  blueprintStageDescription: { marginTop: 6, fontSize: 12, lineHeight: 17 },
   content: { flex: 1, paddingHorizontal: 16, paddingTop: 12, gap: 12 },
   leftPane: { flex: 0.92, minHeight: 220 },
   rightPane: { flex: 1.2, minHeight: 260 },
@@ -588,11 +692,19 @@ const styles = StyleSheet.create({
   categoryName: { flex: 1, fontSize: 14, fontWeight: "700" },
   categoryTypeBadge: { fontSize: 11, fontWeight: "700", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, overflow: "hidden" },
   categoryCode: { marginTop: 5, fontSize: 12 },
+  categoryMetaRow: { marginTop: 8, gap: 6 },
+  categoryMetaBadge: { alignSelf: "flex-start", fontSize: 10, fontWeight: "700", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, overflow: "hidden", borderWidth: 1 },
+  categoryMetaPath: { fontSize: 11, lineHeight: 16 },
   searchWrapper: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, marginBottom: 10 },
   searchInput: { minHeight: 42, fontSize: 14 },
+  selectionMetaWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 10 },
+  selectionMetaBadge: { fontSize: 11, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, overflow: "hidden", borderWidth: 1, maxWidth: "100%" },
   helperCard: { borderWidth: 1, borderRadius: 18, padding: 12, marginBottom: 10 },
   helperTitle: { fontSize: 14, fontWeight: "700" },
   helperText: { marginTop: 4, fontSize: 12, lineHeight: 18 },
+  helperPathBox: { borderWidth: 1, borderStyle: "dashed", borderRadius: 14, paddingHorizontal: 10, paddingVertical: 8, marginTop: 10 },
+  helperPathText: { fontSize: 12, lineHeight: 18 },
+  helperPathLabel: { fontWeight: "700" },
   selectedPanel: { borderWidth: 1, borderRadius: 18, padding: 12, marginBottom: 10 },
   selectedPanelHeader: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
   selectedPanelTitle: { fontSize: 14, fontWeight: "700" },
