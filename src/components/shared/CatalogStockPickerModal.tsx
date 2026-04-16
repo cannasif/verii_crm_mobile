@@ -43,6 +43,7 @@ export function CatalogStockPickerModal({
   const [navigationPath, setNavigationPath] = useState<CatalogCategoryNodeDto[]>([]);
   const [categories, setCategories] = useState<CatalogCategoryNodeDto[]>([]);
   const [selectedLeafCategory, setSelectedLeafCategory] = useState<CatalogCategoryNodeDto | null>(null);
+  const [includeDescendants, setIncludeDescendants] = useState(false);
   const [stocks, setStocks] = useState<CatalogStockItemDto[]>([]);
   const [stockSearch, setStockSearch] = useState("");
   const [pageNumber, setPageNumber] = useState(1);
@@ -63,6 +64,7 @@ export function CatalogStockPickerModal({
       setNavigationPath([]);
       setCategories([]);
       setSelectedLeafCategory(null);
+      setIncludeDescendants(false);
       setStocks([]);
       setStockSearch("");
       setPageNumber(1);
@@ -149,7 +151,12 @@ export function CatalogStockPickerModal({
         const response = await catalogApi.getCatalogCategoryStocks(
           selectedCatalog.id,
           selectedLeafCategory.catalogCategoryId,
-          { pageNumber, pageSize: PAGE_SIZE, search: stockSearch.trim() || undefined }
+          {
+            pageNumber,
+            pageSize: PAGE_SIZE,
+            search: stockSearch.trim() || undefined,
+            includeDescendants,
+          }
         );
 
         const nextItems = response.items ?? [];
@@ -169,7 +176,7 @@ export function CatalogStockPickerModal({
     return () => {
       cancelled = true;
     };
-  }, [pageNumber, selectedCatalog, selectedLeafCategory, stockSearch, visible]);
+  }, [includeDescendants, pageNumber, selectedCatalog, selectedLeafCategory, stockSearch, visible]);
 
   useEffect(() => {
     if (!visible) return;
@@ -178,11 +185,16 @@ export function CatalogStockPickerModal({
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [stockSearch, selectedLeafCategory?.catalogCategoryId, visible]);
+  }, [includeDescendants, stockSearch, selectedLeafCategory?.catalogCategoryId, visible]);
 
   const selectedLeafLabel = selectedLeafCategory?.name ?? t("stockPicker.catalogNoLeafSelected");
   const selectedLeafPathLabel =
     selectedLeafCategory?.fullPath ?? selectedLeafCategory?.name ?? t("stockPicker.catalogNoLeafSelected");
+  const selectionModeLabel = selectedLeafCategory
+    ? includeDescendants
+      ? t("stockPicker.catalogListDescendantsMode")
+      : t("stockPicker.catalogDirectCategoryMode")
+    : null;
   const currentHierarchyPath = useMemo(() => {
     const parts = [
       selectedCatalog?.name,
@@ -197,6 +209,7 @@ export function CatalogStockPickerModal({
     setSelectedCatalog(catalog);
     setNavigationPath([]);
     setSelectedLeafCategory(null);
+    setIncludeDescendants(false);
     setCategories([]);
     setStocks([]);
     setStockSearch("");
@@ -208,17 +221,27 @@ export function CatalogStockPickerModal({
     if (category.hasChildren) {
       setNavigationPath((prev) => [...prev, category]);
       setSelectedLeafCategory(null);
+      setIncludeDescendants(false);
       setStocks([]);
       return;
     }
 
     setSelectedLeafCategory(category);
+    setIncludeDescendants(false);
+    setPageNumber(1);
+  }, []);
+
+  const handleCategoryList = useCallback((category: CatalogCategoryNodeDto) => {
+    setSelectedLeafCategory(category);
+    setIncludeDescendants(category.hasChildren);
+    setStocks([]);
     setPageNumber(1);
   }, []);
 
   const handleBackLevel = useCallback(() => {
     setNavigationPath((prev) => prev.slice(0, -1));
     setSelectedLeafCategory(null);
+    setIncludeDescendants(false);
     setStocks([]);
     setPageNumber(1);
   }, []);
@@ -401,47 +424,69 @@ export function CatalogStockPickerModal({
                   categories.map((category) => {
                     const isLeafSelected = selectedLeafCategory?.catalogCategoryId === category.catalogCategoryId;
                     return (
-                      <TouchableOpacity
+                      <View
                         key={category.catalogCategoryId}
                         style={[
                           styles.categoryCard,
                           { borderColor: colors.border, backgroundColor: colors.backgroundSecondary },
                           isLeafSelected && { borderColor: colors.accent, backgroundColor: colors.accent + "14" },
                         ]}
-                        onPress={() => handleCategoryPress(category)}
                       >
-                        <View style={styles.categoryCardHeader}>
-                          <Text style={[styles.categoryName, { color: colors.text }]} numberOfLines={1}>
-                            {category.name}
-                          </Text>
-                          <Text
-                            style={[
-                              styles.categoryTypeBadge,
-                              { color: category.hasChildren ? colors.textSecondary : colors.accent, backgroundColor: colors.card },
-                            ]}
-                          >
-                            {category.hasChildren ? t("stockPicker.catalogSubCategory") : t("stockPicker.catalogLeafCategory")}
-                          </Text>
-                        </View>
-                        <Text style={[styles.categoryCode, { color: colors.textMuted }]} numberOfLines={1}>
-                          {category.code}
-                        </Text>
-                        <View style={styles.categoryMetaRow}>
-                          <Text
-                            style={[
-                              styles.categoryMetaBadge,
-                              { color: colors.textSecondary, backgroundColor: colors.card, borderColor: colors.border },
-                            ]}
-                          >
-                            {t("stockPicker.catalogLevelBadge", { level: category.level })}
-                          </Text>
-                          {category.fullPath ? (
-                            <Text style={[styles.categoryMetaPath, { color: colors.textMuted }]} numberOfLines={1}>
-                              {category.fullPath}
+                        <TouchableOpacity onPress={() => handleCategoryPress(category)} activeOpacity={0.85}>
+                          <View style={styles.categoryCardHeader}>
+                            <Text style={[styles.categoryName, { color: colors.text }]} numberOfLines={1}>
+                              {category.name}
                             </Text>
+                            <Text
+                              style={[
+                                styles.categoryTypeBadge,
+                                { color: category.hasChildren ? colors.textSecondary : colors.accent, backgroundColor: colors.card },
+                              ]}
+                            >
+                              {category.hasChildren ? t("stockPicker.catalogSubCategory") : t("stockPicker.catalogLeafCategory")}
+                            </Text>
+                          </View>
+                          <Text style={[styles.categoryCode, { color: colors.textMuted }]} numberOfLines={1}>
+                            {category.code}
+                          </Text>
+                          <View style={styles.categoryMetaRow}>
+                            <Text
+                              style={[
+                                styles.categoryMetaBadge,
+                                { color: colors.textSecondary, backgroundColor: colors.card, borderColor: colors.border },
+                              ]}
+                            >
+                              {t("stockPicker.catalogLevelBadge", { level: category.level })}
+                            </Text>
+                            {category.fullPath ? (
+                              <Text style={[styles.categoryMetaPath, { color: colors.textMuted }]} numberOfLines={1}>
+                                {category.fullPath}
+                              </Text>
+                            ) : null}
+                          </View>
+                        </TouchableOpacity>
+
+                        <View style={styles.categoryActionRow}>
+                          {category.hasChildren ? (
+                            <TouchableOpacity
+                              style={[styles.categorySecondaryAction, { borderColor: colors.border, backgroundColor: colors.card }]}
+                              onPress={() => handleCategoryPress(category)}
+                            >
+                              <Text style={[styles.categorySecondaryActionText, { color: colors.text }]}>
+                                {t("stockPicker.catalogBrowseChildren")}
+                              </Text>
+                            </TouchableOpacity>
                           ) : null}
+                          <TouchableOpacity
+                            style={[styles.categoryPrimaryAction, { backgroundColor: colors.accent }]}
+                            onPress={() => handleCategoryList(category)}
+                          >
+                            <Text style={styles.categoryPrimaryActionText}>
+                              {t("stockPicker.catalogListDescendants")}
+                            </Text>
+                          </TouchableOpacity>
                         </View>
-                      </TouchableOpacity>
+                      </View>
                     );
                   })
                 )}
@@ -474,6 +519,16 @@ export function CatalogStockPickerModal({
                     ]}
                   >
                     {t("stockPicker.catalogLevelBadge", { level: selectedLeafCategory.level })}
+                  </Text>
+                ) : null}
+                {selectionModeLabel ? (
+                  <Text
+                    style={[
+                      styles.selectionMetaBadge,
+                      { color: colors.textSecondary, backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
+                    ]}
+                  >
+                    {selectionModeLabel}
                   </Text>
                 ) : null}
               </View>
@@ -695,6 +750,11 @@ const styles = StyleSheet.create({
   categoryMetaRow: { marginTop: 8, gap: 6 },
   categoryMetaBadge: { alignSelf: "flex-start", fontSize: 10, fontWeight: "700", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, overflow: "hidden", borderWidth: 1 },
   categoryMetaPath: { fontSize: 11, lineHeight: 16 },
+  categoryActionRow: { flexDirection: "row", gap: 8, marginTop: 12 },
+  categorySecondaryAction: { flex: 1, minHeight: 38, borderWidth: 1, borderRadius: 12, alignItems: "center", justifyContent: "center", paddingHorizontal: 10 },
+  categorySecondaryActionText: { fontSize: 12, fontWeight: "700" },
+  categoryPrimaryAction: { flex: 1.15, minHeight: 38, borderRadius: 12, alignItems: "center", justifyContent: "center", paddingHorizontal: 10 },
+  categoryPrimaryActionText: { color: "#fff", fontSize: 12, fontWeight: "700" },
   searchWrapper: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, marginBottom: 10 },
   searchInput: { minHeight: 42, fontSize: 14 },
   selectionMetaWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 10 },

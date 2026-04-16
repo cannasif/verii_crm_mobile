@@ -40,12 +40,13 @@ export const catalogApi = {
   getCatalogCategoryStocks: async (
     catalogId: number,
     catalogCategoryId: number,
-    params?: { pageNumber?: number; pageSize?: number; search?: string }
+    params?: { pageNumber?: number; pageSize?: number; search?: string; includeDescendants?: boolean }
   ): Promise<PagedResponse<CatalogStockItemDto>> => {
     const query = new URLSearchParams();
     if (params?.pageNumber) query.append("pageNumber", String(params.pageNumber));
     if (params?.pageSize) query.append("pageSize", String(params.pageSize));
     if (params?.search?.trim()) query.append("search", params.search.trim());
+    if (params?.includeDescendants) query.append("includeDescendants", "true");
 
     const suffix = query.toString() ? `?${query.toString()}` : "";
     const response = await apiClient.get<ApiResponse<PagedResponse<CatalogStockItemDto>>>(
