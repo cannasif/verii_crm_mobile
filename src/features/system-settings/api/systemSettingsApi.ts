@@ -9,6 +9,7 @@ export interface SystemSettingsDto {
   timeFormat: string;
   numberFormat: string;
   decimalPlaces: number;
+  restrictCustomersBySalesRepMatch: boolean;
   updatedAt?: string;
 }
 

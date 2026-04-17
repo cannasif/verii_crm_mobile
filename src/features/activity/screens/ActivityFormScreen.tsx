@@ -28,6 +28,7 @@ import { useUIStore } from "../../../store/ui";
 import { useAuthStore } from "../../../store/auth";
 import { useActivity, useActivityLookups, useActivityTypes, useCreateActivity, useUpdateActivity } from "../hooks";
 import { FormField, CustomerPicker, ContactPicker } from "../components";
+import { useCustomerScopeAccess } from "../../customer/hooks";
 import { createActivitySchema, type ActivityFormData } from "../schemas";
 import { buildCreateActivityPayload, buildUpdateActivityPayload } from "../utils/buildCreateActivityPayload";
 import {
@@ -230,8 +231,13 @@ export function ActivityFormScreen(): React.ReactElement {
   const watchStartDateTime = watch("startDateTime");
   const watchEndDateTime = watch("endDateTime");
   const watchCustomerId = watch("potentialCustomerId");
+  const watchAssignedUserId = watch("assignedUserId");
   const watchIsAllDay = watch("isAllDay");
   const watchReminders = watch("reminders") || [];
+  const { data: isCustomerInAssignedScope } = useCustomerScopeAccess(
+    watchCustomerId ?? undefined,
+    watchAssignedUserId ?? user?.id
+  );
 
   const statusOptions: PickerOption[] = useMemo(
     () =>
@@ -427,6 +433,16 @@ export function ActivityFormScreen(): React.ReactElement {
     shouldAutoFillSubject,
     buildAutoSubject,
   ]);
+
+  useEffect(() => {
+    if (!watchCustomerId || isCustomerInAssignedScope !== false) return;
+
+    setSelectedCustomer(undefined);
+    setSelectedContact(undefined);
+    setValue("potentialCustomerId", undefined);
+    setValue("erpCustomerCode", "");
+    setValue("contactId", undefined);
+  }, [isCustomerInAssignedScope, setValue, watchCustomerId]);
 
   useEffect(() => {
     if (isEditMode) return;
@@ -1308,6 +1324,7 @@ export function ActivityFormScreen(): React.ReactElement {
                     customerName={selectedCustomer?.name}
                     onChange={handleCustomerChange}
                     disabled={isQuickActivityMode}
+                    contextUserId={watchAssignedUserId ?? user?.id}
                   />
                 </View>
 

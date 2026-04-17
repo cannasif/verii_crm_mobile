@@ -34,7 +34,7 @@ import { useUIStore } from "../../../store/ui";
 import { useAuthStore } from "../../../store/auth";
 import { useToastStore } from "../../../store/toast";
 import { FormField } from "../../activity/components";
-import { useCustomer } from "../../customer/hooks";
+import { useCustomer, useCustomerScopeAccess } from "../../customer/hooks";
 import { useCustomerShippingAddresses } from "../../shipping-address/hooks";
 import { stockApi } from "../../stocks/api";
 import { quotationApi } from "../api";
@@ -216,6 +216,10 @@ export function QuotationCreateScreen(): React.ReactElement {
   }, [deliveryDateModalOpen, watchedDeliveryDate]);
 
   const { data: customer } = useCustomer(watchedCustomerId ?? undefined);
+  const { data: isCustomerInRepresentativeScope } = useCustomerScopeAccess(
+    watchedCustomerId ?? undefined,
+    watchedRepresentativeId ?? undefined
+  );
   const { data: shippingAddresses } = useCustomerShippingAddresses(
     watchedCustomerId ?? undefined
   );
@@ -317,12 +321,22 @@ export function QuotationCreateScreen(): React.ReactElement {
     }
   }, [customer]);
 
+  useEffect(() => {
+    if (!watchedCustomerId || isCustomerInRepresentativeScope !== false) return;
+
+    setSelectedCustomer(undefined);
+    setValue("quotation.potentialCustomerId", null);
+    setValue("quotation.erpCustomerCode", null);
+    setValue("quotation.shippingAddressId", null);
+  }, [isCustomerInRepresentativeScope, setValue, watchedCustomerId]);
+
   const totals = useMemo(() => calculateTotals(lines), [lines]);
 
   const handleCustomerSelect = useCallback(
     (result: CustomerSelectionResult) => {
       setValue("quotation.potentialCustomerId", result.customerId);
       setValue("quotation.erpCustomerCode", result.erpCustomerCode ?? null);
+      setValue("quotation.shippingAddressId", null);
       setSelectedCustomer({
         id: result.customerId,
         name: result.customerName,
@@ -337,6 +351,7 @@ export function QuotationCreateScreen(): React.ReactElement {
       setSelectedCustomer(customer);
       setValue("quotation.potentialCustomerId", customer?.id || null);
       setValue("quotation.erpCustomerCode", null);
+      setValue("quotation.shippingAddressId", null);
     },
     [setValue]
   );
@@ -2213,6 +2228,7 @@ export function QuotationCreateScreen(): React.ReactElement {
             open={customerSelectDialogOpen}
             onOpenChange={setCustomerSelectDialogOpen}
             onSelect={handleCustomerSelect}
+            contextUserId={watchedRepresentativeId ?? undefined}
           />
 
           <PickerModal

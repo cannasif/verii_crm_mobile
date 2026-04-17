@@ -22,6 +22,7 @@ interface CustomerPickerProps {
   disabled?: boolean;
   label?: string;
   required?: boolean;
+  contextUserId?: number;
 }
 
 export function CustomerPicker({
@@ -31,6 +32,7 @@ export function CustomerPicker({
   disabled = false,
   label,
   required = false,
+  contextUserId,
 }: CustomerPickerProps): React.ReactElement {
   const { t } = useTranslation();
   const { colors } = useUIStore();
@@ -51,6 +53,7 @@ export function CustomerPicker({
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useCustomers({
     enabled: isOpen,
     search: debouncedSearch.length >= 2 ? debouncedSearch : undefined,
+    contextUserId,
   });
 
   const customers = useMemo(() => {

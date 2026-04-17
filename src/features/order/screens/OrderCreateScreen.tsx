@@ -35,7 +35,7 @@ import { useUIStore } from "../../../store/ui";
 import { useAuthStore } from "../../../store/auth";
 import { useToastStore } from "../../../store/toast";
 import { FormField } from "../../activity/components";
-import { useCustomer } from "../../customer/hooks";
+import { useCustomer, useCustomerScopeAccess } from "../../customer/hooks";
 import { useCustomerShippingAddresses } from "../../shipping-address/hooks";
 import { useErpCustomers } from "../../erp-customer/hooks";
 import { useStock } from "../../stocks/hooks";
@@ -161,6 +161,10 @@ export function OrderCreateScreen(): React.ReactElement {
   }, [deliveryDateModalOpen, watchedDeliveryDate]);
 
   const { data: customer } = useCustomer(watchedCustomerId ?? undefined);
+  const { data: isCustomerInRepresentativeScope } = useCustomerScopeAccess(
+    watchedCustomerId ?? undefined,
+    watchedRepresentativeId ?? undefined
+  );
   const { data: shippingAddresses } = useCustomerShippingAddresses(watchedCustomerId ?? undefined);
   const { data: erpCustomers } = useErpCustomers();
   const exchangeRateParamsOnce = useMemo(
@@ -219,6 +223,15 @@ export function OrderCreateScreen(): React.ReactElement {
     watchedRepresentativeId || undefined
   );
 
+  useEffect(() => {
+    if (!watchedCustomerId || isCustomerInRepresentativeScope !== false) return;
+
+    setSelectedCustomer(undefined);
+    setValue("order.potentialCustomerId", null);
+    setValue("order.erpCustomerCode", null);
+    setValue("order.shippingAddressId", null);
+  }, [isCustomerInRepresentativeScope, setValue, watchedCustomerId]);
+
   const createOrder = useCreateOrderBulk();
 
   useEffect(() => {
@@ -239,6 +252,7 @@ export function OrderCreateScreen(): React.ReactElement {
     (result: CustomerSelectionResult) => {
       setValue("order.potentialCustomerId", result.customerId);
       setValue("order.erpCustomerCode", result.erpCustomerCode ?? null);
+      setValue("order.shippingAddressId", null);
       setSelectedCustomer({
         id: result.customerId,
         name: result.customerName,
@@ -253,6 +267,7 @@ export function OrderCreateScreen(): React.ReactElement {
       setSelectedCustomer(customer);
       setValue("order.potentialCustomerId", customer?.id || null);
       setValue("order.erpCustomerCode", null);
+      setValue("order.shippingAddressId", null);
     },
     [setValue]
   );
@@ -1517,6 +1532,7 @@ export function OrderCreateScreen(): React.ReactElement {
           open={customerSelectDialogOpen}
           onOpenChange={setCustomerSelectDialogOpen}
           onSelect={handleCustomerSelect}
+          contextUserId={watchedRepresentativeId ?? undefined}
         />
 
         <PickerModal

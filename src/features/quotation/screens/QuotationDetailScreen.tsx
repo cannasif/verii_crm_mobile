@@ -27,7 +27,7 @@ import { useUIStore } from "../../../store/ui";
 import { useAuthStore } from "../../../store/auth";
 import { useToastStore } from "../../../store/toast";
 import { FormField } from "../../activity/components";
-import { useCustomer } from "../../customer/hooks";
+import { useCustomer, useCustomerScopeAccess } from "../../customer/hooks";
 import { useCustomerShippingAddresses } from "../../shipping-address/hooks";
 import { stockApi } from "../../stocks/api";
 import { quotationApi } from "../api";
@@ -212,6 +212,10 @@ const gradientColors = isDark
   }, [watchedOfferDate, setValue, watch]);
 
   const { data: customer } = useCustomer(watchedCustomerId ?? undefined);
+  const { data: isCustomerInRepresentativeScope } = useCustomerScopeAccess(
+    watchedCustomerId ?? undefined,
+    watchedRepresentativeId ?? undefined
+  );
   const { data: shippingAddresses } = useCustomerShippingAddresses(watchedCustomerId ?? undefined);
   const exchangeRateParams = useMemo(
     () => ({ tarih: new Date().toISOString().split("T")[0], fiyatTipi: 1 as const }),
@@ -360,6 +364,15 @@ const gradientColors = isDark
   }, [customer]);
 
   useEffect(() => {
+    if (!watchedCustomerId || isCustomerInRepresentativeScope !== false) return;
+
+    setSelectedCustomer(undefined);
+    setValue("quotation.potentialCustomerId", null);
+    setValue("quotation.erpCustomerCode", null);
+    setValue("quotation.shippingAddressId", null);
+  }, [isCustomerInRepresentativeScope, setValue, watchedCustomerId]);
+
+  useEffect(() => {
     if (deliveryDateModalOpen && watchedDeliveryDate) {
       setTempDeliveryDate(new Date(watchedDeliveryDate + "T12:00:00"));
     }
@@ -472,6 +485,7 @@ const gradientColors = isDark
     (result: CustomerSelectionResult) => {
       setValue("quotation.potentialCustomerId", result.customerId);
       setValue("quotation.erpCustomerCode", result.erpCustomerCode ?? null);
+      setValue("quotation.shippingAddressId", null);
       setSelectedCustomer({
         id: result.customerId,
         name: result.customerName,
@@ -1695,6 +1709,7 @@ const gradientColors = isDark
           open={customerSelectDialogOpen}
           onOpenChange={setCustomerSelectDialogOpen}
           onSelect={handleCustomerSelect}
+          contextUserId={watchedRepresentativeId ?? undefined}
         />
 
         <PickerModal

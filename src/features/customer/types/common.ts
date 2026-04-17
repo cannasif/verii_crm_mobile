@@ -14,6 +14,7 @@ export interface PagedParams {
   sortDirection?: "asc" | "desc";
   filters?: PagedFilter[];
   filterLogic?: "and" | "or";
+  contextUserId?: number;
 }
 
 export interface PagedResponse<T> {

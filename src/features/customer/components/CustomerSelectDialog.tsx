@@ -57,6 +57,7 @@ interface CustomerSelectDialogProps {
   onSelect: (result: CustomerSelectionResult) => void;
   showNewCustomerButton?: boolean;
   onNewCustomer?: () => void;
+  contextUserId?: number;
 }
 
 const PAGE_SIZE = 50;
@@ -70,6 +71,7 @@ export function CustomerSelectDialog({
   onSelect,
   showNewCustomerButton = false,
   onNewCustomer,
+  contextUserId,
 }: CustomerSelectDialogProps): React.ReactElement {
   const { t } = useTranslation();
   const { colors, themeMode } = useUIStore();
@@ -175,6 +177,7 @@ export function CustomerSelectDialog({
     sortDirection: "asc",
     filters: apiFilters,
     filterLogic: appliedFilterLogic,
+    contextUserId,
   });
 
   const allItems = useMemo(

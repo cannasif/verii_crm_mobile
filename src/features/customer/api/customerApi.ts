@@ -101,6 +101,9 @@ const buildQueryParams = (params: PagedParams): Record<string, string | number> 
   if (params.filterLogic) {
     queryParams.filterLogic = params.filterLogic;
   }
+  if (params.contextUserId != null) {
+    queryParams.contextUserId = params.contextUserId;
+  }
   if (params.filters && params.filters.length > 0) {
     queryParams.filters = JSON.stringify(params.filters);
   }

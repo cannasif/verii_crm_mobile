@@ -11,6 +11,7 @@ interface UseCustomersParams {
   sortBy?: string;
   sortDirection?: "asc" | "desc";
   pageSize?: number;
+  contextUserId?: number;
   enabled?: boolean;
 }
 
@@ -22,11 +23,16 @@ export function useCustomers(params: UseCustomersParams = {}) {
     sortBy = "Id",
     sortDirection = "asc",
     pageSize = DEFAULT_PAGE_SIZE,
+    contextUserId,
     enabled = true,
   } = params;
 
   return useInfiniteQuery<PagedResponse<CustomerDto>, Error>({
-    queryKey: ["customer", "list", { filters, search, filterLogic, sortBy, sortDirection, pageSize }],
+    queryKey: [
+      "customer",
+      "list",
+      { filters, search, filterLogic, sortBy, sortDirection, pageSize, contextUserId },
+    ],
     queryFn: ({ pageParam }) =>
       customerApi.getList({
         pageNumber: pageParam as number,
@@ -36,6 +42,7 @@ export function useCustomers(params: UseCustomersParams = {}) {
         sortDirection,
         filters,
         filterLogic,
+        contextUserId,
       }),
     enabled,
     initialPageParam: 1,
