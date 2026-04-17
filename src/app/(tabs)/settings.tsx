@@ -72,6 +72,10 @@ export default function SettingsScreen(): React.ReactElement {
   const toggleTheme = useUIStore((s) => s.toggleTheme);
   const uppercaseCompanyNameAfterScan = useUIStore((s) => s.uppercaseCompanyNameAfterScan);
   const setUppercaseCompanyNameAfterScan = useUIStore((s) => s.setUppercaseCompanyNameAfterScan);
+  const showUnitInStockSelection = useUIStore((s) => s.showUnitInStockSelection);
+  const setShowUnitInStockSelection = useUIStore((s) => s.setShowUnitInStockSelection);
+  const showQuotationLineDetails = useUIStore((s) => s.showQuotationLineDetails);
+  const setShowQuotationLineDetails = useUIStore((s) => s.setShowQuotationLineDetails);
 
   const [currentLang, setCurrentLang] = useState(getCurrentLanguage());
   const [apiUrlInput, setApiUrlInput] = useState(getApiBaseUrl());
@@ -368,6 +372,40 @@ export default function SettingsScreen(): React.ReactElement {
               <Switch
                 value={uppercaseCompanyNameAfterScan}
                 onValueChange={setUppercaseCompanyNameAfterScan}
+                trackColor={{ false: "#E2E8F0", true: "#10B981" }}
+                thumbColor="#FFFFFF"
+                style={{ transform: [{ scaleX: 0.72 }, { scaleY: 0.72 }] }}
+              />
+            </View>
+            <View style={[styles.preferenceRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: borderColor }]}>
+              <View style={styles.preferenceTextCol}>
+                <Text style={[styles.preferenceTitle, { color: textColor }]}>
+                  {t("settings.showUnitInStockPicker")}
+                </Text>
+                <Text style={[styles.preferenceHint, { color: mutedColor }]}>
+                  {t("settings.showUnitInStockPickerHint")}
+                </Text>
+              </View>
+              <Switch
+                value={showUnitInStockSelection}
+                onValueChange={setShowUnitInStockSelection}
+                trackColor={{ false: "#E2E8F0", true: "#10B981" }}
+                thumbColor="#FFFFFF"
+                style={{ transform: [{ scaleX: 0.72 }, { scaleY: 0.72 }] }}
+              />
+            </View>
+            <View style={[styles.preferenceRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: borderColor }]}>
+              <View style={styles.preferenceTextCol}>
+                <Text style={[styles.preferenceTitle, { color: textColor }]}>
+                  {t("settings.showQuotationLineDetails")}
+                </Text>
+                <Text style={[styles.preferenceHint, { color: mutedColor }]}>
+                  {t("settings.showQuotationLineDetailsHint")}
+                </Text>
+              </View>
+              <Switch
+                value={showQuotationLineDetails}
+                onValueChange={setShowQuotationLineDetails}
                 trackColor={{ false: "#E2E8F0", true: "#10B981" }}
                 thumbColor="#FFFFFF"
                 style={{ transform: [{ scaleX: 0.72 }, { scaleY: 0.72 }] }}
