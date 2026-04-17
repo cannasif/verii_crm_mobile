@@ -32,6 +32,14 @@ function convertLocalDateTimeStringToUtc(value: string): string {
 }
 
 function normalizeUtcDateStrings<T>(payload: T): T {
+  if (
+    payload instanceof ArrayBuffer ||
+    ArrayBuffer.isView(payload) ||
+    (typeof Blob !== "undefined" && payload instanceof Blob)
+  ) {
+    return payload;
+  }
+
   if (payload == null || typeof payload !== "object" || payload instanceof Date) {
     if (typeof payload === "string" && isIsoDateTimeWithoutOffset(payload)) {
       return `${payload}Z` as T;
