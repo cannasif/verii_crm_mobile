@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import type { ActivityDto } from "../types";
+import { formatSystemDate, formatSystemTime } from "../../../lib/systemSettings";
 
 import {
   Calendar01Icon,
@@ -181,10 +182,10 @@ function ActivityCardComponent({ activity, onPress, onReportPress }: ActivityCar
       date.getDate() === tomorrow.getDate() &&
       date.getMonth() === tomorrow.getMonth() &&
       date.getFullYear() === tomorrow.getFullYear();
-    const time = date.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+    const time = formatSystemTime(date);
     if (isToday) return `${getLocText(t, "common.today", "Bugün")} ${time}`;
     if (isTomorrow) return `${getLocText(t, "common.tomorrow", "Yarın")} ${time}`;
-    return date.toLocaleDateString("tr-TR", { day: "2-digit", month: "short" }) + ` ${time}`;
+    return `${formatSystemDate(date)} ${time}`;
   };
   const activityDateStr = activity.activityDate ?? activity.startDateTime ?? activity.createdDate;
 

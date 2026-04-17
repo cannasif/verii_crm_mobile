@@ -31,7 +31,6 @@ export async function initLanguage(): Promise<void> {
     i18n.changeLanguage(savedLanguage);
   } else {
     i18n.changeLanguage("tr");
-    await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, "tr");
   }
 }
 

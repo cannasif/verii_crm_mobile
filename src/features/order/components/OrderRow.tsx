@@ -10,7 +10,8 @@ import {
   Calendar03Icon,
 } from "hugeicons-react-native";
 import type { OrderGetDto } from "../types";
-import { getCurrencyDisplayLabel, resolveCurrencyIsoCode } from "../../../lib/currencyDisplay";
+import { formatCurrencyBySettings, getCurrencyDisplayLabel } from "../../../lib/currencyDisplay";
+import { formatSystemDate } from "../../../lib/systemSettings";
 
 interface OrderRowProps {
   order: OrderGetDto;
@@ -21,9 +22,9 @@ interface OrderRowProps {
   isPending: boolean;
 }
 
-function formatDate(dateString: string | null | undefined, language: string): string {
+function formatDate(dateString: string | null | undefined): string {
   if (!dateString) return "-";
-  return new Date(dateString).toLocaleDateString(language === "tr" ? "tr-TR" : "en-US");
+  return formatSystemDate(dateString);
 }
 
 function parseAmount(raw: unknown): number | null {
@@ -37,28 +38,10 @@ function parseAmount(raw: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-function formatCurrency(amount: unknown, currencyCode: string | number | null | undefined, language: string): string {
+function formatCurrency(amount: unknown, currencyCode: string | number | null | undefined): string {
   const n = parseAmount(amount);
   if (n === null) return "-";
-  const code = resolveCurrencyIsoCode(currencyCode);
-  try {
-    return new Intl.NumberFormat(language === "tr" ? "tr-TR" : "en-US", {
-      style: "currency",
-      currency: code,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(n);
-  } catch {
-    return (
-      new Intl.NumberFormat(language === "tr" ? "tr-TR" : "en-US", {
-        style: "decimal",
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(n) +
-      " " +
-      code
-    );
-  }
+  return formatCurrencyBySettings(n, currencyCode);
 }
 
 function OrderRowComponent({
@@ -118,7 +101,7 @@ function OrderRowComponent({
 
   const totalFormatted =
     order.grandTotalDisplay?.trim() ||
-    formatCurrency(order.grandTotal, order.currencyCode || order.currency, i18n.language);
+    formatCurrency(order.grandTotal, order.currencyCode || order.currency);
 
   return (
     <TouchableOpacity
@@ -221,7 +204,7 @@ function OrderRowComponent({
           >
             <Calendar03Icon size={13} color={colors.muted} variant="stroke" />
             <Text style={[styles.metaChipText, { color: colors.text }]} numberOfLines={1}>
-              {formatDate(order.offerDate, i18n.language)}
+              {formatDate(order.offerDate)}
             </Text>
           </View>
         </View>

@@ -45,6 +45,7 @@ import type { CustomerDto } from "../../customer/types";
 import type { ContactDto } from "../../contact/types";
 import { activityImageApi } from "../api";
 import { getApiBaseUrl } from "../../../constants/config";
+import { formatSystemDate, formatSystemDateTime, getSystemDatePickerLocale } from "../../../lib/systemSettings";
 import {
   Calendar03Icon,
   Clock01Icon,
@@ -288,13 +289,7 @@ export function ActivityFormScreen(): React.ReactElement {
 
     const subjectDate = startDateTime ? new Date(startDateTime) : new Date();
 
-    const formattedDate = Number.isNaN(subjectDate.getTime())
-      ? new Date().toLocaleDateString("tr-TR")
-      : subjectDate.toLocaleDateString("tr-TR", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-        });
+    const formattedDate = Number.isNaN(subjectDate.getTime()) ? formatSystemDate(new Date()) : formatSystemDate(subjectDate);
 
     return `${safeCustomerName} carisine ait ${formattedDate} tarihli aktivite`;
   }, []);
@@ -718,13 +713,7 @@ export function ActivityFormScreen(): React.ReactElement {
 
   const formatDisplayDate = (dateString: string): string => {
     const date = new Date(dateString);
-    return date.toLocaleDateString("tr-TR", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return formatSystemDateTime(date);
   };
 
   const handleCancelImagePreview = useCallback(() => {
@@ -2034,7 +2023,7 @@ export function ActivityFormScreen(): React.ReactElement {
             mode={androidPickerStep === "start-date" ? "date" : "time"}
             display="default"
             onChange={handleStartDateChange}
-            locale="tr-TR"
+            locale={getSystemDatePickerLocale()}
           />
         ) : null}
 
@@ -2045,7 +2034,7 @@ export function ActivityFormScreen(): React.ReactElement {
             mode={androidPickerStep === "end-date" ? "date" : "time"}
             display="default"
             onChange={handleEndDateChange}
-            locale="tr-TR"
+            locale={getSystemDatePickerLocale()}
           />
         ) : null}
       </View>
@@ -2358,7 +2347,7 @@ export function ActivityFormScreen(): React.ReactElement {
                     display="spinner"
                     onChange={handleStartDateChange}
                     textColor={titleText}
-                    locale="tr-TR"
+                    locale={getSystemDatePickerLocale()}
                   />
                 </View>
                 <View style={styles.dateModalActions}>
@@ -2422,7 +2411,7 @@ export function ActivityFormScreen(): React.ReactElement {
                     display="spinner"
                     onChange={handleEndDateChange}
                     textColor={titleText}
-                    locale="tr-TR"
+                    locale={getSystemDatePickerLocale()}
                   />
                 </View>
                 <View style={styles.dateModalActions}>

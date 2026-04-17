@@ -4,6 +4,7 @@ import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useTranslation } from "react-i18next";
 import type { QuotationLineDetailGetDto } from "../types";
+import { formatCurrencyBySettings, formatNumberBySettings } from "../../../lib/currencyDisplay";
 
 interface QuotationDetailLineRowProps {
   line: QuotationLineDetailGetDto;
@@ -28,25 +29,12 @@ function toIsoCurrency(currencyCode: string): string {
   );
 }
 
-function formatNumber(value: number, locale: string): string {
-  return new Intl.NumberFormat(locale === "tr" ? "tr-TR" : "en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
+function formatNumber(value: number): string {
+  return formatNumberBySettings(value, 2, 2);
 }
 
-function formatCurrency(amount: number, currencyCode: string, locale: string): string {
-  const iso = toIsoCurrency(currencyCode);
-  try {
-    return new Intl.NumberFormat(locale === "tr" ? "tr-TR" : "en-US", {
-      style: "currency",
-      currency: iso,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  } catch {
-    return formatNumber(amount, locale) + " " + (iso === "TRY" ? "₺" : iso);
-  }
+function formatCurrency(amount: number, currencyCode: string): string {
+  return formatCurrencyBySettings(amount, toIsoCurrency(currencyCode));
 }
 
 function QuotationDetailLineRowComponent({
@@ -56,8 +44,7 @@ function QuotationDetailLineRowComponent({
   isRelated = false,
 }: QuotationDetailLineRowProps): React.ReactElement {
   const { colors, themeMode } = useUIStore();
-  const { t, i18n } = useTranslation();
-  const locale = i18n.language;
+  const { t } = useTranslation();
   const cardBackground = themeMode === "dark" ? "rgba(20, 10, 30, 0.7)" : colors.card;
 
   return (
@@ -91,7 +78,7 @@ function QuotationDetailLineRowComponent({
       <View style={styles.row}>
         <Text style={[styles.label, { color: colors.textMuted }]}>{t("quotation.quantity")}:</Text>
         <Text style={[styles.value, { color: colors.text }]}>
-          {formatNumber(line.quantity, locale)}
+          {formatNumber(line.quantity)}
         </Text>
       </View>
       <View style={styles.row}>
@@ -99,28 +86,28 @@ function QuotationDetailLineRowComponent({
           {t("quotation.unitPrice")}:
         </Text>
         <Text style={[styles.value, { color: colors.text }]}>
-          {formatCurrency(line.unitPrice, currency, locale)}
+          {formatCurrency(line.unitPrice, currency)}
         </Text>
       </View>
       <View style={styles.row}>
         <Text style={[styles.label, { color: colors.textMuted }]}>{t("quotation.discount1")}:</Text>
         <Text style={[styles.value, { color: colors.text }]}>
-          {formatNumber(line.discountRate1, locale)}% ·{" "}
-          {formatCurrency(line.discountAmount1, currency, locale)}
+          {formatNumber(line.discountRate1)}% ·{" "}
+          {formatCurrency(line.discountAmount1, currency)}
         </Text>
       </View>
       <View style={styles.row}>
         <Text style={[styles.label, { color: colors.textMuted }]}>{t("quotation.discount2")}:</Text>
         <Text style={[styles.value, { color: colors.text }]}>
-          {formatNumber(line.discountRate2, locale)}% ·{" "}
-          {formatCurrency(line.discountAmount2, currency, locale)}
+          {formatNumber(line.discountRate2)}% ·{" "}
+          {formatCurrency(line.discountAmount2, currency)}
         </Text>
       </View>
       <View style={styles.row}>
         <Text style={[styles.label, { color: colors.textMuted }]}>{t("quotation.discount3")}:</Text>
         <Text style={[styles.value, { color: colors.text }]}>
-          {formatNumber(line.discountRate3, locale)}% ·{" "}
-          {formatCurrency(line.discountAmount3, currency, locale)}
+          {formatNumber(line.discountRate3)}% ·{" "}
+          {formatCurrency(line.discountAmount3, currency)}
         </Text>
       </View>
       <View style={styles.row}>
@@ -128,7 +115,7 @@ function QuotationDetailLineRowComponent({
           {t("quotation.lineTotal")}:
         </Text>
         <Text style={[styles.value, { color: colors.text }]}>
-          {formatCurrency(line.lineTotal, currency, locale)}
+          {formatCurrency(line.lineTotal, currency)}
         </Text>
       </View>
       <View style={styles.row}>
@@ -136,7 +123,7 @@ function QuotationDetailLineRowComponent({
           {t("quotation.vatRate")}:
         </Text>
         <Text style={[styles.value, { color: colors.text }]}>
-          {formatNumber(line.vatRate, locale)}%
+          {formatNumber(line.vatRate)}%
         </Text>
       </View>
       <View style={styles.row}>
@@ -144,7 +131,7 @@ function QuotationDetailLineRowComponent({
           {t("quotation.vatAmount")}:
         </Text>
         <Text style={[styles.value, { color: colors.text }]}>
-          {formatCurrency(line.vatAmount, currency, locale)}
+          {formatCurrency(line.vatAmount, currency)}
         </Text>
       </View>
       <View style={[styles.row, styles.totalRow, { borderTopColor: colors.border }]}>
@@ -152,7 +139,7 @@ function QuotationDetailLineRowComponent({
           {t("quotation.lineGrandTotalLabel")}:
         </Text>
         <Text style={[styles.totalValue, { color: colors.accent }]}>
-          {formatCurrency(line.lineGrandTotal, currency, locale)}
+          {formatCurrency(line.lineGrandTotal, currency)}
         </Text>
       </View>
     </View>

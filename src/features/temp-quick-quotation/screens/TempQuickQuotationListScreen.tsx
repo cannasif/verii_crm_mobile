@@ -28,12 +28,13 @@ import { useToast } from "../../../hooks/useToast";
 import { tempQuickQuotationRepository } from "../repositories/tempQuotattion.repository";
 import type { TempQuotattionGetDto } from "../models/tempQuotattion.model";
 import { getCurrencyDisplayLabel } from "../../../lib/currencyDisplay";
+import { formatSystemDate } from "../../../lib/systemSettings";
 
 function formatDate(value?: string | null): string {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleDateString("tr-TR");
+  return formatSystemDate(date);
 }
 
 function getCustomerDisplayName(item: TempQuotattionGetDto): string {

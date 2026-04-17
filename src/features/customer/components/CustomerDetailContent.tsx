@@ -24,6 +24,7 @@ import { getApiBaseUrl } from "../../../constants/config";
 import i18n from "../../../locales";
 import type { CustomerDto, CustomerImageDto } from "../types";
 import type { QuotationGetDto } from "../../../features/quotation/types";
+import { formatSystemCurrency, formatSystemDate, formatSystemNumber, getSystemLocale } from "../../../lib/systemSettings";
 import {
   Call02Icon,
   Mail01Icon,
@@ -61,16 +62,7 @@ interface CustomerTheme {
   addressBg: string;
 }
 
-const getLocale = () => {
-  switch (i18n.language) {
-    case "de":
-      return "de-DE";
-    case "en":
-      return "en-US";
-    default:
-      return "tr-TR";
-  }
-};
+const getLocale = () => getSystemLocale();
 
 const getInitials = (name: string) => {
   const cleaned = name?.replace(/[^a-zA-ZğüşıöçĞÜŞİÖÇ ]/g, "").trim();
@@ -125,44 +117,26 @@ function formatDate(dateString?: string | null): string | null {
 
   if (Number.isNaN(date.getTime())) return null;
 
-  return date.toLocaleDateString(getLocale(), {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatSystemDate(date);
 }
 
 function formatCurrency(value?: number | null): string | null {
   if (value === undefined || value === null) return null;
-  return new Intl.NumberFormat(getLocale(), { style: "currency", currency: "TRY" }).format(value);
+  return formatSystemCurrency(value);
 }
 
 function formatQuotationDate(dateString: string | null | undefined): string {
   if (!dateString) return "-";
   const date = new Date(dateString);
   if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleDateString(getLocale(), {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  return formatSystemDate(date);
 }
 
 function formatQuotationCurrency(amount: number, currencyCode: string): string {
   try {
-    return new Intl.NumberFormat(getLocale(), {
-      style: "currency",
-      currency: currencyCode,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
+    return formatSystemCurrency(amount, currencyCode);
   } catch {
-    return `${new Intl.NumberFormat(getLocale(), {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount)} ${currencyCode}`;
+    return `${formatSystemNumber(amount, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currencyCode}`;
   }
 }
 

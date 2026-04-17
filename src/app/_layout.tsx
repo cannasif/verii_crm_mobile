@@ -14,10 +14,13 @@ import { queryClient } from "../lib/queryClient";
 import { useAuthStore } from "../store/auth";
 import { useToastStore } from "../store/toast";
 import { useUIStore } from "../store/ui";
+import { useSystemSettingsStore } from "../store/system-settings";
 import { Sidebar } from "../components/navigation/Sidebar";
 import { AppHeader } from "../components/navigation/AppHeader";
 import i18n, { initLanguage } from "../locales";
 import { initializeApiClient } from "../lib/axios";
+import { getSystemSettings } from "../features/system-settings/api/systemSettingsApi";
+import { applySystemLanguageIfNeeded } from "../lib/systemSettings";
 import {
   cleanupCachedApkUpdates,
   downloadAndInstallAndroidApk,
@@ -61,6 +64,8 @@ export default function RootLayout(): React.ReactElement {
   const themeMode = useUIStore((state) => state.themeMode);
   const colors = useUIStore((state) => state.colors);
   const showToast = useToastStore((state) => state.showToast);
+  const token = useAuthStore((state) => state.token);
+  const setSystemSettings = useSystemSettingsStore((state) => state.setSettings);
   const [versionState, setVersionState] = useState<VersionCheckResult | null>(null);
   const [isInstallingUpdate, setIsInstallingUpdate] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
@@ -109,6 +114,29 @@ export default function RootLayout(): React.ReactElement {
 
     void runVersionCheck(true);
   }, [isHydrated, runVersionCheck]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function bootstrapSystemSettings(): Promise<void> {
+      if (!isHydrated || !token) return;
+
+      try {
+        const settings = await getSystemSettings();
+        if (cancelled) return;
+        setSystemSettings(settings);
+        await applySystemLanguageIfNeeded();
+      } catch {
+        // System settings should not block the app.
+      }
+    }
+
+    void bootstrapSystemSettings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isHydrated, setSystemSettings, token]);
 
   useEffect(() => {
     if (!isHydrated) {

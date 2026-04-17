@@ -38,20 +38,21 @@ import {
   getCurrencyDisplayLabel as getCurrencyDisplayName,
   getCurrencySymbol,
 } from "../../../lib/currencyDisplay";
+import { formatSystemDate, formatSystemNumber } from "../../../lib/systemSettings";
 
 function formatDate(value?: string | null): string {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleDateString("tr-TR");
+  return formatSystemDate(date);
 }
 
 function formatNumber(value?: number | null, fractionDigits = 2): string {
   if (value == null || Number.isNaN(Number(value))) return "-";
-  return new Intl.NumberFormat("tr-TR", {
+  return formatSystemNumber(value, {
     minimumFractionDigits: fractionDigits,
     maximumFractionDigits: fractionDigits,
-  }).format(value);
+  });
 }
 
 function resolveMobileImageUri(path?: string | null): string | null {

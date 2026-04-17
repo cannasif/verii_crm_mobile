@@ -2,6 +2,7 @@
  * ERP / API bazen para birimini ISO kodu yerine enum (0,1,2,3) veya kısaltma ile döner.
  * Intl ve liste etiketleri için normalize eder.
  */
+import { formatSystemCurrency, getSystemLocale } from "./systemSettings";
 
 export function resolveCurrencyIsoCode(raw: string | number | null | undefined): string {
   if (raw === null || raw === undefined || raw === "") return "TRY";
@@ -117,4 +118,15 @@ export function getCurrencySymbol(raw: string | number | null | undefined): stri
     // ignore
   }
   return iso;
+}
+
+export function formatCurrencyBySettings(value: number, rawCurrency?: string | number | null): string {
+  return formatSystemCurrency(value, resolveCurrencyIsoCode(rawCurrency));
+}
+
+export function formatNumberBySettings(value: number, minimumFractionDigits?: number, maximumFractionDigits?: number): string {
+  return new Intl.NumberFormat(getSystemLocale(), {
+    minimumFractionDigits,
+    maximumFractionDigits,
+  }).format(value);
 }

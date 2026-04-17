@@ -26,6 +26,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { ScreenHeader } from "../../../components/navigation";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
+import { formatSystemDateTime } from "../../../lib/systemSettings";
 import { useActivity, useDeleteActivity, useUpdateActivity } from "../hooks";
 import { activityImageApi } from "../api";
 import type { ActivityDto, ActivityImageDto } from "../types";
@@ -592,13 +593,7 @@ export function ActivityDetailScreen(): React.ReactElement {
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
-    return date.toLocaleDateString("tr-TR", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return formatSystemDateTime(date);
   };
 
   if (isLoading) {

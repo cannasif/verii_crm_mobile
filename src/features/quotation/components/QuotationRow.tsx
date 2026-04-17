@@ -10,7 +10,8 @@ import {
   Calendar03Icon,
 } from "hugeicons-react-native";
 import type { QuotationGetDto } from "../types";
-import { getCurrencyDisplayLabel, resolveCurrencyIsoCode } from "../../../lib/currencyDisplay";
+import { formatCurrencyBySettings, getCurrencyDisplayLabel } from "../../../lib/currencyDisplay";
+import { formatSystemDate } from "../../../lib/systemSettings";
 
 interface QuotationRowProps {
   quotation: QuotationGetDto;
@@ -21,9 +22,9 @@ interface QuotationRowProps {
   isPending: boolean;
 }
 
-function formatDate(dateString: string | null | undefined, language: string): string {
+function formatDate(dateString: string | null | undefined): string {
   if (!dateString) return "-";
-  return new Date(dateString).toLocaleDateString(language === "tr" ? "tr-TR" : "en-US");
+  return formatSystemDate(dateString);
 }
 
 /** API bazen string veya eksik değer döndürebilir; NaN üretmemek için. */
@@ -38,28 +39,10 @@ function parseAmount(raw: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-function formatCurrency(amount: unknown, currencyCode: string | null | undefined, language: string): string {
+function formatCurrency(amount: unknown, currencyCode: string | null | undefined): string {
   const n = parseAmount(amount);
   if (n === null) return "-";
-  const code = (currencyCode && String(currencyCode).trim()) || "TRY";
-  try {
-    return new Intl.NumberFormat(language === "tr" ? "tr-TR" : "en-US", {
-      style: "currency",
-      currency: code,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(n);
-  } catch {
-    return (
-      new Intl.NumberFormat(language === "tr" ? "tr-TR" : "en-US", {
-        style: "decimal",
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(n) +
-      " " +
-      code
-    );
-  }
+  return formatCurrencyBySettings(n, currencyCode);
 }
 
 function QuotationRowComponent({
@@ -119,7 +102,7 @@ function QuotationRowComponent({
 
   const totalFormatted =
     quotation.grandTotalDisplay?.trim() ||
-    formatCurrency(quotation.grandTotal, quotation.currencyCode || quotation.currency, i18n.language);
+    formatCurrency(quotation.grandTotal, quotation.currencyCode || quotation.currency);
 
   return (
     <TouchableOpacity
@@ -222,7 +205,7 @@ function QuotationRowComponent({
           >
             <Calendar03Icon size={13} color={colors.muted} variant="stroke" />
             <Text style={[styles.metaChipText, { color: colors.text }]} numberOfLines={1}>
-              {formatDate(quotation.offerDate, i18n.language)}
+              {formatDate(quotation.offerDate)}
             </Text>
           </View>
         </View>

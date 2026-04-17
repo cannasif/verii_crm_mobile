@@ -17,6 +17,7 @@ import {
 } from "hugeicons-react-native";
 import type { StockGetDto } from "../types";
 import { getApiBaseUrl } from "../../../constants/config";
+import { formatSystemNumber } from "../../../lib/systemSettings";
 
 export interface StockCardUnitPrice {
   listPrice: number;
@@ -101,7 +102,7 @@ type PriceParts =
   | { kind: "price"; compact: string };
 
 function formatPriceCompact(info: StockCardUnitPrice): string {
-  const amount = info.listPrice.toLocaleString("tr-TR", {
+  const amount = formatSystemNumber(info.listPrice, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
