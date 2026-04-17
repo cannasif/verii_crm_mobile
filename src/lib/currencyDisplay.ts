@@ -91,6 +91,20 @@ export function getCurrencyDisplayLabel(raw: string | number | null | undefined)
   }
 }
 
+/** Oluşturma ekranı satır listeleri: önce ERP `dovizIsmi`, yoksa `getCurrencyDisplayLabel`. */
+export function resolveLineListCurrencyLabel(
+  currencyCode: string | undefined | null,
+  currencyOptions?: ReadonlyArray<{ code: string; dovizIsmi?: string | null }> | null
+): string {
+  const raw = String(currencyCode ?? "").trim();
+  if (!raw) return "";
+  const code = raw.toUpperCase();
+  const opt = currencyOptions?.find((c) => String(c.code).trim().toUpperCase() === code);
+  const name = opt?.dovizIsmi?.trim();
+  if (name) return name;
+  return getCurrencyDisplayLabel(currencyCode);
+}
+
 const CURRENCY_SYMBOL_FALLBACK: Record<string, string> = {
   TRY: "₺",
   USD: "$",

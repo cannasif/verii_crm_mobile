@@ -8,6 +8,7 @@ import {
   TextInput,
   ActivityIndicator,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import {
@@ -28,7 +29,6 @@ import {
   Call02Icon, 
   Mail01Icon, 
   Location01Icon, 
-  ArrowRight01Icon,
   Add01Icon 
 } from "hugeicons-react-native";
 
@@ -62,8 +62,8 @@ interface CustomerSelectDialogProps {
 
 const PAGE_SIZE = 50;
 const SEARCH_DEBOUNCE_MS = 700;
-const BADGE_ERP = "#8B5CF6";      // Mor (ERP)
-const BADGE_POTENTIAL = "#db2777"; // Pembe (Potansiyel) - Temaya uyduruldu
+const BADGE_ERP = "#8B5CF6";
+const BADGE_POTENTIAL = "#db2777";
 
 export function CustomerSelectDialog({
   open,
@@ -88,6 +88,7 @@ export function CustomerSelectDialog({
     border: isDark ? "rgba(255,255,255,0.1)" : colors.border,
     inputBg: isDark ? "rgba(255,255,255,0.05)" : colors.backgroundSecondary,
     primary: "#db2777",
+    elevatedCard: isDark ? "rgba(255,255,255,0.04)" : "#FFFFFF",
   };
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -305,7 +306,7 @@ export function CustomerSelectDialog({
 
           {/* ARAMA */}
           <View style={styles.searchRow}>
-            <View style={[styles.searchContainer, { backgroundColor: THEME.inputBg }]}>
+            <View style={[styles.searchContainer, { backgroundColor: THEME.inputBg, borderColor: THEME.border }]}>
               <Search01Icon size={18} color={THEME.textMute} variant="stroke" />
               <TextInput
                 style={[styles.searchInput, { color: THEME.text }]}
@@ -315,13 +316,21 @@ export function CustomerSelectDialog({
                 onChangeText={setSearchQuery}
                 autoFocus
               />
+              {searchQuery.length > 0 ? (
+                <TouchableOpacity onPress={() => setSearchQuery("")} activeOpacity={0.8}>
+                  <Cancel01Icon size={16} color={THEME.textMute} variant="stroke" />
+                </TouchableOpacity>
+              ) : null}
             </View>
             <TouchableOpacity
-              style={[styles.filterButton, { borderColor: THEME.border, backgroundColor: THEME.inputBg }]}
+              style={[
+                styles.filterButton,
+                { borderColor: THEME.primary + "55", backgroundColor: THEME.primary + "14" },
+              ]}
               onPress={() => setIsFilterModalVisible(true)}
               activeOpacity={0.8}
             >
-              <Text style={[styles.filterButtonText, { color: THEME.text }]}>
+              <Text style={[styles.filterButtonText, { color: THEME.primary }]}>
                 {t("common.filter")}
               </Text>
             </TouchableOpacity>
@@ -478,10 +487,7 @@ function CustomerSelectRow({
   t,
 }: CustomerSelectRowProps): React.ReactElement {
   const badgeColor = item.type === "erp" ? BADGE_ERP : BADGE_POTENTIAL;
-  const badgeLabel =
-    item.type === "erp"
-      ? t("customer.selectBadgeErp")
-      : t("customer.selectBadgePotential");
+  const badgeLabel = item.type === "erp" ? "ERP" : "CRM";
   const location = [item.cityName, item.districtName]
     .filter(Boolean)
     .join(", ");
@@ -490,66 +496,52 @@ function CustomerSelectRow({
     <TouchableOpacity
       style={[
         styles.row,
-        {
-          backgroundColor: theme.inputBg, // Kart arka planı
-          borderColor: theme.border,
-        },
+        item.type === "erp"
+          ? { backgroundColor: BADGE_ERP + "10", borderColor: BADGE_ERP + "66" }
+          : { backgroundColor: BADGE_POTENTIAL + "0F", borderColor: BADGE_POTENTIAL + "55" },
       ]}
       onPress={onPress}
       activeOpacity={0.7}
     >
       <View style={styles.rowHeader}>
-        <View style={[styles.badge, { backgroundColor: badgeColor + "20", borderColor: badgeColor + "40", borderWidth: 1 }]}>
-          <Text style={[styles.badgeText, { color: badgeColor }]}>
-            {badgeLabel}
-          </Text>
+        <View style={[styles.badge, { backgroundColor: badgeColor + "16", borderColor: badgeColor + "48", borderWidth: 1 }]}>
+          <Text style={[styles.badgeText, { color: badgeColor }]}>{badgeLabel}</Text>
         </View>
-        <ArrowRight01Icon size={20} color={theme.textMute} variant="stroke" />
+        <Text style={[styles.rowName, { color: theme.text }]} numberOfLines={1}>
+          {item.name}
+        </Text>
+      </View>
+      <View style={styles.rowCodeWrap}>
+        <Ionicons name="pricetag-outline" size={12} color={theme.textMute} />
+        {item.type === "potential" ? <Text style={[styles.rowCodeDash, { color: theme.textMute }]}>-</Text> : null}
+        {item.customerCode ? (
+          <Text style={[styles.rowCode, { color: theme.textMute }]} numberOfLines={1}>
+            {item.customerCode}
+          </Text>
+        ) : null}
       </View>
       
-      <Text style={[styles.rowCode, { color: theme.textMute }]} numberOfLines={1}>
-        {item.customerCode ?? "—"}
-      </Text>
-      <Text style={[styles.rowName, { color: theme.text }]} numberOfLines={2}>
-        {item.name}
-      </Text>
-      
       <View style={styles.rowDetails}>
-        {item.phone ? (
-          <View style={styles.detailRow}>
-            <Call02Icon size={14} color={theme.textMute} variant="stroke" />
-            <Text
-              style={[styles.detailText, { color: theme.textMute }]}
-              numberOfLines={1}
-            >
-              {item.phone}
-            </Text>
-          </View>
-        ) : null}
-        
-        {item.email ? (
-          <View style={styles.detailRow}>
-            <Mail01Icon size={14} color={theme.textMute} variant="stroke" />
-            <Text
-              style={[styles.detailText, { color: theme.textMute }]}
-              numberOfLines={1}
-            >
-              {item.email}
-            </Text>
-          </View>
-        ) : null}
-        
-        {location ? (
-          <View style={styles.detailRow}>
-            <Location01Icon size={14} color={theme.textMute} variant="stroke" />
-            <Text
-              style={[styles.detailText, { color: theme.textMute }]}
-              numberOfLines={1}
-            >
-              {location}
-            </Text>
-          </View>
-        ) : null}
+        <View style={styles.detailRow}>
+          <Call02Icon size={13} color={theme.textMute} variant="stroke" />
+          <Text style={[styles.detailText, { color: theme.textMute }]} numberOfLines={1}>
+            {item.phone || "Yok"}
+          </Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <Mail01Icon size={13} color={theme.textMute} variant="stroke" />
+          <Text style={[styles.detailText, { color: theme.textMute }]} numberOfLines={1}>
+            {item.email || "Yok"}
+          </Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <Location01Icon size={13} color={theme.textMute} variant="stroke" />
+          <Text style={[styles.detailText, { color: theme.textMute }]} numberOfLines={1}>
+            {location || "Yok"}
+          </Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -569,17 +561,18 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    backgroundColor: "rgba(0, 0, 0, 0.64)",
   },
   modalContent: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: "90%",
+    overflow: "hidden",
   },
   modalHeader: {
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingBottom: 16,
+    paddingBottom: 14,
     borderBottomWidth: 1,
   },
   handle: {
@@ -595,13 +588,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    marginBottom: 4,
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 3,
   },
   modalDescription: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 12.5,
+    lineHeight: 18,
   },
   closeButton: {
     position: "absolute",
@@ -612,27 +605,28 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     flex: 1,
-    borderRadius: 12,
-    gap: 10,
+    borderRadius: 14,
+    gap: 8,
+    borderWidth: 1.2,
   },
   filterButton: {
-    minHeight: 48,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    borderWidth: 1,
+    minHeight: 44,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    borderWidth: 1.2,
     alignItems: "center",
     justifyContent: "center",
   },
   filterButtonText: {
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: "600",
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 14,
     padding: 0,
   },
   tabRow: {
@@ -645,9 +639,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tab: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 999,
     borderWidth: 1,
     borderColor: "transparent",
   },
@@ -655,19 +649,19 @@ const styles = StyleSheet.create({
     // Active style handled inline
   },
   tabText: {
-    fontSize: 13,
+    fontSize: 11.3,
     fontWeight: "500",
   },
   newCustomerButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    paddingVertical: 7,
+    paddingHorizontal: 11,
+    borderRadius: 999,
     marginLeft: 'auto', // Sağa yasla
   },
   newCustomerButtonText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "700",
     color: "#FFFFFF",
   },
@@ -695,46 +689,57 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   row: {
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    marginBottom: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    borderRadius: 13,
+    borderWidth: 1.35,
+    marginBottom: 9,
   },
   rowHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    gap: 7,
+    marginBottom: 5,
   },
   badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 999,
   },
   badgeText: {
-    fontSize: 11,
+    fontSize: 9,
     fontWeight: "700",
   },
   rowCode: {
-    fontSize: 12,
+    fontSize: 9.6,
     fontFamily: "monospace",
-    marginBottom: 4,
+    marginBottom: 0,
+    flex: 1,
   },
   rowName: {
-    fontSize: 16,
+    fontSize: 12.2,
     fontWeight: "700",
-    marginBottom: 10,
+    marginBottom: 0,
+    flex: 1,
   },
-  rowDetails: {
+  rowCodeWrap: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
+    minHeight: 18,
+    marginBottom: 6,
+  },
+  rowCodeDash: { fontSize: 10, fontWeight: "600" },
+  rowDetails: {
+    gap: 4,
   },
   detailRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
   },
   detailText: {
-    fontSize: 13,
+    fontSize: 10,
     flex: 1,
   },
   filterModalOverlay: {

@@ -697,7 +697,11 @@ export const quotationApi = {
     const response = await apiClient.post<ApiResponse<PdfTemplateAssetDto>>(
       "/api/pdf-report-templates/assets/upload",
       formData,
-      {}
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
     );
 
     if (!response.data.success || !response.data.data) {

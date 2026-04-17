@@ -13,6 +13,9 @@ interface UIState {
   menuViewType: MenuViewType;
   /** Kartvizit/QR uygulandığında firma adı alanını büyük harfe çevir (elle yazımda zorlanmaz). */
   uppercaseCompanyNameAfterScan: boolean;
+  /** Stok seçme ekranında birim bilgisini meta satırında göster/gizle. */
+  showUnitInStockSelection: boolean;
+  showQuotationLineDetails: boolean;
   setIsLoading: (value: boolean) => void;
   setThemeMode: (mode: ThemeMode) => void;
   toggleTheme: () => void;
@@ -21,6 +24,8 @@ interface UIState {
   toggleSidebar: () => void;
   setMenuViewType: (type: MenuViewType) => void;
   setUppercaseCompanyNameAfterScan: (value: boolean) => void;
+  setShowUnitInStockSelection: (value: boolean) => void;
+  setShowQuotationLineDetails: (value: boolean) => void;
 }
 
 export const useUIStore = create<UIState>()(
@@ -32,6 +37,8 @@ export const useUIStore = create<UIState>()(
       isSidebarOpen: false,
       menuViewType: "list",
       uppercaseCompanyNameAfterScan: true,
+      showUnitInStockSelection: true,
+      showQuotationLineDetails: true,
       setIsLoading: (value: boolean) => set({ isLoading: value }),
       setThemeMode: (mode: ThemeMode) =>
         set({ themeMode: mode, colors: COLORS[mode] }),
@@ -45,6 +52,8 @@ export const useUIStore = create<UIState>()(
       toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
       setMenuViewType: (type: MenuViewType) => set({ menuViewType: type }),
       setUppercaseCompanyNameAfterScan: (value: boolean) => set({ uppercaseCompanyNameAfterScan: value }),
+      setShowUnitInStockSelection: (value: boolean) => set({ showUnitInStockSelection: value }),
+      setShowQuotationLineDetails: (value: boolean) => set({ showQuotationLineDetails: value }),
     }),
     {
       name: "ui-storage",
@@ -53,8 +62,10 @@ export const useUIStore = create<UIState>()(
         themeMode: state.themeMode,
         menuViewType: state.menuViewType,
         uppercaseCompanyNameAfterScan: state.uppercaseCompanyNameAfterScan,
+        showUnitInStockSelection: state.showUnitInStockSelection,
+        showQuotationLineDetails: state.showQuotationLineDetails,
       }),
-      version: 4,
+      version: 6,
       migrate: (persistedState, version) => {
         const state = (persistedState ?? {}) as Partial<UIState>;
         const savedMode = state.themeMode;
@@ -73,6 +84,14 @@ export const useUIStore = create<UIState>()(
           typeof state.uppercaseCompanyNameAfterScan === "boolean"
             ? state.uppercaseCompanyNameAfterScan
             : true;
+        const showUnitInStockSelection =
+          typeof state.showUnitInStockSelection === "boolean"
+            ? state.showUnitInStockSelection
+            : true;
+        const showQuotationLineDetails =
+          typeof state.showQuotationLineDetails === "boolean"
+            ? state.showQuotationLineDetails
+            : true;
 
         return {
           ...state,
@@ -80,6 +99,8 @@ export const useUIStore = create<UIState>()(
           colors: COLORS[validMode],
           menuViewType,
           uppercaseCompanyNameAfterScan,
+          showUnitInStockSelection,
+          showQuotationLineDetails,
         };
       },
       onRehydrateStorage: () => (state) => {

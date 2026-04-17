@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
+  useWindowDimensions,
 } from "react-native";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -14,6 +15,7 @@ import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { ProductPicker, type ProductPickerRef } from "./ProductPicker";
 import type { StockRelationDto } from "../../stocks/types";
+import { getProductSelectionKey, type ProductSelectionResult } from "../../stocks/types";
 import { orderApi } from "../api";
 import { stockApi } from "../../stocks/api";
 import { useStock } from "../../stocks/hooks";
@@ -32,6 +34,8 @@ interface OrderLineFormProps {
   line: OrderLineFormState | null;
   onClose: () => void;
   onSave: (line: OrderLineFormState) => void;
+  onMultiProductSelect?: (products: ProductSelectionResult[]) => OrderLineFormState[] | Promise<OrderLineFormState[]>;
+  onSaveMultiple?: (lines: OrderLineFormState[]) => void;
   onAddWithRelatedStocks?: (stock: StockGetDto, relatedStockIds: number[]) => void;
   onRequestRelatedStocksSelection?: (stock: StockGetDto & { parentRelations: StockRelationDto[] }) => void;
   onCancelRelatedSelection?: () => void;
@@ -50,6 +54,8 @@ export function OrderLineForm({
   line,
   onClose,
   onSave,
+  onMultiProductSelect,
+  onSaveMultiple,
   onAddWithRelatedStocks,
   onRequestRelatedStocksSelection,
   onCancelRelatedSelection,
@@ -63,7 +69,7 @@ export function OrderLineForm({
   exchangeRates,
 }: OrderLineFormProps): React.ReactElement {
   const { t } = useTranslation();
-  const { colors } = useUIStore();
+  const { colors, showUnitInStockSelection } = useUIStore();
   const insets = useSafeAreaInsets();
 
   const [selectedStock, setSelectedStock] = useState<StockGetDto | undefined>();
@@ -72,12 +78,14 @@ export function OrderLineForm({
   const [discountRate1, setDiscountRate1] = useState<string>("0");
   const [discountRate2, setDiscountRate2] = useState<string>("0");
   const [discountRate3, setDiscountRate3] = useState<string>("0");
-  const [vatRate, setVatRate] = useState<string>("18");
+  const [vatRate, setVatRate] = useState<string>("20");
   const [description, setDescription] = useState<string>("");
   const [isLoadingPrice, setIsLoadingPrice] = useState(false);
   const [approvalStatus, setApprovalStatus] = useState<number>(0);
   const [approvalMessage, setApprovalMessage] = useState<string>("");
   const [relatedLinesDisplay, setRelatedLinesDisplay] = useState<OrderLineFormState[]>([]);
+  const [bulkDraftLines, setBulkDraftLines] = useState<OrderLineFormState[]>([]);
+  const [activeBulkDraftIndex, setActiveBulkDraftIndex] = useState<number>(0);
   const productPickerRef = useRef<ProductPickerRef>(null);
 
   const currentLine: OrderLineFormState = useMemo(() => {
@@ -180,14 +188,128 @@ export function OrderLineForm({
     setDiscountRate1("0");
     setDiscountRate2("0");
     setDiscountRate3("0");
-    setVatRate("18");
+    setVatRate("20");
     setDescription("");
     setApprovalStatus(0);
     setApprovalMessage("");
     setRelatedLinesDisplay([]);
+    setBulkDraftLines([]);
+    setActiveBulkDraftIndex(0);
   }, []);
 
   const { data: stockData } = useStock(selectedStock?.id);
+  const isMultiSelectMode = !line && Boolean(onMultiProductSelect);
+  const hasBulkDrafts = bulkDraftLines.length > 0;
+
+  const bulkQueuedProductKeys = useMemo(
+    () =>
+      bulkDraftLines.map((d) =>
+        getProductSelectionKey({ id: d.productId ?? undefined, code: d.productCode })
+      ),
+    [bulkDraftLines]
+  );
+
+  const { width: windowWidth } = useWindowDimensions();
+  const bulkDraftChipGap = 6;
+  const bulkDraftChipCols = 4;
+  const bulkDraftChipWidth = useMemo(() => {
+    const rowPad = 20 * 2;
+    const inner = Math.max(0, windowWidth - rowPad);
+    const gaps = bulkDraftChipGap * (bulkDraftChipCols - 1);
+    return Math.max(64, Math.floor((inner - gaps) / bulkDraftChipCols));
+  }, [windowWidth]);
+
+  const applyDraftLineToForm = useCallback((draft: OrderLineFormState) => {
+    setQuantity(sanitizeDecimalInput(String(draft.quantity)));
+    setUnitPrice(sanitizeDecimalInput(String(draft.unitPrice)));
+    setDiscountRate1(sanitizeDecimalInput(String(draft.discountRate1)));
+    setDiscountRate2(sanitizeDecimalInput(String(draft.discountRate2)));
+    setDiscountRate3(sanitizeDecimalInput(String(draft.discountRate3)));
+    setVatRate(sanitizeDecimalInput(String(draft.vatRate)));
+    setDescription(draft.description || "");
+    setApprovalStatus(draft.approvalStatus || 0);
+    setRelatedLinesDisplay(draft.relatedLines ?? []);
+
+    setSelectedStock({
+      id: draft.productId ?? 0,
+      erpStockCode: draft.productCode || "",
+      stockName: draft.productName || "",
+      unit: draft.unit ?? undefined,
+      branchCode: 0,
+      grupKodu: draft.groupCode ?? undefined,
+    } as StockGetDto);
+  }, []);
+
+  const upsertActiveDraft = useCallback(() => {
+    if (!hasBulkDrafts) return;
+    setBulkDraftLines((prev) => {
+      const next = [...prev];
+      next[activeBulkDraftIndex] = {
+        ...lineToSave,
+        id: prev[activeBulkDraftIndex]?.id ?? lineToSave.id,
+      };
+      return next;
+    });
+  }, [hasBulkDrafts, activeBulkDraftIndex, lineToSave]);
+
+  const mergeBulkDraftLinesAtIndex = useCallback(
+    (drafts: OrderLineFormState[], index: number, snapshot: OrderLineFormState) => {
+      if (drafts.length === 0) return drafts;
+      return drafts.map((draft, i) =>
+        i === index ? { ...snapshot, id: draft.id } : draft
+      );
+    },
+    []
+  );
+
+  const handleRemoveDraft = useCallback((index: number) => {
+    if (!hasBulkDrafts || index < 0 || index >= bulkDraftLines.length) return;
+    const next = bulkDraftLines.filter((_, i) => i !== index);
+    if (next.length === 0) {
+      setBulkDraftLines([]);
+      setActiveBulkDraftIndex(0);
+      resetForm();
+      return;
+    }
+    const nextActiveIndex =
+      index < activeBulkDraftIndex
+        ? activeBulkDraftIndex - 1
+        : Math.min(activeBulkDraftIndex, next.length - 1);
+    setBulkDraftLines(next);
+    setActiveBulkDraftIndex(nextActiveIndex);
+    applyDraftLineToForm(next[nextActiveIndex]);
+  }, [hasBulkDrafts, bulkDraftLines, activeBulkDraftIndex, applyDraftLineToForm, resetForm]);
+
+  const handleMultiSelect = useCallback(
+    async (products: ProductSelectionResult[]) => {
+      if (!onMultiProductSelect || products.length === 0) return;
+      const newDrafts = await Promise.resolve(onMultiProductSelect(products));
+      if (!newDrafts || newDrafts.length === 0) return;
+
+      if (hasBulkDrafts) {
+        const committed = mergeBulkDraftLinesAtIndex(bulkDraftLines, activeBulkDraftIndex, lineToSave);
+        const combined = [...committed, ...newDrafts];
+        setBulkDraftLines(combined);
+        const firstNewIndex = committed.length;
+        setActiveBulkDraftIndex(firstNewIndex);
+        applyDraftLineToForm(combined[firstNewIndex]);
+        return;
+      }
+
+      setBulkDraftLines(newDrafts);
+      setActiveBulkDraftIndex(0);
+      applyDraftLineToForm(newDrafts[0]);
+    },
+    [
+      onMultiProductSelect,
+      applyDraftLineToForm,
+      hasBulkDrafts,
+      bulkDraftLines,
+      activeBulkDraftIndex,
+      lineToSave,
+      mergeBulkDraftLinesAtIndex,
+    ]
+  );
 
   const handleStockSelect = useCallback(
     async (stock: StockGetDto | undefined): Promise<boolean> => {
@@ -358,6 +480,16 @@ export function OrderLineForm({
   }, [selectedStock, userDiscountLimits, discountRate1, discountRate2, discountRate3]);
 
   const handleSave = useCallback(() => {
+    if (hasBulkDrafts) {
+      upsertActiveDraft();
+      if (activeBulkDraftIndex < bulkDraftLines.length - 1) {
+        const nextIndex = activeBulkDraftIndex + 1;
+        setActiveBulkDraftIndex(nextIndex);
+        applyDraftLineToForm(bulkDraftLines[nextIndex]);
+      }
+      return;
+    }
+
     const canSave = selectedStock || (line?.productCode && lineToSave.productCode);
     if (!canSave) {
       return;
@@ -366,7 +498,53 @@ export function OrderLineForm({
     onSave(lineToSave);
     resetForm();
     onClose();
-  }, [selectedStock, line?.productCode, lineToSave, onSave, onClose, resetForm]);
+  }, [
+    hasBulkDrafts,
+    upsertActiveDraft,
+    activeBulkDraftIndex,
+    bulkDraftLines,
+    applyDraftLineToForm,
+    selectedStock,
+    line?.productCode,
+    lineToSave,
+    onSave,
+    onClose,
+    resetForm,
+  ]);
+
+  const handleBulkDraftConfirm = useCallback(() => {
+    if (!hasBulkDrafts) return;
+    const drafts = bulkDraftLines.map((draft, index) =>
+      index === activeBulkDraftIndex
+        ? {
+            ...lineToSave,
+            id: draft.id,
+          }
+        : draft
+    );
+    const flattened = drafts.flatMap((draft) =>
+      draft.relatedLines && draft.relatedLines.length > 0
+        ? [draft, ...draft.relatedLines]
+        : [draft]
+    );
+
+    if (onSaveMultiple) {
+      onSaveMultiple(flattened);
+    } else if (flattened[0]) {
+      onSave(flattened[0]);
+    }
+    resetForm();
+    onClose();
+  }, [
+    hasBulkDrafts,
+    bulkDraftLines,
+    activeBulkDraftIndex,
+    lineToSave,
+    onSaveMultiple,
+    onSave,
+    resetForm,
+    onClose,
+  ]);
 
   const handleCancel = useCallback(() => {
     resetForm();
@@ -476,9 +654,51 @@ export function OrderLineForm({
                     }
                   : undefined
               }
+              multiSelect={isMultiSelectMode}
+              onMultiSelect={isMultiSelectMode ? handleMultiSelect : undefined}
+              queuedProductKeys={isMultiSelectMode ? bulkQueuedProductKeys : undefined}
             />
+            {hasBulkDrafts && (
+              <View style={styles.bulkDraftContainer}>
+                <View style={[styles.bulkDraftGrid, { gap: bulkDraftChipGap }]}>
+                  {bulkDraftLines.map((draft, index) => (
+                    <TouchableOpacity
+                      key={draft.id}
+                      style={[
+                        styles.bulkDraftChip,
+                        {
+                          width: bulkDraftChipWidth,
+                          maxWidth: bulkDraftChipWidth,
+                          borderColor: index === activeBulkDraftIndex ? colors.accent : colors.border,
+                          backgroundColor: index === activeBulkDraftIndex ? `${colors.accent}20` : colors.backgroundSecondary,
+                        },
+                      ]}
+                      onPress={() => {
+                        upsertActiveDraft();
+                        setActiveBulkDraftIndex(index);
+                        applyDraftLineToForm(bulkDraftLines[index]);
+                      }}
+                    >
+                      <Text style={[styles.bulkDraftChipText, { color: colors.text }]} numberOfLines={1}>
+                        {draft.productCode || draft.productName || `Kalem ${index + 1}`}
+                      </Text>
+                      <TouchableOpacity
+                        style={[styles.bulkDraftChipRemove, { borderColor: colors.border, backgroundColor: colors.background }]}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          handleRemoveDraft(index);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.bulkDraftChipRemoveText, { color: colors.textMuted }]}>×</Text>
+                      </TouchableOpacity>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
 
-            {(selectedStock?.unit || line?.unit) ? (
+            {showUnitInStockSelection && (selectedStock?.unit || line?.unit) ? (
               <View
                 style={[
                   styles.approvalWarning,
@@ -684,9 +904,21 @@ export function OrderLineForm({
               onPress={handleSave}
               disabled={!(selectedStock || (line?.productCode && lineToSave.productCode))}
             >
-              <Text style={styles.saveButtonText}>Kaydet</Text>
+              <Text style={styles.saveButtonText}>
+                {hasBulkDrafts ? "Taslağa Kaydet" : "Kaydet"}
+              </Text>
             </TouchableOpacity>
           </View>
+          {hasBulkDrafts && (
+            <View style={[styles.multiConfirmBar, { borderTopColor: colors.border }]}>
+              <TouchableOpacity
+                style={[styles.multiConfirmButton, { backgroundColor: colors.accent }]}
+                onPress={handleBulkDraftConfirm}
+              >
+                <Text style={styles.saveButtonText}>Seçilenleri Ekle ({bulkDraftLines.length})</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </View>
     </Modal>
@@ -866,6 +1098,57 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     borderTopWidth: 1,
     gap: 12,
+  },
+  multiConfirmBar: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 8,
+    borderTopWidth: 1,
+  },
+  multiConfirmButton: {
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  bulkDraftContainer: {
+    marginBottom: 12,
+  },
+  bulkDraftGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "flex-start",
+    alignItems: "flex-start",
+  },
+  bulkDraftChip: {
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingLeft: 8,
+    paddingRight: 6,
+    paddingVertical: 5,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    minWidth: 0,
+  },
+  bulkDraftChipText: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  bulkDraftChipRemove: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  bulkDraftChipRemoveText: {
+    fontSize: 12,
+    lineHeight: 13,
+    fontWeight: "700",
   },
   cancelButton: {
     flex: 1,

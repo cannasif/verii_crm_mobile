@@ -280,6 +280,10 @@
     "preferences": "Präferenzen",
     "uppercaseCompanyAfterScan": "Firmennamen nach Visitenkarten-Scan groß schreiben",
     "uppercaseCompanyAfterScanHint": "Manuell eingegebener Text bleibt unverändert.",
+    "showUnitInStockPicker": "Einheit im Lagerauswahl-Bildschirm anzeigen",
+    "showUnitInStockPickerHint": "Wenn deaktiviert, wird die Einheit in der Produktliste ausgeblendet.",
+    "showQuotationLineDetails": "Zusatzdetails in Angebotszeile anzeigen",
+    "showQuotationLineDetailsHint": "Wenn deaktiviert, werden Profile-, Demir- und Vida-Felder zusammen ausgeblendet.",
     "errorNoUser": "Benutzerinfo nicht gefunden",
     "successPhoto": "Profilbild aktualisiert",
     "errorPhoto": "Profilbild konnte nicht aktualisiert werden",
@@ -909,9 +913,18 @@
     "balance": "Bestand",
     "noSearchResults": "Keine Artikel gefunden",
     "minSearchChars": "Mindestens 2 Zeichen eingeben",
+    "advancedFilterTitle": "Erweiterte Filter",
+    "advancedFilterSubtitle": "Füllen Sie die gewünschten Felder aus; leere Felder werden ignoriert.",
     "catalogOpenButton": "Aus Katalog wählen",
     "catalogTitle": "Bestand aus Katalog wählen",
     "catalogDescription": "Katalog wählen, in Kategorien navigieren und den Bestand auf die Zeile anwenden.",
+    "catalogHierarchyTitle": "Empfohlener Kategoriefluss",
+    "catalogHierarchyDescription": "Dieselbe Logik: Hauptkategorie, Unterkategorie, Marke, Serie, zuletzt Produkte.",
+    "catalogHierarchyExampleLabel": "Beispiel",
+    "catalogHierarchyExampleValue": "Telefone > Tastentelefone > iPhone > Serie 17 > Produkte",
+    "catalogSelectedPathLabel": "Gewählter Pfad",
+    "catalogCurrentPathLabel": "Aktueller Pfad",
+    "catalogLevelBadge": "Ebene {{level}}",
     "catalogStep1Label": "Schritt 1",
     "catalogStep1Title": "Katalog wählen",
     "catalogStep2Label": "Schritt 2",
@@ -929,7 +942,7 @@
     "catalogSelectedLeaf": "Gewählte Kategorie",
     "catalogSearchPlaceholder": "In Kategoriebeständen suchen...",
     "catalogSelectLeafTitle": "Wählen Sie zuerst eine Endkategorie",
-    "catalogSelectLeafHint": "Wählen Sie eine Endkategorie, um rechts die Bestände zu sehen.",
+    "catalogSelectLeafHint": "Wählen Sie eine Endkategorie, um die Bestände darunter zu sehen.",
     "catalogStocksFoundTitle": "{{count}} Bestände gefunden",
     "catalogStocksHint": "Wählen Sie einen Bestandsdatensatz, prüfen Sie ihn unten und übernehmen Sie ihn dann.",
     "catalogSelectionReadyTitle": "Auswahl bereit",
@@ -942,8 +955,36 @@
     "catalogSelectedBadge": "Gewählt",
     "catalogSelectStock": "Bestand wählen",
     "catalogLoadMore": "Mehr laden",
+    "catalogPickCatalogSectionTitle": "Katalog wählen",
+    "catalogPickCatalogHint": "Für Schritt 1 tippen Sie unten auf einen der Katalog-Chips.",
+    "catalogSearchCatalogPlaceholder": "Nach Katalogname oder Code suchen...",
+    "catalogBlueprintExpand": "Kategorieleitfaden anzeigen",
+    "catalogBlueprintCollapse": "Leitfaden ausblenden",
     "catalogApplySelection": "Auswahl übernehmen",
-    "catalogFooterHint": "Ein hier gewählter Bestand wird wie im normalen Produktauswahlfenster übernommen."
+    "catalogFooterHint": "Ein hier gewählter Bestand wird wie im normalen Produktauswahlfenster übernommen.",
+    "catalogSelectedCount": "Ausgewählte Bestände ({{count}})",
+    "catalogHierarchyStages": {
+      "root": {
+        "title": "Hauptkategorie",
+        "description": "Oberste Ebene. Beispiel: Telefone"
+      },
+      "subcategory": {
+        "title": "Unterkategorie",
+        "description": "Verfeinert die Produktgruppe. Beispiel: Tastentelefone"
+      },
+      "brand": {
+        "title": "Marke",
+        "description": "Marke oder Hersteller. Beispiel: iPhone"
+      },
+      "series": {
+        "title": "Serie",
+        "description": "Modellfamilie oder Serie. Beispiel: Serie 17"
+      },
+      "products": {
+        "title": "Produkte",
+        "description": "Endgültige Bestände auf dieser Ebene auswählen."
+      }
+    }
   },
   "quotation": {
     "list": "Angebotsliste",
