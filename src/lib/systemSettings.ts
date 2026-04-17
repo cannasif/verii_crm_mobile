@@ -1,5 +1,3 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { LANGUAGE_STORAGE_KEY } from "../constants/storage";
 import i18n from "../locales";
 import { getDefaultSystemSettings, useSystemSettingsStore } from "../store/system-settings";
 
@@ -7,9 +5,17 @@ function getSettings() {
   return useSystemSettingsStore.getState().settings ?? getDefaultSystemSettings();
 }
 
+function getActiveLanguage(): string {
+  return (i18n.resolvedLanguage || i18n.language || "tr").split("-")[0].toLowerCase();
+}
+
+function getActiveLocale(): string {
+  return i18n.resolvedLanguage || i18n.language || "tr";
+}
+
 export function getSystemLocale(): string {
   const settings = getSettings();
-  return settings.numberFormat || (settings.defaultLanguage === "tr" ? "tr-TR" : settings.defaultLanguage);
+  return settings.numberFormat || (getActiveLanguage() === "tr" ? "tr-TR" : getActiveLocale());
 }
 
 export function getSystemCurrency(): string {
@@ -25,23 +31,8 @@ export function getSystemDecimalPlaces(): number {
   return Number.isFinite(value) ? value : 2;
 }
 
-function getDatePattern(): string {
-  return getSettings().dateFormat || "dd.MM.yyyy";
-}
-
-function getTimePattern(): string {
-  return getSettings().timeFormat || "HH:mm";
-}
-
 export async function applySystemLanguageIfNeeded(): Promise<void> {
-  const explicitLanguage = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
-  if (explicitLanguage) return;
-
-  const nextLanguage = getSettings().defaultLanguage || "tr";
-  const currentLanguage = (i18n.language || "tr").split("-")[0].toLowerCase();
-  if (currentLanguage === nextLanguage.toLowerCase()) return;
-
-  await i18n.changeLanguage(nextLanguage);
+  return Promise.resolve();
 }
 
 export function formatSystemNumber(
@@ -72,64 +63,51 @@ export function formatSystemCurrency(value: number, currencyCode?: string): stri
   }
 }
 
-function getDateParts(parsed: Date): Record<string, string> {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: getSystemTimeZone(),
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).formatToParts(parsed);
-
-  return {
-    dd: parts.find((part) => part.type === "day")?.value ?? "",
-    MM: parts.find((part) => part.type === "month")?.value ?? "",
-    yyyy: parts.find((part) => part.type === "year")?.value ?? "",
-    HH: parts.find((part) => part.type === "hour")?.value ?? "",
-    mm: parts.find((part) => part.type === "minute")?.value ?? "",
-  };
-}
-
-function applyPattern(pattern: string, parts: Record<string, string>): string {
-  return pattern
-    .replace(/yyyy/g, parts.yyyy)
-    .replace(/dd/g, parts.dd)
-    .replace(/MM/g, parts.MM)
-    .replace(/HH/g, parts.HH)
-    .replace(/mm/g, parts.mm);
-}
-
 function parseDateValue(value: string | number | Date): Date | null {
   const parsed = value instanceof Date ? value : new Date(value);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-export function formatSystemDate(value: string | number | Date): string {
+function formatDateValue(
+  value: string | number | Date,
+  options: Intl.DateTimeFormatOptions
+): string {
   const parsed = parseDateValue(value);
   if (!parsed) return "-";
 
-  return applyPattern(getDatePattern(), getDateParts(parsed));
+  return new Intl.DateTimeFormat(getActiveLocale(), {
+    timeZone: getSystemTimeZone(),
+    ...options,
+  }).format(parsed);
+}
+
+export function formatSystemDate(value: string | number | Date): string {
+  return formatDateValue(value, {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
 }
 
 export function formatSystemDateTime(value: string | number | Date): string {
-  const parsed = parseDateValue(value);
-  if (!parsed) return "-";
-
-  const parts = getDateParts(parsed);
-  return `${applyPattern(getDatePattern(), parts)} ${applyPattern(getTimePattern(), parts)}`.trim();
+  return formatDateValue(value, {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export function formatSystemTime(value: string | number | Date): string {
-  const parsed = parseDateValue(value);
-  if (!parsed) return "-";
-
-  return applyPattern(getTimePattern(), getDateParts(parsed));
+  return formatDateValue(value, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export function getSystemDatePickerLocale(): string {
-  return new Intl.DateTimeFormat(getSystemLocale(), {
+  return new Intl.DateTimeFormat(getActiveLocale(), {
     timeZone: getSystemTimeZone(),
   }).resolvedOptions().locale;
 }
