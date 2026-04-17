@@ -7,6 +7,7 @@ import {
   FlatList,
   ActivityIndicator,
   TextInput,
+  useWindowDimensions,
 } from "react-native";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { CatalogStockPickerModal } from "@/components/shared/CatalogStockPickerModal";
@@ -18,6 +19,10 @@ import { useUIStore } from "../../../store/ui";
 import { VoiceSearchButton } from "./VoiceSearchButton";
 import { useStocks } from "../../stocks/hooks";
 import type { StockGetDto, StockRelationDto } from "../../stocks/types";
+import {
+  getProductSelectionKey,
+  type ProductSelectionResult,
+} from "../../stocks/types";
 
 export interface ProductPickerRef {
   close: () => void;
@@ -38,6 +43,10 @@ interface ProductPickerProps {
   required?: boolean;
   parentVisible?: boolean;
   relatedStocksSelection?: RelatedStocksSelectionProps | null;
+  multiSelect?: boolean;
+  onMultiSelect?: (results: ProductSelectionResult[]) => void | Promise<void>;
+  initialSelectedResults?: ProductSelectionResult[];
+  queuedProductKeys?: readonly string[];
 }
 
 const SEARCH_DEBOUNCE_MS = 700;
@@ -50,38 +59,45 @@ function formatStockBalance(item: StockGetDto): string | null {
   return null;
 }
 
-function getStockMetaRows(item: StockGetDto, t: (key: string) => string): Array<{ label: string; value: string }> {
-  return [
-    item.unit ? { label: t("stockPicker.unit"), value: item.unit } : null,
-    item.grupKodu || item.grupAdi
-      ? { label: t("stockPicker.group"), value: [item.grupKodu, item.grupAdi].filter(Boolean).join(" · ") }
-      : null,
-    item.kod1 || item.kod1Adi
-      ? { label: t("stockPicker.code1"), value: [item.kod1, item.kod1Adi].filter(Boolean).join(" · ") }
-      : null,
-    item.kod2 || item.kod2Adi
-      ? { label: t("stockPicker.code2"), value: [item.kod2, item.kod2Adi].filter(Boolean).join(" · ") }
-      : null,
-  ].filter((row): row is { label: string; value: string } => Boolean(row));
-}
-
 function StockListItem({
   item,
   isSelected,
+  priorPickHint,
   colors,
   onSelect,
   onShowRelationDetail,
 }: {
   item: StockGetDto;
   isSelected: boolean;
+  priorPickHint?: boolean;
   colors: ThemeColors;
   onSelect: () => void;
   onShowRelationDetail: (stock: StockGetDto, relations: StockRelationDto[]) => void;
 }): React.ReactElement {
   const { t } = useTranslation();
-  const metaRows = useMemo(() => getStockMetaRows(item, t), [item, t]);
+  const showUnitInStockSelection = useUIStore((s) => s.showUnitInStockSelection);
   const balance = formatStockBalance(item);
   const relationsList = item.parentRelations ?? [];
+  const unitGroupText = useMemo(() => {
+    const unit = showUnitInStockSelection && item.unit ? `${t("stockPicker.unit")}: ${item.unit}` : null;
+    const group = item.grupKodu || item.grupAdi
+      ? `${t("stockPicker.group")}: ${[item.grupKodu, item.grupAdi].filter(Boolean).join(" · ")}`
+      : null;
+    return [unit, group].filter(Boolean).join("    ");
+  }, [item, t, showUnitInStockSelection]);
+  const codePairText = useMemo(() => {
+    const code1 = item.kod1 || item.kod1Adi
+      ? `${t("stockPicker.code1")}: ${[item.kod1, item.kod1Adi].filter(Boolean).join(" · ")}`
+      : null;
+    const code2 = item.kod2 || item.kod2Adi
+      ? `${t("stockPicker.code2")}: ${[item.kod2, item.kod2Adi].filter(Boolean).join(" · ")}`
+      : null;
+    return [code1, code2].filter(Boolean).join("    ");
+  }, [item, t]);
+  const metaSingleLineText = useMemo(
+    () => [unitGroupText, codePairText].filter(Boolean).join("    "),
+    [unitGroupText, codePairText]
+  );
 
   const relationCount = relationsList.length;
   const showBadge = relationCount > 0;
@@ -100,21 +116,46 @@ function StockListItem({
         activeOpacity={0.7}
       >
         <View style={styles.stockInfo}>
-          <Text style={[styles.stockName, { color: colors.text }]} numberOfLines={1}>
-            {item.stockName}
-          </Text>
-          <Text style={[styles.stockCode, { color: colors.textSecondary }]} numberOfLines={1}>
+          <View style={styles.stockNameRow}>
+            {priorPickHint ? (
+              <View
+                style={[
+                  styles.priorPickBadge,
+                  {
+                    borderColor: colors.card,
+                    backgroundColor: colors.accentSecondary,
+                  },
+                ]}
+                accessibilityLabel="Kuyrukta"
+              />
+            ) : null}
+            <Text
+              style={[styles.stockName, { color: colors.text, flex: 1, minWidth: 0 }]}
+              numberOfLines={1}
+              allowFontScaling={false}
+              unstyled
+            >
+              {item.stockName}
+            </Text>
+          </View>
+          <Text style={[styles.stockCode, { color: colors.textSecondary }]} numberOfLines={1} allowFontScaling={false} unstyled>
             {item.erpStockCode}
           </Text>
-          {metaRows.map((row) => (
-            <Text key={row.label} style={[styles.stockMeta, { color: colors.textMuted }]} numberOfLines={1}>
-              {row.label}: {row.value}
+          <View style={[styles.metaPill, { backgroundColor: colors.backgroundSecondary, opacity: metaSingleLineText ? 1 : 0 }]}>
+            <Text style={[styles.stockMeta, { color: colors.textMuted }]} numberOfLines={1} allowFontScaling={false} unstyled>
+              {metaSingleLineText || "."}
             </Text>
-          ))}
-          {balance ? (
-            <Text style={[styles.stockMeta, { color: colors.accent }]} numberOfLines={1}>
-              {t("stockPicker.balance")}: {balance}
-            </Text>
+          </View>
+          {showBadge ? (
+            <TouchableOpacity
+              style={[styles.relatedStockBadge, { backgroundColor: colors.accent + "20", borderColor: colors.accent + "50" }]}
+              onPress={() => onShowRelationDetail(item, relationsList)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.relatedStockBadgeText, { color: colors.accent }]} unstyled allowFontScaling={false}>
+                {relationCount} {t("demand.relatedStocks")} ›
+              </Text>
+            </TouchableOpacity>
           ) : null}
         </View>
         {isSelected && (
@@ -123,17 +164,6 @@ function StockListItem({
           </View>
         )}
       </TouchableOpacity>
-      {showBadge && (
-        <TouchableOpacity
-          style={[styles.relatedStockBadge, { backgroundColor: colors.accent + "20", borderColor: colors.accent + "50" }]}
-          onPress={() => onShowRelationDetail(item, relationsList)}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.relatedStockBadgeText, { color: colors.accent }]}>
-            {relationCount} {t("demand.relatedStocks")} ›
-          </Text>
-        </TouchableOpacity>
-      )}
     </View>
   );
 }
@@ -150,12 +180,21 @@ function ProductPickerInner(
     required = false,
     parentVisible = true,
     relatedStocksSelection = null,
+    multiSelect = false,
+    onMultiSelect,
+    initialSelectedResults = [],
+    queuedProductKeys = [],
   }: ProductPickerProps,
   ref: React.Ref<ProductPickerRef>
 ): React.ReactElement {
   const { t } = useTranslation();
-  const { colors } = useUIStore();
+  const { colors, themeMode } = useUIStore();
+  const { width: windowWidth } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const isDark = themeMode === "dark";
+  const primaryActionBg = isDark ? "rgba(236,72,153,0.24)" : "#F6C7E2";
+  const primaryActionText = isDark ? "#FCE7F3" : "#5B3150";
+  const softPinkBorder = isDark ? "rgba(236,72,153,0.26)" : "rgba(219,39,119,0.18)";
 
   const [isOpen, setIsOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
@@ -176,6 +215,18 @@ function ProductPickerInner(
   const [appliedGroupNameFilter, setAppliedGroupNameFilter] = useState("");
   const [tempFilterLogic, setTempFilterLogic] = useState<"and" | "or">("and");
   const [appliedFilterLogic, setAppliedFilterLogic] = useState<"and" | "or">("and");
+  const [selectedResults, setSelectedResults] = useState<ProductSelectionResult[]>([]);
+
+  const queuedKeySet = useMemo(() => new Set(queuedProductKeys ?? []), [queuedProductKeys]);
+
+  const multiChipGap = 6;
+  const multiChipCols = 4;
+  const selectionChipWidth = useMemo(() => {
+    const rowPad = 12 * 2;
+    const inner = Math.max(0, windowWidth - rowPad);
+    const gaps = multiChipGap * (multiChipCols - 1);
+    return Math.max(64, Math.floor((inner - gaps) / multiChipCols));
+  }, [windowWidth]);
 
   const relatedMandatory = useMemo(
     () => (relatedStocksSelection?.stock.parentRelations ?? []).filter((r) => r.isMandatory),
@@ -274,6 +325,27 @@ function ProductPickerInner(
     setSearchText("");
     setDebouncedSearchText("");
     setIsFilterModalVisible(false);
+    setSelectedResults([]);
+  }, []);
+
+  const addSelection = useCallback((stock: StockGetDto) => {
+    const nextSelection: ProductSelectionResult = {
+      id: stock.id,
+      code: stock.erpStockCode,
+      name: stock.stockName,
+      unit: stock.unit ?? null,
+      groupCode: stock.grupKodu ?? null,
+      relatedStockIds: stock.id != null ? [stock.id] : undefined,
+    };
+
+    setSelectedResults((prev) => [...prev, nextSelection]);
+  }, []);
+
+  const removeOneSelection = useCallback((index: number) => {
+    setSelectedResults((prev) => {
+      if (index < 0 || index >= prev.length) return prev;
+      return [...prev.slice(0, index), ...prev.slice(index + 1)];
+    });
   }, []);
 
   const handleOpenCatalog = useCallback(() => {
@@ -310,12 +382,17 @@ function ProductPickerInner(
 
   const handleSelect = useCallback(
     async (stock: StockGetDto) => {
+      if (multiSelect) {
+        addSelection(stock);
+        return;
+      }
+
       const result = await Promise.resolve(onChange(stock));
       if (result !== false) {
         handleClose();
       }
     },
-    [onChange, handleClose]
+    [multiSelect, addSelection, onChange, handleClose]
   );
 
   const handleClear = useCallback(() => {
@@ -341,17 +418,42 @@ function ProductPickerInner(
   }, []);
 
   const renderStockItem = useCallback(
-    ({ item }: { item: StockGetDto }) => (
-      <MemoizedStockListItem
-        item={item}
-        isSelected={value === item.erpStockCode}
-        colors={colors}
-        onSelect={() => handleSelect(item)}
-        onShowRelationDetail={handleShowRelationDetail}
-      />
-    ),
-    [value, colors, handleSelect, handleShowRelationDetail]
+    ({ item }: { item: StockGetDto }) => {
+      const itemKey = getProductSelectionKey({ id: item.id, code: item.erpStockCode });
+      const isSelectedThisRound = multiSelect
+        ? selectedResults.some((selection) => getProductSelectionKey(selection) === itemKey)
+        : value === item.erpStockCode;
+      const priorPickHint = multiSelect && queuedKeySet.has(itemKey) && !isSelectedThisRound;
+
+      return (
+        <MemoizedStockListItem
+          item={item}
+          isSelected={isSelectedThisRound}
+          priorPickHint={priorPickHint}
+          colors={colors}
+          onSelect={() => handleSelect(item)}
+          onShowRelationDetail={handleShowRelationDetail}
+        />
+      );
+    },
+    [multiSelect, selectedResults, value, colors, queuedKeySet, handleSelect, handleShowRelationDetail]
   );
+
+  const chipSelections = useMemo(
+    () =>
+      selectedResults.map((selection, index) => ({
+        id: `${getProductSelectionKey(selection)}-${index}`,
+        label: selection.code,
+        index,
+      })),
+    [selectedResults]
+  );
+
+  const handleConfirmMultiSelect = useCallback(async () => {
+    if (!onMultiSelect || selectedResults.length === 0) return;
+    await Promise.resolve(onMultiSelect(selectedResults));
+    handleClose();
+  }, [onMultiSelect, selectedResults, handleClose]);
 
   return (
     <>
@@ -381,9 +483,10 @@ function ProductPickerInner(
             <Text
               style={[
                 styles.pickerText,
+                productName ? styles.pickerTextProductName : null,
                 { color: productName ? colors.text : colors.textMuted },
               ]}
-              numberOfLines={1}
+              numberOfLines={productName ? 2 : 1}
             >
               {productName || t("stockPicker.tapToSelectProduct")}
             </Text>
@@ -588,32 +691,67 @@ function ProductPickerInner(
                 </View>
 
                 <View style={[styles.searchRow, { backgroundColor: colors.backgroundSecondary }]}>
-                  <TextInput
-                    style={[styles.searchInput, { color: colors.text }]}
-                    placeholder={t("stockPicker.searchPlaceholder")}
-                    placeholderTextColor={colors.textMuted}
-                    value={searchText}
-                    onChangeText={setSearchText}
-                    autoFocus
-                  />
-                  <TouchableOpacity
-                    style={[styles.filterButton, { borderColor: colors.border }]}
-                    onPress={() => setIsFilterModalVisible(true)}
-                  >
-                    <Text style={[styles.filterButtonText, { color: colors.text }]}>
-                      {t("common.filter")}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.catalogButton, { borderColor: colors.accent, backgroundColor: colors.accent + "12" }]}
-                    onPress={handleOpenCatalog}
-                  >
-                    <Text style={[styles.catalogButtonText, { color: colors.accent }]}>
-                      {t("stockPicker.catalogOpenButton")}
-                    </Text>
-                  </TouchableOpacity>
-                  <VoiceSearchButton onResult={setSearchText} />
+                  <View style={styles.searchTopRow}>
+                    <TextInput
+                      style={[styles.searchInput, { color: colors.text, borderColor: colors.border }]}
+                      placeholder={t("stockPicker.searchPlaceholder")}
+                      placeholderTextColor={colors.textMuted}
+                      value={searchText}
+                      onChangeText={setSearchText}
+                      autoFocus
+                    />
+                    <VoiceSearchButton onResult={setSearchText} />
+                  </View>
+                  <View style={styles.searchBottomRow}>
+                    <TouchableOpacity
+                      style={[styles.catalogButton, { borderColor: colors.accent, backgroundColor: colors.accent + "10" }]}
+                      onPress={handleOpenCatalog}
+                    >
+                      <Text style={[styles.catalogButtonText, { color: colors.accent }]}>
+                        {t("stockPicker.catalogOpenButton")}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.filterButton, { borderColor: colors.border, backgroundColor: colors.backgroundSecondary }]}
+                      onPress={() => setIsFilterModalVisible(true)}
+                    >
+                      <Text style={[styles.filterButtonText, { color: colors.text }]}>
+                        {t("common.filter")}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
+                {multiSelect && chipSelections.length > 0 && (
+                  <View style={[styles.multiSelectionContainer, { borderBottomColor: colors.border }]}>
+                    <View style={[styles.selectionChipGrid, { gap: multiChipGap }]}>
+                      {chipSelections.map((item) => (
+                        <View
+                          key={item.id}
+                          style={[
+                            styles.selectionChip,
+                            {
+                              width: selectionChipWidth,
+                              maxWidth: selectionChipWidth,
+                              borderColor: colors.accent + "55",
+                              backgroundColor: colors.accent + "14",
+                            },
+                          ]}
+                        >
+                          <Text style={[styles.selectionChipText, { color: colors.textSecondary }]} numberOfLines={1}>
+                            {item.label}
+                          </Text>
+                          <TouchableOpacity
+                            style={[styles.selectionChipRemove, { borderColor: colors.accent + "35", backgroundColor: "transparent" }]}
+                            onPress={() => removeOneSelection(item.index)}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={[styles.selectionChipRemoveText, { color: colors.accent }]}>×</Text>
+                          </TouchableOpacity>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
 
                 {isLoading && stocks.length === 0 ? (
                   <View style={styles.loadingContainer}>
@@ -644,6 +782,38 @@ function ProductPickerInner(
                     contentContainerStyle={styles.listContent}
                     showsVerticalScrollIndicator={false}
                   />
+                )}
+                {multiSelect && (
+                  <View style={[styles.multiFooter, { borderTopColor: colors.border }]}>
+                    <TouchableOpacity
+                      style={[styles.multiFooterButton, { borderColor: colors.border }]}
+                      onPress={() => setSelectedResults([])}
+                    >
+                      <Text style={[styles.multiFooterButtonText, { color: colors.text }]}>
+                        {t("common.clear")}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.multiFooterButton,
+                        !isDark && styles.multiFooterPrimaryShadow,
+                        {
+                          backgroundColor: primaryActionBg,
+                          borderColor: softPinkBorder,
+                          borderWidth: 1,
+                        },
+                        (selectedResults.length === 0 || !onMultiSelect) && styles.multiFooterPrimaryDisabled,
+                      ]}
+                      onPress={() => {
+                        void handleConfirmMultiSelect();
+                      }}
+                      disabled={selectedResults.length === 0 || !onMultiSelect}
+                    >
+                      <Text style={[styles.multiFooterPrimaryText, { color: primaryActionText }]}>
+                        Seçilenleri Ekle ({selectedResults.length})
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 )}
               </>
             )}
@@ -792,6 +962,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     flex: 1,
   },
+  pickerTextProductName: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "500",
+  },
   clearButton: {
     marginLeft: 8,
     padding: 4,
@@ -875,40 +1050,56 @@ const styles = StyleSheet.create({
     fontWeight: "300",
   },
   searchRow: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0, 0, 0, 0.08)",
+    gap: 8,
+  },
+  searchTopRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0, 0, 0, 0.1)",
+    gap: 8,
+  },
+  searchBottomRow: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   searchInput: {
     flex: 1,
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 10,
     paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
+    paddingVertical: 9,
+    fontSize: 13,
   },
   filterButton: {
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 10,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 8,
+    minHeight: 34,
+    justifyContent: "center",
+    flex: 1,
+    alignItems: "center",
   },
   filterButtonText: {
-    fontSize: 13,
-    fontWeight: "600",
+    fontSize: 11,
+    fontWeight: "700",
   },
   catalogButton: {
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 10,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 8,
+    minHeight: 34,
+    justifyContent: "center",
+    flex: 1,
+    alignItems: "center",
   },
   catalogButtonText: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: "700",
   },
   loadingContainer: {
@@ -928,11 +1119,12 @@ const styles = StyleSheet.create({
   },
   stockItem: {
     flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
+    alignItems: "flex-start",
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderBottomWidth: 1.8,
     gap: 10,
+    minHeight: 78,
   },
   stockItemTouchable: {
     flex: 1,
@@ -943,29 +1135,62 @@ const styles = StyleSheet.create({
   stockInfo: {
     flex: 1,
     marginRight: 12,
+    justifyContent: "center",
+  },
+  stockNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    minWidth: 0,
+  },
+  priorPickBadge: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    flexShrink: 0,
+  },
+  metaPill: {
+    marginTop: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: 8,
+    alignSelf: "flex-start",
+    maxWidth: "100%",
+    minHeight: 15,
+    justifyContent: "center",
   },
   relatedStockBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 7,
     borderWidth: 1,
     alignSelf: "flex-start",
+    marginTop: 6,
   },
   relatedStockBadgeText: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: "600",
   },
   stockName: {
-    fontSize: 15,
-    fontWeight: "500",
-    marginBottom: 4,
+    fontSize: 12,
+    lineHeight: 15,
+    fontWeight: "700",
+    marginBottom: 0,
+    includeFontPadding: false,
   },
   stockCode: {
-    fontSize: 13,
+    fontSize: 10.1,
+    lineHeight: 13,
+    fontWeight: "400",
+    includeFontPadding: false,
   },
   stockMeta: {
-    fontSize: 12,
-    marginTop: 4,
+    fontSize: 8.8,
+    lineHeight: 12,
+    marginTop: 0,
+    letterSpacing: 0.12,
+    includeFontPadding: false,
   },
   checkmark: {
     width: 24,
@@ -1180,5 +1405,79 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
+  },
+  multiSelectionContainer: {
+    borderBottomWidth: 1,
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+  },
+  selectionChipGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "flex-start",
+  },
+  selectionChip: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingLeft: 8,
+    paddingRight: 4,
+    paddingVertical: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    minWidth: 0,
+  },
+  selectionChipText: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: 10,
+    fontWeight: "500",
+  },
+  selectionChipRemove: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 2,
+  },
+  selectionChipRemoveText: {
+    fontSize: 11,
+    lineHeight: 12,
+    fontWeight: "600",
+  },
+  multiFooter: {
+    flexDirection: "row",
+    gap: 10,
+    borderTopWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  multiFooterButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 42,
+  },
+  multiFooterButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  multiFooterPrimaryShadow: {
+    shadowColor: "#db2777",
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  multiFooterPrimaryDisabled: {
+    opacity: 0.5,
+  },
+  multiFooterPrimaryText: {
+    fontSize: 13,
+    fontWeight: "800",
   },
 });
