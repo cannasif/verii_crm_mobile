@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   TextInput,
+  Image,
 } from "react-native";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { resolveDocumentSerialCustomerTypeId } from "@/lib/resolve-document-serial-customer-type-id";
@@ -75,7 +76,9 @@ import {
   normalizeOfferType,
 } from "../types";
 import type { StockRelationDto } from "../../stocks/types";
+import type { ProductSelectionResult } from "../../stocks/types";
 import { calculateLineTotals, calculateTotals } from "../utils";
+import { resolveLineListCurrencyLabel } from "../../../lib/currencyDisplay";
 import type { ExchangeRateDto } from "../types";
 import {
   UserIcon,
@@ -87,6 +90,41 @@ import {
   Alert02Icon,
 } from "hugeicons-react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { getApiBaseUrl } from "../../../constants/config";
+
+/** Tam sayı miktar: 1,00 yerine 1 */
+function formatQtyTr(n: number): string {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return "0";
+  if (Math.abs(v - Math.round(v)) < 1e-6) return Math.round(v).toLocaleString("tr-TR");
+  return v.toLocaleString("tr-TR", { minimumFractionDigits: 0, maximumFractionDigits: 3 });
+}
+
+/** Tutarlar: gereksiz sondaki ,00 yok */
+function formatMoneyTr(n: number): string {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return "0";
+  return v.toLocaleString("tr-TR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
+/** Oran %: 20,00 yerine 20 */
+function formatRateTr(n: number): string {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return "0";
+  if (Math.abs(v - Math.round(v)) < 1e-6) return Math.round(v).toLocaleString("tr-TR");
+  return v.toLocaleString("tr-TR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
+function resolveMobileImageUri(path?: string | null): string | null {
+  if (!path) return null;
+  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("file://")) {
+    return path;
+  }
+  if (path.startsWith("/")) {
+    return `${getApiBaseUrl()}${path}`;
+  }
+  return path;
+}
 
 function addDaysToDateOnly(dateValue: string, days: number): string {
   const date = new Date(`${dateValue}T12:00:00`);
@@ -453,6 +491,11 @@ export function QuotationCreateScreen(): React.ReactElement {
 
   const canAddLine = Boolean((watchedCustomerId || watchedErpCustomerCode) && watchedRepresentativeId && watchedCurrency);
 
+  const lineListCurrencyLabel = useMemo(
+    () => resolveLineListCurrencyLabel(watchedCurrency, currencyOptions ?? null),
+    [watchedCurrency, currencyOptions]
+  );
+
   const handleEditLine = useCallback((line: QuotationLineFormState) => {
     setEditingLine(line);
     setLineFormVisible(true);
@@ -622,7 +665,7 @@ export function QuotationCreateScreen(): React.ReactElement {
         discountAmount2: 0,
         discountRate3: mainPrice?.discount3 ?? 0,
         discountAmount3: 0,
-        vatRate: 18,
+        vatRate: 20,
         vatAmount: 0,
         lineTotal: 0,
         lineGrandTotal: 0,
@@ -655,7 +698,7 @@ export function QuotationCreateScreen(): React.ReactElement {
               discountAmount2: 0,
               discountRate3: price?.discount3 ?? 0,
               discountAmount3: 0,
-              vatRate: 18,
+              vatRate: 20,
               vatAmount: 0,
               lineTotal: 0,
               lineGrandTotal: 0,
@@ -706,6 +749,56 @@ export function QuotationCreateScreen(): React.ReactElement {
       ]);
     },
     [t]
+  );
+
+  const handleMultiProductSelect = useCallback(
+    async (products: ProductSelectionResult[]) => {
+      if (products.length === 0) return [];
+
+      const priceData = await quotationApi.getPriceOfProduct(
+        products.map((product) => ({
+          productCode: product.code,
+          groupCode: product.groupCode || "",
+        }))
+      ).catch(() => []);
+
+      const nextLines = products.map((product, index) => {
+        const price = priceData[index];
+        return calculateLineTotals({
+          id: `temp-${Date.now()}-m${index}`,
+          productId: product.id ?? null,
+          productCode: product.code,
+          productName: product.name,
+          unit: product.unit ?? null,
+          groupCode: product.groupCode ?? null,
+          quantity: 1,
+          unitPrice: price?.listPrice ?? 0,
+          discountRate1: price?.discount1 ?? 0,
+          discountAmount1: 0,
+          discountRate2: price?.discount2 ?? 0,
+          discountAmount2: 0,
+          discountRate3: price?.discount3 ?? 0,
+          discountAmount3: 0,
+          vatRate: product.vatRate ?? 20,
+          vatAmount: 0,
+          lineTotal: 0,
+          lineGrandTotal: 0,
+          description: null,
+          description1: null,
+          description2: null,
+          description3: null,
+          imagePath: null,
+          erpProjectCode: null,
+          approvalStatus: 0,
+          isEditing: false,
+          relatedStockId: product.id ?? null,
+          relatedProductKey: product.id != null ? `main-${product.id}-m${index}` : null,
+          isMainRelatedProduct: true,
+        });
+      });
+      return nextLines;
+    },
+    []
   );
 
   const onSubmit = useCallback(
@@ -926,9 +1019,11 @@ export function QuotationCreateScreen(): React.ReactElement {
                 { backgroundColor: shellBg, borderColor: sectionOutline },
               ]}
             >
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                Müşteri Bilgileri
-              </Text>
+              <View style={[styles.sectionLeadHeader, { borderBottomColor: sectionOutline }]}>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                  Müşteri Bilgileri
+                </Text>
+              </View>
 
               <TouchableOpacity
                 style={[
@@ -1033,9 +1128,11 @@ export function QuotationCreateScreen(): React.ReactElement {
                 { backgroundColor: shellBg, borderColor: sectionOutline },
               ]}
             >
-              <Text style={[styles.sectionTitle, { color: titleText }]}>
-                Teklif Bilgileri
-              </Text>
+              <View style={[styles.sectionLeadHeader, { borderBottomColor: sectionOutline }]}>
+                <Text style={[styles.sectionTitle, { color: titleText }]}>
+                  Teklif Bilgileri
+                </Text>
+              </View>
 
               <View style={styles.twoColumnRow}>
                 <View style={styles.twoColumnItem}>
@@ -1168,7 +1265,7 @@ export function QuotationCreateScreen(): React.ReactElement {
                           style={[
                             styles.exchangeRateButton,
                             styles.exchangeRateButtonCompact,
-                            { backgroundColor: colors.accent },
+                              { backgroundColor: colors.accent + "D6" },
                           ]}
                           onPress={() => setExchangeRateDialogVisible(true)}
                         >
@@ -1460,14 +1557,14 @@ export function QuotationCreateScreen(): React.ReactElement {
                 { backgroundColor: shellBg, borderColor: sectionOutline },
               ]}
             >
-              <View style={styles.sectionHeader}>
+              <View style={[styles.sectionHeader, { borderBottomColor: sectionOutline }]}>
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>
                   Satırlar
                 </Text>
                 <TouchableOpacity
                   style={[
                     styles.addButton,
-                    { backgroundColor: colors.accent },
+                    { backgroundColor: colors.accent + "CC" },
                     !canAddLine && styles.submitButtonDisabled,
                   ]}
                   onPress={handleAddLine}
@@ -1495,437 +1592,149 @@ export function QuotationCreateScreen(): React.ReactElement {
                   )}
                   keyExtractor={(item) => item.id}
                   scrollEnabled={false}
-                  renderItem={({ item: line }) => (
-                    <View style={styles.lineCardWrapper}>
+                  renderItem={({ item: line }) => {
+                    const discountRateSuffix = (l: typeof line) => {
+                      const rates = [l.discountRate1, l.discountRate2, l.discountRate3]
+                        .filter((r) => r > 0)
+                        .map((r) => `${formatRateTr(r)}%`);
+                      if (!rates.length) return null;
+                      return (
+                        <>
+                          <Text style={{ color: mutedText }}>{` · ${t("quotation.discounts")} `}</Text>
+                          <Text style={{ color: titleText, fontWeight: "600" }}>{rates.join("/")}</Text>
+                        </>
+                      );
+                    };
+                    const descLine = (l: typeof line) =>
+                      [l.description1 ? `P ${l.description1}` : "", l.description2 ? `D ${l.description2}` : "", l.description3 ? `V ${l.description3}` : ""]
+                        .filter(Boolean)
+                        .join(" · ");
+                    const renderLineRow = (l: typeof line, opts: { related?: boolean }) => {
+                      const hasImage = Boolean(l.imagePath?.trim());
+                      return (
                       <View
                         style={[
-                          styles.lineCard,
-                          {
-                            backgroundColor: innerBg,
-                            borderColor: innerBorder,
-                            shadowColor: "#000",
-                            shadowOffset: { width: 0, height: 1 },
-                            shadowRadius: 4,
-                            shadowOpacity: isDark ? 0.12 : 0.03,
-                            elevation: 1,
-                          },
-                          line.approvalStatus === 1 && {
+                          styles.lineRow,
+                          opts.related && styles.lineRowRelated,
+                          { borderColor: innerBorder, backgroundColor: opts.related ? (isDark ? "rgba(255,255,255,0.03)" : "rgba(15,23,42,0.02)") : innerBg },
+                          !opts.related && l.approvalStatus === 1 && {
                             borderColor: colors.warning,
-                            borderWidth: 2,
+                            borderWidth: 1.5,
                           },
                         ]}
                       >
-                        <View style={styles.lineCardHeader}>
-                          <View style={styles.lineCardContent}>
-                            <View style={styles.lineCardTitleRow}>
-                              <Text
-                                style={[
-                                  styles.lineProductName,
-                                  { color: titleText },
-                                ]}
-                                numberOfLines={2}
-                              >
-                                {line.productName ||
-                                  t("quotation.productNotSelected")}
-                              </Text>
-                              <View
-                                style={[
-                                  styles.mainBadge,
-                                  { backgroundColor: colors.activeBackground },
-                                ]}
-                              >
-                                <Text
-                                  style={[
-                                    styles.mainBadgeText,
-                                    { color: colors.accent },
-                                  ]}
-                                >
-                                  {t("quotation.main")}
-                                </Text>
-                              </View>
-                            </View>
-
-                            {line.productCode ? (
-                              <Text
-                                style={[
-                                  styles.lineProductCode,
-                                  { color: colors.textMuted },
-                                ]}
-                              >
-                                {line.productCode}
+                        <View style={[styles.lineRowMain, hasImage ? styles.lineRowMainWithThumb : undefined]}>
+                          {hasImage ? (
+                            <Image
+                              source={{ uri: resolveMobileImageUri(l.imagePath) ?? l.imagePath ?? "" }}
+                              style={opts.related ? styles.lineRowThumbRelated : styles.lineRowThumb}
+                              resizeMode="cover"
+                            />
+                          ) : null}
+                          <View style={[styles.lineRowTextBlock, opts.related && styles.lineRowTextBlockRelated]}>
+                            <Text style={[styles.lineRowCode, { color: softText }]} numberOfLines={1}>
+                              {l.productCode || "—"}
+                            </Text>
+                            <Text style={[styles.lineRowName, { color: titleText }]} numberOfLines={2}>
+                              {l.productName || t("quotation.productNotSelected")}
+                            </Text>
+                            {(l.description1 || l.description2 || l.description3) ? (
+                              <Text style={[styles.lineRowDesc, { color: softText }]} numberOfLines={1}>
+                                {descLine(l)}
                               </Text>
                             ) : null}
-
-                            {(line.description1 ||
-                              line.description2 ||
-                              line.description3) && (
-                              <View style={styles.lineExtraBlock}>
-                                {line.description1 ? (
-                                  <Text
-                                    style={[
-                                      styles.lineExtraText,
-                                      { color: colors.textMuted },
-                                    ]}
-                                    numberOfLines={1}
-                                  >
-                                    Profile: {line.description1}
-                                  </Text>
-                                ) : null}
-                                {line.description2 ? (
-                                  <Text
-                                    style={[
-                                      styles.lineExtraText,
-                                      { color: colors.textMuted },
-                                    ]}
-                                    numberOfLines={1}
-                                  >
-                                    Demir: {line.description2}
-                                  </Text>
-                                ) : null}
-                                {line.description3 ? (
-                                  <Text
-                                    style={[
-                                      styles.lineExtraText,
-                                      { color: colors.textMuted },
-                                    ]}
-                                    numberOfLines={1}
-                                  >
-                                    Vida: {line.description3}
-                                  </Text>
-                                ) : null}
+                            <Text style={[styles.lineRowMeta, styles.lineRowMetaFine, { color: mutedText }]} numberOfLines={2}>
+                              <Text style={{ color: titleText, fontWeight: "600" }}>{formatQtyTr(l.quantity)}</Text>
+                              <Text>{` ad. · `}</Text>
+                              <Text style={{ color: titleText, fontWeight: "600" }}>{formatMoneyTr(l.unitPrice)}</Text>
+                              {lineListCurrencyLabel ? (
+                                <Text style={{ color: titleText, fontWeight: "600" }}>{` ${lineListCurrencyLabel}`}</Text>
+                              ) : null}
+                              {discountRateSuffix(l)}
+                            </Text>
+                            <Text style={[styles.lineRowMeta, styles.lineRowMetaFine, { color: mutedText }]} numberOfLines={2}>
+                              <Text style={{ color: titleText, fontWeight: "600" }}>{formatMoneyTr(l.lineTotal)}</Text>
+                              {lineListCurrencyLabel ? <Text style={{ color: mutedText }}>{` ${lineListCurrencyLabel}`}</Text> : null}
+                              <Text>{` · KDV ${formatRateTr(l.vatRate)}% `}</Text>
+                              <Text style={{ color: titleText, fontWeight: "600" }}>{formatMoneyTr(l.vatAmount)}</Text>
+                              {lineListCurrencyLabel ? <Text>{` ${lineListCurrencyLabel}`}</Text> : null}
+                              <Text>{` · `}</Text>
+                              <Text style={{ color: accent, fontWeight: "700" }}>{formatMoneyTr(l.lineGrandTotal)}</Text>
+                              {lineListCurrencyLabel ? (
+                                <Text style={{ color: accent, fontWeight: "700" }}>{` ${lineListCurrencyLabel}`}</Text>
+                              ) : null}
+                            </Text>
+                            {!opts.related && l.approvalStatus === 1 ? (
+                              <View style={[styles.lineRowApproval, { backgroundColor: colors.warning + "18" }]}>
+                                <Alert02Icon size={12} color={colors.warning} variant="stroke" strokeWidth={1.8} />
+                                <Text style={[styles.lineRowApprovalText, { color: colors.warning }]}>{t("quotation.approvalRequired")}</Text>
                               </View>
-                            )}
-
-                            <View
-                              style={[
-                                styles.lineDetailRowsInset,
-                                {
-                                  backgroundColor: colors.activeBackground,
-                                  borderColor: innerBorder,
-                                },
-                              ]}
-                            >
-                              <View style={styles.lineDetailRows}>
-                              <View style={[styles.linePairRow, { borderBottomColor: innerBorder }]}>
-                                <View style={styles.lineHalf}>
-                                  <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.quantity")}</Text>
-                                  <Text style={[styles.lineMicroValue, { color: accent }]} numberOfLines={1}>
-                                    {line.quantity.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                  </Text>
-                                </View>
-                                <View style={[styles.lineHalf, styles.lineHalfTrailing]}>
-                                  <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.unitPrice")}</Text>
-                                  <Text style={[styles.lineMicroValue, { color: accent }]} numberOfLines={1}>
-                                    {line.unitPrice.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                  </Text>
-                                </View>
-                              </View>
-                              <View style={[styles.linePairRow, { borderBottomColor: innerBorder }]}>
-                                <View style={styles.lineHalf}>
-                                  <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.discount1")}</Text>
-                                  <Text style={[styles.lineMicroValue, { color: colors.textSecondary }]} numberOfLines={2}>
-                                    {line.discountRate1.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    % · {line.discountAmount1.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                  </Text>
-                                </View>
-                                <View style={[styles.lineHalf, styles.lineHalfTrailing]}>
-                                  <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.discount2")}</Text>
-                                  <Text style={[styles.lineMicroValue, { color: colors.textSecondary }]} numberOfLines={2}>
-                                    {line.discountRate2.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    % · {line.discountAmount2.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                  </Text>
-                                </View>
-                              </View>
-                              <View style={[styles.linePairRow, { borderBottomColor: innerBorder }]}>
-                                <View style={styles.lineHalf}>
-                                  <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.discount3")}</Text>
-                                  <Text style={[styles.lineMicroValue, { color: colors.textSecondary }]} numberOfLines={2}>
-                                    {line.discountRate3.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    % · {line.discountAmount3.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                  </Text>
-                                </View>
-                                <View style={[styles.lineHalf, styles.lineHalfTrailing]}>
-                                  <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.lineTotal")}</Text>
-                                  <Text style={[styles.lineMicroValue, { color: accent }]} numberOfLines={1}>
-                                    {line.lineTotal.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                  </Text>
-                                </View>
-                              </View>
-                              <View style={[styles.linePairRow, styles.linePairRowLast, { borderBottomColor: innerBorder }]}>
-                                <View style={styles.lineHalf}>
-                                  <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.vatRate")}</Text>
-                                  <Text style={[styles.lineMicroValue, { color: titleText }]} numberOfLines={1}>
-                                    {line.vatRate.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%
-                                  </Text>
-                                </View>
-                                <View style={[styles.lineHalf, styles.lineHalfTrailing]}>
-                                  <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.vatAmount")}</Text>
-                                  <Text style={[styles.lineMicroValue, { color: titleText }]} numberOfLines={1}>
-                                    {line.vatAmount.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                  </Text>
-                                </View>
-                              </View>
-                              </View>
-                            </View>
-
-                            <View style={styles.lineGrandTotalRow}>
-                              <Text style={[styles.lineGrandTotalLabel, { color: titleText }]}>
-                                {t("quotation.lineGrandTotalLabel")}:
-                              </Text>
-                              <Text style={[styles.lineGrandTotalValue, { color: colors.accent }]}>
-                                {line.lineGrandTotal.toLocaleString("tr-TR", {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                })}
-                              </Text>
-                            </View>
-
-                            {line.approvalStatus === 1 && (
-                              <View
-                                style={[
-                                  styles.approvalBadge,
-                                  { backgroundColor: colors.warning + "20" },
-                                ]}
-                              >
-                                <View
-                                  style={{
-                                    flexDirection: "row",
-                                    alignItems: "center",
-                                    gap: 6,
-                                  }}
-                                >
-                                  <Alert02Icon
-                                    size={14}
-                                    color={colors.warning}
-                                    variant="stroke"
-                                    strokeWidth={1.8}
-                                  />
-                                  <Text
-                                    style={[
-                                      styles.approvalBadgeText,
-                                      { color: colors.warning },
-                                    ]}
-                                  >
-                                    {t("quotation.approvalRequired")}
-                                  </Text>
-                                </View>
-                              </View>
-                            )}
-                          </View>
-
-                          <View style={styles.lineActions}>
-                            <TouchableOpacity
-                              style={[
-                                styles.editButton,
-                                {
-                                  backgroundColor: isDark
-                                    ? "rgba(236,72,153,0.15)"
-                                    : "rgba(236,72,153,0.08)",
-                                },
-                              ]}
-                              onPress={() => handleEditLine(line)}
-                            >
-                              <Edit02Icon size={14} color={colors.accent} variant="stroke" strokeWidth={1.8} />
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              style={[
-                                styles.deleteButton,
-                                {
-                                  backgroundColor: isDark
-                                    ? "rgba(239,68,68,0.15)"
-                                    : "rgba(239,68,68,0.08)",
-                                },
-                              ]}
-                              onPress={() => handleDeleteLine(line.id)}
-                            >
-                              <Delete02Icon size={14} color={colors.error} variant="stroke" strokeWidth={1.8} />
-                            </TouchableOpacity>
+                            ) : null}
                           </View>
                         </View>
-
-                        {line.relatedLines && line.relatedLines.length > 0 && (
-                          <View
+                        <View style={styles.lineRowTopRight}>
+                          {!opts.related ? (
+                            <View style={[styles.lineRowMainBadge, { backgroundColor: colors.activeBackground }]}>
+                              <Text style={[styles.lineRowMainBadgeText, { color: accent }]}>{t("quotation.main")}</Text>
+                            </View>
+                          ) : null}
+                          <TouchableOpacity
                             style={[
-                              styles.relatedLinesContainer,
-                              { borderTopColor: innerBorder },
+                              styles.lineIconButton,
+                              {
+                                borderColor: isDark ? "rgba(236,72,153,0.35)" : "rgba(219,39,119,0.22)",
+                                backgroundColor: isDark ? "rgba(236,72,153,0.1)" : "rgba(219,39,119,0.06)",
+                              },
                             ]}
+                            onPress={() => handleEditLine(l)}
+                            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                           >
-                            <Text
-                              style={[
-                                styles.relatedLinesTitle,
-                                { color: colors.textMuted },
-                              ]}
-                            >
-                              {t("quotation.relatedStocks")}
-                            </Text>
-
+                            <Edit02Icon size={16} color={colors.accent} variant="stroke" strokeWidth={1.8} />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[
+                              styles.lineIconButton,
+                              {
+                                borderColor: isDark ? "rgba(239,68,68,0.35)" : "rgba(239,68,68,0.22)",
+                                backgroundColor: isDark ? "rgba(239,68,68,0.1)" : "rgba(239,68,68,0.06)",
+                              },
+                            ]}
+                            onPress={() => handleDeleteLine(l.id)}
+                            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                          >
+                            <Delete02Icon size={16} color={colors.error} variant="stroke" strokeWidth={1.8} />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    );
+                    };
+                    return (
+                      <View style={styles.lineCardWrapper}>
+                        {renderLineRow(line, {})}
+                        {line.relatedLines && line.relatedLines.length > 0 ? (
+                          <View style={styles.relatedLinesBlock}>
+                            <Text style={[styles.relatedLinesTitle, { color: softText }]}>{t("quotation.relatedStocks")}</Text>
                             {line.relatedLines.map((relatedLine) => (
                               <View
                                 key={relatedLine.id}
                                 style={[
-                                  styles.relatedLineCard,
+                                  styles.relatedLineIndent,
                                   {
                                     borderLeftColor: isDark
-                                      ? "rgba(236,72,153,0.4)"
-                                      : "rgba(236,72,153,0.3)",
+                                      ? "rgba(236,72,153,0.45)"
+                                      : "rgba(219,39,119,0.28)",
                                   },
                                 ]}
                               >
-                                <Text
-                                  style={[
-                                    styles.relatedLineProductName,
-                                    { color: titleText },
-                                  ]}
-                                  numberOfLines={2}
-                                >
-                                  {relatedLine.productName}
-                                </Text>
-
-                                {relatedLine.productCode ? (
-                                  <Text
-                                    style={[
-                                      styles.relatedLineProductCode,
-                                      { color: mutedText },
-                                    ]}
-                                  >
-                                    {relatedLine.productCode}
-                                  </Text>
-                                ) : null}
-
-                                {(relatedLine.description1 ||
-                                  relatedLine.description2 ||
-                                  relatedLine.description3) && (
-                                  <View style={styles.lineExtraBlock}>
-                                    {relatedLine.description1 ? (
-                                      <Text
-                                        style={[
-                                          styles.lineExtraText,
-                                          { color: colors.textMuted },
-                                        ]}
-                                        numberOfLines={1}
-                                      >
-                                        Profile: {relatedLine.description1}
-                                      </Text>
-                                    ) : null}
-                                    {relatedLine.description2 ? (
-                                      <Text
-                                        style={[
-                                          styles.lineExtraText,
-                                          { color: colors.textMuted },
-                                        ]}
-                                        numberOfLines={1}
-                                      >
-                                        Demir: {relatedLine.description2}
-                                      </Text>
-                                    ) : null}
-                                    {relatedLine.description3 ? (
-                                      <Text
-                                        style={[
-                                          styles.lineExtraText,
-                                          { color: colors.textMuted },
-                                        ]}
-                                        numberOfLines={1}
-                                      >
-                                        Vida: {relatedLine.description3}
-                                      </Text>
-                                    ) : null}
-                                  </View>
-                                )}
-
-                                <View
-                                  style={[
-                                    styles.lineDetailRowsInset,
-                                    {
-                                      backgroundColor: colors.activeBackground,
-                                      borderColor: innerBorder,
-                                      marginTop: 8,
-                                    },
-                                  ]}
-                                >
-                                  <View style={styles.relatedLineDetailRows}>
-                                  <View style={[styles.linePairRow, { borderBottomColor: innerBorder }]}>
-                                    <View style={styles.lineHalf}>
-                                      <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.quantity")}</Text>
-                                      <Text style={[styles.lineMicroValue, { color: accent }]} numberOfLines={1}>
-                                        {relatedLine.quantity.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                      </Text>
-                                    </View>
-                                    <View style={[styles.lineHalf, styles.lineHalfTrailing]}>
-                                      <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.unitPrice")}</Text>
-                                      <Text style={[styles.lineMicroValue, { color: accent }]} numberOfLines={1}>
-                                        {relatedLine.unitPrice.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                      </Text>
-                                    </View>
-                                  </View>
-                                  <View style={[styles.linePairRow, { borderBottomColor: innerBorder }]}>
-                                    <View style={styles.lineHalf}>
-                                      <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.discount1")}</Text>
-                                      <Text style={[styles.lineMicroValue, { color: colors.textSecondary }]} numberOfLines={2}>
-                                        {relatedLine.discountRate1.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                        % · {relatedLine.discountAmount1.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                      </Text>
-                                    </View>
-                                    <View style={[styles.lineHalf, styles.lineHalfTrailing]}>
-                                      <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.discount2")}</Text>
-                                      <Text style={[styles.lineMicroValue, { color: colors.textSecondary }]} numberOfLines={2}>
-                                        {relatedLine.discountRate2.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                        % · {relatedLine.discountAmount2.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                      </Text>
-                                    </View>
-                                  </View>
-                                  <View style={[styles.linePairRow, { borderBottomColor: innerBorder }]}>
-                                    <View style={styles.lineHalf}>
-                                      <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.discount3")}</Text>
-                                      <Text style={[styles.lineMicroValue, { color: colors.textSecondary }]} numberOfLines={2}>
-                                        {relatedLine.discountRate3.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                        % · {relatedLine.discountAmount3.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                      </Text>
-                                    </View>
-                                    <View style={[styles.lineHalf, styles.lineHalfTrailing]}>
-                                      <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.lineTotal")}</Text>
-                                      <Text style={[styles.lineMicroValue, { color: accent }]} numberOfLines={1}>
-                                        {relatedLine.lineTotal.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                      </Text>
-                                    </View>
-                                  </View>
-                                  <View style={[styles.linePairRow, styles.linePairRowLast, { borderBottomColor: innerBorder }]}>
-                                    <View style={styles.lineHalf}>
-                                      <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.vatRate")}</Text>
-                                      <Text style={[styles.lineMicroValue, { color: titleText }]} numberOfLines={1}>
-                                        {relatedLine.vatRate.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%
-                                      </Text>
-                                    </View>
-                                    <View style={[styles.lineHalf, styles.lineHalfTrailing]}>
-                                      <Text style={[styles.lineMicroLabel, { color: mutedText }]} numberOfLines={1}>{t("quotation.vatAmount")}</Text>
-                                      <Text style={[styles.lineMicroValue, { color: titleText }]} numberOfLines={1}>
-                                        {relatedLine.vatAmount.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                      </Text>
-                                    </View>
-                                  </View>
-                                  </View>
-                                </View>
-
-                                <View style={styles.lineGrandTotalRow}>
-                                  <Text style={[styles.lineGrandTotalLabel, { color: titleText }]}>
-                                    {t("quotation.lineGrandTotalLabel")}:
-                                  </Text>
-                                  <Text style={[styles.lineGrandTotalValue, { color: colors.accent }]}>
-                                    {relatedLine.lineGrandTotal.toLocaleString(
-                                      "tr-TR",
-                                      {
-                                        minimumFractionDigits: 2,
-                                        maximumFractionDigits: 2,
-                                      }
-                                    )}
-                                  </Text>
-                                </View>
+                                {renderLineRow(relatedLine, { related: true })}
                               </View>
                             ))}
                           </View>
-                        )}
+                        ) : null}
                       </View>
-                    </View>
-                  )}
+                    );
+                  }}
+
                 />
               )}
             </View>
@@ -2192,6 +2001,12 @@ export function QuotationCreateScreen(): React.ReactElement {
             pricingRules={pricingRules}
             userDiscountLimits={userDiscountLimits}
             exchangeRates={effectiveRatesForLines}
+          onMultiProductSelect={handleMultiProductSelect}
+          onSaveMultiple={(newLines) => {
+            setLines((prev) => [...prev, ...newLines]);
+            setLineFormVisible(false);
+            setEditingLine(null);
+          }}
           />
 
           <ExchangeRateDialog
@@ -2364,7 +2179,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   dateCell: {
-    borderWidth: 1,
+    borderWidth: 1.3,
     borderRadius: 12,
     minHeight: 40,
     paddingHorizontal: 12,
@@ -2427,20 +2242,22 @@ const styles = StyleSheet.create({
   section: {
     padding: 14,
     borderRadius: 16,
-    borderWidth: 1,
+    borderWidth: 1.35,
     marginBottom: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
   },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     flexWrap: "wrap",
-    marginBottom: 12,
+    marginBottom: 10,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
     gap: 8,
   },
   iconContainer: {
@@ -2464,12 +2281,21 @@ const styles = StyleSheet.create({
     color: "#111827",
   },
   sectionTitle: {
-    fontSize: 13,
+    fontSize: 12.3,
     fontWeight: "700",
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
+    marginBottom: 0,
+    opacity: 0.86,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: "rgba(236,72,153,0.08)",
+  },
+  sectionLeadHeader: {
+    paddingBottom: 10,
     marginBottom: 10,
-    opacity: 0.8,
+    borderBottomWidth: 1,
   },
   fieldContainer: {
     marginBottom: 12,
@@ -2480,7 +2306,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   input: {
-    borderWidth: 1,
+    borderWidth: 1.3,
     borderRadius: 16,
     minHeight: 48,
     paddingHorizontal: 16,
@@ -2496,7 +2322,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   pickerButton: {
-    borderWidth: 1,
+    borderWidth: 1.3,
     borderRadius: 16,
     minHeight: 48,
     paddingHorizontal: 14,
@@ -2507,7 +2333,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   dateButton: {
-    borderWidth: 1,
+    borderWidth: 1.3,
     borderRadius: 16,
     minHeight: 48,
     paddingHorizontal: 14,
@@ -2528,206 +2354,136 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
-  lineCard: {
-    padding: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 6,
-  },
-  lineCardHeader: {
+  lineRow: {
     position: "relative",
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "flex-start",
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 11,
+    paddingTop: 10,
   },
-  lineCardContent: {
-    flex: 1,
-    marginRight: 0,
-    paddingRight: 68,
+  lineRowRelated: {
+    paddingVertical: 8,
+    paddingHorizontal: 9,
+    borderRadius: 12,
   },
-  lineCardTitleRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: 6,
-    marginBottom: 1,
-  },
-  lineProductName: {
-    fontSize: 12,
-    fontWeight: "600",
-    letterSpacing: 0.12,
-    lineHeight: 16,
-    flex: 1,
-  },
-  mainBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  mainBadgeText: {
-    fontSize: 8,
-    fontWeight: "700",
-  },
-  lineProductCode: {
-    fontSize: 9,
-    marginBottom: 2,
-  },
-  lineExtraBlock: {
-    marginBottom: 3,
-    gap: 1,
-  },
-  lineExtraText: {
-    fontSize: 9,
-  },
-  lineDetailRows: {
-    alignSelf: "stretch",
-    width: "100%",
-  },
-  lineDetailRowsInset: {
-    alignSelf: "stretch",
-    width: "100%",
-    borderRadius: 8,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    marginTop: 5,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  linePairRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: 8,
-    paddingVertical: 2,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  linePairRowLast: {
-    borderBottomWidth: 0,
-  },
-  lineHalf: {
+  lineRowMain: {
     flex: 1,
     minWidth: 0,
-    gap: 1,
   },
-  lineHalfTrailing: {
-    alignItems: "flex-end",
+  lineRowMainWithThumb: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
   },
-  lineMicroLabel: {
-    fontSize: 7,
+  lineRowThumb: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+  },
+  lineRowThumbRelated: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+  },
+  lineRowTextBlock: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+    paddingRight: 112,
+  },
+  lineRowTextBlockRelated: {
+    paddingRight: 76,
+  },
+  lineRowTopRight: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    zIndex: 2,
+  },
+  lineRowCode: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.2,
+    paddingRight: 4,
+  },
+  lineRowName: {
+    fontSize: 13,
     fontWeight: "600",
-    letterSpacing: 0.28,
-    textTransform: "uppercase",
+    lineHeight: 17,
+    marginTop: 1,
   },
-  lineMicroValue: {
+  lineRowMainBadge: {
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 5,
+    flexShrink: 0,
+  },
+  lineRowMainBadgeText: {
+    fontSize: 7,
+    fontWeight: "700",
+  },
+  lineRowDesc: {
     fontSize: 9,
     fontWeight: "500",
+    marginTop: 2,
+    opacity: 0.92,
+  },
+  lineRowMeta: {
+    marginTop: 4,
+    fontWeight: "400",
     ...Platform.select({
       ios: { fontVariant: ["tabular-nums"] as const },
       default: {},
     }),
   },
-  lineDetailRow: {
+  lineRowMetaFine: {
+    fontSize: 9,
+    lineHeight: 12.5,
+  },
+  lineRowApproval: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 6,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  lineDetailRowLast: {
-    borderBottomWidth: 0,
-  },
-  lineDetailLabel: {
-    fontSize: 12.5,
-  },
-  lineDetailValue: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  lineGrandTotalRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    gap: 5,
     marginTop: 5,
-    paddingTop: 0,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 8,
+    alignSelf: "flex-start",
   },
-  lineGrandTotalLabel: {
+  lineRowApprovalText: {
     fontSize: 10,
     fontWeight: "600",
   },
-  lineGrandTotalValue: {
-    fontSize: 11,
-    fontWeight: "700",
+  lineIconButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  approvalBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+  relatedLinesBlock: {
     marginTop: 8,
-    alignSelf: "flex-start",
-  },
-  approvalBadgeText: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  lineActions: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    flexDirection: "row",
     gap: 6,
   },
-  editButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  deleteButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  relatedLinesContainer: {
-    marginTop: 6,
-    paddingTop: 6,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
   relatedLinesTitle: {
-    fontSize: 9,
-    fontWeight: "600",
-    marginBottom: 4,
-    letterSpacing: 0.3,
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.35,
     textTransform: "uppercase",
-    opacity: 0.75,
-  },
-  relatedLineCard: {
-    paddingVertical: 6,
-    paddingRight: 6,
-    marginBottom: 4,
-    marginLeft: 6,
-    paddingLeft: 10,
-    borderLeftWidth: 2,
-    borderTopWidth: 0,
-    borderRightWidth: 0,
-    borderBottomWidth: 0,
-    backgroundColor: "transparent",
-  },
-  relatedLineProductName: {
-    fontSize: 11,
-    fontWeight: "600",
+    opacity: 0.72,
     marginBottom: 2,
-    lineHeight: 15,
   },
-  relatedLineProductCode: {
-    fontSize: 9,
-    marginBottom: 4,
-  },
-  relatedLineDetailRows: {
-    alignSelf: "stretch",
-    width: "100%",
-    marginBottom: 4,
+  relatedLineIndent: {
+    paddingLeft: 10,
+    marginLeft: 2,
+    borderLeftWidth: 2,
   },
   currencyHeader: {
     flexDirection: "row",
@@ -2809,7 +2565,7 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   lineCardWrapper: {
-    marginBottom: 6,
+    marginBottom: 8,
   },
   submitRow: {
     flexDirection: "row",
