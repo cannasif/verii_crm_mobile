@@ -15,14 +15,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import * as Sharing from "expo-sharing";
-import {
-  Add01Icon,
-  Edit02Icon,
-  Delete02Icon,
-  Note01Icon,
-  Coins01Icon,
-  File01Icon,
-} from "hugeicons-react-native";
+import { Edit02Icon, Delete02Icon, Coins01Icon, File01Icon } from "hugeicons-react-native";
 
 import { ScreenHeader } from "../../../components/navigation";
 import { Text } from "../../../components/ui/text";
@@ -60,6 +53,8 @@ import { generateTempQuickQuotationReportPdf } from "../utils/generateTempQuickQ
 import { useReportTemplateList } from "../../quotation/hooks/useReportTemplateList";
 import { DocumentRuleType } from "../../quotation/types";
 import { getCurrencyDisplayLabel as getCurrencyDisplayName } from "../../../lib/currencyDisplay";
+import type { ProductSelectionResult } from "../../stocks/types";
+import type { UploadReportAssetOptions } from "../../quotation/api/quotationApi";
 
 function numberValue(value: string): number {
   const parsed = Number(value.replace(",", "."));
@@ -219,6 +214,18 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
   const [lines, setLines] = useState<QuotationLineFormState[]>([]);
   const [editingLine, setEditingLine] = useState<QuotationLineFormState | null>(null);
   const [lineFormVisible, setLineFormVisible] = useState(false);
+
+  const quickQuotationImageUploadExtras = useMemo((): Omit<UploadReportAssetOptions, "assetScope"> | undefined => {
+    if (!isEdit || !editId) return undefined;
+
+    const dbLineId = editingLine?.id?.startsWith("db-") ? toDbLineId(editingLine.id) : null;
+
+    return {
+      tempQuotattionId: editId,
+      tempQuotattionLineId: dbLineId ?? undefined,
+      productCode: editingLine?.productCode || undefined,
+    };
+  }, [isEdit, editId, editingLine?.id, editingLine?.productCode]);
 
   const [exchangeRates, setExchangeRates] = useState<QuotationExchangeRateFormState[]>([]);
 
@@ -586,6 +593,48 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
     });
   }, []);
 
+  const handleMultiProductSelect = useCallback(
+    async (products: ProductSelectionResult[]) => {
+      if (products.length === 0) return [];
+
+      const nextLines = products.map((product, index) =>
+        calculateLineTotals({
+          id: `temp-${Date.now()}-m${index}`,
+          productId: product.id ?? null,
+          productCode: product.code,
+          productName: product.name,
+          groupCode: product.groupCode ?? null,
+          unit: product.unit ?? null,
+          quantity: 1,
+          unitPrice: 0,
+          discountRate1: 0,
+          discountAmount1: 0,
+          discountRate2: 0,
+          discountAmount2: 0,
+          discountRate3: 0,
+          discountAmount3: 0,
+          vatRate: product.vatRate ?? 20,
+          vatAmount: 0,
+          lineTotal: 0,
+          lineGrandTotal: 0,
+          description: null,
+          description1: null,
+          description2: null,
+          description3: null,
+          imagePath: null,
+          erpProjectCode: null,
+          approvalStatus: 0,
+          isEditing: false,
+          relatedStockId: product.id ?? null,
+          relatedProductKey: product.id != null ? `main-${product.id}-m${index}` : null,
+          isMainRelatedProduct: true,
+        })
+      );
+      return nextLines;
+    },
+    []
+  );
+
   const submit = (): void => {
     const resolvedExchangeRate =
       effectiveExchangeRates.find((x) => x.currency === currencyCode)?.exchangeRate ||
@@ -608,7 +657,7 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
     }
 
     if (lines.length === 0) {
-      showError("En az 1 stok satırı eklemelisin");
+      showError("En az bir satır eklemelisin");
       return;
     }
 
@@ -632,6 +681,17 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
   );
   const selectedReportTemplateTitle =
     selectedTemplate?.title?.trim() || "Hızlı teklif şablonu bulunamadı";
+
+  const canAddLine = useMemo(
+    () => Boolean(customerId && String(currencyCode ?? "").trim().length > 0),
+    [customerId, currencyCode]
+  );
+
+  const headerCurrencyLabel = useMemo(() => {
+    const code = String(currencyCode ?? "").trim().toUpperCase();
+    const opt = currencyOptions.find((c) => String(c.code).toUpperCase() === code);
+    return opt?.dovizIsmi?.trim() || getCurrencyDisplayName(currencyCode);
+  }, [currencyOptions, currencyCode]);
 
   useEffect(() => {
     if (selectedTemplateId == null && selectedTemplate?.id != null) {
@@ -782,130 +842,123 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
               />
             </View>
 
-            <View style={styles.sectionHeaderRow}>
-              <View style={styles.sectionHeaderLeft}>
-                <Note01Icon size={18} color={brandColor} variant="stroke" />
-                <Text style={[styles.sectionTitle, { color: textColor }]}>Stok Satırları</Text>
-              </View>
+            <View style={[styles.linesSectionHeader, { borderBottomColor: borderColor }]}>
+              <Text style={[styles.linesSectionTitle, { color: textColor }]}>Satırlar</Text>
               <TouchableOpacity
                 style={[
-                  styles.sectionButton,
-                  {
-                    backgroundColor: isDark
-                      ? "rgba(14, 165, 233, 0.15)"
-                      : "rgba(14, 165, 233, 0.1)",
-                    borderColor: "rgba(14, 165, 233, 0.3)",
-                  },
+                  styles.linesAddButton,
+                  { backgroundColor: colors.accent + "CC" },
+                  !canAddLine && styles.linesAddButtonDisabled,
                 ]}
                 onPress={() => {
                   setEditingLine(null);
                   setLineFormVisible(true);
                 }}
+                disabled={!canAddLine}
+                activeOpacity={0.85}
               >
-                <Add01Icon size={16} color="#0ea5e9" variant="stroke" style={{ marginRight: 4 }} />
-                <Text style={[styles.sectionButtonText, { color: "#0ea5e9" }]}>Stok Ekle</Text>
+                <Text style={styles.linesAddButtonText}>+ Satır Ekle</Text>
               </TouchableOpacity>
             </View>
 
             {lines.length === 0 ? (
-              <View style={[styles.emptyContainer, { borderColor, backgroundColor: cardBg }]}>
-                <Text style={[styles.emptyText, { color: mutedColor }]}>
-                  Henüz stok satırı eklenmedi.
-                </Text>
-              </View>
+              <Text style={[styles.linesEmptyText, { color: mutedColor }]}>Henüz satır eklenmedi</Text>
             ) : (
               <View style={styles.listGroup}>
-                {lines.map((line) => (
-                  <View
-                    key={line.id}
-                    style={[styles.lineCard, { borderColor, backgroundColor: cardBg }]}
-                  >
-                    <Text style={[styles.lineTitle, { color: textColor }]}>
-                      {line.productCode} - {line.productName}
-                    </Text>
-                    {line.imagePath ? (
-                      <Image
-                        source={{ uri: resolveMobileImageUri(line.imagePath) ?? line.imagePath }}
-                        style={styles.linePreviewImage}
-                        resizeMode="cover"
-                      />
-                    ) : null}
-                    <View style={styles.lineDetailsGrid}>
-                      <Text style={[styles.lineText, { color: mutedColor }]}>
-                        Miktar: <Text style={{ color: textColor }}>{line.quantity}</Text>
-                      </Text>
-                      <Text style={[styles.lineText, { color: mutedColor }]}>
-                        Fiyat: <Text style={{ color: textColor }}>{line.unitPrice}</Text>
-                      </Text>
-                      <Text style={[styles.lineText, { color: mutedColor }]}>
-                        Kur: <Text style={{ color: textColor }}>{exchangeRate}</Text>
-                      </Text>
-                      <Text style={[styles.lineText, { color: mutedColor }]}>
-                        İsk. 1: <Text style={{ color: textColor }}>%{line.discountRate1 ?? 0}</Text>
-                      </Text>
-                    </View>
-                    <View style={styles.lineActions}>
-                      <TouchableOpacity
-                        style={[
-                          styles.actionPill,
-                          {
-                            backgroundColor: isDark
-                              ? "rgba(14, 165, 233, 0.1)"
-                              : "rgba(14, 165, 233, 0.08)",
-                            borderColor: "rgba(14, 165, 233, 0.2)",
-                          },
-                        ]}
-                        onPress={() => {
-                          setEditingLine(line);
-                          setLineFormVisible(true);
-                        }}
-                      >
-                        <Edit02Icon
-                          size={16}
-                          color="#0ea5e9"
-                          variant="stroke"
-                          style={{ marginRight: 6 }}
-                        />
-                        <Text style={[styles.actionPillText, { color: "#0ea5e9" }]}>
-                          Düzenle
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[
-                          styles.actionPill,
-                          {
-                            backgroundColor: isDark
-                              ? "rgba(239, 68, 68, 0.1)"
-                              : "rgba(239, 68, 68, 0.08)",
-                            borderColor: "rgba(239, 68, 68, 0.2)",
-                          },
-                        ]}
-                        onPress={() =>
-                          Alert.alert("Sil", "Bu stok satırını silmek istiyor musun?", [
-                            { text: "Vazgeç", style: "cancel" },
+                {lines.map((line) => {
+                  const qty = Number(line.quantity) || 0;
+                  const price = Number(line.unitPrice) || 0;
+                  const qtyStr = qty.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                  const priceStr = price.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                  const disc1 = Number(line.discountRate1 ?? 0) || 0;
+                  return (
+                    <View
+                      key={line.id}
+                      style={[styles.lineRow, { borderColor, backgroundColor: cardBg }]}
+                    >
+                      <View style={styles.lineRowMain}>
+                        {line.imagePath ? (
+                          <Image
+                            source={{ uri: resolveMobileImageUri(line.imagePath) ?? line.imagePath }}
+                            style={styles.lineRowThumb}
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <View style={[styles.lineRowThumbEmpty, { borderColor, backgroundColor: inputBg }]} />
+                        )}
+                        <View style={styles.lineRowTextBlock}>
+                          <Text style={[styles.lineRowCode, { color: mutedColor }]} numberOfLines={1}>
+                            {line.productCode || "—"}
+                          </Text>
+                          <Text style={[styles.lineRowName, { color: textColor }]} numberOfLines={2}>
+                            {line.productName || "—"}
+                          </Text>
+                          <Text style={[styles.lineRowMeta, { color: mutedColor }]} numberOfLines={2}>
+                            <Text style={{ color: textColor, fontWeight: "600" }}>{qtyStr}</Text>
+                            {" adet · "}
+                            <Text style={{ color: textColor, fontWeight: "600" }}>
+                              {priceStr} {headerCurrencyLabel}
+                            </Text>
+                            {" · Kur "}
+                            <Text style={{ color: textColor, fontWeight: "600" }}>{exchangeRate}</Text>
+                            {disc1 > 0 ? (
+                              <>
+                                {" · İsk "}
+                                <Text style={{ color: textColor, fontWeight: "600" }}>%{disc1}</Text>
+                              </>
+                            ) : null}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={styles.lineRowActions}>
+                        <TouchableOpacity
+                          style={[
+                            styles.lineIconButton,
                             {
-                              text: "Sil",
-                              style: "destructive",
-                              onPress: () => handleDeleteLine(line.id),
+                              borderColor: isDark ? "rgba(236,72,153,0.35)" : "rgba(219,39,119,0.22)",
+                              backgroundColor: isDark ? "rgba(236,72,153,0.1)" : "rgba(219,39,119,0.06)",
                             },
-                          ])
-                        }
-                      >
-                        <Delete02Icon
-                          size={16}
-                          color={errorColor}
-                          variant="stroke"
-                          style={{ marginRight: 6 }}
-                        />
-                        <Text style={[styles.actionPillText, { color: errorColor }]}>Sil</Text>
-                      </TouchableOpacity>
+                          ]}
+                          onPress={() => {
+                            setEditingLine(line);
+                            setLineFormVisible(true);
+                          }}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          accessibilityLabel="Satırı düzenle"
+                        >
+                          <Edit02Icon size={18} color={brandColor} variant="stroke" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[
+                            styles.lineIconButton,
+                            {
+                              borderColor: isDark ? "rgba(239,68,68,0.35)" : "rgba(239,68,68,0.22)",
+                              backgroundColor: isDark ? "rgba(239,68,68,0.1)" : "rgba(239,68,68,0.06)",
+                            },
+                          ]}
+                          onPress={() =>
+                            Alert.alert("Sil", "Bu satırı silmek istiyor musun?", [
+                              { text: "Vazgeç", style: "cancel" },
+                              {
+                                text: "Sil",
+                                style: "destructive",
+                                onPress: () => handleDeleteLine(line.id),
+                              },
+                            ])
+                          }
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          accessibilityLabel="Satırı sil"
+                        >
+                          <Delete02Icon size={18} color={errorColor} variant="stroke" />
+                        </TouchableOpacity>
+                      </View>
                     </View>
-                  </View>
-                ))}
+                  );
+                })}
               </View>
             )}
 
-            <View style={styles.sectionHeaderRow}>
+            <View style={[styles.sectionHeaderRow, { borderBottomColor: borderColor }]}>
               <View style={styles.sectionHeaderLeft}>
                 <Coins01Icon size={18} color={brandColor} variant="stroke" />
                 <Text style={[styles.sectionTitle, { color: textColor }]}>Anlık Kur Satırları</Text>
@@ -976,7 +1029,7 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
   </View>
 )}
 
-            <View style={styles.sectionHeaderRow}>
+            <View style={[styles.sectionHeaderRow, { borderBottomColor: borderColor }]}>
               <View style={styles.sectionHeaderLeft}>
                 <File01Icon size={18} color={brandColor} variant="stroke" />
                 <Text style={[styles.sectionTitle, { color: textColor }]}>PDF Çıktısı</Text>
@@ -1200,12 +1253,19 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
           currency={currencyCode}
           allowImageUpload
           imageUploadScope="quick-quotation"
+          imageUploadExtras={quickQuotationImageUploadExtras}
           currencyOptions={(currencyOptions ?? []).map((x) => ({
             code: x.code,
             dovizTipi: x.dovizTipi,
             dovizIsmi: x.dovizIsmi ?? "",
           }))}
           exchangeRates={effectiveLineExchangeRates}
+          onMultiProductSelect={handleMultiProductSelect}
+          onSaveMultiple={(newLines) => {
+            setLines((prev) => [...prev, ...newLines]);
+            setEditingLine(null);
+            setLineFormVisible(false);
+          }}
         />
 
         <PickerModal
@@ -1273,7 +1333,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   input: {
-    borderWidth: 1,
+    borderWidth: 1.3,
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -1283,6 +1343,8 @@ const styles = StyleSheet.create({
   pickerButton: {
     minHeight: 48,
     justifyContent: "center",
+    borderWidth: 1.3,
+    borderRadius: 14,
   },
   pickerText: {
     fontSize: 15,
@@ -1293,7 +1355,7 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
   },
   customerInfoCard: {
-    borderWidth: 1,
+    borderWidth: 1.25,
     borderRadius: 16,
     padding: 16,
     gap: 6,
@@ -1316,6 +1378,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    borderBottomWidth: 1,
+    paddingBottom: 8,
   },
   sectionHeaderLeft: {
     flexDirection: "row",
@@ -1323,23 +1387,56 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   sectionTitle: {
-    fontSize: 15,
+    fontSize: 13.5,
     fontWeight: "700",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: "rgba(236,72,153,0.08)",
   },
-  sectionButton: {
+  linesSectionHeader: {
+    marginTop: 12,
+    marginBottom: 10,
     flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    flexWrap: "wrap",
+    gap: 8,
+    borderBottomWidth: 1,
+    paddingBottom: 8,
   },
-  sectionButtonText: {
-    fontSize: 13,
+  linesSectionTitle: {
+    fontSize: 12.3,
     fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+    opacity: 0.9,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: "rgba(236,72,153,0.08)",
+  },
+  linesAddButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  linesAddButtonDisabled: {
+    opacity: 0.45,
+  },
+  linesAddButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  linesEmptyText: {
+    fontSize: 14,
+    textAlign: "center",
+    paddingVertical: 20,
+    fontWeight: "500",
   },
   emptyContainer: {
-    borderWidth: 1,
+    borderWidth: 1.2,
     borderRadius: 16,
     borderStyle: "dashed",
     padding: 24,
@@ -1351,48 +1448,68 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   listGroup: {
-    gap: 10,
+    gap: 8,
   },
-  lineCard: {
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 16,
-    gap: 10,
-  },
-  lineTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  linePreviewImage: {
-    width: 56,
-    height: 56,
-    borderRadius: 10,
-  },
-  lineDetailsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-  },
-  lineText: {
-    fontSize: 13,
-    minWidth: "45%",
-  },
-  lineActions: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 6,
-  },
-  actionPill: {
+  lineRow: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: 14,
+    paddingVertical: 10,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    gap: 10,
   },
-  actionPillText: {
+  lineRowMain: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    minWidth: 0,
+  },
+  lineRowThumb: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+  },
+  lineRowThumbEmpty: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  lineRowTextBlock: {
+    flex: 1,
+    minWidth: 0,
+  },
+  lineRowCode: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.2,
+    marginBottom: 2,
+  },
+  lineRowName: {
     fontSize: 13,
     fontWeight: "600",
+    lineHeight: 17,
+  },
+  lineRowMeta: {
+    marginTop: 4,
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: "500",
+  },
+  lineRowActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  lineIconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
   exchangeGrid: {
   flexDirection: "row",
