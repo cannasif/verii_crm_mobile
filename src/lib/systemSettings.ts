@@ -19,7 +19,7 @@ export function getSystemLocale(): string {
 }
 
 export function getSystemCurrency(): string {
-  return getSettings().defaultCurrencyCode || "TRY";
+  return "TRY";
 }
 
 export function getSystemTimeZone(): string {

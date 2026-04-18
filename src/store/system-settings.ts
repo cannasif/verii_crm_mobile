@@ -4,11 +4,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { SystemSettingsDto } from "../features/system-settings/api/systemSettingsApi";
 
 const DEFAULT_SYSTEM_SETTINGS: SystemSettingsDto = {
-  defaultLanguage: "tr",
-  defaultCurrencyCode: "TRY",
-  defaultTimeZone: "Europe/Istanbul",
-  dateFormat: "dd.MM.yyyy",
-  timeFormat: "HH:mm",
   numberFormat: "tr-TR",
   decimalPlaces: 2,
   restrictCustomersBySalesRepMatch: false,

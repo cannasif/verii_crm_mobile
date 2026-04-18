@@ -2,11 +2,6 @@ import { apiClient } from "../../../lib/axios";
 import type { ApiResponse } from "../../auth/types";
 
 export interface SystemSettingsDto {
-  defaultLanguage: string;
-  defaultCurrencyCode: string;
-  defaultTimeZone: string;
-  dateFormat: string;
-  timeFormat: string;
   numberFormat: string;
   decimalPlaces: number;
   restrictCustomersBySalesRepMatch: boolean;
