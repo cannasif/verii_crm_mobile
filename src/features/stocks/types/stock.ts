@@ -53,6 +53,9 @@ export interface StockImageDto {
   altText?: string;
   isPrimary: boolean;
   sortOrder: number;
+  stockName?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface StockRelationDto {
