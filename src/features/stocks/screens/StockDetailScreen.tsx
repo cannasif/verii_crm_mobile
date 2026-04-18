@@ -13,8 +13,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { ScreenHeader } from "../../../components/navigation";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
-import { useStock, useStockRelations } from "../hooks";
+import { useStock, useStockImageController, useStockImagesByStock, useStockRelations } from "../hooks";
 import { StockDetailContent } from "../components";
+import { sortStockImagesForDisplay } from "../utils/stockImageSort";
 import {
   Alert02Icon,
   RefreshIcon,
@@ -47,6 +48,52 @@ export function StockDetailScreen(): React.ReactElement {
   const stockId = id ? Number(id) : undefined;
   const { data: stock, isLoading, isError, refetch } = useStock(stockId);
   const { data: relationsData } = useStockRelations({ stockId });
+  const imagesQuery = useStockImagesByStock(stockId);
+  const imageCtrl = useStockImageController({ stockId });
+
+  const sortedStockImages = useMemo(() => {
+    const source =
+      imagesQuery.data !== undefined && imagesQuery.data !== null && !imagesQuery.isError
+        ? imagesQuery.data
+        : stock?.stockImages;
+    return sortStockImagesForDisplay(source);
+  }, [imagesQuery.data, imagesQuery.isError, stock?.stockImages]);
+
+  const {
+    pendingUploadUri,
+    isUploading,
+    isImageMutationPending,
+    onOpenAddImage,
+    onClearPendingUpload,
+    onConfirmPendingUpload,
+    requestDeleteImage,
+    setPrimaryImage,
+  } = imageCtrl;
+
+  const stockImageUpload = useMemo(() => {
+    if (!stock || stockId == null || Number.isNaN(stockId)) return null;
+    return {
+      pendingUploadUri,
+      isUploading,
+      isImageMutationPending,
+      onOpenAddImage,
+      onClearPendingUpload,
+      onConfirmPendingUpload,
+      requestDeleteImage,
+      setPrimaryImage,
+    };
+  }, [
+    onClearPendingUpload,
+    onConfirmPendingUpload,
+    onOpenAddImage,
+    isImageMutationPending,
+    isUploading,
+    pendingUploadUri,
+    requestDeleteImage,
+    setPrimaryImage,
+    stock,
+    stockId,
+  ]);
 
   const relations = useMemo(() => {
     if (
@@ -187,10 +234,13 @@ export function StockDetailScreen(): React.ReactElement {
           ) : stock ? (
             <StockDetailContent
               stock={stock}
+              stockImages={sortedStockImages}
               relations={relations}
               colors={{ ...colors, background: "transparent" }}
               insets={insets}
+              isDark={isDark}
               t={t}
+              imageUpload={stockImageUpload}
             />
           ) : (
             <View style={styles.centerState}>

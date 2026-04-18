@@ -1,10 +1,11 @@
-import React, { useMemo, useCallback, useState } from "react";
+import React, { useMemo, useCallback, useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
   FlatList,
   Image,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { Text } from "../../../components/ui/text";
@@ -13,6 +14,8 @@ import type { StockGetDto, StockRelationDto, StockImageDto } from "../types";
 import {
   PackageIcon,
   Image02Icon,
+  Image01Icon,
+  Add01Icon,
   LinkSquare02Icon,
   Tag01Icon,
   Layers01Icon,
@@ -22,6 +25,8 @@ import {
   CancelCircleIcon,
   Note01Icon,
 } from "hugeicons-react-native";
+import { StockImageUploadPreviewModal } from "./StockImageUploadPreviewModal";
+import { StockImageViewerModal } from "./StockImageViewerModal";
 
 function DetailRow({
   label,
@@ -126,34 +131,43 @@ function SectionHeader({
   );
 }
 
+export interface StockImageUploadActions {
+  pendingUploadUri: string | null;
+  isUploading: boolean;
+  isImageMutationPending: boolean;
+  onOpenAddImage: () => void | Promise<void>;
+  onClearPendingUpload: () => void;
+  onConfirmPendingUpload: () => void;
+  requestDeleteImage: (imageId: number) => void;
+  setPrimaryImage: (imageId: number) => void;
+}
+
 interface StockDetailContentProps {
   stock: StockGetDto | undefined;
+  stockImages: StockImageDto[];
   relations: StockRelationDto[];
   colors: Record<string, string>;
   insets: { bottom: number };
-  t: (key: string) => string;
+  isDark: boolean;
+  t: (key: string, options?: Record<string, string | number>) => string;
+  imageUpload?: StockImageUploadActions | null;
 }
 
 type TabType = "details" | "images" | "relations";
 
 export function StockDetailContent({
   stock,
+  stockImages,
   relations,
   colors,
   insets,
+  isDark,
   t,
+  imageUpload = null,
 }: StockDetailContentProps): React.ReactElement {
   const [activeTab, setActiveTab] = useState<TabType>("details");
-
-  const isDark = useMemo(() => {
-    const bg = String(colors.background ?? "").toLowerCase();
-    return (
-      bg.includes("0") ||
-      bg.includes("1") ||
-      bg.includes("2") ||
-      bg === "transparent"
-    );
-  }, [colors.background]);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
 
   const theme = useMemo(
     () => ({
@@ -191,14 +205,46 @@ export function StockDetailContent({
     [colors]
   );
 
-  const hasImages = useMemo(() => {
-    return Boolean(
-      stock?.stockImages &&
-        Array.isArray(stock.stockImages) &&
-        stock.stockImages.length > 0 &&
-        stock.stockImages.some((img) => img?.filePath)
-    );
-  }, [stock?.stockImages]);
+  const openStockViewer = useCallback((index: number) => {
+    setViewerIndex(index);
+    setViewerOpen(true);
+  }, []);
+
+  useEffect(() => {
+    if (viewerOpen && stockImages.length === 0) {
+      setViewerOpen(false);
+    }
+  }, [stockImages.length, viewerOpen]);
+
+  useEffect(() => {
+    if (viewerOpen && viewerIndex >= stockImages.length && stockImages.length > 0) {
+      setViewerIndex(stockImages.length - 1);
+    }
+  }, [stockImages.length, viewerIndex, viewerOpen]);
+
+  const previewModalTheme = useMemo(
+    () => ({
+      overlay: isDark ? "rgba(2,6,23,0.94)" : "rgba(15,23,42,0.86)",
+      cardBg: isDark ? "#0B1220" : "#FFFFFF",
+      cardBorder: isDark ? "rgba(248,250,252,0.22)" : "rgba(219,39,119,0.28)",
+      previewBg: isDark ? "#020617" : "#EEF2FF",
+      previewBorder: isDark ? "rgba(148,163,184,0.45)" : "rgba(100,116,139,0.45)",
+      text: isDark ? "#F8FAFC" : theme.text,
+      textMuted: isDark ? "#94A3B8" : theme.textMuted,
+      accent: theme.accent,
+      cancelBg: isDark ? "rgba(30,41,59,0.95)" : "#F1F5F9",
+      cancelBorder: isDark ? "rgba(148,163,184,0.35)" : "rgba(148,163,184,0.55)",
+    }),
+    [isDark, theme.accent, theme.text, theme.textMuted]
+  );
+
+  const viewerModalTheme = useMemo(
+    () => ({
+      accent: theme.accent,
+      danger: theme.danger,
+    }),
+    [theme.accent, theme.danger]
+  );
 
   const hasRelations = useMemo(() => {
     return Boolean(Array.isArray(relations) && relations.length > 0);
@@ -229,12 +275,16 @@ export function StockDetailContent({
   }, []);
 
   const renderImageItem = useCallback(
-    (item: StockImageDto): React.ReactElement | null => {
+    (item: StockImageDto, globalIndex: number): React.ReactElement | null => {
       if (!item?.filePath) return null;
       const imageUri = getImageUri(item.filePath);
 
       return (
-        <View
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => {
+            openStockViewer(globalIndex);
+          }}
           style={[
             styles.imageCard,
             {
@@ -243,6 +293,11 @@ export function StockDetailContent({
             },
           ]}
         >
+          {item.isPrimary ? (
+            <View style={[styles.primaryBadge, { backgroundColor: `${theme.accent}E8` }]}>
+              <Text style={styles.primaryBadgeText}>{t("stock.primaryBadge")}</Text>
+            </View>
+          ) : null}
           <Image
             source={{ uri: imageUri }}
             style={styles.image}
@@ -256,10 +311,10 @@ export function StockDetailContent({
               {item.altText || t("stock.image")}
             </Text>
           </View>
-        </View>
+        </TouchableOpacity>
       );
     },
-    [getImageUri, t, theme.cardBg, theme.cardBorder, theme.textMuted]
+    [getImageUri, openStockViewer, t, theme.accent, theme.cardBg, theme.cardBorder, theme.textMuted]
   );
 
   const renderRelation = useCallback(
@@ -670,36 +725,93 @@ export function StockDetailContent({
   }, [stock, insets, t, formatDate, theme, isDark]);
 
   const renderImagesTab = useCallback((): React.ReactElement => {
-    if (!hasImages || !stock?.stockImages) {
+    const uploadBusy = imageUpload ? imageUpload.isUploading || imageUpload.isImageMutationPending : false;
+    const panelBg = isDark ? "rgba(15,23,42,0.88)" : "#FFFFFF";
+    const panelBorder = isDark ? "rgba(248,250,252,0.14)" : "rgba(219,39,119,0.22)";
+    const addBtnBg = isDark ? "rgba(219,39,119,0.18)" : "rgba(219,39,119,0.1)";
+    const addBtnBorder = isDark ? "rgba(244,114,182,0.45)" : `${theme.accent}55`;
+    const addLabelColor = isDark ? "#F8FAFC" : "#0F172A";
+    const addIconColor = theme.accent;
+
+    const uploadBar =
+      imageUpload && stock ? (
+        <TouchableOpacity
+          activeOpacity={0.78}
+          disabled={uploadBusy}
+          onPress={() => {
+            void imageUpload.onOpenAddImage();
+          }}
+          style={[
+            styles.imageUploadPrimaryBtn,
+            {
+              backgroundColor: addBtnBg,
+              borderColor: addBtnBorder,
+              opacity: uploadBusy ? 0.55 : 1,
+            },
+          ]}
+        >
+          <View style={styles.imageUploadPrimaryInner}>
+            {imageUpload.isUploading ? (
+              <ActivityIndicator size="small" color={addIconColor} />
+            ) : (
+              <Add01Icon size={20} color={addIconColor} variant="stroke" />
+            )}
+            <Image01Icon size={18} color={addIconColor} variant="stroke" />
+            <Text style={[styles.imageUploadPrimaryLabel, { color: addLabelColor }]} numberOfLines={1}>
+              {t("stock.addImage")}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      ) : null;
+
+    const images = stockImages.filter((img) => !!img?.filePath);
+
+    if (images.length === 0) {
       return (
-        <View style={styles.emptyContainer}>
+        <FlatListScrollView
+          style={styles.tabContent}
+          contentContainerStyle={[styles.contentContainer, { paddingBottom: insets.bottom + 110 }]}
+          showsVerticalScrollIndicator={false}
+        >
           <View
             style={[
-              styles.emptyCard,
+              styles.imagesTabPanel,
               {
-                backgroundColor: theme.cardBg,
-                borderColor: theme.cardBorder,
+                backgroundColor: panelBg,
+                borderColor: panelBorder,
               },
             ]}
           >
+            {uploadBar}
+          </View>
+          <View style={styles.emptyContainer}>
             <View
               style={[
-                styles.emptyIconWrap,
+                styles.emptyCard,
                 {
-                  backgroundColor: `${theme.accent}10`,
-                  borderColor: `${theme.accent}20`,
+                  backgroundColor: theme.cardBg,
+                  borderColor: theme.cardBorder,
                 },
               ]}
             >
-              <Image02Icon size={18} color={theme.accent} variant="stroke" />
+              <View
+                style={[
+                  styles.emptyIconWrap,
+                  {
+                    backgroundColor: `${theme.accent}10`,
+                    borderColor: `${theme.accent}20`,
+                  },
+                ]}
+              >
+                <Image02Icon size={18} color={theme.accent} variant="stroke" />
+              </View>
+              <Text style={[styles.emptyText, { color: theme.textMuted }]}>{t("stock.noImages")}</Text>
             </View>
-            <Text style={[styles.emptyText, { color: theme.textMuted }]}>{t("stock.noImages")}</Text>
           </View>
-        </View>
+        </FlatListScrollView>
       );
     }
 
-    const images = stock.stockImages.filter((img) => !!img?.filePath);
     const rows: StockImageDto[][] = [];
     for (let i = 0; i < images.length; i += 2) {
       rows.push(images.slice(i, i + 2));
@@ -711,17 +823,31 @@ export function StockDetailContent({
         contentContainerStyle={[styles.contentContainer, { paddingBottom: insets.bottom + 110 }]}
         showsVerticalScrollIndicator={false}
       >
+        <View
+          style={[
+            styles.imagesTabPanel,
+            {
+              backgroundColor: panelBg,
+              borderColor: panelBorder,
+            },
+          ]}
+        >
+          {uploadBar}
+        </View>
         {rows.map((row, rowIndex) => (
           <View key={rowIndex} style={styles.imageRow}>
-            {row.map((item) => (
-              <React.Fragment key={item.id}>{renderImageItem(item)}</React.Fragment>
-            ))}
+            {row.map((item, colIdx) => {
+              const globalIndex = rowIndex * 2 + colIdx;
+              return (
+                <React.Fragment key={item.id}>{renderImageItem(item, globalIndex)}</React.Fragment>
+              );
+            })}
             {row.length === 1 ? <View style={styles.imageCardGhost} /> : null}
           </View>
         ))}
       </FlatListScrollView>
     );
-  }, [hasImages, stock?.stockImages, insets.bottom, renderImageItem, t, theme]);
+  }, [imageUpload, insets.bottom, isDark, renderImageItem, stock, stockImages, t, theme]);
 
   const renderRelationsTab = useCallback((): React.ReactElement => {
     if (!hasRelations) {
@@ -789,16 +915,17 @@ export function StockDetailContent({
   ];
 
   return (
-    <View style={styles.container}>
-      <View
-        style={[
-          styles.tabShell,
-          {
-            backgroundColor: theme.cardBg,
-            borderBottomColor: theme.cardBorder,
-          },
-        ]}
-      >
+    <>
+      <View style={styles.container}>
+        <View
+          style={[
+            styles.tabShell,
+            {
+              backgroundColor: theme.cardBg,
+              borderBottomColor: theme.cardBorder,
+            },
+          ]}
+        >
         <View style={styles.tabBar}>
           {tabs.map((tab) => {
             const isActive = activeTab === tab.key;
@@ -850,8 +977,39 @@ export function StockDetailContent({
         </View>
       </View>
 
-      {renderTabContent()}
-    </View>
+        {renderTabContent()}
+      </View>
+
+      {imageUpload ? (
+        <StockImageUploadPreviewModal
+          visible={Boolean(imageUpload.pendingUploadUri)}
+          uri={imageUpload.pendingUploadUri ?? ""}
+          isUploading={imageUpload.isUploading}
+          onClose={imageUpload.onClearPendingUpload}
+          onConfirm={imageUpload.onConfirmPendingUpload}
+          t={t}
+          theme={previewModalTheme}
+        />
+      ) : null}
+
+      {imageUpload ? (
+        <StockImageViewerModal
+          visible={viewerOpen && stockImages.length > 0}
+          images={stockImages.filter((img) => !!img?.filePath)}
+          initialIndex={viewerIndex}
+          onClose={() => {
+            setViewerOpen(false);
+          }}
+          getImageUri={getImageUri}
+          onRequestDelete={imageUpload.requestDeleteImage}
+          onSetPrimary={imageUpload.setPrimaryImage}
+          isMutationPending={imageUpload.isImageMutationPending}
+          isDark={isDark}
+          t={t}
+          theme={viewerModalTheme}
+        />
+      ) : null}
+    </>
   );
 }
 
@@ -1129,6 +1287,53 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
 
+  imagesTabPanel: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 12,
+    marginBottom: 14,
+  },
+
+  imageUploadPrimaryBtn: {
+    borderRadius: 16,
+    borderWidth: 1.5,
+    minHeight: 52,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+
+  imageUploadPrimaryInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    justifyContent: "center",
+  },
+
+  imageUploadPrimaryLabel: {
+    fontSize: 15,
+    fontWeight: "800",
+    flexShrink: 1,
+    letterSpacing: -0.2,
+  },
+
+  primaryBadge: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    zIndex: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+
+  primaryBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "800",
+  },
+
   imageRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -1141,6 +1346,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     overflow: "hidden",
+    position: "relative",
   },
 
   imageCardGhost: {
