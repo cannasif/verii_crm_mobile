@@ -64,6 +64,7 @@
           "domains": [
             "crmapi.v3rii.com",
             "crm.v3rii.com",
+            "crmapi.windoform.com",
             "cloud.windoform.com",
             "192.168.10.52",
             "localhost",
