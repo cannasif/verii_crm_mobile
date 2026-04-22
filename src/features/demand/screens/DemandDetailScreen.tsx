@@ -9,6 +9,7 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from "react-native";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { resolveDocumentSerialCustomerTypeId } from "@/lib/resolve-document-serial-customer-type-id";
@@ -87,6 +88,18 @@ import {
   totalsFromDetailLines,
 } from "../utils";
 import { calculateLineTotals, calculateTotals } from "../utils";
+import { getApiBaseUrl } from "../../../constants/config";
+
+function resolveMobileImageUri(path?: string | null): string | null {
+  if (!path) return null;
+  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("file://")) {
+    return path;
+  }
+  if (path.startsWith("/")) {
+    return `${getApiBaseUrl()}${path}`;
+  }
+  return path;
+}
 
 export function DemandDetailScreen(): React.ReactElement {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -1119,6 +1132,13 @@ export function DemandDetailScreen(): React.ReactElement {
                       ]}
                     >
                       <View style={styles.lineCardHeader}>
+                        {line.imagePath ? (
+                          <Image
+                            source={{ uri: resolveMobileImageUri(line.imagePath) ?? line.imagePath }}
+                            style={styles.lineCardThumb}
+                            resizeMode="cover"
+                          />
+                        ) : null}
                         <View style={styles.lineCardContent}>
                           <View style={styles.lineCardTitleRow}>
                             <Text style={[styles.lineProductName, { color: colors.text }]} numberOfLines={2}>
@@ -1598,6 +1618,7 @@ const styles = StyleSheet.create({
   lineCardWrapper: { marginBottom: 12 },
   lineCard: { padding: 16, borderRadius: 12, borderWidth: 1 },
   lineCardHeader: { flexDirection: "row", justifyContent: "space-between" },
+  lineCardThumb: { width: 56, height: 56, borderRadius: 10, marginRight: 12 },
   lineCardContent: { flex: 1, marginRight: 12 },
   lineCardTitleRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 4 },
   lineProductName: { fontSize: 15, fontWeight: "600", flex: 1 },
