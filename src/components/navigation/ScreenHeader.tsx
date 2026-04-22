@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { View, StyleSheet, Pressable, Platform } from "react-native";
 import { useRouter, usePathname } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -33,6 +33,8 @@ export function ScreenHeader({
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const backNavigationLockRef = useRef(false);
+  const backNavigationUnlockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { themeMode, colors, openSidebar } = useUIStore();
   const isDark = themeMode === "dark";
@@ -51,18 +53,42 @@ export function ScreenHeader({
     return pathname === route || pathname.startsWith(`${route}/index`);
   });
 
+  useEffect(() => {
+    return () => {
+      if (backNavigationUnlockTimerRef.current) {
+        clearTimeout(backNavigationUnlockTimerRef.current);
+      }
+    };
+  }, []);
+
   const handleLeftAction = useCallback(() => {
-    if (!showBackButton) {
-      openSidebar();
-      return;
+    if (backNavigationLockRef.current) return;
+
+    backNavigationLockRef.current = true;
+
+    if (backNavigationUnlockTimerRef.current) {
+      clearTimeout(backNavigationUnlockTimerRef.current);
     }
 
-    if (router.canGoBack() && !isMenuRootPage) {
-      router.back();
-      return;
-    }
+    backNavigationUnlockTimerRef.current = setTimeout(() => {
+      backNavigationLockRef.current = false;
+    }, 450);
 
-    router.replace(homeRoute);
+    const executeNavigation = () => {
+      if (!showBackButton) {
+        openSidebar();
+        return;
+      }
+
+      if (router.canGoBack() && !isMenuRootPage) {
+        router.back();
+        return;
+      }
+
+      router.replace(homeRoute);
+    };
+
+    requestAnimationFrame(executeNavigation);
   }, [showBackButton, openSidebar, router, isMenuRootPage, homeRoute]);
 
   return (
