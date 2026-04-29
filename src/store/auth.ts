@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { storage } from "../lib/storage";
-import type { User, Branch } from "../features/auth/types";
-import { ACCESS_TOKEN_KEY, USER_STORAGE_KEY, BRANCH_STORAGE_KEY } from "../constants/storage";
+import type { User, Branch, MyPermissionsDto } from "../features/auth/types";
+import { ACCESS_TOKEN_KEY, USER_STORAGE_KEY, BRANCH_STORAGE_KEY, PERMISSIONS_STORAGE_KEY } from "../constants/storage";
 import { isTokenValid, getUserFromToken } from "../features/auth/utils";
 import { perfMark, perfMeasure } from "../lib/perf-metrics";
 
@@ -9,10 +9,12 @@ interface AuthState {
   user: User | null;
   token: string | null;
   branch: Branch | null;
+  permissions: MyPermissionsDto | null;
   isAuthenticated: boolean;
   isHydrated: boolean;
   setAuth: (token: string) => Promise<void>;
   setBranch: (branch: Branch) => Promise<void>;
+  setPermissions: (permissions: MyPermissionsDto | null) => Promise<void>;
   clearAuth: () => Promise<void>;
   hydrate: () => Promise<void>;
   hydrateBranch: () => Promise<Branch | null>;
@@ -24,6 +26,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   token: null,
   branch: null,
+  permissions: null,
   isAuthenticated: false,
   isHydrated: false,
 
@@ -43,12 +46,22 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ branch });
   },
 
+  setPermissions: async (permissions: MyPermissionsDto | null): Promise<void> => {
+    if (permissions) {
+      await storage.set(PERMISSIONS_STORAGE_KEY, permissions);
+    } else {
+      await storage.remove(PERMISSIONS_STORAGE_KEY);
+    }
+    set({ permissions });
+  },
+
   clearAuth: async (): Promise<void> => {
     await storage.remove(ACCESS_TOKEN_KEY);
     await storage.remove(USER_STORAGE_KEY);
     await storage.remove(BRANCH_STORAGE_KEY);
+    await storage.remove(PERMISSIONS_STORAGE_KEY);
     branchHydrationPromise = null;
-    set({ user: null, token: null, branch: null, isAuthenticated: false });
+    set({ user: null, token: null, branch: null, permissions: null, isAuthenticated: false });
   },
 
   hydrateBranch: async (): Promise<Branch | null> => {
@@ -98,6 +111,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       );
 
       if (token && isTokenValid(token)) {
+        const permissions = await storage.get<MyPermissionsDto>(PERMISSIONS_STORAGE_KEY);
         perfMark("auth:user_decode_start");
         const user = getUserFromToken(token);
         perfMark("auth:user_decode_end");
@@ -106,6 +120,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           set({
             user,
             token,
+            permissions,
             isAuthenticated: true,
             isHydrated: true,
           });
@@ -118,6 +133,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       await storage.remove(ACCESS_TOKEN_KEY);
       await storage.remove(USER_STORAGE_KEY);
+      await storage.remove(PERMISSIONS_STORAGE_KEY);
       perfMark("auth:storage_branch_get_start");
       const branch = await storage.get<Branch>(BRANCH_STORAGE_KEY);
       perfMark("auth:storage_branch_get_end");
@@ -126,7 +142,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         "auth:storage_branch_get_start",
         "auth:storage_branch_get_end",
       );
-      set({ isHydrated: true, branch });
+      set({ isHydrated: true, branch, permissions: null });
     } catch {
       set({ isHydrated: true });
     }

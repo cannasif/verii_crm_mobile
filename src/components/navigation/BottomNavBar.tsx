@@ -5,6 +5,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { Text } from "../ui/text";
 import { useUIStore } from "../../store/ui";
+import { useAuthStore } from "../../store/auth";
+import { hasAnyPermission } from "../../features/access-control/utils/hasPermission";
 import Svg, { Path } from "react-native-svg";
 import {
   PackageIcon,
@@ -29,13 +31,14 @@ interface NavItem {
   key: string;
   icon: React.FC<HugeiconsProps>;
   route: string;
+  permissionCodes?: string[];
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { key: "stock", icon: PackageIcon, route: "/(tabs)/stock" },
-  { key: "customers", icon: UserGroupIcon, route: "/(tabs)/customers" },
-  { key: "sales", icon: Money03Icon, route: "/(tabs)/sales" },
-  { key: "activities", icon: Calendar03Icon, route: "/(tabs)/activities" },
+  { key: "stock", icon: PackageIcon, route: "/(tabs)/stock", permissionCodes: ["stock.stocks.view"] },
+  { key: "customers", icon: UserGroupIcon, route: "/(tabs)/customers", permissionCodes: ["customers.customer-management.view", "customers.contact-management.view", "customers.customer-type-management.view", "customers.erp-customers.view", "definitions.shipping-address-management.view"] },
+  { key: "sales", icon: Money03Icon, route: "/(tabs)/sales", permissionCodes: ["sales.quotations.view", "sales.orders.view", "sales.demands.view"] },
+  { key: "activities", icon: Calendar03Icon, route: "/(tabs)/activities", permissionCodes: ["activity.activity-management.view", "activity.daily-tasks.view"] },
 ];
 
 export function BottomNavBar(): React.ReactElement {
@@ -44,6 +47,7 @@ export function BottomNavBar(): React.ReactElement {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const { colors, themeMode } = useUIStore();
+  const permissions = useAuthStore((state) => state.permissions);
 
   const { width, height } = useWindowDimensions();
 
@@ -72,6 +76,30 @@ export function BottomNavBar(): React.ReactElement {
   const isActive = (route: string): boolean => {
     return pathname === route || pathname.startsWith(route.replace("/(tabs)", ""));
   };
+
+  const visibleNavItems = React.useMemo(
+    () =>
+      NAV_ITEMS.filter((item) =>
+        !item.permissionCodes || item.permissionCodes.length === 0
+          ? true
+          : hasAnyPermission(permissions, item.permissionCodes),
+      ),
+    [permissions],
+  );
+
+  const canCreateCustomer = hasAnyPermission(permissions, ["customers.customer-management.view"]);
+  const canOpenSalesActions = hasAnyPermission(permissions, [
+    "sales.quotations.create",
+    "sales.orders.create",
+    "sales.demands.create",
+  ]);
+  const canCreateActivity = hasAnyPermission(permissions, ["activity.activity-management.view"]);
+  const visibleRadialActionCount = [
+    canCreateCustomer,
+    canCreateCustomer,
+    canOpenSalesActions,
+    canCreateActivity,
+  ].filter(Boolean).length;
 
   const handlePress = (route: string): void => {
     setIsMenuOpen(false);
@@ -108,15 +136,16 @@ export function BottomNavBar(): React.ReactElement {
       pointerEvents="box-none"
     >
       
-      {isMenuOpen && (
+      {isMenuOpen && visibleRadialActionCount > 0 && (
         <Pressable
           style={[styles.backdrop, { backgroundColor: THEME.backdropBg }]}
           onPress={() => setIsMenuOpen(false)}
         />
       )}
 
-      {isMenuOpen && (
+      {isMenuOpen && visibleRadialActionCount > 0 && (
         <View style={[styles.radialWrapper, { bottom: safeBottom + 70, left: (width - 290) / 2 }]} pointerEvents="box-none">
+          {canCreateCustomer ? (
           <View style={[styles.iconPos, { left: 15, top: 70 }]} pointerEvents="box-none">
             <Pressable style={({ pressed }) => [styles.btnBase, pressed && styles.btnPressed]} onPress={() => handlePress("/customers/create?autoScan=true")}>
               <View style={[styles.miniCircle, { backgroundColor: THEME.iconBg, borderColor: THEME.iconBorder }]}>
@@ -124,7 +153,9 @@ export function BottomNavBar(): React.ReactElement {
               </View>
             </Pressable>
           </View>
+          ) : null}
 
+          {canCreateCustomer ? (
           <View style={[styles.iconPos, { left: 55, top: 25 }]} pointerEvents="box-none">
             <Pressable style={({ pressed }) => [styles.btnBase, pressed && styles.btnPressed]} onPress={() => handlePress("/customers/create")}>
               <View style={[styles.miniCircle, { backgroundColor: THEME.iconBg, borderColor: THEME.iconBorder }]}>
@@ -132,6 +163,7 @@ export function BottomNavBar(): React.ReactElement {
               </View>
             </Pressable>
           </View>
+          ) : null}
 
           <View style={[styles.iconPos, { left: 117, top: 0 }]} pointerEvents="box-none">
             <Pressable style={({ pressed }) => [styles.btnBase, pressed && styles.btnPressed]} onPress={() => handlePress("/(tabs)")}>
@@ -141,6 +173,7 @@ export function BottomNavBar(): React.ReactElement {
             </Pressable>
           </View>
 
+          {canOpenSalesActions ? (
           <View style={[styles.iconPos, { left: 185, top: 25 }]} pointerEvents="box-none">
             <Pressable style={({ pressed }) => [styles.btnBase, pressed && styles.btnPressed]} onPress={() => setIsSalesActionSheetOpen(true)}>
               <View style={[styles.miniCircle, { backgroundColor: THEME.iconBg, borderColor: THEME.iconBorder }]}>
@@ -148,7 +181,9 @@ export function BottomNavBar(): React.ReactElement {
               </View>
             </Pressable>
           </View>
+          ) : null}
 
+          {canCreateActivity ? (
           <View style={[styles.iconPos, { left: 225, top: 70 }]} pointerEvents="box-none">
             <Pressable style={({ pressed }) => [styles.btnBase, pressed && styles.btnPressed]} onPress={() => handlePress("/(tabs)/activities/create")}>
               <View style={[styles.miniCircle, { backgroundColor: THEME.iconBg, borderColor: THEME.iconBorder }]}>
@@ -156,6 +191,7 @@ export function BottomNavBar(): React.ReactElement {
               </View>
             </Pressable>
           </View>
+          ) : null}
 
         </View>
       )}
@@ -170,7 +206,7 @@ export function BottomNavBar(): React.ReactElement {
         <View style={[styles.tabsContent, { paddingBottom: safeBottom }]} pointerEvents="box-none">
           
           <View style={styles.tabsGroup}>
-            {NAV_ITEMS.slice(0, 2).map((item) => {
+            {visibleNavItems.slice(0, 2).map((item) => {
               const active = isActive(item.route);
               return (
                 <TouchableOpacity key={item.key} style={styles.navTab} activeOpacity={0.6} onPress={() => handlePress(item.route)}>
@@ -193,7 +229,7 @@ export function BottomNavBar(): React.ReactElement {
           <View style={styles.centerHoleSpace} />
 
           <View style={styles.tabsGroup}>
-            {NAV_ITEMS.slice(2, 4).map((item) => {
+            {visibleNavItems.slice(2, 4).map((item) => {
               const active = isActive(item.route);
               return (
                 <TouchableOpacity key={item.key} style={styles.navTab} activeOpacity={0.6} onPress={() => handlePress(item.route)}>
@@ -228,7 +264,12 @@ export function BottomNavBar(): React.ReactElement {
             borderColor: isDark ? "transparent" : "#FF0066" 
           }
         ]}
-        onPress={() => setIsMenuOpen(!isMenuOpen)}
+        onPress={() => {
+          if (visibleRadialActionCount === 0) {
+            return;
+          }
+          setIsMenuOpen(!isMenuOpen);
+        }}
         activeOpacity={0.9}
       >
         {isMenuOpen ? (
@@ -241,7 +282,7 @@ export function BottomNavBar(): React.ReactElement {
         )}
       </TouchableOpacity>
 
-      <Modal visible={isSalesActionSheetOpen} transparent animationType="slide" onRequestClose={() => setIsSalesActionSheetOpen(false)}>
+      <Modal visible={isSalesActionSheetOpen && canOpenSalesActions} transparent animationType="slide" onRequestClose={() => setIsSalesActionSheetOpen(false)}>
         <View style={styles.sheetOverlay}>
           <Pressable style={StyleSheet.absoluteFill} onPress={() => setIsSalesActionSheetOpen(false)} />
           <View style={[styles.sheetContent, { backgroundColor: THEME.sheetBg, paddingBottom: safeBottom + 20 }]}>
@@ -253,6 +294,7 @@ export function BottomNavBar(): React.ReactElement {
             </View>
 
             <View style={styles.sheetOptions}>
+              {hasAnyPermission(permissions, ["sales.quotations.create"]) ? (
               <TouchableOpacity style={[styles.sheetOptionBtn, { borderBottomColor: THEME.sheetBorder }]} onPress={() => handleSalesActionPress("/(tabs)/sales/quotations/create")} activeOpacity={0.7}>
                 <View style={[styles.sheetIconBox, { backgroundColor: isDark ? 'rgba(219,39,119,0.15)' : '#FFF1F2' }]}>
                   <Invoice01Icon size={24} color={THEME.active} variant="stroke" strokeWidth={1.8} />
@@ -263,7 +305,9 @@ export function BottomNavBar(): React.ReactElement {
                 </View>
                 <ArrowRight01Icon size={20} color={THEME.textMute} strokeWidth={1.5} />
               </TouchableOpacity>
+              ) : null}
 
+              {hasAnyPermission(permissions, ["sales.orders.create"]) ? (
               <TouchableOpacity style={[styles.sheetOptionBtn, { borderBottomColor: THEME.sheetBorder }]} onPress={() => handleSalesActionPress("/(tabs)/sales/orders/create")} activeOpacity={0.7}>
                 <View style={[styles.sheetIconBox, { backgroundColor: isDark ? 'rgba(219,39,119,0.15)' : '#FFF1F2' }]}>
                   <ShoppingBag01Icon size={24} color={THEME.active} variant="stroke" strokeWidth={1.8} />
@@ -274,7 +318,9 @@ export function BottomNavBar(): React.ReactElement {
                 </View>
                 <ArrowRight01Icon size={20} color={THEME.textMute} strokeWidth={1.5} />
               </TouchableOpacity>
+              ) : null}
 
+              {hasAnyPermission(permissions, ["sales.demands.create"]) ? (
               <TouchableOpacity style={[styles.sheetOptionBtn, { borderBottomColor: "transparent" }]} onPress={() => handleSalesActionPress("/(tabs)/sales/demands/create")} activeOpacity={0.7}>
                 <View style={[styles.sheetIconBox, { backgroundColor: isDark ? 'rgba(219,39,119,0.15)' : '#FFF1F2' }]}>
                   <NoteIcon size={24} color={THEME.active} variant="stroke" strokeWidth={1.8} />
@@ -285,6 +331,7 @@ export function BottomNavBar(): React.ReactElement {
                 </View>
                 <ArrowRight01Icon size={20} color={THEME.textMute} strokeWidth={1.5} />
               </TouchableOpacity>
+              ) : null}
             </View>
 
           </View>

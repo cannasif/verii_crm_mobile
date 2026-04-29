@@ -19,6 +19,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Text } from "../ui/text";
 import { useUIStore } from "../../store/ui";
 import { useAuthStore } from "../../store/auth";
+import { hasAnyPermission } from "../../features/access-control/utils/hasPermission";
 
 import { 
   Cancel01Icon,
@@ -53,7 +54,7 @@ export function Sidebar(): React.ReactElement {
   const insets = useSafeAreaInsets();
   
   const { colors, isSidebarOpen, closeSidebar, themeMode } = useUIStore();
-  const { clearAuth } = useAuthStore();
+  const permissions = useAuthStore((state) => state.permissions);
 
   const isAuthScreen = pathname.includes("/(auth)") || pathname === "/login";
 
@@ -65,25 +66,47 @@ export function Sidebar(): React.ReactElement {
   const HEADER_COLOR = themeMode === "dark" ? "#f472b6" : "#be185d";
 
   const MENU_ITEMS = [
-    { key: "home", title: t("nav.home"), icon: DashboardSquare01Icon, route: "/(tabs)" },
+    { key: "home", title: t("nav.home"), icon: DashboardSquare01Icon, route: "/(tabs)", permissionCodes: ["dashboard.view"] },
     { key: "cust_header", title: t("customerMenu.title"), isHeader: true },
-    { key: "customers", title: t("customerMenu.customers"), icon: UserGroupIcon, route: "/customers" },
-    { key: "contacts", title: t("customerMenu.contacts"), icon: ContactIcon, route: "/customers/contacts" },
-    { key: "shipping", title: t("customerMenu.shippingAddresses"), icon: TruckIcon, route: "/customers/shipping" },
-    { key: "titles", title: t("customerMenu.titles"), icon: LicenseIcon, route: "/customers/titles" },
-    { key: "erp", title: t("customerMenu.erpCustomers"), icon: Globe02Icon, route: "/customers/erp" },
+    { key: "customers", title: t("customerMenu.customers"), icon: UserGroupIcon, route: "/customers", permissionCodes: ["customers.customer-management.view"] },
+    { key: "contacts", title: t("customerMenu.contacts"), icon: ContactIcon, route: "/customers/contacts", permissionCodes: ["customers.contact-management.view"] },
+    { key: "shipping", title: t("customerMenu.shippingAddresses"), icon: TruckIcon, route: "/customers/shipping", permissionCodes: ["definitions.shipping-address-management.view"] },
+    { key: "titles", title: t("customerMenu.titles"), icon: LicenseIcon, route: "/customers/titles", permissionCodes: ["customers.customer-type-management.view"] },
+    { key: "erp", title: t("customerMenu.erpCustomers"), icon: Globe02Icon, route: "/customers/erp", permissionCodes: ["customers.erp-customers.view"] },
     { key: "sales_header", title: t("modules.sales"), isHeader: true },
-    { key: "orders", title: t("sales.orderList"), icon: ShoppingCart01Icon, route: "/sales/orders" },
-    { key: "quotations", title: t("sales.quotationList"), icon: Invoice01Icon, route: "/sales/quotations" },
-    { key: "demands", title: t("sales.demandList"), icon: Note01Icon, route: "/sales/demands" },
+    { key: "orders", title: t("sales.orderList"), icon: ShoppingCart01Icon, route: "/sales/orders", permissionCodes: ["sales.orders.view"] },
+    { key: "quotations", title: t("sales.quotationList"), icon: Invoice01Icon, route: "/sales/quotations", permissionCodes: ["sales.quotations.view"] },
+    { key: "demands", title: t("sales.demandList"), icon: Note01Icon, route: "/sales/demands", permissionCodes: ["sales.demands.view"] },
     { key: "stock_header", title: t("stockMenu.title"), isHeader: true },
-    { key: "stocks", title: t("stockMenu.stockMovements"), icon: PackageIcon, route: "/stock" },
+    { key: "stocks", title: t("stockMenu.stockMovements"), icon: PackageIcon, route: "/stock", permissionCodes: ["stock.stocks.view"] },
     { key: "act_header", title: t("activityMenu.title"), isHeader: true },
-    { key: "activities", title: t("activityMenu.activities"), icon: Calendar03Icon, route: "/activities/list" },
-    { key: "dailytasks", title: t("activityMenu.dailyTasks"), icon: TaskDaily01Icon, route: "/activities/daily-tasks" },
+    { key: "activities", title: t("activityMenu.activities"), icon: Calendar03Icon, route: "/activities/list", permissionCodes: ["activity.activity-management.view"] },
+    { key: "dailytasks", title: t("activityMenu.dailyTasks"), icon: TaskDaily01Icon, route: "/activities/daily-tasks", permissionCodes: ["activity.daily-tasks.view"] },
     { key: "settings_header", title: t("common.settings"), isHeader: true },
     { key: "settings", title: t("common.settings"), icon: Settings01Icon, route: "/settings" },
   ];
+
+  const visibleMenuItems = React.useMemo(() => {
+    const isVisible = (item: (typeof MENU_ITEMS)[number]): boolean => {
+      if (item.isHeader) return true;
+      if (!item.permissionCodes || item.permissionCodes.length === 0) return true;
+      return hasAnyPermission(permissions, item.permissionCodes);
+    };
+
+    return MENU_ITEMS.filter((item, index) => {
+      if (!item.isHeader) {
+        return isVisible(item);
+      }
+
+      for (let cursor = index + 1; cursor < MENU_ITEMS.length; cursor += 1) {
+        const nextItem = MENU_ITEMS[cursor];
+        if (nextItem.isHeader) break;
+        if (isVisible(nextItem)) return true;
+      }
+
+      return false;
+    });
+  }, [MENU_ITEMS, permissions]);
 
   useEffect(() => {
     Animated.parallel([
@@ -188,7 +211,7 @@ export function Sidebar(): React.ReactElement {
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {MENU_ITEMS.map((item, index) => {
+            {visibleMenuItems.map((item, index) => {
               if (item.isHeader) {
                 return (
                   <Text

@@ -92,6 +92,12 @@
     "newest": "Newest",
     "oldest": "Oldest"
   },
+  "permissions": {
+    "title": "Permission Control",
+    "accessDeniedTitle": "You do not have access to this screen",
+    "accessDeniedMessage": "Your account does not have the required permission for this module or action. If needed, ask your administrator to review the web and mobile permission assignment.",
+    "goHome": "Go to home"
+  },
   "home": {
     "greeting": "Hello",
     "welcome": "Welcome",

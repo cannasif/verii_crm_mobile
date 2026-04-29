@@ -93,6 +93,12 @@
     "oldest": "En Eskiler",
     "voiceSearchPermissionRequired": "Sesli arama için mikrofon ve konuşma tanıma izinleri gereklidir."
   },
+  "permissions": {
+    "title": "Yetki Kontrolü",
+    "accessDeniedTitle": "Bu ekrana erişim yetkiniz yok",
+    "accessDeniedMessage": "Bu modül veya işlem için hesabınıza atanmış yetki bulunmuyor. Gerekirse yöneticinizden web ve mobile yetki tanımını kontrol etmesini isteyin.",
+    "goHome": "Ana sayfaya dön"
+  },
   "home": {
     "greeting": "Merhaba",
     "welcome": "Hoş Geldiniz",

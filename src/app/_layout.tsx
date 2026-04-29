@@ -20,6 +20,7 @@ import { AppHeader } from "../components/navigation/AppHeader";
 import i18n, { initLanguage } from "../locales";
 import { initializeApiClient } from "../lib/axios";
 import { getSystemSettings } from "../features/system-settings/api/systemSettingsApi";
+import { authAccessApi } from "../features/access-control/api/authAccessApi";
 import { applySystemLanguageIfNeeded } from "../lib/systemSettings";
 import {
   cleanupCachedApkUpdates,
@@ -66,6 +67,7 @@ export default function RootLayout(): React.ReactElement {
   const colors = useUIStore((state) => state.colors);
   const showToast = useToastStore((state) => state.showToast);
   const token = useAuthStore((state) => state.token);
+  const setPermissions = useAuthStore((state) => state.setPermissions);
   const setSystemSettings = useSystemSettingsStore((state) => state.setSettings);
   const [versionState, setVersionState] = useState<VersionCheckResult | null>(null);
   const [isInstallingUpdate, setIsInstallingUpdate] = useState(false);
@@ -173,6 +175,18 @@ export default function RootLayout(): React.ReactElement {
   useEffect(() => {
     let cancelled = false;
 
+    async function bootstrapPermissions(): Promise<void> {
+      if (!isHydrated || !token) return;
+
+      try {
+        const nextPermissions = await authAccessApi.getMyPermissions();
+        if (cancelled) return;
+        await setPermissions(nextPermissions);
+      } catch {
+        // Permissions refresh should not block startup; stored permissions remain as fallback.
+      }
+    }
+
     async function bootstrapSystemSettings(): Promise<void> {
       if (!isHydrated || !token) return;
 
@@ -204,6 +218,7 @@ export default function RootLayout(): React.ReactElement {
     }
 
     const interactionTask = InteractionManager.runAfterInteractions(() => {
+      void bootstrapPermissions();
       void bootstrapSystemSettings();
     });
 
@@ -211,7 +226,7 @@ export default function RootLayout(): React.ReactElement {
       cancelled = true;
       interactionTask.cancel();
     };
-  }, [isHydrated, setSystemSettings, token]);
+  }, [isHydrated, setPermissions, setSystemSettings, token]);
 
   useEffect(() => {
     if (!isHydrated) {

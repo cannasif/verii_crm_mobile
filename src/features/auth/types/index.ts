@@ -16,6 +16,25 @@ export interface User {
   role?: string;
 }
 
+export interface MyPermissionsDto {
+  userId: number;
+  roleTitle: string;
+  isSystemAdmin: boolean;
+  permissionGroups: string[];
+  permissionCodes: string[];
+}
+
+export interface AppBootstrapUserDto {
+  id: number;
+  email: string;
+  name: string;
+}
+
+export interface AppBootstrapDto {
+  user: AppBootstrapUserDto;
+  permissions: MyPermissionsDto;
+}
+
 export interface BranchErp {
   subeKodu: number;
   unvan: string;
@@ -77,6 +96,7 @@ export interface AuthState {
   user: User | null;
   token: string | null;
   branch: Branch | null;
+  permissions: MyPermissionsDto | null;
   isAuthenticated: boolean;
   isHydrated: boolean;
 }
