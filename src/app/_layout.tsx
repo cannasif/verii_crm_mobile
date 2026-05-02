@@ -32,6 +32,7 @@ import { clearPerfMarks, perfMark, perfMeasure, perfMeasureOnNextPaint } from ".
 import "../../global.css";
 
 const VERSION_CHECK_INTERVAL_MS = 1000 * 60 * 30;
+const ACCESS_CONTROL_REFRESH_INTERVAL_MS = 1000 * 60 * 2;
 
 function RootStack({
   isAuthScreen,
@@ -73,6 +74,7 @@ export default function RootLayout(): React.ReactElement {
   const [isInstallingUpdate, setIsInstallingUpdate] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const lastVersionCheckAtRef = useRef<number>(0);
+  const lastAccessControlRefreshAtRef = useRef<number>(0);
 
   useEffect(() => {
     perfMark("app:mount");
@@ -175,12 +177,17 @@ export default function RootLayout(): React.ReactElement {
   useEffect(() => {
     let cancelled = false;
 
-    async function bootstrapPermissions(): Promise<void> {
+    async function bootstrapPermissions(force = false): Promise<void> {
       if (!isHydrated || !token) return;
+      const now = Date.now();
+      if (!force && now - lastAccessControlRefreshAtRef.current < ACCESS_CONTROL_REFRESH_INTERVAL_MS) {
+        return;
+      }
 
       try {
         const nextPermissions = await authAccessApi.getMyPermissions();
         if (cancelled) return;
+        lastAccessControlRefreshAtRef.current = now;
         await setPermissions(nextPermissions);
       } catch {
         // Permissions refresh should not block startup; stored permissions remain as fallback.
@@ -218,7 +225,7 @@ export default function RootLayout(): React.ReactElement {
     }
 
     const interactionTask = InteractionManager.runAfterInteractions(() => {
-      void bootstrapPermissions();
+      void bootstrapPermissions(true);
       void bootstrapSystemSettings();
     });
 
@@ -236,6 +243,14 @@ export default function RootLayout(): React.ReactElement {
     const subscription = AppState.addEventListener("change", (nextState) => {
       if (nextState === "active") {
         void runVersionCheck();
+        void Promise.all([authAccessApi.getMyPermissions(), getSystemSettings()])
+          .then(async ([permissions, settings]) => {
+            await setPermissions(permissions);
+            setSystemSettings(settings);
+            await applySystemLanguageIfNeeded();
+            lastAccessControlRefreshAtRef.current = Date.now();
+          })
+          .catch(() => undefined);
       }
     });
 
