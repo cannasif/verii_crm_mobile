@@ -6,11 +6,20 @@ import { queryClient } from "./queryClient";
 import { applySystemLanguageIfNeeded } from "./systemSettings";
 import { useAuthStore } from "../store/auth";
 import { useSystemSettingsStore } from "../store/system-settings";
+import { useToastStore } from "../store/toast";
 
 interface AccessControlChangedPayload {
   reason?: string;
   forceBootstrapRefresh?: boolean;
   issuedAt?: string;
+}
+
+interface RealtimeNotificationPayload {
+  id: number;
+  title?: string;
+  message?: string;
+  userId?: number;
+  isRead?: boolean;
 }
 
 const ACCESS_CONTROL_QUERY_ROOTS = new Set(["activity", "demand", "quotation", "order", "customer360"]);
@@ -48,6 +57,10 @@ class RealtimeAccessControlService {
 
     hubConnection.on("AccessControlChanged", (payload: AccessControlChangedPayload) => {
       void this.handleAccessControlChanged(payload);
+    });
+
+    hubConnection.on("ReceiveNotification", (payload: RealtimeNotificationPayload) => {
+      this.handleNotification(payload);
     });
 
     hubConnection.onreconnected(() => {
@@ -171,6 +184,17 @@ class RealtimeAccessControlService {
         refetchType: "active",
       });
     }
+  }
+
+  private handleNotification(payload: RealtimeNotificationPayload): void {
+    const currentUserId = useAuthStore.getState().user?.id ?? null;
+    if (!currentUserId || payload.userId !== currentUserId || payload.isRead) {
+      return;
+    }
+
+    const title = payload.title?.trim() || "Yeni bildirim";
+    const message = payload.message?.trim() || "Sizin icin yeni bir bildirim var.";
+    useToastStore.getState().showToast("info", `${title}: ${message}`);
   }
 
   private async handleAccessControlChanged(payload: AccessControlChangedPayload): Promise<void> {
