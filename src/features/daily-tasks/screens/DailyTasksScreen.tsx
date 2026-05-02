@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -10,14 +10,14 @@ import {
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { StatusBar } from "expo-status-bar";
+import { Add01Icon } from "hugeicons-react-native";
 import { ScreenHeader } from "../../../components/navigation";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useToastStore } from "../../../store/toast";
 import { useAuthStore } from "../../../store/auth";
 import { WeeklyView, DailyView, CalendarView } from "../views";
-import { useCreateActivity } from "../../activity/hooks";
-import { useActivityTypes } from "../../activity/hooks";
+import { useCreateActivity, useActivityTypes } from "../../activity/hooks";
 import { buildCreateActivityPayload } from "../../activity/utils/buildCreateActivityPayload";
 import type { ViewMode } from "../types";
 
@@ -35,6 +35,7 @@ export function DailyTasksScreen(): React.ReactElement {
   const { t } = useTranslation();
   const router = useRouter();
   const { colors, themeMode } = useUIStore();
+  const isDark = themeMode === "dark";
   const showToast = useToastStore((state) => state.showToast);
 
   const [activeTab, setActiveTab] = useState<ViewMode>("daily");
@@ -45,7 +46,10 @@ export function DailyTasksScreen(): React.ReactElement {
   const { data: activityTypes } = useActivityTypes();
   const createActivity = useCreateActivity();
 
-  const contentBackground = themeMode === "dark" ? "rgba(20, 10, 30, 0.5)" : colors.background;
+  const contentBackground = isDark ? "#0c0516" : colors.background;
+  const quickAddBg = isDark ? "rgba(255, 255, 255, 0.04)" : "rgba(15, 23, 42, 0.03)";
+  const quickAddBorder = isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(15, 23, 42, 0.08)";
+  const tabContainerBg = isDark ? "rgba(255, 255, 255, 0.04)" : "rgba(15, 23, 42, 0.04)";
 
   const todayDateString = useMemo(() => formatDateKey(new Date()), []);
 
@@ -139,27 +143,20 @@ export function DailyTasksScreen(): React.ReactElement {
       return (
         <TouchableOpacity
           key={item.key}
-          style={[
-            styles.tab,
-            isActive && { backgroundColor: colors.accent },
-            !isActive && { backgroundColor: colors.backgroundSecondary },
-          ]}
+          style={[styles.tab, isActive && { backgroundColor: colors.accent }]}
           onPress={() => setActiveTab(item.key)}
-          activeOpacity={0.7}
+          activeOpacity={0.85}
         >
           <Text
-            style={[
-              styles.tabText,
-              isActive && { color: "#FFFFFF" },
-              !isActive && { color: colors.textSecondary },
-            ]}
+            unstyled
+            style={[styles.tabText, { color: isActive ? "#FFFFFF" : colors.textSecondary }]}
           >
             {t(item.labelKey)}
           </Text>
         </TouchableOpacity>
       );
     },
-    [activeTab, colors, t]
+    [activeTab, colors.accent, colors.textSecondary, t]
   );
 
   const renderContent = (): React.ReactElement => {
@@ -181,59 +178,67 @@ export function DailyTasksScreen(): React.ReactElement {
     }
   };
 
+  const isQuickAddDisabled = !quickAddSubject.trim() || createActivity.isPending;
+
   return (
     <>
-      <StatusBar style="light" />
-      <View style={[styles.container, { backgroundColor: colors.header }]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
+      <View style={[styles.container, { backgroundColor: contentBackground }]}>
         <ScreenHeader
           title={t("dailyTasks.title")}
           showBackButton
           rightElement={
             <TouchableOpacity
               onPress={handleCreateTask}
-              style={styles.addButton}
-              activeOpacity={0.7}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={[styles.headerAddBtn, { backgroundColor: colors.accent }]}
+              activeOpacity={0.85}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Text style={styles.addIcon}>+</Text>
+              <Add01Icon size={18} color="#FFFFFF" variant="stroke" strokeWidth={3} />
             </TouchableOpacity>
           }
         />
+
         <View style={[styles.content, { backgroundColor: contentBackground }]}>
-          <View style={[styles.quickAddContainer, { backgroundColor: colors.card }]}>
-            <TextInput
+          <View style={styles.topSection}>
+            <View
               style={[
-                styles.quickAddInput,
-                {
-                  backgroundColor: colors.backgroundSecondary,
-                  color: colors.text,
-                  borderColor: colors.border,
-                },
+                styles.quickAddContainer,
+                { backgroundColor: quickAddBg, borderColor: quickAddBorder },
               ]}
-              placeholder={t("dailyTasks.quickAddPlaceholder")}
-              placeholderTextColor={colors.textMuted}
-              value={quickAddSubject}
-              onChangeText={setQuickAddSubject}
-              onSubmitEditing={handleQuickAdd}
-              returnKeyType="done"
-            />
-            <TouchableOpacity
-              style={[
-                styles.quickAddButton,
-                { backgroundColor: colors.accent },
-                !quickAddSubject.trim() && styles.quickAddButtonDisabled,
-              ]}
-              onPress={handleQuickAdd}
-              disabled={!quickAddSubject.trim() || createActivity.isPending}
             >
-              {createActivity.isPending ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text style={styles.quickAddButtonText}>+</Text>
-              )}
-            </TouchableOpacity>
+              <TextInput
+                style={[styles.quickAddInput, { color: colors.text }]}
+                placeholder={t("dailyTasks.quickAddPlaceholder")}
+                placeholderTextColor={colors.textMuted}
+                value={quickAddSubject}
+                onChangeText={setQuickAddSubject}
+                onSubmitEditing={handleQuickAdd}
+                returnKeyType="done"
+              />
+              <TouchableOpacity
+                style={[
+                  styles.quickAddButton,
+                  { backgroundColor: colors.accent },
+                  isQuickAddDisabled && styles.quickAddButtonDisabled,
+                ]}
+                onPress={handleQuickAdd}
+                disabled={isQuickAddDisabled}
+                activeOpacity={0.85}
+              >
+                {createActivity.isPending ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Add01Icon size={22} color="#FFFFFF" variant="stroke" strokeWidth={3} />
+                )}
+              </TouchableOpacity>
+            </View>
+
+            <View style={[styles.tabContainer, { backgroundColor: tabContainerBg }]}>
+              {TAB_ITEMS.map(renderTab)}
+            </View>
           </View>
-          <View style={styles.tabContainer}>{TAB_ITEMS.map(renderTab)}</View>
+
           <View style={styles.viewContainer}>{renderContent()}</View>
         </View>
       </View>
@@ -247,80 +252,78 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+  },
+  topSection: {
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 6,
+    gap: 12,
   },
   quickAddContainer: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 8,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingLeft: 16,
+    paddingRight: 6,
+    paddingVertical: 6,
     gap: 10,
   },
   quickAddInput: {
     flex: 1,
-    height: 44,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    fontSize: 15,
-    borderWidth: 1,
+    height: 40,
+    fontSize: 14,
+    fontWeight: "500",
+    paddingVertical: 0,
   },
   quickAddButton: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#EC4899",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 4,
   },
   quickAddButtonDisabled: {
-    opacity: 0.5,
-  },
-  quickAddButtonText: {
-    fontSize: 24,
-    color: "#FFFFFF",
-    fontWeight: "500",
-    marginTop: -2,
+    opacity: 0.55,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   tabContainer: {
     flexDirection: "row",
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 8,
-    gap: 8,
+    padding: 4,
+    borderRadius: 14,
+    gap: 4,
   },
   tab: {
     flex: 1,
     paddingVertical: 10,
     borderRadius: 10,
     alignItems: "center",
+    justifyContent: "center",
   },
   tabText: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 0.2,
   },
   viewContainer: {
     flex: 1,
   },
-  addButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+  headerAddBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1.5,
-    borderColor: "rgba(255, 255, 255, 0.5)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  addIcon: {
-    fontSize: 26,
-    color: "#FFFFFF",
-    fontWeight: "400",
-    marginTop: -2,
+    shadowColor: "#EC4899",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 4,
   },
 });
