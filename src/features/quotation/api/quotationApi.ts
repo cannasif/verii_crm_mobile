@@ -590,13 +590,14 @@ export const quotationApi = {
   },
 
   getPaymentTypes: async (): Promise<PaymentTypeDto[]> => {
-    const response = await apiClient.get<ApiResponse<PagedResponse<PaymentTypeDto>>>("/api/PaymentType", {
-      params: {
-        pageNumber: 1,
-        pageSize: 1000,
-        sortBy: "Name",
-        sortDirection: "asc",
-      },
+    const response = await apiClient.post<ApiResponse<PagedResponse<PaymentTypeDto>>>("/api/PaymentType/query", {
+      pageNumber: 1,
+      pageSize: 1000,
+      search: "",
+      sortBy: "Name",
+      sortDirection: "asc",
+      filterLogic: "and",
+      filters: [],
     });
 
     if (!response.data.success) {

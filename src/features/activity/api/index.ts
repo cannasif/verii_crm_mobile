@@ -372,8 +372,26 @@ async function getLookupList(endpoint: string): Promise<ActivityLookupDto[]> {
   return normalizePagedResponse(response.data.data).items;
 }
 
+async function getLookupListByQuery(endpoint: string): Promise<ActivityLookupDto[]> {
+  const response = await apiClient.post<ApiResponse<RawPagedPayload<ActivityLookupDto>>>(`${endpoint}/query`, {
+    pageNumber: 1,
+    pageSize: 1000,
+    search: "",
+    sortBy: "Id",
+    sortDirection: "desc",
+    filterLogic: "and",
+    filters: [],
+  });
+
+  if (!response.data.success) {
+    throw new Error(response.data.message || response.data.exceptionMessage || i18n.t("common.unknownError"));
+  }
+
+  return normalizePagedResponse(response.data.data).items;
+}
+
 export const activityLookupApi = {
-  getPaymentTypes: async (): Promise<ActivityLookupDto[]> => getLookupList("/api/PaymentType"),
+  getPaymentTypes: async (): Promise<ActivityLookupDto[]> => getLookupListByQuery("/api/PaymentType"),
   getMeetingTypes: async (): Promise<ActivityLookupDto[]> => getLookupList("/api/ActivityMeetingType"),
   getTopicPurposes: async (): Promise<ActivityLookupDto[]> => getLookupList("/api/ActivityTopicPurpose"),
   getShippings: async (): Promise<ActivityLookupDto[]> => getLookupList("/api/ActivityShipping"),
