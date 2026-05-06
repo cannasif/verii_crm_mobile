@@ -88,8 +88,14 @@ export const lookupApi = {
   },
 
   getCustomerTypes: async (): Promise<CustomerTypeDto[]> => {
-    const response = await apiClient.get<LookupApiResponse<CustomerTypeDto>>("/api/CustomerType", {
-      params: { ...PAGE_PARAMS } 
+    const response = await apiClient.post<LookupApiResponse<CustomerTypeDto>>("/api/CustomerType/query", {
+      pageNumber: 1,
+      pageSize: 10000,
+      search: "",
+      sortBy: "Name",
+      sortDirection: "asc",
+      filterLogic: "and",
+      filters: [],
     });
 
     if (!response.data.success) {
