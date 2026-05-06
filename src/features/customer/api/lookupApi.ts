@@ -58,15 +58,17 @@ export const lookupApi = {
   },
 
   getCities: async (countryId?: number): Promise<CityDto[]> => {
-    const params: Record<string, any> = { ...PAGE_PARAMS }; 
-
-    if (countryId) {
-      params.filters = buildFilterParam([
-        { column: "countryId", operator: "equals", value: String(countryId) },
-      ]);
-    }
-
-    const response = await apiClient.get<LookupApiResponse<CityDto>>("/api/City", { params });
+    const response = await apiClient.post<LookupApiResponse<CityDto>>("/api/City/query", {
+      pageNumber: 1,
+      pageSize: 10000,
+      search: "",
+      sortBy: "Name",
+      sortDirection: "asc",
+      filterLogic: "and",
+      filters: countryId
+        ? [{ column: "countryId", operator: "equals", value: String(countryId) }]
+        : [],
+    });
 
     if (!response.data.success) {
       throw new Error(response.data.message || response.data.exceptionMessage || "Şehir listesi alınamadı");
