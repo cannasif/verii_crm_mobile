@@ -56,34 +56,6 @@ function normalizeKurDto(item: unknown): ExchangeRateDto {
   };
 }
 
-const buildQueryParams = (params: PagedParams): Record<string, string | number> => {
-  const queryParams: Record<string, string | number> = {};
-
-  if (params.pageNumber) {
-    queryParams.pageNumber = params.pageNumber;
-  }
-  if (params.pageSize) {
-    queryParams.pageSize = params.pageSize;
-  }
-  if (params.search) {
-    queryParams.search = params.search;
-  }
-  if (params.sortBy) {
-    queryParams.sortBy = params.sortBy;
-  }
-  if (params.sortDirection) {
-    queryParams.sortDirection = params.sortDirection;
-  }
-  if (params.filterLogic) {
-    queryParams.filterLogic = params.filterLogic;
-  }
-  if (params.filters && params.filters.length > 0) {
-    queryParams.filters = JSON.stringify(params.filters);
-  }
-
-  return queryParams;
-};
-
 export const demandApi = {
   getWaitingApprovals: async (): Promise<ApprovalActionGetDto[]> => {
     const response = await apiClient.get<WaitingApprovalsResponse>(
@@ -277,9 +249,14 @@ export const demandApi = {
   },
 
   getList: async (params: PagedParams = {}): Promise<PagedResponse<DemandGetDto>> => {
-    const queryParams = buildQueryParams(params);
-    const response = await apiClient.get<DemandListResponse>("/api/demand", {
-      params: queryParams,
+    const response = await apiClient.post<DemandListResponse>("/api/demand/query", {
+      pageNumber: params.pageNumber ?? 1,
+      pageSize: params.pageSize ?? 20,
+      search: params.search ?? "",
+      sortBy: params.sortBy ?? "Id",
+      sortDirection: params.sortDirection ?? "asc",
+      filterLogic: params.filterLogic ?? "and",
+      filters: params.filters ?? [],
     });
 
     if (!response.data.success) {
