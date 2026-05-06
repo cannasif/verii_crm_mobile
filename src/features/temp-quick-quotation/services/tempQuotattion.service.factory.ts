@@ -84,20 +84,6 @@ function normalizeTempQuotation(raw: unknown): TempQuotattionGetDto | null {
   };
 }
 
-function buildQueryParams(params: TempQuickQuotationPagedParams): Record<string, string | number> {
-  const queryParams: Record<string, string | number> = {};
-
-  if (params.pageNumber) queryParams.pageNumber = params.pageNumber;
-  if (params.pageSize) queryParams.pageSize = params.pageSize;
-  if (params.sortBy) queryParams.sortBy = params.sortBy;
-  if (params.sortDirection) queryParams.sortDirection = params.sortDirection;
-  if (params.filters && params.filters.length > 0) {
-    queryParams.filters = JSON.stringify(params.filters);
-  }
-
-  return queryParams;
-}
-
 function unwrap<T>(response: ApiResponse<T>, fallbackMessage: string): T {
   if (!response.success) {
     throw new Error(response.message || response.exceptionMessage || fallbackMessage);
@@ -117,8 +103,14 @@ function ensureData<T>(data: T | null | undefined, fallbackMessage: string): T {
 export function createTempQuotattionService(httpClient: TempQuickQuotationHttpClient) {
   return {
     async getList(params: TempQuickQuotationPagedParams = {}): Promise<PagedResponse<TempQuotattionGetDto>> {
-      const response = await httpClient.get<TempQuotattionListResponse>(TEMP_QUOTATTION_ENDPOINT, {
-        params: buildQueryParams(params),
+      const response = await httpClient.post<TempQuotattionListResponse>(`${TEMP_QUOTATTION_ENDPOINT}/query`, {
+        pageNumber: params.pageNumber ?? 1,
+        pageSize: params.pageSize ?? 20,
+        search: params.search ?? "",
+        sortBy: params.sortBy ?? "Id",
+        sortDirection: params.sortDirection ?? "asc",
+        filterLogic: params.filterLogic ?? "and",
+        filters: params.filters ?? [],
       });
 
       const data = ensureData(unwrap(response.data, "Hızlı teklif listesi alınamadı"), "Hızlı teklif listesi alınamadı");
