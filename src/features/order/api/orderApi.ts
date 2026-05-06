@@ -504,10 +504,17 @@ export const orderApi = {
   },
 
   getDocumentSerialTypeList: async (params: PagedParams = {}): Promise<DocumentSerialTypeDto[]> => {
-    const queryParams = buildQueryParams({ pageNumber: 1, pageSize: 100, ...params });
-    const response = await apiClient.get<ApiResponse<PagedResponse<DocumentSerialTypeDto>>>(
-      "/api/DocumentSerialType",
-      { params: queryParams }
+    const response = await apiClient.post<ApiResponse<PagedResponse<DocumentSerialTypeDto>>>(
+      "/api/DocumentSerialType/query",
+      {
+        pageNumber: params.pageNumber ?? 1,
+        pageSize: params.pageSize ?? 100,
+        search: params.search ?? "",
+        sortBy: params.sortBy ?? "Id",
+        sortDirection: params.sortDirection ?? "asc",
+        filterLogic: params.filterLogic ?? "and",
+        filters: params.filters ?? [],
+      }
     );
 
     if (!response.data.success) {
