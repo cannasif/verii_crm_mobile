@@ -505,18 +505,19 @@ export const quotationApi = {
   getSalesTypeList: async (params: {
     pageNumber?: number;
     pageSize?: number;
+    search?: string;
     filters?: Array<{ column: string; operator: string; value: string }>;
   }): Promise<SalesTypeGetDto[]> => {
-    const queryParams: Record<string, string | number> = {
+    const payload = {
       pageNumber: params.pageNumber ?? 1,
       pageSize: params.pageSize ?? 500,
+      search: params.search ?? "",
+      sortBy: "Id",
+      sortDirection: "asc" as const,
+      filterLogic: "and" as const,
+      filters: params.filters ?? [],
     };
-    if (params.filters && params.filters.length > 0) {
-      queryParams.filters = JSON.stringify(params.filters);
-    }
-    const response = await apiClient.get<SalesTypeListResponse>("/api/SalesType", {
-      params: queryParams,
-    });
+    const response = await apiClient.post<SalesTypeListResponse>("/api/SalesType/query", payload);
     const body = response.data as { success?: boolean; data?: { items?: SalesTypeGetDto[] }; message?: string };
     if (body.success === false) {
       throw new Error(body.message || "Satış tipleri alınamadı");
