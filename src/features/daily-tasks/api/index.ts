@@ -81,16 +81,17 @@ export const dailyTasksApi = {
   getList: async (filter: DailyTaskFilter): Promise<ActivityDto[]> => {
     const filters = buildFilters(filter);
 
-    const response = await apiClient.get<
+    const response = await apiClient.post<
       ApiResponse<RawPagedPayload<ActivityDto>>
-    >("/api/Activity", {
-      params: {
+    >("/api/Activity/query", {
         pageNumber: 1,
         pageSize: 1000,
+        search: "",
         sortBy: "StartDateTime",
         sortDirection: "asc",
-        filters: filters.length > 0 ? JSON.stringify(filters) : undefined,
-      },
+        filterLogic: "and",
+        filters,
+      }
     });
 
     if (!response.data.success) {

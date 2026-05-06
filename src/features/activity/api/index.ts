@@ -52,34 +52,6 @@ function normalizePagedResponse<T>(raw: RawPagedPayload<T> | null | undefined): 
   };
 }
 
-const buildQueryParams = (params: PagedParams): Record<string, string | number> => {
-  const queryParams: Record<string, string | number> = {};
-
-  if (params.pageNumber) {
-    queryParams.pageNumber = params.pageNumber;
-  }
-  if (params.pageSize) {
-    queryParams.pageSize = params.pageSize;
-  }
-  if (params.search) {
-    queryParams.search = params.search;
-  }
-  if (params.sortBy) {
-    queryParams.sortBy = params.sortBy;
-  }
-  if (params.sortDirection) {
-    queryParams.sortDirection = params.sortDirection;
-  }
-  if (params.filters && params.filters.length > 0) {
-    queryParams.filters = JSON.stringify(params.filters);
-  }
-  if (params.filterLogic) {
-    queryParams.filterLogic = params.filterLogic;
-  }
-
-  return queryParams;
-};
-
 const EXTENSION_TO_MIME: Record<string, string> = {
   jpg: "image/jpeg",
   jpeg: "image/jpeg",
@@ -171,9 +143,14 @@ function normalizeActivityImageList(data: unknown): ActivityImageDto[] {
 
 export const activityApi = {
   getList: async (params: PagedParams = {}): Promise<PagedResponse<ActivityDto>> => {
-    const queryParams = buildQueryParams(params);
-    const response = await apiClient.get<ApiResponse<RawPagedPayload<ActivityDto>>>("/api/Activity", {
-      params: queryParams,
+    const response = await apiClient.post<ApiResponse<RawPagedPayload<ActivityDto>>>("/api/Activity/query", {
+      pageNumber: params.pageNumber ?? 1,
+      pageSize: params.pageSize ?? 20,
+      search: params.search ?? "",
+      sortBy: params.sortBy ?? "Id",
+      sortDirection: params.sortDirection ?? "asc",
+      filterLogic: params.filterLogic ?? "and",
+      filters: params.filters ?? [],
     });
 
     if (!response.data.success) {
