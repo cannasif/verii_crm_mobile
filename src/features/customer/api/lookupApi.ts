@@ -40,8 +40,14 @@ const PAGE_PARAMS = { pageNumber: 1, pageSize: 10000, sorting: "Name ASC"};
 
 export const lookupApi = {
   getCountries: async (): Promise<CountryDto[]> => {
-    const response = await apiClient.get<LookupApiResponse<CountryDto>>("/api/Country", {
-      params: { ...PAGE_PARAMS } 
+    const response = await apiClient.post<LookupApiResponse<CountryDto>>("/api/Country/query", {
+      pageNumber: 1,
+      pageSize: 10000,
+      search: "",
+      sortBy: "Name",
+      sortDirection: "asc",
+      filterLogic: "and",
+      filters: [],
     });
 
     if (!response.data.success) {
