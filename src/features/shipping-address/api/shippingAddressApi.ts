@@ -9,40 +9,19 @@ import type {
   PagedApiResponse,
 } from "../types";
 
-const buildQueryParams = (params: PagedParams): Record<string, string | number> => {
-  const queryParams: Record<string, string | number> = {};
-
-  if (params.pageNumber) {
-    queryParams.pageNumber = params.pageNumber;
-  }
-  if (params.pageSize) {
-    queryParams.pageSize = params.pageSize;
-  }
-  if (params.search) {
-    queryParams.search = params.search;
-  }
-  if (params.sortBy) {
-    queryParams.sortBy = params.sortBy;
-  }
-  if (params.sortDirection) {
-    queryParams.sortDirection = params.sortDirection;
-  }
-  if (params.filters && params.filters.length > 0) {
-    queryParams.filters = JSON.stringify(params.filters);
-  }
-  if (params.filterLogic) {
-    queryParams.filterLogic = params.filterLogic;
-  }
-
-  return queryParams;
-};
-
 export const shippingAddressApi = {
   getList: async (params: PagedParams = {}): Promise<PagedResponse<ShippingAddressDto>> => {
-    const queryParams = buildQueryParams(params);
-    const response = await apiClient.get<PagedApiResponse<ShippingAddressDto>>(
-      "/api/ShippingAddress",
-      { params: queryParams }
+    const response = await apiClient.post<PagedApiResponse<ShippingAddressDto>>(
+      "/api/ShippingAddress/query",
+      {
+        pageNumber: params.pageNumber ?? 1,
+        pageSize: params.pageSize ?? 10,
+        search: params.search ?? "",
+        sortBy: params.sortBy ?? "Id",
+        sortDirection: params.sortDirection ?? "asc",
+        filterLogic: params.filterLogic ?? "and",
+        filters: params.filters ?? [],
+      }
     );
 
     if (!response.data.success) {
