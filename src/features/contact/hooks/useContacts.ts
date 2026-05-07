@@ -32,7 +32,7 @@ export function useContacts(params: UseContactsParams = {}) {
   }
 
   return useInfiniteQuery<PagedResponse<ContactDto>, Error>({
-    queryKey: ["contact", "list", { filters, search, sortBy, sortDirection, filterLogic }],
+    queryKey: ["contact", "list", { filters, search, sortBy, sortDirection, filterLogic, pageSize }],
     queryFn: ({ pageParam }) => {
       const apiParams = {
         pageNumber: pageParam as number,

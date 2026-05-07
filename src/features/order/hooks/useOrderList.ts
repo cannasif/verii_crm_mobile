@@ -24,7 +24,7 @@ export function useOrderList(params: UseOrderListParams = {}) {
   } = params;
 
   return useInfiniteQuery<PagedResponse<OrderGetDto>, Error>({
-    queryKey: ["order", "orders", { filters, search, filterLogic, sortBy, sortDirection }],
+    queryKey: ["order", "orders", { filters, search, filterLogic, sortBy, sortDirection, pageSize }],
     queryFn: ({ pageParam }) =>
       orderApi.getList({
         pageNumber: pageParam as number,

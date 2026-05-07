@@ -32,7 +32,7 @@ export function useShippingAddresses(params: UseShippingAddressesParams = {}) {
   }
 
   return useInfiniteQuery<PagedResponse<ShippingAddressDto>, Error>({
-    queryKey: ["shippingAddress", "list", { filters, search, filterLogic, sortBy, sortDirection }],
+    queryKey: ["shippingAddress", "list", { filters, search, filterLogic, sortBy, sortDirection, pageSize }],
     queryFn: ({ pageParam }) =>
       shippingAddressApi.getList({
         pageNumber: pageParam as number,

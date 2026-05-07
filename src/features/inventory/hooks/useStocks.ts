@@ -22,7 +22,7 @@ export function useStocks(params: UseStocksParams = {}) {
   } = params;
 
   return useInfiniteQuery({
-    queryKey: ["stock", "list", { filters, search, filterLogic, sortBy, sortDirection }],
+    queryKey: ["stock", "list", { filters, search, filterLogic, sortBy, sortDirection, pageSize }],
     queryFn: ({ pageParam = 1 }) =>
       stockApi.getList({
         pageNumber: pageParam as number,

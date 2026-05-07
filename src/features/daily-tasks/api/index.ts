@@ -1,4 +1,5 @@
 import { apiClient } from "../../../lib/axios";
+import { buildPagedQueryPayload } from "../../../lib/paged";
 import type { ApiResponse } from "../../auth/types";
 import type { ActivityDto } from "../../activity/types";
 import type { DailyTaskFilter } from "../types";
@@ -83,7 +84,9 @@ export const dailyTasksApi = {
 
     const response = await apiClient.post<
       ApiResponse<RawPagedPayload<ActivityDto>>
-    >("/api/Activity/query", {
+    >(
+      "/api/Activity/query",
+      buildPagedQueryPayload({
         pageNumber: 1,
         pageSize: 1000,
         search: "",
@@ -91,8 +94,8 @@ export const dailyTasksApi = {
         sortDirection: "asc",
         filterLogic: "and",
         filters,
-      }
-    });
+      })
+    );
 
     if (!response.data.success) {
       throw new Error(

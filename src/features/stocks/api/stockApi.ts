@@ -118,12 +118,33 @@ export const stockApi = {
   },
 
   getRelations: async (stockId: number, params: PagedParams = {}): Promise<PagedResponse<StockRelationDto>> => {
-    const response = await apiClient.get<PagedApiResponse<StockRelationDto>>(`/api/Stock/${stockId}/relations`);
+    const response = await apiClient.get<PagedApiResponse<StockRelationDto>>(`/api/Stock/${stockId}/relations`, {
+      params: {
+        pageNumber: params.pageNumber ?? 1,
+        pageSize: params.pageSize ?? 100,
+        search: params.search ?? "",
+        sortBy: params.sortBy ?? "Id",
+        sortDirection: params.sortDirection ?? "asc",
+        filterLogic: params.filterLogic ?? "and",
+        filters: params.filters ? JSON.stringify(params.filters) : undefined,
+      },
+    });
     return response.data.data;
   },
 
   getRelationsAsRelatedStock: async (relatedStockId: number, params: PagedParams = {}): Promise<PagedResponse<StockRelationDto>> => {
-    const response = await apiClient.get<PagedApiResponse<StockRelationDto>>(`/api/Stock/${relatedStockId}/relations?asRelated=true`);
+    const response = await apiClient.get<PagedApiResponse<StockRelationDto>>(`/api/Stock/${relatedStockId}/relations`, {
+      params: {
+        asRelated: true,
+        pageNumber: params.pageNumber ?? 1,
+        pageSize: params.pageSize ?? 100,
+        search: params.search ?? "",
+        sortBy: params.sortBy ?? "Id",
+        sortDirection: params.sortDirection ?? "asc",
+        filterLogic: params.filterLogic ?? "and",
+        filters: params.filters ? JSON.stringify(params.filters) : undefined,
+      },
+    });
     const raw = response.data.data;
     const items = Array.isArray(raw) ? raw : ((raw as any)?.items || []);
     return { items, totalCount: items.length, pageNumber: 1, pageSize: 100, totalPages: 1, hasPreviousPage: false, hasNextPage: false };

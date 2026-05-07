@@ -48,7 +48,7 @@ interface StepPalette {
   primary: string;
   soft: string;
   border: string;
-  Icon: React.ComponentType<{ size?: number; color?: string; variant?: "stroke" | "solid"; strokeWidth?: number }>;
+  Icon: React.ComponentType<{ size?: number; color?: string; variant?: "stroke"; strokeWidth?: number }>;
 }
 
 function resolveStepPalette(stepStatus: string, isDark: boolean): StepPalette {

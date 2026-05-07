@@ -24,7 +24,7 @@ export function useTitles(params: UseTitlesParams = {}) {
   } = params;
 
   return useInfiniteQuery<PagedResponse<TitleDto>, Error>({
-    queryKey: ["title", "list", { filters, search, filterLogic, sortBy, sortDirection }],
+    queryKey: ["title", "list", { filters, search, filterLogic, sortBy, sortDirection, pageSize }],
     queryFn: ({ pageParam }) =>
       titleApi.getList({
         pageNumber: pageParam as number,

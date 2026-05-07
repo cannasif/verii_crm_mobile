@@ -24,7 +24,7 @@ export function useDemandList(params: UseDemandListParams = {}) {
   } = params;
 
   return useInfiniteQuery<PagedResponse<DemandGetDto>, Error>({
-    queryKey: ["demand", "demands", { filters, search, filterLogic, sortBy, sortDirection }],
+    queryKey: ["demand", "demands", { filters, search, filterLogic, sortBy, sortDirection, pageSize }],
     queryFn: ({ pageParam }) =>
       demandApi.getList({
         pageNumber: pageParam as number,

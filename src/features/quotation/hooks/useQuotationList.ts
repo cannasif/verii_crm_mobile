@@ -24,7 +24,7 @@ export function useQuotationList(params: UseQuotationListParams = {}) {
   } = params;
 
   return useInfiniteQuery<PagedResponse<QuotationGetDto>, Error>({
-    queryKey: ["quotation", "quotations", { filters, search, filterLogic, sortBy, sortDirection }],
+    queryKey: ["quotation", "quotations", { filters, search, filterLogic, sortBy, sortDirection, pageSize }],
     queryFn: ({ pageParam }) =>
       quotationApi.getList({
         pageNumber: pageParam as number,
