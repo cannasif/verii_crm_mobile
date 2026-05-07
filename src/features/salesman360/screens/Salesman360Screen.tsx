@@ -25,9 +25,10 @@ import {
 import { CurrencyPicker } from "../components";
 import { Salesman360OverviewTab } from "./Salesman360OverviewTab";
 import { Salesman360AnalyticsTab } from "./Salesman360AnalyticsTab";
-import type { Salesmen360VisibleUserDto } from "../types";
+import type { Salesmen360PeriodKey, Salesmen360VisibleUserDto } from "../types";
 
 type TabType = "overview" | "analytics";
+const PERIOD_OPTIONS: Salesmen360PeriodKey[] = ["today", "week", "month", "year"];
 
 function isNotFoundError(error: Error | null): boolean {
   if (!error) return false;
@@ -77,11 +78,13 @@ export function Salesman360Screen(): React.ReactElement {
   const { colors } = useUIStore();
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [selectedCurrency, setSelectedCurrency] = useState<string>("ALL");
+  const [selectedPeriod, setSelectedPeriod] = useState<Salesmen360PeriodKey>("month");
   const [selectedUserId, setSelectedUserId] = useState<number | undefined>(user?.id);
   const [salesmanPickerVisible, setSalesmanPickerVisible] = useState(false);
 
   const currentUserId = user?.id;
   const currencyParam = selectedCurrency === "ALL" ? null : selectedCurrency;
+  const periodParams = useMemo(() => ({ period: selectedPeriod }), [selectedPeriod]);
   const visibleUsersQuery = useSalesman360VisibleUsers();
   const selfVisibleUser = useMemo(() => createSelfVisibleUser(user), [user]);
   const visibleUsers = useMemo(() => {
@@ -121,17 +124,20 @@ export function Salesman360Screen(): React.ReactElement {
 
   const overviewQuery = useSalesman360Overview(
     userId,
-    currencyParam
+    currencyParam,
+    periodParams
   );
   const summaryQuery = useSalesman360AnalyticsSummary(
     userId,
     currencyParam,
+    periodParams,
     activeTab === "analytics"
   );
   const chartsQuery = useSalesman360AnalyticsCharts(
     userId,
     12,
     currencyParam,
+    periodParams,
     activeTab === "analytics"
   );
   const cohortQuery = useSalesman360Cohort(userId, 12);
@@ -223,6 +229,34 @@ export function Salesman360Screen(): React.ReactElement {
               colors={colors}
               onSelect={setSelectedCurrency}
             />
+          </View>
+          <View style={styles.periodSection}>
+            <Text style={[styles.periodLabel, { color: colors.textMuted }]}>
+              {t("salesman360.periodFilter.label")}
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.periodChips}>
+              {PERIOD_OPTIONS.map((period) => {
+                const selected = selectedPeriod === period;
+                return (
+                  <TouchableOpacity
+                    key={period}
+                    activeOpacity={0.85}
+                    onPress={() => setSelectedPeriod(period)}
+                    style={[
+                      styles.periodChip,
+                      {
+                        borderColor: selected ? colors.accent : colors.cardBorder,
+                        backgroundColor: selected ? `${colors.accent}18` : colors.card,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.periodChipText, { color: selected ? colors.accent : colors.text }]}>
+                      {t(`salesman360.periodFilter.${period}`)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
           </View>
           <View
             style={[
@@ -452,6 +486,29 @@ const styles = StyleSheet.create({
   currencySection: {
     paddingHorizontal: 20,
     paddingTop: 12,
+  },
+  periodSection: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+  },
+  periodLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  periodChips: {
+    gap: 8,
+    paddingRight: 20,
+  },
+  periodChip: {
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  periodChipText: {
+    fontSize: 13,
+    fontWeight: "700",
   },
   tabBar: {
     flexDirection: "row",

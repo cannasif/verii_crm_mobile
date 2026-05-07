@@ -5,6 +5,21 @@ export interface Salesmen360CurrencyAmountDto {
   orderAmount: number;
 }
 
+export type Salesmen360PeriodKey = "today" | "week" | "month" | "year" | "custom";
+
+export interface Salesmen360PeriodDto {
+  period: Salesmen360PeriodKey | string;
+  startDate: string;
+  endDate: string;
+  label: string;
+}
+
+export interface Salesmen360PeriodParams {
+  period?: Salesmen360PeriodKey;
+  startDate?: string;
+  endDate?: string;
+}
+
 export interface Salesmen360KpiDto {
   currency?: string | null;
   totalDemands: number;
@@ -83,6 +98,7 @@ export interface Salesmen360OverviewDto {
   userId: number;
   fullName: string;
   email?: string | null;
+  period?: Salesmen360PeriodDto | null;
   kpis: Salesmen360KpiDto;
   revenueQuality?: RevenueQualityDto | null;
   recommendedActions?: RecommendedActionDto[] | null;
@@ -96,6 +112,7 @@ export interface Salesmen360VisibleUserDto {
 }
 
 export interface Salesmen360AnalyticsSummaryDto {
+  period?: Salesmen360PeriodDto | null;
   currency?: string | null;
   last12MonthsOrderAmount: number;
   openQuotationAmount: number;
@@ -126,6 +143,7 @@ export interface Salesmen360AmountComparisonDto {
 }
 
 export interface Salesmen360AnalyticsChartsDto {
+  period?: Salesmen360PeriodDto | null;
   monthlyTrend: Salesmen360MonthlyTrendItemDto[];
   distribution: Salesmen360DistributionDto;
   amountComparison: Salesmen360AmountComparisonDto;

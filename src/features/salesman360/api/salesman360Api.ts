@@ -8,6 +8,7 @@ import type {
   CohortRetentionDto,
   ExecuteRecommendedActionDto,
   ActivityDto,
+  Salesmen360PeriodParams,
 } from "../types";
 
 const SALESMEN_360_STALE_MS = 30 * 1000;
@@ -25,6 +26,16 @@ function buildConfig(currency: string | null): { params?: { currency: string }; 
       Currency: currency,
     },
   };
+}
+
+function buildPeriodParams(periodParams?: Salesmen360PeriodParams): Record<string, string> {
+  const period = periodParams?.period ?? "month";
+  const params: Record<string, string> = { period };
+  if (period === "custom") {
+    if (periodParams?.startDate) params.startDate = periodParams.startDate;
+    if (periodParams?.endDate) params.endDate = periodParams.endDate;
+  }
+  return params;
 }
 
 function getOverviewPath(userId: number): string {
@@ -65,33 +76,41 @@ export const salesman360Api = {
     return assertSuccess(response, "Satışçı listesi yüklenemedi");
   },
 
-  getOverview: async (userId: number, currency: string | null): Promise<Salesmen360OverviewDto> => {
+  getOverview: async (
+    userId: number,
+    currency: string | null,
+    periodParams?: Salesmen360PeriodParams
+  ): Promise<Salesmen360OverviewDto> => {
     const config = buildConfig(currency);
+    const params = { ...buildPeriodParams(periodParams), ...(config.params ?? {}) };
     const response = await apiClient.get<ApiResponse<Salesmen360OverviewDto> & { data: Salesmen360OverviewDto | null }>(
       getOverviewPath(userId),
-      config
+      { ...config, params }
     );
     return assertSuccess(response, "Özet yüklenemedi");
   },
 
   getAnalyticsSummary: async (
     userId: number,
-    currency: string | null
+    currency: string | null,
+    periodParams?: Salesmen360PeriodParams
   ): Promise<Salesmen360AnalyticsSummaryDto> => {
     const config = buildConfig(currency);
+    const params = { ...buildPeriodParams(periodParams), ...(config.params ?? {}) };
     const response = await apiClient.get<
       ApiResponse<Salesmen360AnalyticsSummaryDto> & { data: Salesmen360AnalyticsSummaryDto | null }
-    >(getAnalyticsSummaryPath(userId), config);
+    >(getAnalyticsSummaryPath(userId), { ...config, params });
     return assertSuccess(response, "Analitik özet yüklenemedi");
   },
 
   getAnalyticsCharts: async (
     userId: number,
     months: number,
-    currency: string | null
+    currency: string | null,
+    periodParams?: Salesmen360PeriodParams
   ): Promise<Salesmen360AnalyticsChartsDto> => {
     const config = buildConfig(currency);
-    const params = { months, ...(config.params ?? {}) };
+    const params = { months, ...buildPeriodParams(periodParams), ...(config.params ?? {}) };
     const response = await apiClient.get<
       ApiResponse<Salesmen360AnalyticsChartsDto> & { data: Salesmen360AnalyticsChartsDto | null }
     >(getAnalyticsChartsPath(userId), { ...config, params });
