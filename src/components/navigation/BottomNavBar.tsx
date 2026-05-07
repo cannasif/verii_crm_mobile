@@ -93,7 +93,7 @@ export function BottomNavBar(): React.ReactElement {
     "sales.orders.create",
     "sales.demands.create",
   ]);
-  const canCreateActivity = hasAnyPermission(permissions, ["activity.activity-management.view"]);
+  const canCreateActivity = hasAnyPermission(permissions, ["activity.activity-management.create"]);
   const visibleRadialActionCount = [
     canCreateCustomer,
     canCreateCustomer,

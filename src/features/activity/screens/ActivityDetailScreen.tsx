@@ -26,8 +26,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import { ScreenHeader } from "../../../components/navigation";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
+import { useAuthStore } from "../../../store/auth";
 import { PermissionDeniedState } from "../../access-control/components/PermissionDeniedState";
 import { isForbiddenError } from "../../access-control/utils/isForbiddenError";
+import { hasPermission } from "../../access-control/utils/hasPermission";
 import { formatSystemDateTime } from "../../../lib/systemSettings";
 import { useActivity, useDeleteActivity, useUpdateActivity } from "../hooks";
 import { activityImageApi } from "../api";
@@ -245,7 +247,10 @@ export function ActivityDetailScreen(): React.ReactElement {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors, themeMode } = useUIStore();
+  const permissions = useAuthStore((state) => state.permissions);
   const insets = useSafeAreaInsets();
+  const canUpdate = hasPermission(permissions, "activity.activity-management.update");
+  const canDelete = hasPermission(permissions, "activity.activity-management.delete");
 
   const activityId = id ? Number(id) : undefined;
   const isDark = themeMode === "dark";
@@ -369,6 +374,8 @@ export function ActivityDetailScreen(): React.ReactElement {
   );
 
   const openActivityDetailGalleryPicker = useCallback(async () => {
+    if (!canUpdate) return;
+
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (permission.status !== "granted") {
       Alert.alert(t("common.warning"), t("activity.imagePermissionRequired"));
@@ -382,9 +389,11 @@ export function ActivityDetailScreen(): React.ReactElement {
     });
     if (result.canceled || !result.assets?.[0]?.uri) return;
     setPickActivityImagePreviewUri(result.assets[0].uri);
-  }, [t]);
+  }, [canUpdate, t]);
 
   const openActivityDetailCameraPicker = useCallback(async () => {
+    if (!canUpdate) return;
+
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (permission.status !== "granted") {
       Alert.alert(t("common.warning"), t("activity.imagePermissionRequired"));
@@ -397,9 +406,10 @@ export function ActivityDetailScreen(): React.ReactElement {
     });
     if (result.canceled || !result.assets?.[0]?.uri) return;
     setPickActivityImagePreviewUri(result.assets[0].uri);
-  }, [t]);
+  }, [canUpdate, t]);
 
   const handleAddActivityImageFromDetail = useCallback(() => {
+    if (!canUpdate) return;
     if (!activityId || isUploadingActivityImage) return;
     Alert.alert(t("activity.addImage"), t("customer.chooseImageSource"), [
       { text: t("common.cancel"), style: "cancel" },
@@ -416,7 +426,7 @@ export function ActivityDetailScreen(): React.ReactElement {
         },
       },
     ]);
-  }, [activityId, isUploadingActivityImage, openActivityDetailCameraPicker, openActivityDetailGalleryPicker, t]);
+  }, [activityId, canUpdate, isUploadingActivityImage, openActivityDetailCameraPicker, openActivityDetailGalleryPicker, t]);
 
   const handleCancelActivityDetailImagePick = useCallback(() => {
     if (isUploadingActivityImage) return;
@@ -424,6 +434,7 @@ export function ActivityDetailScreen(): React.ReactElement {
   }, [isUploadingActivityImage]);
 
   const handleConfirmActivityDetailImagePick = useCallback(async () => {
+    if (!canUpdate) return;
     if (!activityId || !pickActivityImagePreviewUri) return;
     setIsUploadingActivityImage(true);
     try {
@@ -440,15 +451,17 @@ export function ActivityDetailScreen(): React.ReactElement {
     } finally {
       setIsUploadingActivityImage(false);
     }
-  }, [activityId, pickActivityImagePreviewUri, queryClient, refetchActivityImages, t]);
+  }, [activityId, canUpdate, pickActivityImagePreviewUri, queryClient, refetchActivityImages, t]);
 
   const handleEdit = useCallback(() => {
+    if (!canUpdate) return;
     if (activityId) {
       router.push(`/(tabs)/activities/edit/${activityId}`);
     }
-  }, [activityId, router]);
+  }, [activityId, canUpdate, router]);
 
   const handleDelete = useCallback(() => {
+    if (!canDelete) return;
     Alert.alert(t("common.confirm"), t("activity.deleteConfirm"), [
       { text: t("common.cancel"), style: "cancel" },
       {
@@ -462,9 +475,10 @@ export function ActivityDetailScreen(): React.ReactElement {
         },
       },
     ]);
-  }, [activityId, deleteActivity, router, t]);
+  }, [activityId, canDelete, deleteActivity, router, t]);
 
   const handleMarkComplete = useCallback(() => {
+    if (!canUpdate) return;
     if (!activity || !activityId) return;
 
     Alert.alert(t("common.confirm"), t("activity.completeConfirm"), [
@@ -513,7 +527,7 @@ export function ActivityDetailScreen(): React.ReactElement {
         },
       },
     ]);
-  }, [activity, activityId, updateActivity, t]);
+  }, [activity, activityId, canUpdate, updateActivity, t]);
 
   const getStatusColor = (status: ActivityDto["status"]): string => {
     const statusLower = normalizeStatusForDisplay(status).toLowerCase().replace(/\s+/g, "");
@@ -680,6 +694,13 @@ export function ActivityDetailScreen(): React.ReactElement {
   const statusColor = getStatusColor(activity.status);
   const priorityColor = getPriorityColor(activity.priority);
   const highPriority = isHighPriority(activity.priority);
+  const normalizedStatus = normalizeStatusForDisplay(activity.status).toLowerCase().replace(/\s+/g, "");
+  const canCompleteActivity =
+    canUpdate &&
+    !activity.isCompleted &&
+    normalizedStatus !== "completed" &&
+    normalizedStatus !== "cancelled" &&
+    normalizedStatus !== "canceled";
 
   return (
     <View style={[styles.container, { backgroundColor: mainBg }]}>
@@ -698,21 +719,27 @@ export function ActivityDetailScreen(): React.ReactElement {
         title={t("activity.detail")}
         showBackButton
         rightElement={
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              onPress={handleEdit}
-              style={[styles.headerButton, { backgroundColor: palette.headerButtonBg }]}
-            >
-              <Edit02Icon size={16} color={palette.text} variant="stroke" />
-            </TouchableOpacity>
+          canUpdate || canDelete ? (
+            <View style={styles.headerActions}>
+              {canUpdate ? (
+                <TouchableOpacity
+                  onPress={handleEdit}
+                  style={[styles.headerButton, { backgroundColor: palette.headerButtonBg }]}
+                >
+                  <Edit02Icon size={16} color={palette.text} variant="stroke" />
+                </TouchableOpacity>
+              ) : null}
 
-            <TouchableOpacity
-              onPress={handleDelete}
-              style={[styles.headerButton, { backgroundColor: palette.headerButtonBg }]}
-            >
-              <Delete02Icon size={16} color={palette.error} variant="stroke" />
-            </TouchableOpacity>
-          </View>
+              {canDelete ? (
+                <TouchableOpacity
+                  onPress={handleDelete}
+                  style={[styles.headerButton, { backgroundColor: palette.headerButtonBg }]}
+                >
+                  <Delete02Icon size={16} color={palette.error} variant="stroke" />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          ) : null
         }
       />
 
@@ -1042,21 +1069,23 @@ export function ActivityDetailScreen(): React.ReactElement {
                       {t("activity.images")}
                     </Text>
                   </View>
-                  <TouchableOpacity
-                    style={styles.activityImagesHeaderAddBtn}
-                    onPress={handleAddActivityImageFromDetail}
-                    disabled={imagesLoading || isUploadingActivityImage}
-                    activeOpacity={0.82}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    {isUploadingActivityImage ? (
-                      <ActivityIndicator size="small" color={colors.accent} />
-                    ) : (
-                      <Text style={[styles.activityImagesHeaderAddText, { color: colors.success }]}>
-                        {t("activity.addImage")}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
+                  {canUpdate ? (
+                    <TouchableOpacity
+                      style={styles.activityImagesHeaderAddBtn}
+                      onPress={handleAddActivityImageFromDetail}
+                      disabled={imagesLoading || isUploadingActivityImage}
+                      activeOpacity={0.82}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      {isUploadingActivityImage ? (
+                        <ActivityIndicator size="small" color={colors.accent} />
+                      ) : (
+                        <Text style={[styles.activityImagesHeaderAddText, { color: colors.success }]}>
+                          {t("activity.addImage")}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  ) : null}
                 </View>
 
                 {imagesLoading ? (
@@ -1067,26 +1096,28 @@ export function ActivityDetailScreen(): React.ReactElement {
                     <Text style={[styles.activityDetailImagesEmptyTitle, { color: palette.text }]}>
                       {t("activity.noImages")}
                     </Text>
-                    <TouchableOpacity
-                      style={[
-                        styles.activityDetailImagesEmptyAddBtn,
-                        {
-                          backgroundColor: `${colors.success}14`,
-                          borderColor: `${colors.success}35`,
-                        },
-                      ]}
-                      onPress={handleAddActivityImageFromDetail}
-                      disabled={isUploadingActivityImage}
-                      activeOpacity={0.88}
-                    >
-                      {isUploadingActivityImage ? (
-                        <ActivityIndicator size="small" color={colors.success} />
-                      ) : (
-                        <Text style={[styles.activityDetailImagesEmptyAddText, { color: colors.success }]}>
-                          {t("activity.addImage")}
-                        </Text>
-                      )}
-                    </TouchableOpacity>
+                    {canUpdate ? (
+                      <TouchableOpacity
+                        style={[
+                          styles.activityDetailImagesEmptyAddBtn,
+                          {
+                            backgroundColor: `${colors.success}14`,
+                            borderColor: `${colors.success}35`,
+                          },
+                        ]}
+                        onPress={handleAddActivityImageFromDetail}
+                        disabled={isUploadingActivityImage}
+                        activeOpacity={0.88}
+                      >
+                        {isUploadingActivityImage ? (
+                          <ActivityIndicator size="small" color={colors.success} />
+                        ) : (
+                          <Text style={[styles.activityDetailImagesEmptyAddText, { color: colors.success }]}>
+                            {t("activity.addImage")}
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                    ) : null}
                   </View>
                 ) : (
                   <View style={styles.activityDetailImageStripOuter}>
@@ -1273,7 +1304,7 @@ export function ActivityDetailScreen(): React.ReactElement {
   </View>
 ) : null}
 
-            {!activity.isCompleted && (
+            {canCompleteActivity ? (
               <TouchableOpacity style={styles.completeButtonWrap} onPress={handleMarkComplete} activeOpacity={0.9}>
                 <LinearGradient
                   colors={[colors.success, "#22c55e"]}
@@ -1285,7 +1316,7 @@ export function ActivityDetailScreen(): React.ReactElement {
                   <Text style={styles.completeButtonText}>{t("activity.markComplete")}</Text>
                 </LinearGradient>
               </TouchableOpacity>
-            )}
+            ) : null}
           </>
         )}
       />

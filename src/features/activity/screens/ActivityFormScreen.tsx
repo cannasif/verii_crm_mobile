@@ -26,6 +26,8 @@ import { ScreenHeader } from "../../../components/navigation";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useAuthStore } from "../../../store/auth";
+import { PermissionDeniedState } from "../../access-control/components/PermissionDeniedState";
+import { hasPermission } from "../../access-control/utils/hasPermission";
 import { useActivity, useActivityLookups, useActivityTypes, useCreateActivity, useUpdateActivity } from "../hooks";
 import { FormField, CustomerPicker, ContactPicker } from "../components";
 import { useCustomerScopeAccess } from "../../customer/hooks";
@@ -156,6 +158,10 @@ export function ActivityFormScreen(): React.ReactElement {
   const [pendingImageAssets, setPendingImageAssets] = useState<ImagePicker.ImagePickerAsset[]>([]);
 
   const user = useAuthStore((state) => state.user);
+  const permissions = useAuthStore((state) => state.permissions);
+  const canCreate = hasPermission(permissions, "activity.activity-management.create");
+  const canUpdate = hasPermission(permissions, "activity.activity-management.update");
+  const canSubmit = isEditMode ? canUpdate : canCreate;
   const { data: existingActivity, isLoading: activityLoading } = useActivity(activityId);
   const { data: activityTypes, isLoading: typesLoading } = useActivityTypes();
   const { paymentTypes, meetingTypes, topicPurposes, shippings } = useActivityLookups();
@@ -748,6 +754,8 @@ export function ActivityFormScreen(): React.ReactElement {
   }, []);
 
   const handlePickFromGallery = useCallback(async () => {
+    if (!canSubmit) return;
+
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (permission.status !== "granted") {
@@ -767,9 +775,11 @@ export function ActivityFormScreen(): React.ReactElement {
     }
 
     setPreviewPickedAssets(result.assets);
-  }, [t]);
+  }, [canSubmit, t]);
 
   const handlePickFromCamera = useCallback(async () => {
+    if (!canSubmit) return;
+
     const permission = await ImagePicker.requestCameraPermissionsAsync();
 
     if (permission.status !== "granted") {
@@ -788,9 +798,11 @@ export function ActivityFormScreen(): React.ReactElement {
     }
 
     setPreviewPickedAssets(result.assets);
-  }, [t]);
+  }, [canSubmit, t]);
 
   const handlePickAndUploadImages = useCallback(() => {
+    if (!canSubmit) return;
+
     if (!activityId) {
       Alert.alert(t("common.warning"), t("activity.imageSaveFirst"));
       return;
@@ -818,10 +830,15 @@ export function ActivityFormScreen(): React.ReactElement {
         },
       ]
     );
-  }, [activityId, t, handlePickFromGallery, handlePickFromCamera]);
+  }, [activityId, canSubmit, t, handlePickFromGallery, handlePickFromCamera]);
 
   const onSubmit = useCallback(
     async (data: ActivityFormData) => {
+      if (!canSubmit) {
+        Alert.alert(t("common.warning"), t("accessControl.permissionDenied", "Bu işlem için yetkiniz yok."));
+        return;
+      }
+
       try {
         const options = {
           activityTypes: activityTypes ?? [],
@@ -908,6 +925,7 @@ export function ActivityFormScreen(): React.ReactElement {
       toDefaultEndDateTime,
       pendingImageAssets,
       queryClient,
+      canSubmit,
     ]
   );
 
@@ -931,6 +949,8 @@ export function ActivityFormScreen(): React.ReactElement {
 
   const handleDeleteImage = useCallback(
     async (imageId: number) => {
+      if (!canSubmit) return;
+
       setDeletingImageId(imageId);
       try {
         await activityImageApi.delete(imageId);
@@ -949,7 +969,7 @@ export function ActivityFormScreen(): React.ReactElement {
         setDeletingImageId(null);
       }
     },
-    [activityId, queryClient, t]
+    [activityId, canSubmit, queryClient, t]
   );
 
   const renderTypeItem = useCallback(
@@ -1189,6 +1209,10 @@ export function ActivityFormScreen(): React.ReactElement {
         </KeyboardAvoidingView>
       </>
     );
+  }
+
+  if (!canSubmit) {
+    return <PermissionDeniedState />;
   }
 
   return (

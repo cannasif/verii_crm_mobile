@@ -22,9 +22,11 @@ import {
 import { useUIStore } from "../../../store/ui";
 import { PermissionDeniedState } from "../../access-control/components/PermissionDeniedState";
 import { isForbiddenError } from "../../access-control/utils/isForbiddenError";
+import { hasPermission } from "../../access-control/utils/hasPermission";
 import { useActivities } from "../hooks";
 import { ActivityCard } from "../components";
 import type { ActivityDto } from "../types";
+import { useAuthStore } from "../../../store/auth";
 import {
   CalendarAdd01Icon,
   ArrowDown01Icon,
@@ -40,7 +42,9 @@ export function ActivityListScreen(): React.ReactElement {
   const { t } = useTranslation();
   const router = useRouter();
   const { themeMode } = useUIStore();
+  const permissions = useAuthStore((state) => state.permissions);
   const insets = useSafeAreaInsets();
+  const canCreate = hasPermission(permissions, "activity.activity-management.create");
   
   const isDark = themeMode === "dark";
 
@@ -160,8 +164,9 @@ export function ActivityListScreen(): React.ReactElement {
   );
 
   const handleCreatePress = useCallback(() => {
+    if (!canCreate) return;
     router.push("/(tabs)/activities/create");
-  }, [router]);
+  }, [canCreate, router]);
 
   const handleEndReached = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
@@ -204,13 +209,15 @@ export function ActivityListScreen(): React.ReactElement {
 
   const toolbarActions = (
     <>
-      <TouchableOpacity
-        style={[styles.iconBtn, { backgroundColor: theme.surfaceBg, borderColor: theme.borderColor }]}
-        onPress={handleCreatePress}
-        activeOpacity={0.72}
-      >
-        <CalendarAdd01Icon size={22} color={theme.primary} variant="stroke" strokeWidth={2.3} />
-      </TouchableOpacity>
+      {canCreate ? (
+        <TouchableOpacity
+          style={[styles.iconBtn, { backgroundColor: theme.surfaceBg, borderColor: theme.borderColor }]}
+          onPress={handleCreatePress}
+          activeOpacity={0.72}
+        >
+          <CalendarAdd01Icon size={22} color={theme.primary} variant="stroke" strokeWidth={2.3} />
+        </TouchableOpacity>
+      ) : null}
 
       <TouchableOpacity
         style={[styles.sortToolbarBtn, { backgroundColor: theme.surfaceBg, borderColor: theme.borderColor }]}
