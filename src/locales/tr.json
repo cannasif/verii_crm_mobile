@@ -1611,6 +1611,25 @@
       "quotationAmount": "Teklif tutarı",
       "orderAmount": "Sipariş tutarı"
     },
+    "revenueQuality": {
+      "title": "Gelir kalitesi",
+      "churnRisk": "Kayıp riski",
+      "upsell": "Ek satış olasılığı",
+      "payment": "Ödeme davranışı",
+      "segment": "Segment"
+    },
+    "actions": {
+      "title": "Önerilen aksiyonlar",
+      "empty": "Önerilen aksiyon yok",
+      "execute": "Aktivite oluştur",
+      "executeSuccess": "Aksiyon aktiviteye çevrildi",
+      "executeError": "Aksiyon oluşturulamadı"
+    },
+    "cohort": {
+      "title": "Cohort tutundurma",
+      "cohortKey": "Cohort",
+      "empty": "Cohort verisi yok"
+    },
     "analytics": {
       "last12MonthsOrderAmount": "Son 12 Ay Sipariş Tutarı",
       "openQuotationAmount": "Açık Teklif Tutarı",

@@ -1551,6 +1551,25 @@
       "quotationAmount": "Quotation amount",
       "orderAmount": "Order amount"
     },
+    "revenueQuality": {
+      "title": "Revenue quality",
+      "churnRisk": "Churn risk",
+      "upsell": "Upsell propensity",
+      "payment": "Payment behavior",
+      "segment": "Segment"
+    },
+    "actions": {
+      "title": "Recommended actions",
+      "empty": "No recommended actions",
+      "execute": "Create activity",
+      "executeSuccess": "Action converted to activity",
+      "executeError": "Action could not be created"
+    },
+    "cohort": {
+      "title": "Cohort retention",
+      "cohortKey": "Cohort",
+      "empty": "No cohort data"
+    },
     "analytics": {
       "last12MonthsOrderAmount": "Last 12 Months Order Amount",
       "openQuotationAmount": "Open Quotation Amount",

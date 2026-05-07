@@ -19,6 +19,8 @@ import {
   useSalesman360AnalyticsSummary,
   useSalesman360AnalyticsCharts,
   useSalesman360VisibleUsers,
+  useSalesman360Cohort,
+  useExecuteSalesman360Action,
 } from "../hooks";
 import { CurrencyPicker } from "../components";
 import { Salesman360OverviewTab } from "./Salesman360OverviewTab";
@@ -123,13 +125,17 @@ export function Salesman360Screen(): React.ReactElement {
   );
   const summaryQuery = useSalesman360AnalyticsSummary(
     userId,
-    currencyParam
+    currencyParam,
+    activeTab === "analytics"
   );
   const chartsQuery = useSalesman360AnalyticsCharts(
     userId,
     12,
-    currencyParam
+    currencyParam,
+    activeTab === "analytics"
   );
+  const cohortQuery = useSalesman360Cohort(userId, 12);
+  const executeActionMutation = useExecuteSalesman360Action(userId);
 
   const invalidUser = userId == null || userId === 0;
   const notFound =
@@ -298,6 +304,18 @@ export function Salesman360Screen(): React.ReactElement {
                 data={overviewQuery.data}
                 colors={colors}
                 isSingleCurrency={isSingleCurrency}
+                cohort={cohortQuery.data}
+                isCohortLoading={cohortQuery.isLoading}
+                isActionExecuting={executeActionMutation.isPending}
+                onExecuteAction={(action) =>
+                  executeActionMutation.mutate({
+                    actionCode: action.actionCode,
+                    title: action.title,
+                    reason: action.reason ?? undefined,
+                    dueInDays: 1,
+                    priority: "High",
+                  })
+                }
               />
             )
           ) : (

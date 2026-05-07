@@ -5,9 +5,14 @@ import type {
   Salesmen360AnalyticsSummaryDto,
   Salesmen360AnalyticsChartsDto,
   Salesmen360VisibleUserDto,
+  CohortRetentionDto,
+  ExecuteRecommendedActionDto,
+  ActivityDto,
 } from "../types";
 
 const SALESMEN_360_STALE_MS = 30 * 1000;
+const SALESMEN_360_COHORT_STALE_MS = 5 * 60 * 1000;
+const SALESMEN_360_VISIBLE_USERS_STALE_MS = 60 * 1000;
 
 function buildConfig(currency: string | null): { params?: { currency: string }; headers?: { "X-Currency": string; Currency: string } } {
   if (currency == null || currency === "" || currency === "ALL") {
@@ -32,6 +37,14 @@ function getAnalyticsSummaryPath(userId: number): string {
 
 function getAnalyticsChartsPath(userId: number): string {
   return `/api/salesmen/${userId}/analytics/charts`;
+}
+
+function getCohortPath(userId: number): string {
+  return `/api/salesmen/${userId}/analytics/cohort`;
+}
+
+function getRecommendedActionPath(userId: number): string {
+  return `/api/salesmen/${userId}/recommended-actions/execute`;
 }
 
 function assertSuccess<T>(response: { data: ApiResponse<T> & { data: T | null } }, fallbackMessage: string): T {
@@ -84,6 +97,23 @@ export const salesman360Api = {
     >(getAnalyticsChartsPath(userId), { ...config, params });
     return assertSuccess(response, "Grafik verisi yüklenemedi");
   },
+
+  getCohort: async (userId: number, months: number): Promise<CohortRetentionDto[]> => {
+    const response = await apiClient.get<
+      ApiResponse<CohortRetentionDto[]> & { data: CohortRetentionDto[] | null }
+    >(getCohortPath(userId), { params: { months } });
+    return assertSuccess(response, "Cohort verisi yüklenemedi");
+  },
+
+  executeRecommendedAction: async (
+    userId: number,
+    payload: ExecuteRecommendedActionDto
+  ): Promise<ActivityDto> => {
+    const response = await apiClient.post<
+      ApiResponse<ActivityDto> & { data: ActivityDto | null }
+    >(getRecommendedActionPath(userId), payload);
+    return assertSuccess(response, "Önerilen aksiyon oluşturulamadı");
+  },
 };
 
-export { SALESMEN_360_STALE_MS };
+export { SALESMEN_360_STALE_MS, SALESMEN_360_COHORT_STALE_MS, SALESMEN_360_VISIBLE_USERS_STALE_MS };

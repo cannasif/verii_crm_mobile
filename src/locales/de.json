@@ -1464,6 +1464,25 @@
       "quotationAmount": "Angebotsbetrag",
       "orderAmount": "Bestellbetrag"
     },
+    "revenueQuality": {
+      "title": "Umsatzqualität",
+      "churnRisk": "Abwanderungsrisiko",
+      "upsell": "Upsell-Potenzial",
+      "payment": "Zahlungsverhalten",
+      "segment": "Segment"
+    },
+    "actions": {
+      "title": "Empfohlene Aktionen",
+      "empty": "Keine empfohlenen Aktionen",
+      "execute": "Aktivität erstellen",
+      "executeSuccess": "Aktion wurde als Aktivität erstellt",
+      "executeError": "Aktion konnte nicht erstellt werden"
+    },
+    "cohort": {
+      "title": "Cohort-Retention",
+      "cohortKey": "Cohort",
+      "empty": "Keine Cohort-Daten"
+    },
     "analytics": {
       "last12MonthsOrderAmount": "Bestellwert letzte 12 Monate",
       "openQuotationAmount": "Offener Angebotswert",

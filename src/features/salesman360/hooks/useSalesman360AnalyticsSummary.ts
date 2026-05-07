@@ -4,12 +4,13 @@ import type { Salesmen360AnalyticsSummaryDto } from "../types";
 
 export function useSalesman360AnalyticsSummary(
   userId: number | undefined,
-  currency: string | null
+  currency: string | null,
+  enabled = true
 ): ReturnType<typeof useQuery<Salesmen360AnalyticsSummaryDto, Error>> {
   return useQuery<Salesmen360AnalyticsSummaryDto, Error>({
     queryKey: ["salesman360", "analytics", "summary", userId, currency],
     queryFn: () => salesman360Api.getAnalyticsSummary(userId!, currency),
-    enabled: typeof userId === "number" && userId > 0,
+    enabled: enabled && typeof userId === "number" && userId > 0,
     staleTime: SALESMEN_360_STALE_MS,
   });
 }

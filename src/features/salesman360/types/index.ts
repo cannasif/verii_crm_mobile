@@ -17,11 +17,75 @@ export interface Salesmen360KpiDto {
   totalsByCurrency?: Salesmen360CurrencyAmountDto[];
 }
 
+export interface RevenueQualityDto {
+  cohortKey?: string | null;
+  retentionRate?: number | null;
+  rfmSegment?: string | null;
+  ltv?: number | null;
+  churnRiskScore?: number | null;
+  upsellPropensityScore?: number | null;
+  paymentBehaviorScore?: number | null;
+  dataQualityNote?: string | null;
+  healthScore?: number | null;
+  daysSinceLastOrder?: number | null;
+  avgDelayDays?: number | null;
+}
+
+export interface RecommendedActionDto {
+  actionCode: string;
+  title: string;
+  priority: number;
+  reason?: string | null;
+  dueDate?: string | null;
+  targetEntityType?: string | null;
+  targetEntityId?: number | null;
+  sourceRuleCode?: string | null;
+  key?: string;
+  actionType?: string;
+  payloadJson?: string | null;
+}
+
+export interface CohortRetentionPointDto {
+  periodIndex: number;
+  periodMonth: string;
+  retainedCount: number;
+  retentionRate: number;
+}
+
+export interface CohortRetentionDto {
+  cohortKey: string;
+  cohortSize: number;
+  points: CohortRetentionPointDto[];
+}
+
+export interface ExecuteRecommendedActionDto {
+  actionCode: string;
+  title?: string;
+  reason?: string;
+  dueInDays?: number;
+  priority?: string;
+  assignedUserId?: number;
+}
+
+export interface ActivityDto {
+  id: number;
+  subject: string;
+  description?: string | null;
+  status: string;
+  isCompleted: boolean;
+  priority?: string | null;
+  activityDate?: string | null;
+  assignedUserId?: number | null;
+  potentialCustomerId?: number | null;
+}
+
 export interface Salesmen360OverviewDto {
   userId: number;
   fullName: string;
   email?: string | null;
   kpis: Salesmen360KpiDto;
+  revenueQuality?: RevenueQualityDto | null;
+  recommendedActions?: RecommendedActionDto[] | null;
 }
 
 export interface Salesmen360VisibleUserDto {
