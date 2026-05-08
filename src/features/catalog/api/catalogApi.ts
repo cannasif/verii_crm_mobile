@@ -3,6 +3,8 @@ import type { ApiResponse } from "@/features/auth/types";
 import type { PagedResponse } from "@/features/stocks/types";
 import type {
   CatalogCategoryNodeDto,
+  CatalogFavoriteToggleDto,
+  CatalogFavoriteToggleResultDto,
   CatalogStockItemDto,
   ProductCatalogDto,
 } from "../types";
@@ -76,5 +78,21 @@ export const catalogApi = {
       hasPreviousPage: paged.hasPreviousPage ?? false,
       hasNextPage: paged.hasNextPage ?? false,
     };
+  },
+
+  toggleCatalogFavorite: async (
+    catalogId: number,
+    data: CatalogFavoriteToggleDto
+  ): Promise<CatalogFavoriteToggleResultDto> => {
+    const response = await apiClient.post<ApiResponse<CatalogFavoriteToggleResultDto>>(
+      `/api/Catalog/${catalogId}/favorites/toggle`,
+      data
+    );
+
+    if (!response.data.success || !response.data.data) {
+      throw new Error(response.data.message || "Favorite status could not be updated");
+    }
+
+    return response.data.data;
   },
 };

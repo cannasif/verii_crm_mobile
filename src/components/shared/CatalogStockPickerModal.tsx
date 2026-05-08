@@ -9,6 +9,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  type GestureResponderEvent,
   type KeyboardEvent,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -69,6 +70,7 @@ export function CatalogStockPickerModal({
   const [guideExpanded, setGuideExpanded] = useState(false);
   const [keyboardInset, setKeyboardInset] = useState(0);
   const [stocksReloadNonce, setStocksReloadNonce] = useState(0);
+  const [favoriteTogglingStockId, setFavoriteTogglingStockId] = useState<number | null>(null);
 
   const currentParentCategoryId =
     navigationPath.length > 0 ? navigationPath[navigationPath.length - 1]?.catalogCategoryId ?? null : null;
@@ -394,6 +396,49 @@ export function CatalogStockPickerModal({
       setTempSelectedStocks((prev) => [...prev, stock]);
     },
     [isSameSelectedStock]
+  );
+
+  const handleFavoritePress = useCallback(
+    async (event: GestureResponderEvent, stock: CatalogStockItemDto): Promise<void> => {
+      event.stopPropagation();
+      if (!selectedCatalog || favoriteTogglingStockId === stock.stockId) return;
+
+      const nextIsFavorite = !stock.isFavorite;
+      setFavoriteTogglingStockId(stock.stockId);
+      setStocks((prev) =>
+        prev.map((item) =>
+          item.stockId === stock.stockId
+            ? { ...item, isFavorite: nextIsFavorite, favoriteId: nextIsFavorite ? item.favoriteId : null }
+            : item
+        )
+      );
+
+      try {
+        const result = await catalogApi.toggleCatalogFavorite(selectedCatalog.id, {
+          stockId: stock.stockId,
+          isFavorite: nextIsFavorite,
+        });
+        setStocks((prev) =>
+          prev.map((item) =>
+            item.stockId === stock.stockId
+              ? { ...item, isFavorite: result.isFavorite, favoriteId: result.favoriteId ?? null }
+              : item
+          )
+        );
+      } catch (error) {
+        setStocks((prev) =>
+          prev.map((item) =>
+            item.stockId === stock.stockId
+              ? { ...item, isFavorite: stock.isFavorite, favoriteId: stock.favoriteId }
+              : item
+          )
+        );
+        console.error("Catalog favorite toggle error", error);
+      } finally {
+        setFavoriteTogglingStockId(null);
+      }
+    },
+    [favoriteTogglingStockId, selectedCatalog]
   );
 
   return (
@@ -824,17 +869,41 @@ export function CatalogStockPickerModal({
                             </View>
                             <Text style={[styles.stockCode, { color: colors.accent }]}>{stock.erpStockCode}</Text>
                           </View>
-                          <Text
-                            style={[
-                              styles.stockSelectBadge,
-                              {
-                                color: isSelected ? "#fff" : colors.textSecondary,
-                                backgroundColor: isSelected ? colors.accent : nestedCardBackground,
-                              },
-                            ]}
-                          >
-                            {isSelected ? t("stockPicker.catalogSelectedBadge") : t("stockPicker.catalogSelectStock")}
-                          </Text>
+                          <View style={styles.stockHeaderActions}>
+                            <TouchableOpacity
+                              style={[
+                                styles.stockFavoriteButton,
+                                {
+                                  borderColor: stock.isFavorite ? colors.accent + "66" : colors.border,
+                                  backgroundColor: stock.isFavorite ? colors.accent + "14" : nestedCardBackground,
+                                },
+                              ]}
+                              onPress={(event) => void handleFavoritePress(event, stock)}
+                              disabled={favoriteTogglingStockId === stock.stockId}
+                              activeOpacity={0.82}
+                            >
+                              {favoriteTogglingStockId === stock.stockId ? (
+                                <ActivityIndicator size="small" color={colors.accent} />
+                              ) : (
+                                <Ionicons
+                                  name={stock.isFavorite ? "heart" : "heart-outline"}
+                                  size={15}
+                                  color={stock.isFavorite ? colors.accent : colors.textSecondary}
+                                />
+                              )}
+                            </TouchableOpacity>
+                            <Text
+                              style={[
+                                styles.stockSelectBadge,
+                                {
+                                  color: isSelected ? "#fff" : colors.textSecondary,
+                                  backgroundColor: isSelected ? colors.accent : nestedCardBackground,
+                                },
+                              ]}
+                            >
+                              {isSelected ? t("stockPicker.catalogSelectedBadge") : t("stockPicker.catalogSelectStock")}
+                            </Text>
+                          </View>
                         </View>
                         <Text style={[styles.stockName, { color: colors.text }]} numberOfLines={3}>
                           {stock.stockName}
@@ -1219,6 +1288,7 @@ const styles = StyleSheet.create({
   },
   stockCardHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, minHeight: 24 },
   stockHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1 },
+  stockHeaderActions: { flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 0 },
   stockLeadingIcon: {
     width: 24,
     height: 24,
@@ -1229,6 +1299,14 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   stockCode: { fontSize: 11, fontWeight: "800" },
+  stockFavoriteButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 999,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   stockSelectBadge: {
     fontSize: 9.6,
     fontWeight: "700",
