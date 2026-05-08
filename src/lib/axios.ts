@@ -87,6 +87,7 @@ export async function initializeApiClient(): Promise<void> {
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     config.baseURL = getApiBaseUrl();
+    const originalMethod = (config.method ?? "get").toLowerCase();
     const authState = useAuthStore.getState();
     if (!authState.isHydrated && !config.url?.includes("/api/auth/login")) {
       await authState.hydrate();
@@ -121,6 +122,11 @@ apiClient.interceptors.request.use(
       const normalizedBranchCode = String(branchCode);
       config.headers["X-Branch-Code"] = normalizedBranchCode;
       config.headers.BranchCode = normalizedBranchCode;
+    }
+
+    if (originalMethod === "put" || originalMethod === "patch" || originalMethod === "delete") {
+      config.headers["X-HTTP-Method-Override"] = originalMethod.toUpperCase();
+      config.method = "post";
     }
 
     if (__DEV__) {
