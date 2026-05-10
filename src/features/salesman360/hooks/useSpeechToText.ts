@@ -85,7 +85,10 @@ export function useSpeechToText(): UseSpeechToTextResult {
             recognition.continuous = false;
             recognition.interimResults = false;
             recognition.lang = "tr-TR";
-            recognition.onresult = (e: { results: { item: (i: number) => { item: (j: number) => { transcript: string } } }; resultIndex: number }) => {
+            recognition.onresult = (e: {
+              results: { item: (i: number) => { item: (j: number) => { transcript: string } } };
+              resultIndex: number;
+            }) => {
               const res = e.results.item(e.resultIndex);
               const transcript = res.item(0).transcript;
               onResultText(transcript);

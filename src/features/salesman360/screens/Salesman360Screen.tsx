@@ -4,12 +4,13 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Modal,
-  Pressable,
   ScrollView,
+  Platform,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { StatusBar } from "expo-status-bar";
+import { LinearGradient } from "expo-linear-gradient";
+import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { Text } from "../../../components/ui/text";
 import { ScreenHeader } from "../../../components/navigation";
 import { useUIStore } from "../../../store/ui";
@@ -22,7 +23,13 @@ import {
   useSalesman360Cohort,
   useExecuteSalesman360Action,
 } from "../hooks";
-import { CurrencyPicker } from "../components";
+import {
+  CurrencyPicker,
+  Salesman360OutlineChip,
+  Salesman360ProfileCard,
+  Salesman360SalesmanPickerModal,
+} from "../components";
+import { Money03Icon, Calendar03Icon } from "hugeicons-react-native";
 import { Salesman360OverviewTab } from "./Salesman360OverviewTab";
 import { Salesman360AnalyticsTab } from "./Salesman360AnalyticsTab";
 import type { Salesmen360PeriodKey, Salesmen360VisibleUserDto } from "../types";
@@ -75,7 +82,8 @@ function createSelfVisibleUser(user: { id: number; name?: string; email?: string
 export function Salesman360Screen(): React.ReactElement {
   const { t } = useTranslation();
   const { user } = useAuthStore();
-  const { colors } = useUIStore();
+  const { colors, themeMode } = useUIStore();
+  const isDark = themeMode === "dark";
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [selectedCurrency, setSelectedCurrency] = useState<string>("ALL");
   const [selectedPeriod, setSelectedPeriod] = useState<Salesmen360PeriodKey>("month");
@@ -159,26 +167,42 @@ export function Salesman360Screen(): React.ReactElement {
     chartsQuery.data?.amountComparisonByCurrency,
   ]);
 
-  const subtitle = overviewQuery.data
-    ? [overviewQuery.data.fullName, overviewQuery.data.email].filter(Boolean).join(" · ")
-    : selectedUser
-      ? [selectedUser.fullName, selectedUser.email].filter(Boolean).join(" · ")
-    : "";
-  const contentBackground = colors.background;
+  const mainBg = isDark ? "#0c0516" : "#FFFFFF";
+  const gradientColors = (
+    isDark
+      ? ["rgba(236, 72, 153, 0.12)", "transparent", "rgba(249, 115, 22, 0.12)"]
+      : ["rgba(255, 235, 240, 0.6)", "#FFFFFF", "rgba(255, 240, 225, 0.6)"]
+  ) as [string, string, ...string[]];
+
+  const profileName =
+    selectedUser?.fullName ||
+    overviewQuery.data?.fullName ||
+    t("salesman360.salesmanFilter.selfOnly");
+  const profileEmail = selectedUser?.email ?? overviewQuery.data?.email ?? null;
   const isSingleCurrency = selectedCurrency !== "ALL";
   const canSelectSalesman = visibleUsers.length > 1;
 
   if (showNotFound) {
     return (
       <>
-        <StatusBar style="light" />
-        <View style={[styles.container, { backgroundColor: colors.header }]}>
-          <ScreenHeader title={t("salesman360.title")} showBackButton />
-          <View style={[styles.content, { backgroundColor: contentBackground }]}>
-            <View style={styles.centered}>
-              <Text style={[styles.notFoundText, { color: colors.text }]}>
-                {t("salesman360.notFound")}
-              </Text>
+        <StatusBar style={isDark ? "light" : "dark"} />
+        <View style={[styles.container, { backgroundColor: mainBg }]}>
+          <View style={StyleSheet.absoluteFill}>
+            <LinearGradient
+              colors={gradientColors}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+          </View>
+          <View style={styles.foreground}>
+            <ScreenHeader title={t("salesman360.title")} showBackButton />
+            <View style={styles.notFoundBody}>
+              <View style={styles.centered}>
+                <Text style={[styles.notFoundText, { color: colors.text }]}>
+                  {t("salesman360.notFound")}
+                </Text>
+              </View>
             </View>
           </View>
         </View>
@@ -188,98 +212,151 @@ export function Salesman360Screen(): React.ReactElement {
 
   return (
     <>
-      <StatusBar style="light" />
-      <View style={[styles.container, { backgroundColor: colors.header }]}>
-        <ScreenHeader title={t("salesman360.title")} showBackButton />
-        <View style={[styles.content, { backgroundColor: contentBackground }]}>
-          {subtitle ? (
-            <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-              {subtitle}
-            </Text>
-          ) : null}
-          <View style={styles.salesmanSection}>
-            <TouchableOpacity
-              activeOpacity={canSelectSalesman ? 0.85 : 1}
-              disabled={!canSelectSalesman}
-              onPress={() => setSalesmanPickerVisible(true)}
-              style={[
-                styles.salesmanSelector,
-                { backgroundColor: colors.card, borderColor: colors.cardBorder },
-              ]}
-            >
-              <View style={styles.salesmanSelectorText}>
-                <Text style={[styles.salesmanLabel, { color: colors.textMuted }]}>
-                  {t("salesman360.salesmanFilter.label")}
-                </Text>
-                <Text style={[styles.salesmanName, { color: colors.text }]} numberOfLines={1}>
-                  {selectedUser?.fullName || overviewQuery.data?.fullName || t("salesman360.salesmanFilter.selfOnly")}
-                </Text>
-              </View>
-              <Text style={[styles.salesmanChevron, { color: canSelectSalesman ? colors.accent : colors.textMuted }]}>
-                {canSelectSalesman ? ">" : "-"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.currencySection}>
-            <CurrencyPicker
-              selectedCurrency={selectedCurrency}
-              currencyOptions={currencyOptions}
-              label={t("salesman360.currencyFilter.label")}
-              allLabel={t("salesman360.currencyFilter.all")}
+      <StatusBar style={isDark ? "light" : "dark"} />
+      <View style={[styles.container, { backgroundColor: mainBg }]}>
+        <View style={StyleSheet.absoluteFill}>
+          <LinearGradient
+            colors={gradientColors}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </View>
+        <View style={styles.foreground}>
+          <ScreenHeader title={t("salesman360.title")} showBackButton />
+          <FlatListScrollView
+            style={styles.pageScroll}
+            contentContainerStyle={styles.pageScrollContent}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
+          >
+          <View style={styles.profileBlock}>
+            <Salesman360ProfileCard
+              displayName={profileName}
+              email={profileEmail}
+              roleLabel={t("salesman360.salesmanFilter.label")}
               colors={colors}
-              onSelect={setSelectedCurrency}
+              isDark={isDark}
+              interactive={canSelectSalesman}
+              onPress={() => setSalesmanPickerVisible(true)}
             />
           </View>
-          <View style={styles.periodSection}>
-            <Text style={[styles.periodLabel, { color: colors.textMuted }]}>
-              {t("salesman360.periodFilter.label")}
-            </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.periodChips}>
-              {PERIOD_OPTIONS.map((period) => {
-                const selected = selectedPeriod === period;
-                return (
-                  <TouchableOpacity
+          <View style={styles.filterStack}>
+            <View
+              style={[
+                styles.filterSectionCard,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <View style={styles.filterSectionHead}>
+                <Money03Icon size={12} color={colors.textMuted} variant="stroke" strokeWidth={1.75} />
+                <Text
+                  unstyled
+                  style={[styles.filterSectionTitle, { color: colors.textMuted }]}
+                >
+                  {t("salesman360.currencyFilter.label")}
+                </Text>
+              </View>
+              <CurrencyPicker
+                selectedCurrency={selectedCurrency}
+                currencyOptions={currencyOptions}
+                label={t("salesman360.currencyFilter.label")}
+                allLabel={t("salesman360.currencyFilter.all")}
+                colors={colors}
+                onSelect={setSelectedCurrency}
+                showLabel={false}
+                chipStyle="ring"
+                horizontal
+              />
+            </View>
+            <View
+              style={[
+                styles.filterSectionCard,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <View style={styles.filterSectionHead}>
+                <Calendar03Icon
+                  size={12}
+                  color={colors.textMuted}
+                  variant="stroke"
+                  strokeWidth={1.75}
+                />
+                <Text
+                  unstyled
+                  style={[styles.filterSectionTitle, { color: colors.textMuted }]}
+                >
+                  {t("salesman360.periodFilter.label")}
+                </Text>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.periodChips}
+              >
+                {PERIOD_OPTIONS.map((period) => (
+                  <Salesman360OutlineChip
                     key={period}
-                    activeOpacity={0.85}
+                    label={t(`salesman360.periodFilter.${period}`)}
+                    selected={selectedPeriod === period}
                     onPress={() => setSelectedPeriod(period)}
-                    style={[
-                      styles.periodChip,
-                      {
-                        borderColor: selected ? colors.accent : colors.cardBorder,
-                        backgroundColor: selected ? `${colors.accent}18` : colors.card,
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.periodChipText, { color: selected ? colors.accent : colors.text }]}>
-                      {t(`salesman360.periodFilter.${period}`)}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+                    colors={colors}
+                  />
+                ))}
+              </ScrollView>
+            </View>
           </View>
           <View
             style={[
-              styles.tabBar,
-              { backgroundColor: colors.card, borderColor: colors.cardBorder },
+              styles.segmentRail,
+              { backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
             ]}
           >
             <TouchableOpacity
-              style={[
-                styles.tab,
-                activeTab === "overview" && {
-                  borderBottomColor: colors.accent,
-                  borderBottomWidth: 2,
-                },
-              ]}
+              activeOpacity={0.9}
               onPress={() => setActiveTab("overview")}
+              style={[
+                styles.segmentSlot,
+                {
+                  borderColor:
+                    activeTab === "overview" ? colors.accent : colors.border,
+                  borderWidth: activeTab === "overview" ? 2 : 1,
+                  backgroundColor:
+                    activeTab === "overview"
+                      ? isDark
+                        ? colors.activeBackground
+                        : colors.card
+                      : "transparent",
+                },
+                activeTab === "overview" &&
+                  Platform.select({
+                    ios: {
+                      shadowColor: colors.accent,
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: isDark ? 0.35 : 0.18,
+                      shadowRadius: 8,
+                    },
+                    android: {
+                      elevation: 3,
+                    },
+                    default: {},
+                  }),
+              ]}
             >
               <Text
+                unstyled
                 style={[
-                  styles.tabText,
+                  styles.segmentLabel,
                   {
                     color:
-                      activeTab === "overview" ? colors.accent : colors.textMuted,
+                      activeTab === "overview" ? colors.accent : colors.textSecondary,
+                    fontWeight: activeTab === "overview" ? "800" : "600",
                   },
                 ]}
               >
@@ -287,23 +364,44 @@ export function Salesman360Screen(): React.ReactElement {
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[
-                styles.tab,
-                activeTab === "analytics" && {
-                  borderBottomColor: colors.accent,
-                  borderBottomWidth: 2,
-                },
-              ]}
+              activeOpacity={0.9}
               onPress={() => setActiveTab("analytics")}
+              style={[
+                styles.segmentSlot,
+                {
+                  borderColor:
+                    activeTab === "analytics" ? colors.accent : colors.border,
+                  borderWidth: activeTab === "analytics" ? 2 : 1,
+                  backgroundColor:
+                    activeTab === "analytics"
+                      ? isDark
+                        ? colors.activeBackground
+                        : colors.card
+                      : "transparent",
+                },
+                activeTab === "analytics" &&
+                  Platform.select({
+                    ios: {
+                      shadowColor: colors.accent,
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: isDark ? 0.35 : 0.18,
+                      shadowRadius: 8,
+                    },
+                    android: {
+                      elevation: 3,
+                    },
+                    default: {},
+                  }),
+              ]}
             >
               <Text
+                unstyled
                 style={[
-                  styles.tabText,
+                  styles.segmentLabel,
                   {
                     color:
-                      activeTab === "analytics"
-                        ? colors.accent
-                        : colors.textMuted,
+                      activeTab === "analytics" ? colors.accent : colors.textSecondary,
+                    fontWeight: activeTab === "analytics" ? "800" : "600",
                   },
                 ]}
               >
@@ -375,62 +473,21 @@ export function Salesman360Screen(): React.ReactElement {
               />
             )
           )}
-          <Modal
+          </FlatListScrollView>
+          <Salesman360SalesmanPickerModal
             visible={salesmanPickerVisible}
-            transparent
-            animationType="fade"
-            onRequestClose={() => setSalesmanPickerVisible(false)}
-          >
-            <Pressable style={styles.modalBackdrop} onPress={() => setSalesmanPickerVisible(false)}>
-              <Pressable
-                style={[
-                  styles.salesmanModal,
-                  { backgroundColor: colors.card, borderColor: colors.cardBorder },
-                ]}
-              >
-                <Text style={[styles.modalTitle, { color: colors.text }]}>
-                  {t("salesman360.salesmanFilter.title")}
-                </Text>
-                <ScrollView style={styles.salesmanList} showsVerticalScrollIndicator={false}>
-                  {visibleUsers.map((item) => {
-                    const selected = item.userId === userId;
-                    return (
-                      <TouchableOpacity
-                        key={item.userId}
-                        onPress={() => {
-                          setSelectedUserId(item.userId);
-                          setSalesmanPickerVisible(false);
-                        }}
-                        style={[
-                          styles.salesmanOption,
-                          {
-                            borderColor: selected ? colors.accent : colors.cardBorder,
-                            backgroundColor: selected ? `${colors.accent}18` : colors.background,
-                          },
-                        ]}
-                      >
-                        <View style={styles.salesmanOptionText}>
-                          <Text style={[styles.salesmanOptionName, { color: colors.text }]} numberOfLines={1}>
-                            {item.fullName}
-                          </Text>
-                          {item.email ? (
-                            <Text style={[styles.salesmanOptionEmail, { color: colors.textMuted }]} numberOfLines={1}>
-                              {item.email}
-                            </Text>
-                          ) : null}
-                        </View>
-                        {item.isSelf ? (
-                          <Text style={[styles.selfBadge, { color: colors.accent }]}>
-                            {t("salesman360.salesmanFilter.self")}
-                          </Text>
-                        ) : null}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-              </Pressable>
-            </Pressable>
-          </Modal>
+            onClose={() => setSalesmanPickerVisible(false)}
+            users={visibleUsers}
+            selectedUserId={userId}
+            onSelectUser={(id) => setSelectedUserId(id)}
+            colors={colors}
+            isDark={isDark}
+            title={t("salesman360.salesmanFilter.title")}
+            sheetSubtitle={t("salesman360.salesmanFilter.sheetSubtitle")}
+            selfLabel={t("salesman360.salesmanFilter.self")}
+            searchPlaceholder={t("salesman360.salesmanFilter.searchPlaceholder")}
+            noResultsLabel={t("salesman360.salesmanFilter.noSearchResults")}
+          />
         </View>
       </View>
     </>
@@ -441,101 +498,86 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  content: {
+  foreground: {
     flex: 1,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    overflow: "hidden",
   },
-  subtitle: {
-    fontSize: 14,
+  pageScroll: {
+    flex: 1,
+  },
+  pageScrollContent: {
     paddingHorizontal: 20,
     paddingTop: 12,
+    paddingBottom: 120,
   },
-  salesmanSection: {
+  notFoundBody: {
+    flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 12,
+    paddingTop: 16,
   },
-  salesmanSelector: {
-    minHeight: 58,
-    borderRadius: 14,
+  profileBlock: {
+    marginBottom: 16,
+  },
+  filterStack: {
+    gap: 11,
+    marginBottom: 13,
+  },
+  filterSectionCard: {
+    borderRadius: 15,
     borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingTop: 9,
+    paddingBottom: 8,
+  },
+  filterSectionHead: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: 7,
+    paddingLeft: 1,
+    marginBottom: 7,
   },
-  salesmanSelectorText: {
-    flex: 1,
-    paddingRight: 12,
-  },
-  salesmanLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  salesmanName: {
-    fontSize: 16,
+  filterSectionTitle: {
+    fontSize: 9,
     fontWeight: "700",
-  },
-  salesmanChevron: {
-    fontSize: 28,
-    fontWeight: "600",
-  },
-  currencySection: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-  },
-  periodSection: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-  },
-  periodLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    marginBottom: 8,
+    letterSpacing: 1.25,
+    textTransform: "uppercase",
+    opacity: 0.95,
   },
   periodChips: {
-    gap: 8,
-    paddingRight: 20,
-  },
-  periodChip: {
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  periodChipText: {
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  tabBar: {
     flexDirection: "row",
-    borderBottomWidth: 1,
-    marginHorizontal: 20,
-    marginTop: 12,
-    borderRadius: 12,
-    overflow: "hidden",
+    alignItems: "center",
+    gap: 8,
+    paddingLeft: 0,
+    paddingRight: 5,
+    paddingBottom: 2,
   },
-  tab: {
+  segmentRail: {
+    flexDirection: "row",
+    borderRadius: 13,
+    borderWidth: 1,
+    padding: 4,
+    gap: 6,
+    marginBottom: 9,
+  },
+  segmentSlot: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 5,
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: 10,
   },
-  tabText: {
-    fontSize: 14,
-    fontWeight: "500",
+  segmentLabel: {
+    fontSize: 11,
+    letterSpacing: 0.18,
   },
   loadingContainer: {
-    flex: 1,
+    minHeight: 300,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 60,
+    paddingVertical: 48,
   },
   errorContainer: {
-    flex: 1,
+    minHeight: 300,
     alignItems: "center",
     justifyContent: "center",
     padding: 20,
@@ -562,52 +604,5 @@ const styles = StyleSheet.create({
   notFoundText: {
     fontSize: 16,
     textAlign: "center",
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.42)",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
-  },
-  salesmanModal: {
-    width: "100%",
-    maxHeight: "72%",
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 16,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 12,
-  },
-  salesmanList: {
-    maxHeight: 420,
-  },
-  salesmanOption: {
-    borderWidth: 1,
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  salesmanOptionText: {
-    flex: 1,
-    paddingRight: 12,
-  },
-  salesmanOptionName: {
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  salesmanOptionEmail: {
-    fontSize: 12,
-    marginTop: 4,
-  },
-  selfBadge: {
-    fontSize: 12,
-    fontWeight: "700",
   },
 });

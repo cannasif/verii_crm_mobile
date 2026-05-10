@@ -52,7 +52,7 @@ const Text = React.forwardRef<React.ComponentRef<typeof RNText>, ITextProps>(
                 class: className,
               })
         }
-        style={disableThemeColor ? style : [style, { color: activeColor }]}
+        style={disableThemeColor ? style : [{ color: activeColor }, style]}
         {...props}
         ref={ref}
       />

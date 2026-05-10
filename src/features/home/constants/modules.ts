@@ -29,4 +29,11 @@ export const CRM_MODULES: Module[] = [
     color: "#8B5CF6", 
     route: "/(tabs)/stock",
   },
+  {
+    id: "5",
+    key: "salesKpi",
+    icon: "",
+    color: "#0EA5E9",
+    route: "/(tabs)/sales/sales-kpi",
+  },
 ];

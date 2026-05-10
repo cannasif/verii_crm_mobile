@@ -153,7 +153,9 @@
     "pendingTasks": "Pending Actions",
     "statsCustomers": "Customers",
     "statsActivities": "Activities",
-    "statsPending": "Pending"
+    "statsPending": "Pending",
+    "quickActionsScrollPrevious": "Scroll quick actions left",
+    "quickActionsScrollNext": "Scroll quick actions right"
   },
   "profile": {
     "account": "Account",
@@ -210,7 +212,8 @@
     "stock": "Inventory",
     "createDemand": "New Demand",
     "addPayment": "Payment",
-    "reports": "Reports"
+    "reports": "Reports",
+    "salesKpi": "Sales KPI"
   },
   "modules": {
     "customers": "Customers",
@@ -1628,6 +1631,50 @@
       "overview": "Overview",
       "analytics": "Analytics"
     },
+    "filters": {
+      "title": "Filters"
+    },
+    "periodFilter": {
+      "label": "Period",
+      "today": "Today",
+      "week": "This week",
+      "month": "This month",
+      "year": "This year"
+    },
+    "salesmanFilter": {
+      "label": "Sales representative",
+      "title": "Select sales representative",
+      "sheetSubtitle": "Choose whose KPI summary you want to view.",
+      "self": "Me",
+      "selfOnly": "My sales",
+      "searchPlaceholder": "Search by name or email",
+      "noSearchResults": "No matching sales representatives",
+      "voiceSearchA11y": "Voice search"
+    },
+    "revenueQuality": {
+      "title": "Revenue quality",
+      "churnRisk": "Churn risk",
+      "upsell": "Upsell propensity",
+      "payment": "Payment behavior",
+      "segment": "Segment"
+    },
+    "actions": {
+      "title": "Recommended actions",
+      "empty": "No recommended actions",
+      "execute": "Create activity",
+      "executeSuccess": "Action converted to activity",
+      "executeError": "Action could not be created"
+    },
+    "cohort": {
+      "title": "Cohort retention",
+      "cohortKey": "Cohort",
+      "badgeLabel": "Cohort",
+      "empty": "No cohort data",
+      "infoTitle": "Cohort retention",
+      "infoMessage": "Shows retention rates by period for the selected cohort. The bar indicates the retention percentage for each month row.",
+      "infoA11y": "About cohort retention",
+      "valuePlaceholder": "—"
+    },
     "kpi": {
       "totalDemands": "Total Demands",
       "totalQuotations": "Total Quotations",
@@ -1667,7 +1714,13 @@
       "order": "Order",
       "last12MonthsOrderAmount": "Last 12 Months Order Amount",
       "openQuotationAmount": "Open Quotation Amount",
-      "openOrderAmount": "Open Order Amount"
+      "openOrderAmount": "Open Order Amount",
+      "amountTableHeaderCurrencyShort": "CCY",
+      "amountTableHeaderLast12Short": "Period Σ",
+      "amountTableHeaderOpenQuotShort": "Open Q.",
+      "amountTableHeaderOpenOrderShort": "Open O.",
+      "amountTableColumnGuideHint": "Legend: neutral period orders · pink open quotation · orange open order.",
+      "chartSwipeHint": "Swipe sideways for more months"
     }
   }
 }

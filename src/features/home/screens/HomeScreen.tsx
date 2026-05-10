@@ -12,7 +12,7 @@ import { useAuthStore } from "../../../store/auth";
 import { CRM_MODULES } from "../constants/modules";
 import type { Module } from "../types";
 
-import { ModuleCard } from "../components/ModuleCard";
+import { HomeQuickActionsStrip } from "../components/HomeQuickActionsStrip";
 import { HomeHero } from "../components/HomeHero";
 import { StatsStrip } from "../components/StatsStrip";
 import { RecentActivities } from "../components/RecentActivities";
@@ -45,7 +45,7 @@ export function HomeScreen(): React.ReactElement {
       clearPerfMarks("home:mount", "home:first_paint", "home:primary_data_ready");
     };
   }, []);
-  
+
   const {
     data: activitiesData,
     refetch: refetchActivities,
@@ -86,7 +86,7 @@ export function HomeScreen(): React.ReactElement {
 
   const isDark = themeMode === "dark";
   const mainBg = isDark ? "#0c0516" : "#FAFAFA";
-  const textColor = isDark ? "#F8FAFC" : "#334155"; 
+  const textColor = isDark ? "#F8FAFC" : "#334155";
 
   const gradientColors = (isDark
     ? ['rgba(236, 72, 153, 0.05)', 'transparent', 'rgba(249, 115, 22, 0.05)']
@@ -106,11 +106,6 @@ export function HomeScreen(): React.ReactElement {
     router.push(route as never);
   }, [router]);
 
-  const renderItem = useCallback(
-    ({ item }: { item: Module }) => <ModuleCard item={item} onPress={onOpenModule} />,
-    [onOpenModule]
-  );
-
   const recentActivitiesList = activitiesData?.pages?.[0]?.items?.filter(item => item != null) || [];
 
   return (
@@ -121,19 +116,17 @@ export function HomeScreen(): React.ReactElement {
           <LinearGradient colors={gradientColors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
       </View>
 
-      <FlatList
-        data={CRM_MODULES}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        numColumns={4} 
-        columnWrapperStyle={styles.columnWrapper}
+      <FlatList<Module>
+        data={[]}
+        renderItem={() => <View />}
+        keyExtractor={(_, index) => `pad-${String(index)}`}
         refreshing={refreshing}
         onRefresh={() => void onRefresh()}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingTop: insets.top + 10,
           paddingHorizontal: 20,
-          paddingBottom: insets.bottom + 100, 
+          paddingBottom: insets.bottom + 100,
         }}
         ListHeaderComponent={
           <View style={styles.headerContainer}>
@@ -141,6 +134,7 @@ export function HomeScreen(): React.ReactElement {
             <Text style={[styles.sectionTitle, { color: textColor }]}>
               {t("home.quickActions")}
             </Text>
+            <HomeQuickActionsStrip items={CRM_MODULES} onOpenModule={onOpenModule} />
           </View>
         }
         ListFooterComponent={
@@ -153,11 +147,11 @@ export function HomeScreen(): React.ReactElement {
               <View style={[styles.inlineInfoBox, { backgroundColor: isDark ? "#1E293B" : "#F8FAFC", borderColor: isDark ? "#334155" : "#E2E8F0" }]}>
                 <ActivityIndicator size="small" color="#db2777" />
                 <Text style={[styles.inlineInfoText, { color: textColor }]}>
-                  {t("common.loading", "Yükleniyor...")}
+                  {t("common.loading")}
                 </Text>
               </View>
             )}
-            
+
             <StatsStrip
               totalCustomers={totalCustomers}
               totalActivities={totalActivities}
@@ -178,7 +172,6 @@ const styles = StyleSheet.create({
   headerContainer: { marginBottom: 4 },
   footerContainer: { marginTop: 8 },
   sectionTitle: { fontSize: 15, fontWeight: "700", marginBottom: 16, letterSpacing: 0.2 },
-  columnWrapper: { justifyContent: "space-between", marginBottom: 12 },
   inlineInfoBox: {
     flexDirection: "row",
     alignItems: "center",

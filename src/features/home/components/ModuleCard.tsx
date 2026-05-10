@@ -2,17 +2,34 @@ import React, { useState } from "react";
 import { TouchableWithoutFeedback, View, StyleSheet, Text } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useUIStore } from "../../../store/ui";
-import { UserAdd01Icon, Invoice01Icon, Calendar02Icon, PackageIcon ,CalendarAdd01Icon} from "hugeicons-react-native";
+import type { Module } from "../types";
+import {
+  UserAdd01Icon,
+  Invoice01Icon,
+  Calendar02Icon,
+  PackageIcon,
+  CalendarAdd01Icon,
+  ChartLineData01Icon,
+} from "hugeicons-react-native";
 
 const MODULE_ICONS: Record<string, React.ElementType> = {
   addCustomer: UserAdd01Icon,
   createQuote: Invoice01Icon,
   activities: Calendar02Icon,
   createActivity: CalendarAdd01Icon,
-  stock: PackageIcon, 
+  stock: PackageIcon,
+  salesKpi: ChartLineData01Icon,
 };
 
-export function ModuleCard({ item, onPress }: any): React.ReactElement {
+const STRIP_TILE_WIDTH = 96;
+
+interface ModuleCardProps {
+  item: Module;
+  onPress: (route: string) => void;
+  layout?: "grid" | "strip";
+}
+
+export function ModuleCard({ item, onPress, layout = "grid" }: ModuleCardProps): React.ReactElement {
   const { t } = useTranslation();
   const { themeMode } = useUIStore();
   const [isPressed, setIsPressed] = useState(false);
@@ -33,12 +50,12 @@ export function ModuleCard({ item, onPress }: any): React.ReactElement {
       onPressOut={() => setIsPressed(false)}
     >
       <View style={[
-          styles.cardContainer,
-          { 
+          layout === "strip" ? styles.cardStrip : styles.cardGrid,
+          {
             backgroundColor: cardBg,
-            borderColor: borderColor,
-            transform: [{ scale: isPressed ? 0.95 : 1 }] 
-          }
+            borderColor,
+            transform: [{ scale: isPressed ? 0.95 : 1 }],
+          },
       ]}>
         <View style={styles.iconWrap}>
           <Icon size={24} color={validColor} strokeWidth={2} />
@@ -57,13 +74,23 @@ export function ModuleCard({ item, onPress }: any): React.ReactElement {
 }
 
 const styles = StyleSheet.create({
-  cardContainer: {
-    width: '23%', 
-    aspectRatio: 0.82, 
-    alignItems: 'center',
-    justifyContent: 'center',
+  cardGrid: {
+    width: "23%",
+    aspectRatio: 0.82,
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 16,
-    borderRadius: 22, 
+    borderRadius: 22,
+    borderWidth: 1,
+    paddingHorizontal: 4,
+  },
+  cardStrip: {
+    width: STRIP_TILE_WIDTH,
+    aspectRatio: 0.82,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 0,
+    borderRadius: 22,
     borderWidth: 1,
     paddingHorizontal: 4,
   },

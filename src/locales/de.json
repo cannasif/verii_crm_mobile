@@ -107,7 +107,9 @@
     "pendingTasks": "Anstehende Aktionen",
     "statsCustomers": "Kunden",
     "statsActivities": "Aktivitäten",
-    "statsPending": "Ausstehend"
+    "statsPending": "Ausstehend",
+    "quickActionsScrollPrevious": "Schnellaktionen nach links scrollen",
+    "quickActionsScrollNext": "Schnellaktionen nach rechts scrollen"
   },
   "profile": {
     "account": "Konto",
@@ -164,7 +166,8 @@
     "stock": "Inventar",
     "createDemand": "Neue Anfrage",
     "addPayment": "Zahlung",
-    "reports": "Berichte"
+    "reports": "Berichte",
+    "salesKpi": "Vertrieb KPI"
   },
   "modules": {
     "customers": "Kunden",
@@ -1534,6 +1537,50 @@
       "overview": "Übersicht",
       "analytics": "Analyse"
     },
+    "filters": {
+      "title": "Filter"
+    },
+    "periodFilter": {
+      "label": "Zeitraum",
+      "today": "Heute",
+      "week": "Diese Woche",
+      "month": "Dieser Monat",
+      "year": "Dieses Jahr"
+    },
+    "salesmanFilter": {
+      "label": "Vertriebsmitarbeiter",
+      "title": "Vertriebsmitarbeiter wählen",
+      "sheetSubtitle": "Wählen Sie, für wen die KPI-Zusammenfassung geladen werden soll.",
+      "self": "Ich",
+      "selfOnly": "Meine Verkäufe",
+      "searchPlaceholder": "Nach Name oder E-Mail suchen",
+      "noSearchResults": "Keine passenden Vertriebsmitarbeiter",
+      "voiceSearchA11y": "Sprachsuche"
+    },
+    "revenueQuality": {
+      "title": "Umsatzqualität",
+      "churnRisk": "Abwanderungsrisiko",
+      "upsell": "Cross-/Upsell-Neigung",
+      "payment": "Zahlungsverhalten",
+      "segment": "Segment"
+    },
+    "actions": {
+      "title": "Empfohlene Aktionen",
+      "empty": "Keine empfohlenen Aktionen",
+      "execute": "Aktivität anlegen",
+      "executeSuccess": "Aktion in Aktivität umgewandelt",
+      "executeError": "Aktion konnte nicht erstellt werden"
+    },
+    "cohort": {
+      "title": "Kohort-Retention",
+      "cohortKey": "Kohort",
+      "badgeLabel": "Kohort",
+      "empty": "Keine Kohortendaten",
+      "infoTitle": "Kohort-Retention",
+      "infoMessage": "Zeigt die Retention nach Zeitraum für die gewählte Kohorte. Der Balken entspricht dem Retentionsanteil in der jeweiligen Monatszeile.",
+      "infoA11y": "Info zur Kohorten-Retention",
+      "valuePlaceholder": "—"
+    },
     "kpi": {
       "totalDemands": "Anfragen Gesamt",
       "totalQuotations": "Angebote Gesamt",
@@ -1573,7 +1620,13 @@
       "order": "Bestellung",
       "last12MonthsOrderAmount": "Bestellwert letzte 12 Monate",
       "openQuotationAmount": "Offener Angebotswert",
-      "openOrderAmount": "Offener Bestellwert"
+      "openOrderAmount": "Offener Bestellwert",
+      "amountTableHeaderCurrencyShort": "PW",
+      "amountTableHeaderLast12Short": "Per. Σ",
+      "amountTableHeaderOpenQuotShort": "Off. Ang.",
+      "amountTableHeaderOpenOrderShort": "Off. Bst.",
+      "amountTableColumnGuideHint": "Farben: Zeitraum-Bestellungen · rosa offenes Angebot · orange offene Bestellung.",
+      "chartSwipeHint": "Zum Scrollen seitlich wischen"
     }
   }
 }

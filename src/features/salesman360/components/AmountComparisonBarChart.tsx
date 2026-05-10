@@ -1,17 +1,13 @@
 import React, { useMemo } from "react";
-import { View, StyleSheet, Dimensions } from "react-native";
+import { View, StyleSheet, Dimensions, Platform, useWindowDimensions } from "react-native";
 import { BarChart } from "react-native-gifted-charts";
 import { Text } from "../../../components/ui/text";
+import type { ThemeColors } from "../../../constants/theme";
+import { useUIStore } from "../../../store/ui";
 import type { Salesmen360AmountComparisonDto } from "../types";
+import { getSoftBarColors } from "../utils/chartPalette";
 
-const CHART_COLORS = {
-  last12: "#8B5CF6",
-  openQuotation: "#EC4899",
-  openOrder: "#F97316",
-};
-
-const CHART_WIDTH = Math.min(Dimensions.get("window").width - 72, 320);
-const BAR_HEIGHT = 28;
+const BAR_HEIGHT = 26;
 const safeNumber = (value: unknown): number => {
   const numberValue = typeof value === "number" ? value : Number(value);
   return Number.isFinite(numberValue) ? numberValue : 0;
@@ -19,12 +15,19 @@ const safeNumber = (value: unknown): number => {
 
 interface AmountComparisonBarChartProps {
   data: Salesmen360AmountComparisonDto;
-  colors: Record<string, string>;
+  colors: ThemeColors;
   noDataKey: string;
   last12Label: string;
   openQuotationLabel: string;
   openOrderLabel: string;
   formatAmount: (value: number) => string;
+}
+
+function hexAlpha(hex: string, alphaSuffix: string): string {
+  if (hex.startsWith("#") && hex.length === 7) {
+    return `${hex}${alphaSuffix}`;
+  }
+  return hex;
 }
 
 export function AmountComparisonBarChart({
@@ -36,6 +39,25 @@ export function AmountComparisonBarChart({
   openOrderLabel,
   formatAmount,
 }: AmountComparisonBarChartProps): React.ReactElement {
+  const { themeMode } = useUIStore();
+  const isDark = themeMode === "dark";
+  const { width: windowWidth } = useWindowDimensions();
+  const sectionBorder = hexAlpha(colors.accent, isDark ? "2C" : "36");
+  const sectionShadow = Platform.select({
+    ios: {
+      shadowColor: colors.text,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: isDark ? 0.18 : 0.05,
+      shadowRadius: 14,
+    },
+    android: {
+      elevation: isDark ? 2 : 1,
+    },
+    default: {},
+  });
+  const chartWidth = Math.min(windowWidth - 72, Dimensions.get("window").width - 72, 340);
+  const palette = useMemo(() => getSoftBarColors(colors, isDark), [colors, isDark]);
+
   const barData = useMemo(() => {
     const last12 = safeNumber(data?.last12MonthsOrderAmount);
     const openQuot = safeNumber(data?.openQuotationAmount);
@@ -44,31 +66,25 @@ export function AmountComparisonBarChart({
       {
         value: last12,
         label: last12Label,
-        frontColor: CHART_COLORS.last12,
+        frontColor: palette.last12,
         topLabelComponent: () => (
-          <Text style={[styles.barValue, { color: colors.text }]}>
-            {formatAmount(last12)}
-          </Text>
+          <Text style={[styles.barValue, { color: colors.text }]}>{formatAmount(last12)}</Text>
         ),
       },
       {
         value: openQuot,
         label: openQuotationLabel,
-        frontColor: CHART_COLORS.openQuotation,
+        frontColor: palette.openQuotation,
         topLabelComponent: () => (
-          <Text style={[styles.barValue, { color: colors.text }]}>
-            {formatAmount(openQuot)}
-          </Text>
+          <Text style={[styles.barValue, { color: colors.text }]}>{formatAmount(openQuot)}</Text>
         ),
       },
       {
         value: openOrd,
         label: openOrderLabel,
-        frontColor: CHART_COLORS.openOrder,
+        frontColor: palette.openOrder,
         topLabelComponent: () => (
-          <Text style={[styles.barValue, { color: colors.text }]}>
-            {formatAmount(openOrd)}
-          </Text>
+          <Text style={[styles.barValue, { color: colors.text }]}>{formatAmount(openOrd)}</Text>
         ),
       },
     ];
@@ -79,6 +95,7 @@ export function AmountComparisonBarChart({
     openOrderLabel,
     formatAmount,
     colors.text,
+    palette,
   ]);
 
   const maxValue = useMemo(() => {
@@ -92,30 +109,42 @@ export function AmountComparisonBarChart({
   const totalZero = barData.every((b) => b.value === 0);
   if (totalZero) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+      <View
+        style={[
+          styles.container,
+          sectionShadow,
+          { backgroundColor: colors.card, borderColor: sectionBorder },
+        ]}
+      >
         <Text style={[styles.noData, { color: colors.textMuted }]}>{noDataKey}</Text>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+    <View
+      style={[
+        styles.container,
+        sectionShadow,
+        { backgroundColor: colors.card, borderColor: sectionBorder },
+      ]}
+    >
       <BarChart
         data={barData}
         horizontal
-        width={CHART_WIDTH}
+        width={chartWidth}
         barWidth={BAR_HEIGHT}
         maxValue={maxValue}
-        spacing={44}
-        initialSpacing={20}
-        endSpacing={20}
+        spacing={48}
+        initialSpacing={18}
+        endSpacing={18}
         xAxisThickness={0}
         yAxisThickness={0}
         hideRules
         noOfSections={4}
-        barBorderRadius={6}
+        barBorderRadius={10}
         isAnimated
-        xAxisLabelTextStyle={{ color: colors.textMuted, fontSize: 11 }}
+        xAxisLabelTextStyle={{ color: colors.textMuted, fontSize: 10, fontWeight: "600" }}
       />
     </View>
   );
@@ -123,18 +152,21 @@ export function AmountComparisonBarChart({
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
-    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderRadius: 18,
     borderWidth: 1,
     marginBottom: 16,
   },
   noData: {
-    fontSize: 14,
+    fontSize: 13,
+    fontWeight: "600",
     textAlign: "center",
-    paddingVertical: 24,
+    paddingVertical: 22,
   },
   barValue: {
-    fontSize: 11,
-    fontWeight: "600",
+    fontSize: 10,
+    fontWeight: "700",
+    fontVariant: ["tabular-nums"],
   },
 });

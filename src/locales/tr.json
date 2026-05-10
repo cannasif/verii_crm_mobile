@@ -155,7 +155,9 @@
     "statsCustomers": "Müşteriler",
     "statsActivities": "Aktiviteler",
     "statsPending": "Bekleyen",
-    "error": "Ana sayfa verileri yüklenemedi"
+    "error": "Ana sayfa verileri yüklenemedi",
+    "quickActionsScrollPrevious": "Hızlı işlemleri sola kaydır",
+    "quickActionsScrollNext": "Hızlı işlemleri sağa kaydır"
   },
   "api": {
     "errors": {
@@ -218,7 +220,8 @@
     "stock": "Stok",
     "createDemand": "Talep Aç",
     "addPayment": "Tahsilat",
-    "reports": "Raporlar"
+    "reports": "Raporlar",
+    "salesKpi": "Satış KPI"
   },
   "modules": {
     "customers": "Müşteri İşlemleri",
@@ -1688,6 +1691,50 @@
       "overview": "Genel Bakış",
       "analytics": "Analitik"
     },
+    "filters": {
+      "title": "Filtreler"
+    },
+    "periodFilter": {
+      "label": "Dönem",
+      "today": "Bugün",
+      "week": "Bu hafta",
+      "month": "Bu ay",
+      "year": "Bu yıl"
+    },
+    "salesmanFilter": {
+      "label": "Satış temsilcisi",
+      "title": "Satış temsilcisi seç",
+      "sheetSubtitle": "KPI özetini görmek istediğiniz temsilciyi seçin.",
+      "self": "Ben",
+      "selfOnly": "Kendi satışlarım",
+      "searchPlaceholder": "İsim veya e-posta ile ara",
+      "noSearchResults": "Eşleşen satış temsilcisi yok",
+      "voiceSearchA11y": "Sesli arama"
+    },
+    "revenueQuality": {
+      "title": "Gelir kalitesi",
+      "churnRisk": "Kayıp riski",
+      "upsell": "Ek satış olasılığı",
+      "payment": "Ödeme davranışı",
+      "segment": "Segment"
+    },
+    "actions": {
+      "title": "Önerilen aksiyonlar",
+      "empty": "Önerilen aksiyon yok",
+      "execute": "Aktivite oluştur",
+      "executeSuccess": "Aksiyon aktiviteye çevrildi",
+      "executeError": "Aksiyon oluşturulamadı"
+    },
+    "cohort": {
+      "title": "Kohort tutma",
+      "cohortKey": "Cohort",
+      "badgeLabel": "Kohort",
+      "empty": "Cohort verisi yok",
+      "infoTitle": "Kohort tutma",
+      "infoMessage": "Seçili kohorta ait dönemler için tutundurma oranlarını gösterir. Çubuk, ilgili ay satırındaki tutundurma yüzdesini temsil eder.",
+      "infoA11y": "Kohort tutma hakkında bilgi",
+      "valuePlaceholder": "—"
+    },
     "kpi": {
       "totalDemands": "Toplam Talep",
       "totalQuotations": "Toplam Teklif",
@@ -1727,7 +1774,13 @@
       "order": "Sipariş",
       "last12MonthsOrderAmount": "Son 12 Ay Sipariş Tutarı",
       "openQuotationAmount": "Açık Teklif Tutarı",
-      "openOrderAmount": "Açık Sipariş Tutarı"
+      "openOrderAmount": "Açık Sipariş Tutarı",
+      "amountTableHeaderCurrencyShort": "Pb",
+      "amountTableHeaderLast12Short": "Dönem Σ",
+      "amountTableHeaderOpenQuotShort": "Aç. tklf.",
+      "amountTableHeaderOpenOrderShort": "Aç. sprş.",
+      "amountTableColumnGuideHint": "Renk kılavuzu: nötr dönem siparişi · pembe açık teklif · turuncu açık sipariş.",
+      "chartSwipeHint": "Daha fazla ay için yana kaydır"
     }
   }
 }
