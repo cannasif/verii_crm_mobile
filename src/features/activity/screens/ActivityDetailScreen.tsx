@@ -298,7 +298,7 @@ export function ActivityDetailScreen(): React.ReactElement {
   const deleteActivity = useDeleteActivity();
   const updateActivity = useUpdateActivity();
 
-  const [pickActivityImagePreviewUri, setPickActivityImagePreviewUri] = useState<string | null>(null);
+  const [pickActivityImagePreviewAsset, setPickActivityImagePreviewAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [isUploadingActivityImage, setIsUploadingActivityImage] = useState(false);
 
   const [previewModalIndex, setPreviewModalIndex] = useState<number | null>(null);
@@ -388,7 +388,7 @@ export function ActivityDetailScreen(): React.ReactElement {
       selectionLimit: 1,
     });
     if (result.canceled || !result.assets?.[0]?.uri) return;
-    setPickActivityImagePreviewUri(result.assets[0].uri);
+    setPickActivityImagePreviewAsset(result.assets[0]);
   }, [canUpdate, t]);
 
   const openActivityDetailCameraPicker = useCallback(async () => {
@@ -405,7 +405,7 @@ export function ActivityDetailScreen(): React.ReactElement {
       allowsEditing: false,
     });
     if (result.canceled || !result.assets?.[0]?.uri) return;
-    setPickActivityImagePreviewUri(result.assets[0].uri);
+    setPickActivityImagePreviewAsset(result.assets[0]);
   }, [canUpdate, t]);
 
   const handleAddActivityImageFromDetail = useCallback(() => {
@@ -430,18 +430,22 @@ export function ActivityDetailScreen(): React.ReactElement {
 
   const handleCancelActivityDetailImagePick = useCallback(() => {
     if (isUploadingActivityImage) return;
-    setPickActivityImagePreviewUri(null);
+    setPickActivityImagePreviewAsset(null);
   }, [isUploadingActivityImage]);
 
   const handleConfirmActivityDetailImagePick = useCallback(async () => {
     if (!canUpdate) return;
-    if (!activityId || !pickActivityImagePreviewUri) return;
+    if (!activityId || !pickActivityImagePreviewAsset?.uri) return;
     setIsUploadingActivityImage(true);
     try {
       await activityImageApi.upload(activityId, [
-        { uri: pickActivityImagePreviewUri, description: t("activity.imageDefaultDescription") },
+        {
+          uri: pickActivityImagePreviewAsset.uri,
+          mimeType: pickActivityImagePreviewAsset.mimeType,
+          description: t("activity.imageDefaultDescription"),
+        },
       ]);
-      setPickActivityImagePreviewUri(null);
+      setPickActivityImagePreviewAsset(null);
       void queryClient.invalidateQueries({ queryKey: ["activity", "images", activityId] });
       await refetchActivityImages();
     } catch (err) {
@@ -451,7 +455,7 @@ export function ActivityDetailScreen(): React.ReactElement {
     } finally {
       setIsUploadingActivityImage(false);
     }
-  }, [activityId, canUpdate, pickActivityImagePreviewUri, queryClient, refetchActivityImages, t]);
+  }, [activityId, canUpdate, pickActivityImagePreviewAsset, queryClient, refetchActivityImages, t]);
 
   const handleEdit = useCallback(() => {
     if (!canUpdate) return;
@@ -1322,7 +1326,7 @@ export function ActivityDetailScreen(): React.ReactElement {
       />
 
       <Modal
-        visible={pickActivityImagePreviewUri != null}
+        visible={pickActivityImagePreviewAsset != null}
         transparent
         animationType="fade"
         onRequestClose={handleCancelActivityDetailImagePick}
@@ -1343,9 +1347,9 @@ export function ActivityDetailScreen(): React.ReactElement {
             <Text style={[styles.activityDetailPickPreviewSubtitle, { color: activityDetailPickPreviewTheme.text }]}>
               {t("customer.confirmAddImage")}
             </Text>
-            {pickActivityImagePreviewUri ? (
+            {pickActivityImagePreviewAsset?.uri ? (
               <Image
-                source={{ uri: pickActivityImagePreviewUri }}
+                source={{ uri: pickActivityImagePreviewAsset.uri }}
                 style={styles.activityDetailPickPreviewImage}
                 resizeMode="cover"
               />

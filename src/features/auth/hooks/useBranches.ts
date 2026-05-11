@@ -22,6 +22,8 @@ export function useBranches(): UseBranchesResult {
     isLoading: query.isLoading,
     isError: query.isError,
     error: query.error,
-    refetch: query.refetch,
+    refetch: () => {
+      void query.refetch();
+    },
   };
 }

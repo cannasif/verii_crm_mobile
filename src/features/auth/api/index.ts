@@ -1,4 +1,5 @@
 import { apiClient } from "../../../lib/axios";
+import { normalizeApiRequestError } from "../../../lib/api-error";
 import i18next from "i18next";
 import type {
   LoginRequest,
@@ -37,9 +38,12 @@ export const authApi = {
       }
 
       return response.data.data.map(mapBranch);
-    } catch (error: any) {
-      const finalMessage = error.message || i18next.t("api.errors.serverConnection", "Sunucu ile bağlantı kurulamadı.");
-      throw new Error(finalMessage);
+    } catch (error) {
+      throw normalizeApiRequestError(
+        error,
+        i18next.t("api.errors.branchListFailed", "Şube listesi alınamadı"),
+        "/api/NetsisRead/getBranches"
+      );
     }
   },
 

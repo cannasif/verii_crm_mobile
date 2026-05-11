@@ -1,7 +1,7 @@
 import { apiClient } from "../../../lib/axios";
 import i18n from "../../../locales";
 import { normalizeApiRequestError } from "../../../lib/api-error";
-import { normalizeLocalMediaUri } from "../../../lib/mediaUri";
+import { ensureReadableUploadUri } from "../../../lib/uploadMedia";
 import type { ApiResponse } from "../../auth/types";
 import type {
   ActivityDto,
@@ -76,11 +76,6 @@ function getSafeUploadMeta(imageUri: string): { name: string; type: string; uri:
     name: `${baseName.replace(/[^a-zA-Z0-9_-]/g, "_")}.${safeExt}`,
     type: EXTENSION_TO_MIME[safeExt] ?? "image/jpeg",
   };
-}
-
-async function ensureReadableUploadUri(imageUri: string): Promise<string> {
-  if (!imageUri) return imageUri;
-  return normalizeLocalMediaUri(imageUri);
 }
 
 /** Backend may return PascalCase, Turkish property names, or wrap the list in items/data (like paged payloads). */
@@ -225,12 +220,12 @@ export const activityImageApi = {
 
   upload: async (
     activityId: number,
-    images: Array<{ uri: string; description?: string }>
+    images: Array<{ uri: string; description?: string; mimeType?: string }>
   ): Promise<ActivityImageDto[]> => {
     const formData = new FormData();
 
     for (const image of images) {
-      const readableUri = await ensureReadableUploadUri(image.uri);
+      const readableUri = await ensureReadableUploadUri(image.uri, image.mimeType);
       const meta = getSafeUploadMeta(readableUri);
       formData.append("files", {
         uri: meta.uri,

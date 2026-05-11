@@ -124,8 +124,13 @@ apiClient.interceptors.request.use(
     const isFormDataPayload = typeof FormData !== "undefined" && config.data instanceof FormData;
 
     if (isFormDataPayload) {
-      delete config.headers["Content-Type"];
-      delete config.headers["content-type"];
+      if (typeof (config.headers as any).set === "function") {
+        (config.headers as any).set("Content-Type", "multipart/form-data");
+        (config.headers as any).set("content-type", "multipart/form-data");
+      } else {
+        config.headers["Content-Type"] = "multipart/form-data";
+        config.headers["content-type"] = "multipart/form-data";
+      }
     } else if (config.data !== undefined) {
       config.data = normalizeOutgoingUtcDateStrings(config.data);
     }

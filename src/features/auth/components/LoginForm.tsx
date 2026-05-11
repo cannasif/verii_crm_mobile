@@ -76,7 +76,7 @@ function BranchItem({ item, isSelected, onSelect }: { item: Branch; isSelected: 
 export function LoginForm(): React.ReactElement {
   const { t } = useTranslation();
   const { login, isLoading, error } = useLogin();
-  const { branches, isLoading: isBranchesLoading } = useBranches();
+  const { branches, isLoading: isBranchesLoading, isError: isBranchesError, error: branchesError, refetch: refetchBranches } = useBranches();
 
   const [showPassword, setShowPassword] = useState(false);
   const [showBranchModal, setShowBranchModal] = useState(false);
@@ -177,7 +177,14 @@ export function LoginForm(): React.ReactElement {
               const isFocused = showBranchModal;
               return (
                 <Pressable
-                  onPress={() => !isBranchesLoading && setShowBranchModal(true)}
+                  onPress={() => {
+                    if (!isBranchesLoading) {
+                      if (branches.length === 0) {
+                        refetchBranches();
+                      }
+                      setShowBranchModal(true);
+                    }
+                  }}
                   className={getInputWrapperClasses(hasError, isFocused)}
                 >
                  
@@ -205,6 +212,13 @@ export function LoginForm(): React.ReactElement {
                <FormControlErrorText className="text-red-400 text-[11px] ml-1 mt-1">
                  {errors.branchId.message}
                </FormControlErrorText>
+            </FormControlError>
+          )}
+          {isBranchesError && branchesError && (
+            <FormControlError>
+              <FormControlErrorText className="text-red-400 text-[11px] ml-1 mt-1">
+                {branchesError.message}
+              </FormControlErrorText>
             </FormControlError>
           )}
         </FormControl>
@@ -359,20 +373,58 @@ export function LoginForm(): React.ReactElement {
             <Text className="text-[16px] font-bold text-white text-center mb-5 tracking-wide">
               {t("auth.login.branchSelect", "Şube Seçiniz")}
             </Text>
-            
-            <FlatList
-              data={branches}
-              renderItem={({ item }) => (
-                <BranchItem 
-                  item={item} 
-                  isSelected={selectedBranch?.id === item.id} 
-                  onSelect={handleBranchSelect} 
-                />
-              )}
-              keyExtractor={(item) => item.id}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 20 }}
-            />
+
+            {isBranchesLoading ? (
+              <View className="py-8 items-center">
+                <ActivityIndicator color="#ec4899" />
+                <Text className="text-slate-300 text-[13px] mt-3">
+                  {t("common.loading", "Yükleniyor...")}
+                </Text>
+              </View>
+            ) : isBranchesError ? (
+              <View className="py-6 px-2 items-center">
+                <Alert02Icon size={18} color="#f87171" />
+                <Text className="text-red-300 text-[13px] mt-3 text-center">
+                  {branchesError?.message || t("api.errors.branchListFailed", "Şube listesi alınamadı")}
+                </Text>
+                <Pressable
+                  onPress={refetchBranches}
+                  className="mt-4 px-4 py-3 rounded-xl bg-white/5 border border-white/10"
+                >
+                  <Text className="text-white text-[13px] font-semibold">
+                    {t("common.retry", "Yeniden Dene")}
+                  </Text>
+                </Pressable>
+              </View>
+            ) : branches.length === 0 ? (
+              <View className="py-6 px-2 items-center">
+                <Text className="text-slate-300 text-[13px] text-center">
+                  {t("api.errors.branchListFailed", "Şube listesi alınamadı")}
+                </Text>
+                <Pressable
+                  onPress={refetchBranches}
+                  className="mt-4 px-4 py-3 rounded-xl bg-white/5 border border-white/10"
+                >
+                  <Text className="text-white text-[13px] font-semibold">
+                    {t("common.retry", "Yeniden Dene")}
+                  </Text>
+                </Pressable>
+              </View>
+            ) : (
+              <FlatList
+                data={branches}
+                renderItem={({ item }) => (
+                  <BranchItem 
+                    item={item} 
+                    isSelected={selectedBranch?.id === item.id} 
+                    onSelect={handleBranchSelect} 
+                  />
+                )}
+                keyExtractor={(item) => item.id}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 20 }}
+              />
+            )}
           </Pressable>
         </Pressable>
       </Modal>

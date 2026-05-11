@@ -874,6 +874,7 @@ export function ActivityFormScreen(): React.ReactElement {
                 activityId,
                 pendingImageAssets.map((asset) => ({
                   uri: asset.uri,
+                  mimeType: asset.mimeType,
                   description: t("activity.imageDefaultDescription"),
                 }))
               );
