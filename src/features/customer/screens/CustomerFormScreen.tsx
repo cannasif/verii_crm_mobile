@@ -1071,10 +1071,15 @@ export function CustomerFormScreen(): React.ReactElement {
                           <Controller
                             control={control}
                             name="customerCode"
-                            render={({ field: { value, ref } }) => (
-                              <View style={{ opacity: 0.6 }}>
-                                <FormField inputRef={ref} label={t("customer.customerCode")} value={value || ""} onChangeText={() => {}} maxLength={100} editable={false} />
-                              </View>
+                            render={({ field: { onChange, value, ref } }) => (
+                              <FormField
+                                inputRef={ref}
+                                label={t("customer.customerCode")}
+                                value={value || ""}
+                                onChangeText={onChange}
+                                maxLength={100}
+                                returnKeyType="next"
+                              />
                             )}
                           />
                         </View>
