@@ -1,13 +1,5 @@
+import { normalizeSearchText } from "@/lib/normalizeSearchText";
 import type { StockGetDto } from "../types";
-
-function normalizeSearchText(value: string | undefined | null): string {
-  return String(value ?? "")
-    .toLocaleLowerCase("tr-TR")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/gi, " ")
-    .trim();
-}
 
 function getStockSearchFields(stock: StockGetDto): string[] {
   return [
