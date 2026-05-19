@@ -1,7 +1,7 @@
 import "../lib/suppressConsoleErrors";
 import "react-native-gesture-handler";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, AppState, InteractionManager, LogBox, Modal, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, AppState, InteractionManager, LogBox, StyleSheet, View } from "react-native";
 import { Stack, router, usePathname } from "expo-router";
 import { enableFreeze } from "react-native-screens";
 
@@ -29,8 +29,11 @@ import {
   cleanupCachedApkUpdates,
   downloadAndInstallAndroidApk,
   fetchVersionCheck,
+  resolveApkUpdateErrorMessage,
   type VersionCheckResult,
 } from "../lib/versionCheck";
+import type { UpdateFlowPhase } from "../lib/versionCheckUi";
+import { UpdateAvailableModal } from "../features/updates";
 import { clearPerfMarks, perfMark, perfMeasure, perfMeasureOnNextPaint } from "../lib/perf-metrics";
 import { realtimeAccessControlService } from "../lib/realtime-access-control";
 import "../../global.css";
@@ -76,8 +79,9 @@ export default function RootLayout(): React.ReactElement {
   const setPermissions = useAuthStore((state) => state.setPermissions);
   const setSystemSettings = useSystemSettingsStore((state) => state.setSettings);
   const [versionState, setVersionState] = useState<VersionCheckResult | null>(null);
-  const [isInstallingUpdate, setIsInstallingUpdate] = useState(false);
+  const [updateFlowPhase, setUpdateFlowPhase] = useState<UpdateFlowPhase>("idle");
   const [downloadProgress, setDownloadProgress] = useState(0);
+  const isInstallingUpdate = updateFlowPhase !== "idle";
   const lastVersionCheckAtRef = useRef<number>(0);
   const lastAccessControlRefreshAtRef = useRef<number>(0);
 
@@ -287,30 +291,28 @@ export default function RootLayout(): React.ReactElement {
       return;
     }
 
-    setIsInstallingUpdate(true);
+    setUpdateFlowPhase("downloading");
     setDownloadProgress(0);
 
     try {
-      await downloadAndInstallAndroidApk(versionState.apkUrl, (progress) => {
-        setDownloadProgress(progress.progress);
+      await downloadAndInstallAndroidApk(versionState.apkUrl, {
+        onProgress: (progress) => {
+          setDownloadProgress(progress.progress);
+        },
+        onPhase: (phase) => {
+          setUpdateFlowPhase(phase);
+        },
       });
       setVersionState(null);
     } catch (error) {
-      showToast(
-        "error",
-        error instanceof Error ? error.message : i18n.t("updates.openFailed"),
-      );
+      showToast("error", resolveApkUpdateErrorMessage(error, i18n.t.bind(i18n)));
     } finally {
-      setIsInstallingUpdate(false);
+      setUpdateFlowPhase("idle");
     }
   }, [showToast, versionState]);
 
   const isAuthScreen = pathname.includes("/(auth)") || pathname === "/login";
   const isDark = themeMode === "dark";
-  const modalCardBg = isDark ? "rgba(15, 23, 42, 0.96)" : "#FFFFFF";
-  const modalBorder = isDark ? "rgba(255,255,255,0.08)" : "rgba(226,232,240,0.95)";
-  const secondaryBg = isDark ? "rgba(255,255,255,0.05)" : "#F8FAFC";
-  const secondaryText = isDark ? "#E2E8F0" : "#334155";
   const accent = isDark ? "#EC4899" : "#DB2777";
 
   if (!isHydrated) {
@@ -330,74 +332,19 @@ export default function RootLayout(): React.ReactElement {
               <RootStack isAuthScreen={isAuthScreen} />
               <Sidebar />
               <ToastContainer />
-              <Modal
+              <UpdateAvailableModal
                 visible={Boolean(versionState)}
-                transparent
-                animationType="fade"
-                onRequestClose={() => {
-                  if (!versionState?.forceUpdate && !isInstallingUpdate) {
-                    setVersionState(null);
-                  }
+                versionState={versionState}
+                updateFlowPhase={updateFlowPhase}
+                downloadProgress={downloadProgress}
+                isDark={isDark}
+                textSecondary={colors.textSecondary}
+                onClose={() => setVersionState(null)}
+                onOpenDetails={handleOpenDetails}
+                onInstall={() => {
+                  void handleInstallUpdate();
                 }}
-              >
-                <View style={styles.modalOverlay}>
-                  <View style={[styles.modalCard, { backgroundColor: modalCardBg, borderColor: modalBorder }]}>
-                    <Text bold size="xl">
-                      {isInstallingUpdate
-                        ? i18n.t("updates.downloadingTitle")
-                        : versionState?.forceUpdate
-                          ? i18n.t("updates.forceTitle")
-                          : i18n.t("updates.availableTitle")}
-                    </Text>
-                    <Text style={[styles.modalDescription, { color: colors.textSecondary }]}>
-                      {isInstallingUpdate
-                        ? i18n.t("updates.downloadingDescription", {
-                            percent: Math.round(downloadProgress * 100),
-                          })
-                        : versionState
-                          ? i18n.t("updates.description", {
-                              version: versionState.latestVersion,
-                              notes: versionState.releaseNotes || i18n.t("updates.noNotes"),
-                            })
-                          : ""}
-                    </Text>
-
-                    <View style={styles.modalActions}>
-                      {!versionState?.forceUpdate ? (
-                        <Pressable
-                          style={[styles.secondaryAction, { backgroundColor: secondaryBg, borderColor: modalBorder }]}
-                          onPress={() => setVersionState(null)}
-                          disabled={isInstallingUpdate}
-                        >
-                          <Text style={{ color: secondaryText }}>{i18n.t("updates.later")}</Text>
-                        </Pressable>
-                      ) : null}
-
-                      <Pressable
-                        style={[styles.secondaryAction, { backgroundColor: secondaryBg, borderColor: modalBorder }]}
-                        onPress={handleOpenDetails}
-                        disabled={isInstallingUpdate}
-                      >
-                        <Text style={{ color: secondaryText }}>{i18n.t("updates.details")}</Text>
-                      </Pressable>
-
-                      <Pressable
-                        style={[styles.primaryAction, { backgroundColor: accent }]}
-                        onPress={() => {
-                          void handleInstallUpdate();
-                        }}
-                        disabled={isInstallingUpdate}
-                      >
-                        <Text style={{ color: "#FFFFFF" }}>
-                          {isInstallingUpdate
-                            ? i18n.t("updates.installingNow")
-                            : i18n.t("updates.installNow")}
-                        </Text>
-                      </Pressable>
-                    </View>
-                  </View>
-                </View>
-              </Modal>
+              />
             </I18nextProvider>
           </GluestackUIProvider>
         </QueryClientProvider>
@@ -417,44 +364,3 @@ const rootStyles = StyleSheet.create({
   },
 });
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.48)",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-  },
-  modalCard: {
-    width: "100%",
-    maxWidth: 420,
-    borderRadius: 24,
-    borderWidth: 1,
-    padding: 20,
-  },
-  modalDescription: {
-    marginTop: 12,
-    lineHeight: 22,
-  },
-  modalActions: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-    marginTop: 18,
-  },
-  secondaryAction: {
-    minHeight: 44,
-    paddingHorizontal: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  primaryAction: {
-    minHeight: 44,
-    paddingHorizontal: 16,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});

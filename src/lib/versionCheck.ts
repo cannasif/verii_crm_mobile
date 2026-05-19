@@ -6,6 +6,28 @@ import { getAppInfo } from "./appInfo";
 
 const FLAG_GRANT_READ_URI_PERMISSION = 1;
 const FLAG_ACTIVITY_NEW_TASK = 268435456;
+const APK_MIME_TYPE = "application/vnd.android.package-archive";
+const MIN_APK_BYTES = 50 * 1024 * 1024;
+const INSTALL_INTENT_SETTLE_MS = 2000;
+
+export type ApkUpdatePhase = "downloading" | "installing";
+
+export type ApkUpdateErrorCode =
+  | "empty_url"
+  | "unsupported_platform"
+  | "download_failed"
+  | "download_incomplete"
+  | "install_failed";
+
+export class ApkUpdateError extends Error {
+  readonly code: ApkUpdateErrorCode;
+
+  constructor(code: ApkUpdateErrorCode) {
+    super(code);
+    this.name = "ApkUpdateError";
+    this.code = code;
+  }
+}
 
 export interface VersionCheckResult {
   platform: string;
@@ -37,7 +59,12 @@ export interface ApkDownloadProgress {
   progress: number;
 }
 
-const APK_UPDATES_DIRECTORY = `${FileSystem.cacheDirectory}updates`;
+export interface ApkInstallCallbacks {
+  onProgress?: (progress: ApkDownloadProgress) => void;
+  onPhase?: (phase: ApkUpdatePhase) => void;
+}
+
+const APK_UPDATES_DIRECTORY = `${FileSystem.documentDirectory ?? FileSystem.cacheDirectory}updates`;
 
 export async function fetchVersionCheck(): Promise<VersionCheckResult | null> {
   if (Platform.OS !== "android") {
@@ -81,71 +108,152 @@ export async function cleanupCachedApkUpdates(): Promise<void> {
 
 export async function downloadAndInstallAndroidApk(
   apkUrl: string,
-  onProgress?: (progress: ApkDownloadProgress) => void,
+  callbacks?: ApkInstallCallbacks,
 ): Promise<void> {
   if (!apkUrl) {
-    throw new Error("APK URL is empty.");
+    throw new ApkUpdateError("empty_url");
   }
 
   if (Platform.OS !== "android") {
-    throw new Error("APK install flow is only supported on Android.");
+    throw new ApkUpdateError("unsupported_platform");
   }
+
+  callbacks?.onPhase?.("downloading");
 
   const fileName = extractApkFileName(apkUrl);
   const fileUri = `${APK_UPDATES_DIRECTORY}/${fileName}`;
+  let expectedBytes = 0;
 
   await cleanupCachedApkUpdates();
   await FileSystem.makeDirectoryAsync(APK_UPDATES_DIRECTORY, { intermediates: true });
 
   const downloadTask = FileSystem.createDownloadResumable(apkUrl, fileUri, {}, (event) => {
-    const progress = event.totalBytesExpectedToWrite
-      ? event.totalBytesWritten / event.totalBytesExpectedToWrite
-      : 0;
+    const totalBytes = event.totalBytesExpectedToWrite;
+    if (totalBytes > 0) {
+      expectedBytes = totalBytes;
+    }
 
-    onProgress?.({
+    const progress =
+      totalBytes > 0 ? Math.min(1, event.totalBytesWritten / totalBytes) : 0;
+
+    callbacks?.onProgress?.({
       receivedBytes: event.totalBytesWritten,
-      totalBytes: event.totalBytesExpectedToWrite,
+      totalBytes,
       progress,
     });
   });
 
   const downloadResult = await downloadTask.downloadAsync();
   if (!downloadResult?.uri) {
-    throw new Error("APK download did not complete.");
+    throw new ApkUpdateError("download_failed");
   }
 
-  onProgress?.({
-    receivedBytes: 1,
-    totalBytes: 1,
+  const verifiedUri = await verifyDownloadedApk(downloadResult.uri, expectedBytes);
+
+  callbacks?.onPhase?.("installing");
+  callbacks?.onProgress?.({
+    receivedBytes: expectedBytes > 0 ? expectedBytes : 1,
+    totalBytes: expectedBytes > 0 ? expectedBytes : 1,
     progress: 1,
   });
 
-  const contentUri = await FileSystem.getContentUriAsync(downloadResult.uri);
+  const contentUri = await FileSystem.getContentUriAsync(verifiedUri);
+  await launchApkInstaller(contentUri);
+}
 
-  try {
-    await IntentLauncher.startActivityAsync("android.intent.action.INSTALL_PACKAGE", {
-      data: contentUri,
-      flags: FLAG_GRANT_READ_URI_PERMISSION | FLAG_ACTIVITY_NEW_TASK,
-      type: "application/vnd.android.package-archive",
-    });
-  } catch {
+async function verifyDownloadedApk(fileUri: string, expectedBytes: number): Promise<string> {
+  const normalizedUri = normalizeFileUri(fileUri);
+  const fileInfo = await FileSystem.getInfoAsync(normalizedUri);
+
+  if (!fileInfo.exists || !("size" in fileInfo) || typeof fileInfo.size !== "number") {
+    throw new ApkUpdateError("download_incomplete");
+  }
+
+  if (fileInfo.size < MIN_APK_BYTES) {
+    throw new ApkUpdateError("download_incomplete");
+  }
+
+  if (expectedBytes > 0 && fileInfo.size < expectedBytes * 0.98) {
+    throw new ApkUpdateError("download_incomplete");
+  }
+
+  return normalizedUri;
+}
+
+async function launchApkInstaller(contentUri: string): Promise<void> {
+  const intentParams: IntentLauncher.IntentLauncherParams = {
+    data: contentUri,
+    flags: FLAG_GRANT_READ_URI_PERMISSION | FLAG_ACTIVITY_NEW_TASK,
+    type: APK_MIME_TYPE,
+  };
+
+  const actions = ["android.intent.action.VIEW", "android.intent.action.INSTALL_PACKAGE"] as const;
+  let lastError: unknown;
+
+  for (const action of actions) {
     try {
-      await IntentLauncher.startActivityAsync("android.intent.action.VIEW", {
-        data: contentUri,
-        flags: FLAG_GRANT_READ_URI_PERMISSION | FLAG_ACTIVITY_NEW_TASK,
-        type: "application/vnd.android.package-archive",
-      });
-    } catch {
-      await IntentLauncher.startActivityAsync(IntentLauncher.ActivityAction.MANAGE_UNKNOWN_APP_SOURCES, {
-        flags: FLAG_ACTIVITY_NEW_TASK,
-      });
-      throw new Error("Install permission is required for APK updates.");
+      await Promise.race([
+        IntentLauncher.startActivityAsync(action, intentParams),
+        delay(INSTALL_INTENT_SETTLE_MS),
+      ]);
+      return;
+    } catch (error) {
+      lastError = error;
     }
   }
+
+  try {
+    await IntentLauncher.startActivityAsync(IntentLauncher.ActivityAction.MANAGE_UNKNOWN_APP_SOURCES, {
+      flags: FLAG_ACTIVITY_NEW_TASK,
+    });
+  } catch {
+    // Settings screen is best-effort when install intents fail.
+  }
+
+  if (lastError instanceof Error) {
+    throw new ApkUpdateError("install_failed");
+  }
+
+  throw new ApkUpdateError("install_failed");
+}
+
+function normalizeFileUri(fileUri: string): string {
+  return fileUri.startsWith("file://") ? fileUri : `file://${fileUri}`;
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 function extractApkFileName(apkUrl: string): string {
   const cleanUrl = apkUrl.split("?")[0] ?? apkUrl;
   const segment = cleanUrl.split("/").pop();
   return segment && segment.endsWith(".apk") ? segment : "verii-crm-latest.apk";
+}
+
+export function resolveApkUpdateErrorMessage(error: unknown, translate: (key: string) => string): string {
+  if (error instanceof ApkUpdateError) {
+    switch (error.code) {
+      case "empty_url":
+        return translate("updates.emptyUrl");
+      case "unsupported_platform":
+        return translate("updates.unsupportedPlatform");
+      case "download_failed":
+        return translate("updates.downloadFailed");
+      case "download_incomplete":
+        return translate("updates.downloadIncomplete");
+      case "install_failed":
+        return translate("updates.installFailed");
+      default:
+        return translate("updates.openFailed");
+    }
+  }
+
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
+  }
+
+  return translate("updates.openFailed");
 }

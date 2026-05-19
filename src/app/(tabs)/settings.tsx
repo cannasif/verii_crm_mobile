@@ -27,6 +27,7 @@ import {
   Logout01Icon,
   LockPasswordIcon,
   Mail01Icon,
+  Download04Icon,
 } from "hugeicons-react-native";
 
 import { Text } from "../../components/ui/text";
@@ -147,6 +148,10 @@ export default function SettingsScreen(): React.ReactElement {
 
   const handleOpenAccessControlSimulator = (): void => {
     router.push("/access-control-simulator");
+  };
+
+  const handleOpenReleaseNotes = (): void => {
+    router.push("/release-notes");
   };
 
   const handleTestApiUrl = async (): Promise<void> => {
@@ -487,6 +492,23 @@ export default function SettingsScreen(): React.ReactElement {
                 <ArrowRight01Icon size={18} color={mutedColor} />
               </TouchableOpacity>
             ) : null}
+
+            <TouchableOpacity style={styles.menuRow} onPress={handleOpenReleaseNotes}>
+              <View style={[styles.iconBox, { backgroundColor: "rgba(59, 130, 246, 0.12)" }]}>
+                <Download04Icon size={18} color="#3B82F6" variant="stroke" />
+              </View>
+
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.menuText, { color: textColor }]}>
+                  {t("settings.releaseNotes")}
+                </Text>
+                <Text style={[styles.sectionDescription, { color: mutedColor, marginTop: -2 }]}>
+                  {t("settings.releaseNotesDescription")}
+                </Text>
+              </View>
+
+              <ArrowRight01Icon size={18} color={mutedColor} />
+            </TouchableOpacity>
           </MenuGroup>
 
           <Text style={[styles.groupTitle, { color: mutedColor }]}>{t("settings.apiUrlTitle")}</Text>
