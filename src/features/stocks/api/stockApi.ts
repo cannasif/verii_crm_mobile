@@ -159,6 +159,48 @@ export const stockApi = {
     await apiClient.delete<ApiResponse<void>>(`/api/Stock/${stockId}/relations/${relationId}`);
   },
 
+  getListByErpStockCodes: async (erpStockCodes: string[]): Promise<StockGetDto[]> => {
+    const uniqueCodes = Array.from(
+      new Set(erpStockCodes.map((code) => code.trim()).filter((code) => code.length > 0))
+    );
+
+    if (uniqueCodes.length === 0) {
+      return [];
+    }
+
+    const chunkSize = 25;
+    const chunks: string[][] = [];
+    for (let index = 0; index < uniqueCodes.length; index += chunkSize) {
+      chunks.push(uniqueCodes.slice(index, index + chunkSize));
+    }
+
+    const byCode = new Map<string, StockGetDto>();
+
+    for (const chunk of chunks) {
+      const response = await stockApi.getList({
+        pageNumber: 1,
+        pageSize: Math.max(60, chunk.length * 3),
+        filterLogic: "or",
+        filters: chunk.map((code) => ({
+          column: "ErpStockCode",
+          operator: "eq",
+          value: code,
+        })),
+      });
+
+      for (const item of response.items) {
+        const key = item.erpStockCode.trim().toLowerCase();
+        if (!byCode.has(key)) {
+          byCode.set(key, item);
+        }
+      }
+    }
+
+    return uniqueCodes
+      .map((code) => byCode.get(code.trim().toLowerCase()))
+      .filter((item): item is StockGetDto => item != null);
+  },
+
   getGroups: async (): Promise<StockGroupDto[]> => {
     const response = await apiClient.get<ApiResponse<StockGroupDto[]>>("/api/NetsisRead/getStokGroup");
     if (!response.data.success) {
