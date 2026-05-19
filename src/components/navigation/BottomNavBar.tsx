@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import { View, StyleSheet, TouchableOpacity, Platform, Pressable, Modal, Image, Text as RNText, useWindowDimensions } from "react-native";
+import React, { useState, useEffect, useRef } from "react";
+import { View, StyleSheet, TouchableOpacity, Platform, Pressable, Modal, Animated, Easing, Text as RNText, useWindowDimensions } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { usePathname, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -13,8 +14,6 @@ import {
   UserGroupIcon,
   Money03Icon,
   Calendar03Icon,
-  Add01Icon,
-  Cancel01Icon,
   Camera01Icon,        
   UserAdd01Icon,        
   Home03Icon,           
@@ -53,18 +52,24 @@ export function BottomNavBar(): React.ReactElement {
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSalesActionSheetOpen, setIsSalesActionSheetOpen] = useState(false);
-  
+
+  const fabRotation = useRef(new Animated.Value(0)).current;
+
   const isDark = themeMode === "dark";
 
   const THEME = {
     bg: isDark ? "#0f0518" : colors.navBar || "#FFFFFF",
     iconBg: isDark ? "#1E122D" : "#FFFFFF", 
     iconBorder: isDark ? "rgba(219, 39, 119, 0.4)" : "rgba(219, 39, 119, 0.15)",
-    navTopBorder: isDark ? "rgba(219, 39, 119, 0.35)" : "rgba(226, 232, 240, 0.8)",
+    navTopBorder: isDark ? "rgba(255, 255, 255, 0.24)" : "#94A3B8",
     backdropBg: isDark ? "rgba(0, 0, 0, 0.6)" : "rgba(255, 255, 255, 0.3)",
 
     active: isDark ? "#db2777" : "#db2777",
-    fabBg: isDark ? "rgba(219, 39, 119, 0.88)" : "rgba(236, 72, 153, 0.78)",
+    fabGradient: isDark
+      ? (["#ea580c", "#e11d48", "#be185d"] as const)
+      : (["#fdba74", "#fb7185", "#f472b6"] as const),
+    fabShadow: isDark ? "#be185d" : "#fb7185",
+    fabRing: isDark ? "rgba(251, 146, 60, 0.35)" : "rgba(251, 113, 133, 0.4)",
 
     inactive: isDark ? "#94a3b8" : "#64748B",
     sheetBg: isDark ? "#160B24" : "#FFFFFF",
@@ -126,6 +131,20 @@ export function BottomNavBar(): React.ReactElement {
 
   const navPath = `M 0 0 L ${center - holeWidth} 0 C ${center - 28} 0, ${center - 34} ${depth}, ${center} ${depth} C ${center + 34} ${depth}, ${center + 28} 0, ${center + holeWidth} 0 L ${width} 0`;
   const fillPath = `${navPath} L ${width} ${NAV_HEIGHT + safeBottom} L 0 ${NAV_HEIGHT + safeBottom} Z`;
+
+  useEffect(() => {
+    Animated.timing(fabRotation, {
+      toValue: isMenuOpen ? 1 : 0,
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [isMenuOpen, fabRotation]);
+
+  const logoRotate = fabRotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "45deg"],
+  });
 
   return (
     <View 
@@ -197,10 +216,16 @@ export function BottomNavBar(): React.ReactElement {
       )}
 
       <View style={[styles.navContainer, { height: NAV_HEIGHT + safeBottom, width }]} pointerEvents="box-none">
-        
         <Svg width={width} height={NAV_HEIGHT + safeBottom} style={styles.svgBackground}>
           <Path d={fillPath} fill={THEME.bg} />
-          <Path d={navPath} stroke={THEME.navTopBorder} strokeWidth={1} fill="none" />
+          <Path
+            d={navPath}
+            stroke={THEME.navTopBorder}
+            strokeWidth={1.5}
+            fill="none"
+            strokeLinecap="butt"
+            strokeLinejoin="round"
+          />
         </Svg>
 
         <View style={[styles.tabsContent, { paddingBottom: safeBottom }]} pointerEvents="box-none">
@@ -254,15 +279,13 @@ export function BottomNavBar(): React.ReactElement {
 
       <TouchableOpacity
         style={[
-          styles.mainFab, 
-          { 
-            backgroundColor: THEME.fabBg, 
-            shadowColor: THEME.fabBg, 
+          styles.mainFab,
+          {
+            shadowColor: THEME.fabShadow,
             bottom: safeBottom + 28,
             left: (width - 58) / 2,
-            borderWidth: isDark ? 0 : 0.8, 
-            borderColor: isDark ? "transparent" : "#FF0066" 
-          }
+            borderColor: THEME.fabRing,
+          },
         ]}
         onPress={() => {
           if (visibleRadialActionCount === 0) {
@@ -272,14 +295,17 @@ export function BottomNavBar(): React.ReactElement {
         }}
         activeOpacity={0.9}
       >
-        {isMenuOpen ? (
-          <Cancel01Icon size={28} color="#FFF" variant="stroke" strokeWidth={2} />
-        ) : (
-          <Image 
-            source={require('../../../assets/v3logo.png')} 
-            style={{ width: 94, height: 94, resizeMode: 'contain' }} 
+        <LinearGradient
+          colors={[...THEME.fabGradient]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.fabGradient}
+        >
+          <Animated.Image
+            source={require("../../../assets/v3logo.png")}
+            style={[styles.fabLogo, { transform: [{ rotate: logoRotate }] }]}
           />
-        )}
+        </LinearGradient>
       </TouchableOpacity>
 
       <Modal visible={isSalesActionSheetOpen && canOpenSalesActions} transparent animationType="slide" onRequestClose={() => setIsSalesActionSheetOpen(false)}>
@@ -364,9 +390,9 @@ const styles = StyleSheet.create({
     zIndex: 20,
     elevation: 20,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
   },
   svgBackground: {
     position: "absolute",
@@ -412,13 +438,25 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    justifyContent: "center",
-    alignItems: "center",
+    overflow: "hidden",
+    borderWidth: 1,
     elevation: 25,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35,
     shadowRadius: 10,
     zIndex: 1001,
+  },
+  fabGradient: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  fabLogo: {
+    width: 94,
+    height: 94,
+    resizeMode: "contain",
   },
 
   radialWrapper: {
