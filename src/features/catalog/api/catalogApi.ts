@@ -1,12 +1,17 @@
 import { apiClient } from "@/lib/axios";
 import type { ApiResponse } from "@/features/auth/types";
 import type { PagedResponse } from "@/features/stocks/types";
+import {
+  normalizeCatalogCategoryList,
+  normalizeCatalogStockItemList,
+  normalizeProductCatalogList,
+} from "../utils/normalizeCatalogApi";
 import type {
-  CatalogCategoryNodeDto,
   CatalogCategoryFavoriteToggleDto,
   CatalogCategoryFavoriteToggleResultDto,
   CatalogFavoriteToggleDto,
   CatalogFavoriteToggleResultDto,
+  CatalogCategoryNodeDto,
   CatalogStockItemDto,
   ProductCatalogDto,
 } from "../types";
@@ -17,7 +22,7 @@ export const catalogApi = {
     if (!response.data.success) {
       throw new Error(response.data.message || "Catalogs could not be loaded");
     }
-    return response.data.data ?? [];
+    return normalizeProductCatalogList(response.data.data);
   },
 
   getCatalogCategories: async (
@@ -38,7 +43,7 @@ export const catalogApi = {
       throw new Error(response.data.message || "Categories could not be loaded");
     }
 
-    return response.data.data ?? [];
+    return normalizeCatalogCategoryList(response.data.data);
   },
 
   getCatalogCategoryStocks: async (
@@ -65,20 +70,30 @@ export const catalogApi = {
       | PagedResponse<CatalogStockItemDto>
       | ({ data?: CatalogStockItemDto[] } & Partial<PagedResponse<CatalogStockItemDto>>);
 
-    const items = Array.isArray((paged as { items?: CatalogStockItemDto[] }).items)
-      ? ((paged as { items: CatalogStockItemDto[] }).items)
-      : Array.isArray((paged as { data?: CatalogStockItemDto[] }).data)
-        ? ((paged as { data: CatalogStockItemDto[] }).data)
-        : [];
+    const items = normalizeCatalogStockItemList(paged);
 
     return {
       items,
-      totalCount: paged.totalCount ?? items.length,
-      pageNumber: paged.pageNumber ?? params?.pageNumber ?? 1,
-      pageSize: paged.pageSize ?? params?.pageSize ?? items.length,
-      totalPages: paged.totalPages ?? 1,
-      hasPreviousPage: paged.hasPreviousPage ?? false,
-      hasNextPage: paged.hasNextPage ?? false,
+      totalCount: (paged as { totalCount?: number; TotalCount?: number }).totalCount
+        ?? (paged as { TotalCount?: number }).TotalCount
+        ?? items.length,
+      pageNumber: (paged as { pageNumber?: number; PageNumber?: number }).pageNumber
+        ?? (paged as { PageNumber?: number }).PageNumber
+        ?? params?.pageNumber
+        ?? 1,
+      pageSize: (paged as { pageSize?: number; PageSize?: number }).pageSize
+        ?? (paged as { PageSize?: number }).PageSize
+        ?? params?.pageSize
+        ?? items.length,
+      totalPages: (paged as { totalPages?: number; TotalPages?: number }).totalPages
+        ?? (paged as { TotalPages?: number }).TotalPages
+        ?? 1,
+      hasPreviousPage: (paged as { hasPreviousPage?: boolean; HasPreviousPage?: boolean }).hasPreviousPage
+        ?? (paged as { HasPreviousPage?: boolean }).HasPreviousPage
+        ?? false,
+      hasNextPage: (paged as { hasNextPage?: boolean; HasNextPage?: boolean }).hasNextPage
+        ?? (paged as { HasNextPage?: boolean }).HasNextPage
+        ?? false,
     };
   },
 
@@ -105,20 +120,30 @@ export const catalogApi = {
       | PagedResponse<CatalogStockItemDto>
       | ({ data?: CatalogStockItemDto[] } & Partial<PagedResponse<CatalogStockItemDto>>);
 
-    const items = Array.isArray((paged as { items?: CatalogStockItemDto[] }).items)
-      ? ((paged as { items: CatalogStockItemDto[] }).items)
-      : Array.isArray((paged as { data?: CatalogStockItemDto[] }).data)
-        ? ((paged as { data: CatalogStockItemDto[] }).data)
-        : [];
+    const items = normalizeCatalogStockItemList(paged);
 
     return {
       items,
-      totalCount: paged.totalCount ?? items.length,
-      pageNumber: paged.pageNumber ?? params?.pageNumber ?? 1,
-      pageSize: paged.pageSize ?? params?.pageSize ?? items.length,
-      totalPages: paged.totalPages ?? 1,
-      hasPreviousPage: paged.hasPreviousPage ?? false,
-      hasNextPage: paged.hasNextPage ?? false,
+      totalCount: (paged as { totalCount?: number; TotalCount?: number }).totalCount
+        ?? (paged as { TotalCount?: number }).TotalCount
+        ?? items.length,
+      pageNumber: (paged as { pageNumber?: number; PageNumber?: number }).pageNumber
+        ?? (paged as { PageNumber?: number }).PageNumber
+        ?? params?.pageNumber
+        ?? 1,
+      pageSize: (paged as { pageSize?: number; PageSize?: number }).pageSize
+        ?? (paged as { PageSize?: number }).PageSize
+        ?? params?.pageSize
+        ?? items.length,
+      totalPages: (paged as { totalPages?: number; TotalPages?: number }).totalPages
+        ?? (paged as { TotalPages?: number }).TotalPages
+        ?? 1,
+      hasPreviousPage: (paged as { hasPreviousPage?: boolean; HasPreviousPage?: boolean }).hasPreviousPage
+        ?? (paged as { HasPreviousPage?: boolean }).HasPreviousPage
+        ?? false,
+      hasNextPage: (paged as { hasNextPage?: boolean; HasNextPage?: boolean }).hasNextPage
+        ?? (paged as { HasNextPage?: boolean }).HasNextPage
+        ?? false,
     };
   },
 

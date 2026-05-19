@@ -1077,7 +1077,26 @@
       }
     },
     "catalogAllStocks": "All Stocks",
-    "catalogFavoriteStocks": "My Favorite Stocks"
+    "catalogFavoriteStocks": "My Favorite Stocks",
+    "catalogMobileTitle": "Stock Picker",
+    "catalogCategoryScreenTitle": "Category Selection",
+    "catalogCategorySearchPlaceholder": "Search categories...",
+    "catalogStockSearchPlaceholder": "Search stocks...",
+    "catalogSelectCatalogChip": "Select Catalog",
+    "catalogCampaignChip": "CAMPAIGN",
+    "catalogFavoritesChip": "Favorites",
+    "catalogOpenCategories": "Open Categories",
+    "catalogRoot": "Root",
+    "catalogResetBranch": "Reset",
+    "catalogConfirmBranch": "Confirm",
+    "catalogNoCategories": "No categories found in this catalog.",
+    "catalogNoSearchResults": "No search results found.",
+    "catalogDraftBadge": "In draft",
+    "catalogLineBadge": "On line",
+    "catalogCampaignDiscount": "{{value}} discount",
+    "specialStockListPlaceholderHint": "Only your favorite stocks are listed here.",
+    "relatedStocksTitle": "Related Stocks",
+    "relatedMandatory": "Required"
   },
   "quotation": {
     "list": "Quotation List",

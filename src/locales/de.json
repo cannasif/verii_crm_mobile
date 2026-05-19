@@ -1013,7 +1013,26 @@
       }
     },
     "catalogAllStocks": "Alle Bestände",
-    "catalogFavoriteStocks": "Meine Favoriten"
+    "catalogFavoriteStocks": "Meine Favoriten",
+    "catalogMobileTitle": "Bestandsauswahl",
+    "catalogCategoryScreenTitle": "Kategorieauswahl",
+    "catalogCategorySearchPlaceholder": "Kategorien suchen...",
+    "catalogStockSearchPlaceholder": "Bestände suchen...",
+    "catalogSelectCatalogChip": "Katalog wählen",
+    "catalogCampaignChip": "AKTION",
+    "catalogFavoritesChip": "Favoriten",
+    "catalogOpenCategories": "Kategorien öffnen",
+    "catalogRoot": "Stamm",
+    "catalogResetBranch": "Zurücksetzen",
+    "catalogConfirmBranch": "Bestätigen",
+    "catalogNoCategories": "In diesem Katalog wurden keine Kategorien gefunden.",
+    "catalogNoSearchResults": "Keine Suchergebnisse gefunden.",
+    "catalogDraftBadge": "Im Entwurf",
+    "catalogLineBadge": "In Zeile",
+    "catalogCampaignDiscount": "{{value}} Rabatt",
+    "specialStockListPlaceholderHint": "In dieser Liste werden nur Ihre Favoriten angezeigt.",
+    "relatedStocksTitle": "Verknüpfte Bestände",
+    "relatedMandatory": "Pflicht"
   },
   "quotation": {
     "list": "Angebotsliste",

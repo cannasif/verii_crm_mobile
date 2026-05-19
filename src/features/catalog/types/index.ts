@@ -36,6 +36,7 @@ export interface CatalogStockItemDto {
   stockId: number;
   erpStockCode: string;
   stockName: string;
+  imageUrl?: string | null;
   unit?: string | null;
   grupKodu?: string | null;
   grupAdi?: string | null;

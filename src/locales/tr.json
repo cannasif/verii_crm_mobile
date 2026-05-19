@@ -1126,7 +1126,26 @@
       }
     },
     "catalogAllStocks": "Tüm Stoklar",
-    "catalogFavoriteStocks": "Favori Stoklarım"
+    "catalogFavoriteStocks": "Favori Stoklarım",
+    "catalogMobileTitle": "Stok Seçici",
+    "catalogCategoryScreenTitle": "Kategori Seçimi",
+    "catalogCategorySearchPlaceholder": "Kategorilerde ara...",
+    "catalogStockSearchPlaceholder": "Stoklarda ara...",
+    "catalogSelectCatalogChip": "Katalog Seç",
+    "catalogCampaignChip": "KAMPANYALI",
+    "catalogFavoritesChip": "Favoriler",
+    "catalogOpenCategories": "Kategorileri Aç",
+    "catalogRoot": "Kök",
+    "catalogResetBranch": "Sıfırla",
+    "catalogConfirmBranch": "Onayla",
+    "catalogNoCategories": "Bu katalogda kategori bulunamadı.",
+    "catalogNoSearchResults": "Arama sonucu bulunamadı.",
+    "catalogDraftBadge": "Taslakta",
+    "catalogLineBadge": "Satırda",
+    "catalogCampaignDiscount": "{{value}} indirim",
+    "specialStockListPlaceholderHint": "Bu listede yalnızca favori stoklarınız gösterilir.",
+    "relatedStocksTitle": "İlişkili Stoklar",
+    "relatedMandatory": "Zorunlu"
   },
   "quotation": {
     "list": "Teklif Listesi",
