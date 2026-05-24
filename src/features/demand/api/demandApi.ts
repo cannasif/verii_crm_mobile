@@ -315,8 +315,8 @@ export const demandApi = {
   },
 
   updateBulk: async (id: number, data: DemandBulkCreateDto): Promise<DemandGetDto> => {
-    const response = await apiClient.put<DemandBulkCreateResponse>(
-      `/api/demand/bulk-demand/${id}`,
+    const response = await apiClient.post<DemandBulkCreateResponse>(
+      `/api/demand/bulk-demand/update?id=${id}`,
       data
     );
 
