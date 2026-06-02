@@ -39,6 +39,7 @@ import { realtimeAccessControlService } from "../lib/realtime-access-control";
 import "../../global.css";
 
 const VERSION_CHECK_INTERVAL_MS = 1000 * 60 * 30;
+const VERSION_CHECK_RETRY_MS = 1000 * 10;
 const ACCESS_CONTROL_REFRESH_INTERVAL_MS = 1000 * 60 * 2;
 
 function RootStack({
@@ -81,8 +82,10 @@ export default function RootLayout(): React.ReactElement {
   const [versionState, setVersionState] = useState<VersionCheckResult | null>(null);
   const [updateFlowPhase, setUpdateFlowPhase] = useState<UpdateFlowPhase>("idle");
   const [downloadProgress, setDownloadProgress] = useState(0);
+  const [isApiClientReady, setIsApiClientReady] = useState(false);
   const isInstallingUpdate = updateFlowPhase !== "idle";
   const lastVersionCheckAtRef = useRef<number>(0);
+  const versionCheckRetryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastAccessControlRefreshAtRef = useRef<number>(0);
 
   useEffect(() => {
@@ -112,6 +115,9 @@ export default function RootLayout(): React.ReactElement {
       })
       .catch((error) => {
         console.warn("API base URL initialize failed", error);
+      })
+      .finally(() => {
+        setIsApiClientReady(true);
       });
   }, [hydrate]);
 
@@ -143,7 +149,7 @@ export default function RootLayout(): React.ReactElement {
 
   const runVersionCheck = useCallback(
     async (force = false) => {
-      if (!isHydrated || isInstallingUpdate) {
+      if (!isHydrated || !isApiClientReady || isInstallingUpdate) {
         return;
       }
 
@@ -152,20 +158,26 @@ export default function RootLayout(): React.ReactElement {
         return;
       }
 
-      lastVersionCheckAtRef.current = now;
-
       try {
         const result = await fetchVersionCheck();
+        lastVersionCheckAtRef.current = now;
         if (result?.updateAvailable) {
           setVersionState(result);
         } else if (force) {
           setVersionState(null);
         }
       } catch {
+        lastVersionCheckAtRef.current = 0;
+        if (force && versionCheckRetryTimeoutRef.current == null) {
+          versionCheckRetryTimeoutRef.current = setTimeout(() => {
+            versionCheckRetryTimeoutRef.current = null;
+            void runVersionCheck(true);
+          }, VERSION_CHECK_RETRY_MS);
+        }
         // Version check should not block app startup.
       }
     },
-    [isHydrated, isInstallingUpdate],
+    [isApiClientReady, isHydrated, isInstallingUpdate],
   );
 
   useEffect(() => {
@@ -180,6 +192,10 @@ export default function RootLayout(): React.ReactElement {
 
     return () => {
       interactionTask.cancel();
+      if (versionCheckRetryTimeoutRef.current != null) {
+        clearTimeout(versionCheckRetryTimeoutRef.current);
+        versionCheckRetryTimeoutRef.current = null;
+      }
     };
   }, [isHydrated, runVersionCheck]);
 
