@@ -288,6 +288,7 @@ export default function RootLayout(): React.ReactElement {
 
   const handleInstallUpdate = useCallback(async () => {
     if (!versionState?.apkUrl) {
+      showToast("error", i18n.t("updates.emptyUrl"));
       return;
     }
 
@@ -363,4 +364,3 @@ const rootStyles = StyleSheet.create({
     justifyContent: "center",
   },
 });
-

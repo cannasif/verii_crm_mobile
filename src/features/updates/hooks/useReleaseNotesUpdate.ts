@@ -29,6 +29,7 @@ export function useReleaseNotesUpdate() {
   const handleInstall = useCallback(async (): Promise<void> => {
     const apkUrl = releaseQuery.data?.apkUrl;
     if (!apkUrl) {
+      showError(t("updates.emptyUrl"));
       return;
     }
 

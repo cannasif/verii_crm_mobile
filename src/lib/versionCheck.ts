@@ -1,4 +1,4 @@
-import { Platform } from "react-native";
+import { Linking, Platform } from "react-native";
 import * as IntentLauncher from "expo-intent-launcher";
 import * as FileSystem from "expo-file-system/legacy";
 import { apiClient } from "./axios";
@@ -143,7 +143,15 @@ export async function downloadAndInstallAndroidApk(
     });
   });
 
-  const downloadResult = await downloadTask.downloadAsync();
+  let downloadResult: Awaited<ReturnType<typeof downloadTask.downloadAsync>> | undefined;
+  try {
+    downloadResult = await downloadTask.downloadAsync();
+  } catch (error) {
+    if (await openApkUrlFallback(apkUrl)) {
+      return;
+    }
+    throw error;
+  }
   if (!downloadResult?.uri) {
     throw new ApkUpdateError("download_failed");
   }
@@ -158,7 +166,7 @@ export async function downloadAndInstallAndroidApk(
   });
 
   const contentUri = await FileSystem.getContentUriAsync(verifiedUri);
-  await launchApkInstaller(contentUri);
+  await launchApkInstaller(contentUri, apkUrl);
 }
 
 async function verifyDownloadedApk(fileUri: string, expectedBytes: number): Promise<string> {
@@ -180,7 +188,7 @@ async function verifyDownloadedApk(fileUri: string, expectedBytes: number): Prom
   return normalizedUri;
 }
 
-async function launchApkInstaller(contentUri: string): Promise<void> {
+async function launchApkInstaller(contentUri: string, apkUrl: string): Promise<void> {
   const intentParams: IntentLauncher.IntentLauncherParams = {
     data: contentUri,
     flags: FLAG_GRANT_READ_URI_PERMISSION | FLAG_ACTIVITY_NEW_TASK,
@@ -210,11 +218,29 @@ async function launchApkInstaller(contentUri: string): Promise<void> {
     // Settings screen is best-effort when install intents fail.
   }
 
+  if (await openApkUrlFallback(apkUrl)) {
+    return;
+  }
+
   if (lastError instanceof Error) {
     throw new ApkUpdateError("install_failed");
   }
 
   throw new ApkUpdateError("install_failed");
+}
+
+async function openApkUrlFallback(apkUrl: string): Promise<boolean> {
+  try {
+    const canOpen = await Linking.canOpenURL(apkUrl);
+    if (canOpen) {
+      await Linking.openURL(apkUrl);
+      return true;
+    }
+  } catch {
+    // Browser fallback is best-effort; caller still reports the original update error.
+  }
+
+  return false;
 }
 
 function normalizeFileUri(fileUri: string): string {
