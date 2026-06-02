@@ -223,6 +223,7 @@ export function ReleaseNotesScreenContent({
                   styles.primaryCta,
                   { backgroundColor: accent, opacity: pressed || isInstallingUpdate ? 0.88 : 1 },
                 ]}
+                hitSlop={12}
                 onPress={onInstall}
                 disabled={isInstallingUpdate}
               >
@@ -317,13 +318,18 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   primaryCta: {
+    width: "100%",
+    alignSelf: "stretch",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
-    minHeight: 54,
+    minHeight: 58,
     borderRadius: 16,
     paddingHorizontal: 20,
+    paddingVertical: 14,
+    elevation: 3,
+    zIndex: 2,
   },
   primaryCtaText: {
     color: "#FFFFFF",

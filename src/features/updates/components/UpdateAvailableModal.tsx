@@ -128,6 +128,7 @@ export function UpdateAvailableModal({
               styles.primaryButton,
               { backgroundColor: accent, opacity: pressed || isInstallingUpdate ? 0.88 : 1 },
             ]}
+            hitSlop={12}
             onPress={onInstall}
             disabled={isInstallingUpdate}
           >
@@ -233,11 +234,14 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   primaryButton: {
+    width: "100%",
     minHeight: 50,
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 4,
+    elevation: 3,
+    zIndex: 2,
   },
   primaryButtonText: {
     color: "#FFFFFF",

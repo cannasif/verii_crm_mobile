@@ -2,7 +2,7 @@
   "expo": {
     "name": "V3RII CRM",
     "slug": "v3rii-octopus",
-    "version": "1.0.13",
+    "version": "1.0.14",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -19,14 +19,14 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.crmv3rii.v3riioctopus",
-      "buildNumber": "14",
+      "buildNumber": "15",
       "infoPlist": {
         "NSCameraUsageDescription": "Camera access is used to capture business card photos so contact details can be extracted and saved as CRM customer records.",
         "NSPhotoLibraryUsageDescription": "Photo Library access is used to select existing business card or document images and attach them to CRM customer and activity records."
       }
     },
     "android": {
-      "versionCode": 14,
+      "versionCode": 15,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
