@@ -108,6 +108,44 @@ export const stockApi = {
     };
   },
   
+  getListWithImages: async (params: PagedParams = {}): Promise<PagedResponse<StockGetDto>> => {
+    const response = await apiClient.post<PagedApiResponse<StockGetDto>>("/api/Stock/withImages/query", {
+      pageNumber: params.pageNumber ?? 1,
+      pageSize: params.pageSize ?? 20,
+      search: params.search ?? "",
+      sortBy: params.sortBy ?? "Id",
+      sortDirection: params.sortDirection ?? "desc",
+      filterLogic: params.filterLogic ?? "and",
+      filters: params.filters ?? [],
+    });
+
+    if (!response.data.success) {
+      throw new Error(response.data.message || "Hata");
+    }
+
+    const payload = response.data.data as unknown;
+    if (!payload || typeof payload !== "object") {
+      return { items: [], totalCount: 0, pageNumber: 1, pageSize: 20, totalPages: 0, hasPreviousPage: false, hasNextPage: false };
+    }
+
+    const shaped = payload as any;
+    const rawItems = Array.isArray(shaped.items) ? shaped.items : (shaped.Items || []);
+
+    const items = rawItems
+      .map((item: any) => normalizeStock(item))
+      .filter((item: any): item is StockGetDto => item !== null);
+
+    return {
+      items,
+      totalCount: shaped.totalCount ?? shaped.TotalCount ?? items.length,
+      pageNumber: shaped.pageNumber ?? shaped.PageNumber ?? 1,
+      pageSize: shaped.pageSize ?? shaped.PageSize ?? 20,
+      totalPages: shaped.totalPages ?? shaped.TotalPages ?? 1,
+      hasPreviousPage: shaped.hasPreviousPage ?? false,
+      hasNextPage: shaped.hasNextPage ?? false,
+    };
+  },
+
   // --- Diğer metodlar aynı ---
   getById: async (id: number): Promise<StockGetDto> => {
     const response = await apiClient.get<ApiResponse<StockGetDto>>(`/api/Stock/${id}`);

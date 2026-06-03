@@ -9,6 +9,7 @@ import {
   Dimensions,
   Keyboard,
   Platform,
+  type ViewToken,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -24,9 +25,16 @@ import {
   mapPagedAdvancedFilterRowsToFilters,
   type PagedAdvancedFilterFieldConfig,
   type PagedAdvancedFilterRow,
+  type PagedAdvancedFilterTab,
 } from "../../../components/paged";
 import { useUIStore } from "../../../store/ui";
-import { useStocks, useStockGroups } from "../hooks";
+import {
+  useStocks,
+  useStockGroups,
+  useStockListCodeFilters,
+  useStockListWithCodeFiltersQuery,
+} from "../hooks";
+import { StockListFilterCodeTabContent } from "../components/StockListFilterCodeTabContent";
 import {
   LayoutGridIcon,
   ListViewIcon,
@@ -35,21 +43,29 @@ import {
   PackageIcon,
   FilterIcon,
 } from "hugeicons-react-native";
-import type { StockGetDto, StockGroupDto } from "../types";
 import { StockCard, type StockCardUnitPrice } from "../components/StockCard";
+import { STOCK_BROWSE_CARD_GAP, stockBrowseStyles } from "@/components/shared/stock-browse";
+import {
+  useWarehouseBalanceBatchPrefetch,
+  WarehouseBalanceFilterCheckbox,
+} from "@/features/warehouse-stock-balances";
+import type { StockGetDto, StockGroupDto } from "../types";
 import { quotationApi } from "../../quotation/api/quotationApi";
 import type { PriceOfProductDto } from "../../quotation/types";
 
 const { width } = Dimensions.get("window");
-const GAP = 12;
+const GAP = STOCK_BROWSE_CARD_GAP;
 const PADDING = 16;
 const GRID_WIDTH = (width - PADDING * 2 - GAP) / 2;
+
+type StockFilterModalTab = "fields" | "code";
 
 const BRAND_COLOR = "#db2777";
 const BRAND_COLOR_DARK = "#ec4899";
 
 /** GET price-of-product URL uzunluğu için güvenli parti boyutu */
 const STOCK_PRICE_CHUNK = 18;
+const WAREHOUSE_BALANCE_PREFETCH_BATCH = 20;
 
 function priceRowToEntry(p: PriceOfProductDto): StockCardUnitPrice {
   return {
@@ -162,7 +178,7 @@ export function StockListScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { themeMode } = useUIStore() as any;
+  const { themeMode, colors } = useUIStore();
   const isDark = themeMode === "dark";
 
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -170,10 +186,14 @@ export function StockListScreen() {
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
+  const [filterModalTab, setFilterModalTab] = useState<StockFilterModalTab>("code");
   const [draftFilterRows, setDraftFilterRows] = useState<PagedAdvancedFilterRow[]>([]);
   const [appliedFilterRows, setAppliedFilterRows] = useState<PagedAdvancedFilterRow[]>([]);
   const [tempFilterLogic, setTempFilterLogic] = useState<"and" | "or">("and");
   const [appliedFilterLogic, setAppliedFilterLogic] = useState<"and" | "or">("and");
+  const [draftOnlyWithWarehouseBalance, setDraftOnlyWithWarehouseBalance] = useState(false);
+  const [appliedOnlyWithWarehouseBalance, setAppliedOnlyWithWarehouseBalance] = useState(false);
+  const [viewableStockIds, setViewableStockIds] = useState<number[]>([]);
   const [productPrices, setProductPrices] = useState<Record<string, StockCardUnitPrice>>({});
   const [pricesLoading, setPricesLoading] = useState(false);
   const productPricesRef = useRef(productPrices);
@@ -218,14 +238,63 @@ export function StockListScreen() {
     return () => clearTimeout(handler);
   }, [searchText]);
 
-  const openFilterModal = () => {
-    setDraftFilterRows(appliedFilterRows);
-    setIsFilterModalVisible(true);
-  };
-
   const apiFilters = useMemo(
     () => mapPagedAdvancedFilterRowsToFilters(appliedFilterRows),
     [appliedFilterRows]
+  );
+
+  const normalizedSearch =
+    debouncedQuery.trim().length >= 2 ? debouncedQuery.trim() : undefined;
+
+  const codeFilters = useStockListCodeFilters({ facetPoolEnabled: isFilterModalVisible });
+  const {
+    draftSelections: draftSpecialCodeSelections,
+    appliedSelections: appliedSpecialCodeSelections,
+    filterSearch: codeFilterSearch,
+    expandedSections: codeFilterExpandedSections,
+    facetOptions: codeFilterFacetOptions,
+    facetLoading: codeFilterFacetLoading,
+    appliedCount: appliedSpecialCodeCount,
+    draftCount: draftSpecialCodeCount,
+    hasAppliedSelection: hasAppliedSpecialCodeSelection,
+    hasDraftSelection: hasDraftSpecialCodeSelection,
+    setFilterSearch: setCodeFilterSearch,
+    syncDraftFromApplied,
+    toggleSelection: toggleSpecialCodeSelection,
+    toggleSection: toggleSpecialCodeSection,
+    applyDraft: applySpecialCodeFilters,
+    clearCodeFilters,
+  } = codeFilters;
+
+  const openFilterModal = useCallback(
+    (tab: StockFilterModalTab = "code") => {
+      setDraftFilterRows(appliedFilterRows);
+      setTempFilterLogic(appliedFilterLogic);
+      setDraftOnlyWithWarehouseBalance(appliedOnlyWithWarehouseBalance);
+      syncDraftFromApplied();
+      setFilterModalTab(tab);
+      setIsFilterModalVisible(true);
+    },
+    [appliedFilterLogic, appliedFilterRows, appliedOnlyWithWarehouseBalance, syncDraftFromApplied]
+  );
+
+  const totalActiveFilterCount =
+    apiFilters.length + appliedSpecialCodeCount + (appliedOnlyWithWarehouseBalance ? 1 : 0);
+
+  const filterModalTabs = useMemo<PagedAdvancedFilterTab[]>(
+    () => [
+      {
+        id: "fields",
+        label: t("stock.filterTabFields"),
+        badge: draftFilterRows.length > 0 ? draftFilterRows.length : undefined,
+      },
+      {
+        id: "code",
+        label: t("stock.codeFiltersButton"),
+        badge: draftSpecialCodeCount > 0 ? draftSpecialCodeCount : undefined,
+      },
+    ],
+    [draftFilterRows.length, draftSpecialCodeCount, t]
   );
 
   const {
@@ -234,17 +303,52 @@ export function StockListScreen() {
     hasNextPage,
     isFetchingNextPage,
     isPending,
-    isError,
     refetch,
     isRefetching,
   } = useStocks({
     filters: apiFilters,
     filterLogic: appliedFilterLogic,
-    search: debouncedQuery.trim().length >= 2 ? debouncedQuery.trim() : undefined,
+    search: normalizedSearch,
+    sortBy: "createdDate",
+    sortDirection: sortOrder,
+    pageSize: 20,
+    enabled: !hasAppliedSpecialCodeSelection,
+  });
+
+  const {
+    data: codeFilterData,
+    fetchNextPage: fetchNextCodeFilterPage,
+    hasNextPage: hasNextCodeFilterPage,
+    isFetchingNextPage: isFetchingNextCodeFilterPage,
+    isPending: isCodeFilterPending,
+    refetch: refetchCodeFilters,
+    isRefetching: isCodeFilterRefetching,
+  } = useStockListWithCodeFiltersQuery({
+    selections: appliedSpecialCodeSelections,
+    enabled: hasAppliedSpecialCodeSelection,
+    search: normalizedSearch,
+    additionalFilters: apiFilters,
+    filterLogic: appliedFilterLogic,
     sortBy: "createdDate",
     sortDirection: sortOrder,
     pageSize: 20,
   });
+
+  const activeListData = hasAppliedSpecialCodeSelection ? codeFilterData : data;
+  const activeFetchNextPage = hasAppliedSpecialCodeSelection
+    ? fetchNextCodeFilterPage
+    : fetchNextPage;
+  const activeHasNextPage = hasAppliedSpecialCodeSelection
+    ? hasNextCodeFilterPage
+    : hasNextPage;
+  const activeIsFetchingNextPage = hasAppliedSpecialCodeSelection
+    ? isFetchingNextCodeFilterPage
+    : isFetchingNextPage;
+  const activeIsPending = hasAppliedSpecialCodeSelection ? isCodeFilterPending : isPending;
+  const activeIsRefetching = hasAppliedSpecialCodeSelection
+    ? isCodeFilterRefetching
+    : isRefetching;
+  const activeRefetch = hasAppliedSpecialCodeSelection ? refetchCodeFilters : refetch;
 
   const { data: stockGroups = [] } = useStockGroups();
 
@@ -285,19 +389,84 @@ export function StockListScreen() {
     [stockGroups, t]
   );
 
-  const stocks = useMemo(() => data?.pages?.flatMap((page) => page.items || []) || [], [data]);
+  const stocks = useMemo(
+    () => activeListData?.pages?.flatMap((page) => page.items || []) || [],
+    [activeListData]
+  );
 
-  const totalCount = data?.pages?.[0]?.totalCount || 0;
+  const viewableStockIdSet = useMemo(() => new Set(viewableStockIds), [viewableStockIds]);
+
+  const balancePrefetchTargetIds = useMemo(() => {
+    if (!appliedOnlyWithWarehouseBalance) return [];
+    return stocks
+      .map((item) => item.id)
+      .filter((id): id is number => typeof id === "number" && id > 0);
+  }, [appliedOnlyWithWarehouseBalance, stocks]);
+
+  const { stockIdsWithBalance, resolvedStockIds, isPrefetching: isWarehouseBalancePrefetching } =
+    useWarehouseBalanceBatchPrefetch(
+      balancePrefetchTargetIds,
+      appliedOnlyWithWarehouseBalance && balancePrefetchTargetIds.length > 0,
+      WAREHOUSE_BALANCE_PREFETCH_BATCH
+    );
+
+  const displayedStocks = useMemo(() => {
+    if (!appliedOnlyWithWarehouseBalance) return stocks;
+    return stocks.filter(
+      (item) => resolvedStockIds.has(item.id) && stockIdsWithBalance.has(item.id)
+    );
+  }, [appliedOnlyWithWarehouseBalance, resolvedStockIds, stockIdsWithBalance, stocks]);
+
+  const totalCount = activeListData?.pages?.[0]?.totalCount || 0;
+  const visibleCount = appliedOnlyWithWarehouseBalance ? displayedStocks.length : totalCount;
+
+  const priceStockSignature = useMemo(
+    () =>
+      displayedStocks
+        .map((item) => `${item.id}|${item.erpStockCode ?? ""}|${item.grupKodu ?? ""}`)
+        .join(","),
+    [displayedStocks]
+  );
+
+  const listKey = useMemo(
+    () =>
+      [
+        viewMode,
+        hasAppliedSpecialCodeSelection ? "code" : "std",
+        appliedSpecialCodeCount,
+        apiFilters.length,
+        appliedFilterLogic,
+        debouncedQuery,
+        sortOrder,
+        appliedOnlyWithWarehouseBalance ? "balance" : "all",
+      ].join("-"),
+    [
+      viewMode,
+      hasAppliedSpecialCodeSelection,
+      appliedSpecialCodeCount,
+      apiFilters.length,
+      appliedFilterLogic,
+      debouncedQuery,
+      sortOrder,
+      appliedOnlyWithWarehouseBalance,
+    ]
+  );
 
   useEffect(() => {
     setProductPrices({});
-  }, [debouncedQuery, appliedFilterRows, appliedFilterLogic]);
+  }, [
+    debouncedQuery,
+    appliedFilterRows,
+    appliedFilterLogic,
+    appliedSpecialCodeSelections,
+    appliedOnlyWithWarehouseBalance,
+  ]);
 
   useEffect(() => {
     let aborted = false;
     const timer = setTimeout(() => {
       if (aborted) return;
-      if (stocks.length === 0) {
+      if (displayedStocks.length === 0) {
         setPricesLoading(false);
         return;
       }
@@ -306,7 +475,7 @@ export function StockListScreen() {
       const seen = new Set<string>();
       const missing: Array<{ productCode: string; groupCode: string }> = [];
 
-      for (const s of stocks) {
+      for (const s of displayedStocks) {
         const code = (s.erpStockCode ?? "").trim();
         if (!code) continue;
         const grp = (s.grupKodu ?? "").trim();
@@ -351,7 +520,34 @@ export function StockListScreen() {
       aborted = true;
       clearTimeout(timer);
     };
-  }, [stocks]);
+  }, [priceStockSignature]);
+
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 35 }).current;
+
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      const ids: number[] = [];
+      for (const token of viewableItems) {
+        const item = token.item as StockGetDto | undefined;
+        if (item && typeof item.id === "number" && item.id > 0) {
+          ids.push(item.id);
+        }
+      }
+      setViewableStockIds(ids);
+    }
+  ).current;
+
+  const browseListShell = useMemo(
+    () =>
+      viewMode === "list"
+        ? {
+            borderColor: isDark ? "rgba(255, 255, 255, 0.2)" : colors.border,
+            backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : colors.card,
+            separatorColor: isDark ? "rgba(255,255,255,0.06)" : colors.border,
+          }
+        : undefined,
+    [colors.border, colors.card, isDark, viewMode]
+  );
 
   const renderItem = useCallback(
     ({ item }: { item: StockGetDto }) => {
@@ -359,24 +555,29 @@ export function StockListScreen() {
       const entry = getPriceEntryForStock(productPrices, item);
       const showPrice = Boolean(code);
 
-      return (
+      const row = (
         <StockCard
           item={item}
           viewMode={viewMode}
-          isDark={isDark}
-          theme={theme}
           gridWidth={GRID_WIDTH}
           unitPriceInfo={showPrice ? entry ?? null : null}
           unitPriceLoading={showPrice && pricesLoading && entry === undefined}
+          balanceFetchEnabled={viewableStockIdSet.has(item.id)}
         />
       );
+
+      if (viewMode === "list") {
+        return <View style={stockBrowseStyles.listItemWrap}>{row}</View>;
+      }
+
+      return row;
     },
-    [viewMode, isDark, theme, productPrices, pricesLoading]
+    [viewMode, productPrices, pricesLoading, viewableStockIdSet]
   );
 
   const handleLoadMore = () => {
-    if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
+    if (activeHasNextPage && !activeIsFetchingNextPage) {
+      activeFetchNextPage();
     }
   };
 
@@ -467,8 +668,8 @@ export function StockListScreen() {
 
         <View style={styles.listContainer}>
           <PagedFlatList
-            listKey={viewMode}
-            data={stocks}
+            listKey={listKey}
+            data={displayedStocks}
             renderItem={renderItem}
             keyExtractor={(item) => String(item.id)}
             searchValue={searchText}
@@ -478,52 +679,70 @@ export function StockListScreen() {
             metaContent={
               <View style={styles.metaRow}>
                 <Text style={[styles.metaText, { color: theme.textMute }]}>
-                  {typeof t("stock.foundCount", { count: totalCount }) === "string"
-                    ? t("stock.foundCount", { count: totalCount })
-                    : `${totalCount}`}
+                  {appliedOnlyWithWarehouseBalance
+                    ? t("stock.foundWithBalanceCount", { count: visibleCount })
+                    : t("stock.foundCount", { count: visibleCount })}
                 </Text>
                 <TouchableOpacity
                   style={styles.metaFilterBtn}
-                  onPress={openFilterModal}
+                  onPress={() => openFilterModal()}
                   activeOpacity={0.72}
                 >
                   <FilterIcon
                     size={14}
-                    color={apiFilters.length > 0 ? theme.primary : theme.textMute}
+                    color={totalActiveFilterCount > 0 ? theme.primary : theme.textMute}
                     strokeWidth={1.9}
                   />
                   <Text
                     style={[
                       styles.metaFilterText,
-                      { color: apiFilters.length > 0 ? theme.primary : theme.textMute },
+                      {
+                        color: totalActiveFilterCount > 0 ? theme.primary : theme.textMute,
+                      },
                     ]}
                   >
                     {t("common.filter", "Filtrele")}
                   </Text>
-                  {apiFilters.length > 0 ? (
+                  {totalActiveFilterCount > 0 ? (
                     <Text style={[styles.metaFilterCount, { color: theme.primary }]}>
-                      {apiFilters.length}
+                      {totalActiveFilterCount}
                     </Text>
                   ) : null}
                 </TouchableOpacity>
               </View>
             }
-            isLoading={Boolean(isPending && !data)}
-            refreshing={isRefetching}
-            onRefresh={refetch}
+            isLoading={Boolean(
+              (activeIsPending && !activeListData) ||
+                (appliedOnlyWithWarehouseBalance &&
+                  isWarehouseBalancePrefetching &&
+                  displayedStocks.length === 0 &&
+                  stocks.length > 0)
+            )}
+            refreshing={activeIsRefetching}
+            onRefresh={activeRefetch}
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={viewabilityConfig}
             numColumns={viewMode === "grid" ? 2 : 1}
             columnWrapperStyle={viewMode === "grid" ? { gap: GAP } : undefined}
-            contentContainerStyle={{
-              paddingHorizontal: PADDING,
-              paddingTop: 12,
-              paddingBottom: insets.bottom + 84,
-              gap: GAP,
-            }}
+            browseListShell={browseListShell}
+            contentContainerStyle={
+              viewMode === "list"
+                ? {
+                    paddingTop: 12,
+                    paddingBottom: insets.bottom + 84,
+                  }
+                : {
+                    paddingHorizontal: PADDING,
+                    paddingTop: 12,
+                    paddingBottom: insets.bottom + 84,
+                    gap: GAP,
+                  }
+            }
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
             onEndReached={handleLoadMore}
             onEndReachedThreshold={0.5}
-            isFetchingNextPage={isFetchingNextPage}
+            isFetchingNextPage={activeIsFetchingNextPage}
             removeClippedSubviews={true}
             initialNumToRender={10}
             maxToRenderPerBatch={10}
@@ -542,7 +761,11 @@ export function StockListScreen() {
                   <PackageIcon size={28} color={theme.textMute} variant="stroke" />
                 </View>
                 <Text style={[styles.emptyText, { color: theme.textMute }]}>
-                  {debouncedQuery.length > 0 ? t("common.noResults") : t("stock.emptyState")}
+                  {debouncedQuery.length > 0
+                    ? t("common.noResults")
+                    : appliedOnlyWithWarehouseBalance
+                      ? t("stock.emptyWithWarehouseBalance")
+                      : t("stock.emptyState")}
                 </Text>
               </View>
             }
@@ -553,28 +776,61 @@ export function StockListScreen() {
       <PagedAdvancedFilterModal
         visible={isFilterModalVisible}
         title={t("common.filter")}
+        tabs={filterModalTabs}
+        activeTabId={filterModalTab}
+        onTabChange={(tabId) => setFilterModalTab(tabId as StockFilterModalTab)}
+        showFilterLogic={filterModalTab === "fields"}
+        bodyScrollEnabled={filterModalTab === "fields"}
         filterLogic={tempFilterLogic}
         onFilterLogicChange={setTempFilterLogic}
         onClose={() => setIsFilterModalVisible(false)}
         onClear={() => {
-          setDraftFilterRows([]);
-          setAppliedFilterRows([]);
-          setTempFilterLogic("and");
-          setAppliedFilterLogic("and");
+          if (filterModalTab === "fields") {
+            setDraftOnlyWithWarehouseBalance(false);
+            setAppliedOnlyWithWarehouseBalance(false);
+            setDraftFilterRows([]);
+            setAppliedFilterRows([]);
+            setTempFilterLogic("and");
+            setAppliedFilterLogic("and");
+            return;
+          }
+          clearCodeFilters();
         }}
         onApply={() => {
           setAppliedFilterRows(draftFilterRows);
           setAppliedFilterLogic(tempFilterLogic);
+          setAppliedOnlyWithWarehouseBalance(draftOnlyWithWarehouseBalance);
+          applySpecialCodeFilters();
           setIsFilterModalVisible(false);
         }}
+        belowFilterLogic={
+          <WarehouseBalanceFilterCheckbox
+            checked={draftOnlyWithWarehouseBalance}
+            onChange={setDraftOnlyWithWarehouseBalance}
+          />
+        }
         bottomInset={insets.bottom + 20}
       >
-        <PagedAdvancedFilterBuilder
-          fields={stockFilterFields}
-          rows={draftFilterRows}
-          onRowsChange={setDraftFilterRows}
-          defaultField="GrupKodu"
-        />
+        {filterModalTab === "fields" ? (
+          <PagedAdvancedFilterBuilder
+            fields={stockFilterFields}
+            rows={draftFilterRows}
+            onRowsChange={setDraftFilterRows}
+            defaultField="GrupKodu"
+          />
+        ) : (
+          <StockListFilterCodeTabContent
+            facetOptions={codeFilterFacetOptions}
+            selections={draftSpecialCodeSelections}
+            expandedSections={codeFilterExpandedSections}
+            filterSearch={codeFilterSearch}
+            loading={codeFilterFacetLoading}
+            hasDraftSelection={hasDraftSpecialCodeSelection}
+            onToggleSelection={toggleSpecialCodeSelection}
+            onToggleSection={toggleSpecialCodeSection}
+            onFilterSearchChange={setCodeFilterSearch}
+          />
+        )}
       </PagedAdvancedFilterModal>
     </View>
   );
