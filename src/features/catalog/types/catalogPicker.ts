@@ -1,9 +1,14 @@
 import type { ProductSelectionResult } from "@/features/stocks/types";
 import type { CatalogCategoryNodeDto, CatalogStockItemDto, ProductCatalogDto } from "./index";
+import type {
+  CatalogFilterDimension,
+  CatalogSpecialCodeSelections,
+} from "../utils/catalog-special-code-filter";
 
-export type CatalogStockBrowseMode = "category" | "campaign" | "favorites";
+export type CatalogStockBrowseMode = "category" | "specialCodes" | "campaign" | "favorites";
 export type CatalogStockLayoutMode = "cards" | "list";
 export type CatalogPricingRuleType = "Demand" | "Quotation" | "Order";
+export type CatalogLeftPanelTab = "codeFilters" | "catalogTree";
 
 export interface CatalogSessionPick {
   pickId: string;
@@ -36,6 +41,12 @@ export interface CatalogStockPickerParams {
 }
 
 export interface CatalogStockPickerState {
+  activeTab: CatalogLeftPanelTab;
+  specialCodeSelections: CatalogSpecialCodeSelections;
+  appliedSpecialCodeSelections: CatalogSpecialCodeSelections;
+  specialCodeFilterSearch: string;
+  expandedSpecialCodeSections: Record<CatalogFilterDimension, boolean>;
+  mobileFiltersOpen: boolean;
   selectedCatalog: ProductCatalogDto | null;
   navigationPath: CatalogCategoryNodeDto[];
   selectedLeafCategory: CatalogCategoryNodeDto | null;

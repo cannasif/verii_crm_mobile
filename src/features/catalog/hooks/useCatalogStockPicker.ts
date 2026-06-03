@@ -8,12 +8,24 @@ import { stockMatchesDraftSnapshot } from "../utils/stockMatchesDraftSnapshot";
 import { catalogStockMatchesQuery } from "@/lib/catalogStockSearch";
 import { normalizeSearchText } from "@/lib/normalizeSearchText";
 import type {
+  CatalogLeftPanelTab,
   CatalogSessionPick,
   CatalogStockBrowseMode,
   CatalogStockLayoutMode,
   CatalogStockPickerParams,
 } from "../types/catalogPicker";
 import type { CatalogCategoryNodeDto, CatalogStockItemDto, ProductCatalogDto } from "../types";
+import {
+  CATALOG_FILTER_DIMENSIONS,
+  createEmptySpecialCodeSelections,
+  extractFilterDimensionOptions,
+  hasSpecialCodeSelection,
+  toggleSpecialCodeValue,
+  type CatalogFilterDimension,
+  type CatalogSpecialCodeOption,
+} from "../utils/catalog-special-code-filter";
+import { useCatalogSpecialCodeFacetPoolQuery } from "./useCatalogSpecialCodeFacetPoolQuery";
+import { useCatalogSpecialCodeStocksQuery } from "./useCatalogSpecialCodeStocksQuery";
 import { useCatalogCampaignStocksQuery } from "./useCatalogCampaignStocksQuery";
 import { useCatalogCategoriesQuery } from "./useCatalogCategoriesQuery";
 import { useCatalogCategoryStocksQuery } from "./useCatalogCategoryStocksQuery";
@@ -28,7 +40,22 @@ const CATEGORY_SEARCH_DEBOUNCE_MS = 320;
 
 const createPickId = (): string => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
+const createExpandedSpecialCodeSections = (): Record<CatalogFilterDimension, boolean> => ({
+  grupKodu: true,
+  kod1: false,
+  kod2: false,
+  kod3: false,
+  kod4: false,
+  kod5: false,
+});
+
 const createInitialState = () => ({
+  activeTab: "codeFilters" as CatalogLeftPanelTab,
+  specialCodeSelections: createEmptySpecialCodeSelections(),
+  appliedSpecialCodeSelections: createEmptySpecialCodeSelections(),
+  specialCodeFilterSearch: "",
+  expandedSpecialCodeSections: createExpandedSpecialCodeSections(),
+  mobileFiltersOpen: true,
   selectedCatalog: null as ProductCatalogDto | null,
   navigationPath: [] as CatalogCategoryNodeDto[],
   selectedLeafCategory: null as CatalogCategoryNodeDto | null,
@@ -37,7 +64,7 @@ const createInitialState = () => ({
   expandedCatalogIds: new Set<number>(),
   includeDescendants: false,
   confirmedIncludeDescendants: false,
-  stockBrowseMode: "category" as CatalogStockBrowseMode,
+  stockBrowseMode: "specialCodes" as CatalogStockBrowseMode,
   stockLayoutMode: "cards" as CatalogStockLayoutMode,
   stockSearch: "",
   debouncedStockSearch: "",
@@ -111,6 +138,8 @@ export function useCatalogStockPicker(params: CatalogStockPickerParams) {
     setState((prev) => ({ ...prev, pageNumber: 1 }));
   }, [
     open,
+    state.activeTab,
+    state.appliedSpecialCodeSelections,
     state.confirmedLeafCategory?.catalogCategoryId,
     state.debouncedStockSearch,
     state.confirmedIncludeDescendants,
@@ -165,6 +194,35 @@ export function useCatalogStockPicker(params: CatalogStockPickerParams) {
     customerId: pricingRuleCustomerId,
     erpCustomerCode: pricingRuleErpCustomerCode,
   });
+
+  const facetPoolQuery = useCatalogSpecialCodeFacetPoolQuery(open && state.activeTab === "codeFilters");
+
+  const specialCodeFacetOptions = useMemo(() => {
+    const stocks = facetPoolQuery.data ?? [];
+    const result = {} as Record<CatalogFilterDimension, CatalogSpecialCodeOption[]>;
+    for (const dimension of CATALOG_FILTER_DIMENSIONS) {
+      result[dimension] = extractFilterDimensionOptions(stocks, dimension);
+    }
+    return result;
+  }, [facetPoolQuery.data]);
+
+  const hasAppliedSpecialCodeSelection = hasSpecialCodeSelection(state.appliedSpecialCodeSelections);
+  const hasDraftSpecialCodeSelection = hasSpecialCodeSelection(state.specialCodeSelections);
+
+  const specialCodeStocksQuery = useCatalogSpecialCodeStocksQuery({
+    enabled: open && state.activeTab === "codeFilters" && state.stockBrowseMode === "specialCodes",
+    selections: state.appliedSpecialCodeSelections,
+    search: state.debouncedStockSearch,
+  });
+
+  const specialCodeAllRows = useMemo(
+    () => specialCodeStocksQuery.data?.rows ?? [],
+    [specialCodeStocksQuery.data]
+  );
+
+  const specialCodeStockItems = useMemo(() => {
+    return specialCodeAllRows.slice(0, state.pageNumber * PAGE_SIZE);
+  }, [specialCodeAllRows, state.pageNumber]);
 
   const categoryStockItems = useMemo(
     () => categoryStocksQuery.data?.pages.flatMap((page) => page.items) ?? [],
@@ -255,11 +313,16 @@ export function useCatalogStockPicker(params: CatalogStockPickerParams) {
   const activeStockRows = useMemo(() => {
     if (state.stockBrowseMode === "campaign") return campaignDisplayItems;
     if (state.stockBrowseMode === "favorites") return searchFilteredFavoriteItems;
+    if (state.activeTab === "codeFilters" && state.stockBrowseMode === "specialCodes") {
+      return specialCodeStockItems;
+    }
     return searchFilteredCategoryItems;
   }, [
     campaignDisplayItems,
     searchFilteredCategoryItems,
     searchFilteredFavoriteItems,
+    specialCodeStockItems,
+    state.activeTab,
     state.stockBrowseMode,
   ]);
 
@@ -268,6 +331,9 @@ export function useCatalogStockPicker(params: CatalogStockPickerParams) {
     activeStockRows.length > 0 &&
     (state.stockBrowseMode === "campaign" ||
       state.stockBrowseMode === "favorites" ||
+      (state.activeTab === "codeFilters" &&
+        state.stockBrowseMode === "specialCodes" &&
+        hasAppliedSpecialCodeSelection) ||
       (state.stockBrowseMode === "category" && state.confirmedLeafCategory != null));
 
   const relationQueries = useCatalogStockRelationsQuery({
@@ -442,8 +508,17 @@ export function useCatalogStockPicker(params: CatalogStockPickerParams) {
 
   const setStockBrowseMode = useCallback((mode: CatalogStockBrowseMode) => {
     setState((prev) => {
+      const baseMode: CatalogStockBrowseMode =
+        prev.activeTab === "codeFilters" ? "specialCodes" : "category";
+
       const nextMode: CatalogStockBrowseMode =
-        mode === "category" ? "category" : prev.stockBrowseMode === mode ? "category" : mode;
+        mode === "category" || mode === "specialCodes"
+          ? mode
+          : prev.stockBrowseMode === mode
+            ? baseMode
+            : mode;
+
+      const returningToBase = nextMode === "category" || nextMode === "specialCodes";
 
       return {
         ...prev,
@@ -451,9 +526,138 @@ export function useCatalogStockPicker(params: CatalogStockPickerParams) {
         stockLayoutMode: "cards",
         pageNumber: 1,
         mobileCategoriesOpen: nextMode === "category" ? prev.mobileCategoriesOpen : false,
+        mobileFiltersOpen: returningToBase ? prev.mobileFiltersOpen : false,
         mobileStocksOpen: true,
       };
     });
+  }, []);
+
+  const setActiveTab = useCallback((tab: CatalogLeftPanelTab) => {
+    setState((prev) => {
+      if (prev.activeTab === tab) return prev;
+
+      if (tab === "codeFilters") {
+        return {
+          ...prev,
+          activeTab: "codeFilters",
+          stockBrowseMode: "specialCodes",
+          stockLayoutMode: "cards",
+          stockSearch: "",
+          debouncedStockSearch: "",
+          pageNumber: 1,
+          mobileCategoriesOpen: false,
+          mobileFiltersOpen: !hasSpecialCodeSelection(prev.appliedSpecialCodeSelections),
+          mobileStocksOpen: true,
+        };
+      }
+
+      return {
+        ...prev,
+        activeTab: "catalogTree",
+        stockBrowseMode: prev.stockBrowseMode === "specialCodes" ? "category" : prev.stockBrowseMode,
+        stockLayoutMode: "cards",
+        stockSearch: "",
+        debouncedStockSearch: "",
+        pageNumber: 1,
+        mobileFiltersOpen: false,
+      };
+    });
+  }, []);
+
+  const toggleSpecialCodeSelection = useCallback(
+    (dimension: CatalogFilterDimension, value: string) => {
+      setState((prev) => ({
+        ...prev,
+        specialCodeSelections: toggleSpecialCodeValue(prev.specialCodeSelections, dimension, value),
+      }));
+    },
+    []
+  );
+
+  const toggleSpecialCodeSection = useCallback((dimension: CatalogFilterDimension) => {
+    setState((prev) => ({
+      ...prev,
+      expandedSpecialCodeSections: {
+        ...prev.expandedSpecialCodeSections,
+        [dimension]: !prev.expandedSpecialCodeSections[dimension],
+      },
+    }));
+  }, []);
+
+  const setSpecialCodeFilterSearch = useCallback((value: string) => {
+    setState((prev) => ({ ...prev, specialCodeFilterSearch: value }));
+  }, []);
+
+  const applySpecialCodeSelections = useCallback(() => {
+    setState((prev) => {
+      if (!hasSpecialCodeSelection(prev.specialCodeSelections)) {
+        return { ...prev, mobileFiltersOpen: false };
+      }
+
+      return {
+        ...prev,
+        appliedSpecialCodeSelections: {
+          grupKodu: [...prev.specialCodeSelections.grupKodu],
+          kod1: [...prev.specialCodeSelections.kod1],
+          kod2: [...prev.specialCodeSelections.kod2],
+          kod3: [...prev.specialCodeSelections.kod3],
+          kod4: [...prev.specialCodeSelections.kod4],
+          kod5: [...prev.specialCodeSelections.kod5],
+        },
+        stockBrowseMode: "specialCodes",
+        stockLayoutMode: "cards",
+        stockSearch: "",
+        debouncedStockSearch: "",
+        pageNumber: 1,
+        mobileFiltersOpen: false,
+        mobileStocksOpen: true,
+      };
+    });
+  }, []);
+
+  const clearSpecialCodeSelections = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      specialCodeSelections: createEmptySpecialCodeSelections(),
+      appliedSpecialCodeSelections: createEmptySpecialCodeSelections(),
+      specialCodeFilterSearch: "",
+      pageNumber: 1,
+    }));
+  }, []);
+
+  const openSpecialCodeFilters = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      activeTab: "codeFilters",
+      stockBrowseMode: "specialCodes",
+      mobileCategoriesOpen: false,
+      mobileFiltersOpen: true,
+    }));
+  }, []);
+
+  const toggleSpecialCodeFiltersPanel = useCallback(() => {
+    setState((prev) => {
+      if (prev.mobileFiltersOpen && prev.activeTab === "codeFilters" && prev.stockBrowseMode === "specialCodes") {
+        return { ...prev, mobileFiltersOpen: false };
+      }
+
+      return {
+        ...prev,
+        activeTab: "codeFilters",
+        stockBrowseMode: "specialCodes",
+        stockLayoutMode: "cards",
+        mobileCategoriesOpen: false,
+        mobileFiltersOpen: true,
+        mobileStocksOpen: true,
+      };
+    });
+  }, []);
+
+  const closeSpecialCodeFilters = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      mobileFiltersOpen: false,
+    }));
   }, []);
 
   const toggleCategoriesPanel = useCallback(() => {
@@ -665,22 +869,34 @@ export function useCatalogStockPicker(params: CatalogStockPickerParams) {
       .slice(0, 30);
   }, [categoryTreeQuery.data, state.debouncedCategoryClientSearch]);
 
+  const isSpecialCodeMode =
+    state.activeTab === "codeFilters" && state.stockBrowseMode === "specialCodes";
+
   const activeStockLoading =
     state.stockBrowseMode === "campaign"
       ? campaignQuery.isLoading
       : state.stockBrowseMode === "favorites"
         ? favoritesQuery.isLoading
-        : categoryStocksQuery.isLoading;
+        : isSpecialCodeMode
+          ? specialCodeStocksQuery.isLoading || specialCodeStocksQuery.isFetching
+          : categoryStocksQuery.isLoading;
 
   const activeStockHasNextPage =
     state.stockBrowseMode === "campaign"
       ? state.pageNumber * PAGE_SIZE < campaignFilteredItems.length
       : state.stockBrowseMode === "favorites"
         ? Boolean(favoritesQuery.hasNextPage)
-        : Boolean(categoryStocksQuery.hasNextPage);
+        : isSpecialCodeMode
+          ? state.pageNumber * PAGE_SIZE < specialCodeAllRows.length
+          : Boolean(categoryStocksQuery.hasNextPage);
 
   const loadMoreStocks = useCallback(() => {
     if (state.stockBrowseMode === "campaign") {
+      setState((prev) => ({ ...prev, pageNumber: prev.pageNumber + 1 }));
+      return;
+    }
+
+    if (isSpecialCodeMode) {
       setState((prev) => ({ ...prev, pageNumber: prev.pageNumber + 1 }));
       return;
     }
@@ -695,7 +911,7 @@ export function useCatalogStockPicker(params: CatalogStockPickerParams) {
     if (categoryStocksQuery.hasNextPage && !categoryStocksQuery.isFetchingNextPage) {
       void categoryStocksQuery.fetchNextPage();
     }
-  }, [categoryStocksQuery, favoritesQuery, state.stockBrowseMode]);
+  }, [categoryStocksQuery, favoritesQuery, isSpecialCodeMode, state.stockBrowseMode]);
 
   const isAlreadyInDraft = useCallback(
     (stock: CatalogStockItemDto) => stockMatchesDraftSnapshot(stock, initialDraftSnapshotRef.current),
@@ -733,6 +949,11 @@ export function useCatalogStockPicker(params: CatalogStockPickerParams) {
     relationMap,
     selectedKeys,
     canConfirmMulti,
+    specialCodeFacetOptions,
+    specialCodeFacetLoading: facetPoolQuery.isLoading,
+    specialCodeTotalCount: specialCodeAllRows.length,
+    hasAppliedSpecialCodeSelection,
+    hasDraftSpecialCodeSelection,
     ...state,
     setStockSearch: (value: string) => setState((prev) => ({ ...prev, stockSearch: value })),
     setCategoryClientSearch: (value: string) => setState((prev) => ({ ...prev, categoryClientSearch: value })),
@@ -747,6 +968,15 @@ export function useCatalogStockPicker(params: CatalogStockPickerParams) {
     handleCategoryBack,
     resetCategoryBranch,
     setStockBrowseMode,
+    setActiveTab,
+    toggleSpecialCodeSelection,
+    toggleSpecialCodeSection,
+    setSpecialCodeFilterSearch,
+    applySpecialCodeSelections,
+    clearSpecialCodeSelections,
+    openSpecialCodeFilters,
+    toggleSpecialCodeFiltersPanel,
+    closeSpecialCodeFilters,
     toggleCategoriesPanel,
     goToCategoryRoot,
     handleStockPress,

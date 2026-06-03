@@ -1,8 +1,7 @@
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   Modal,
   Pressable,
   StyleSheet,
@@ -10,31 +9,39 @@ import {
   TouchableOpacity,
   View,
   useWindowDimensions,
-  type NativeScrollEvent,
   type NativeSyntheticEvent,
+  type NativeScrollEvent,
   type StyleProp,
   type ViewStyle,
+  type ViewToken,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
+import {
+  STOCK_BROWSE_CARD_GAP,
+  StockBrowseGridCard,
+  StockBrowseListRow,
+  StockBrowseListSeparator,
+  stockBrowseStyles,
+  type StockBrowseItemFields,
+} from "@/components/shared/stock-browse";
 import { Text } from "@/components/ui/text";
-import { getImageUrl } from "@/lib/getImageUrl";
 import { useUIStore } from "@/store/ui";
 import {
   CatalogCampaignPricingRow,
   CatalogRelatedStocksDialog,
+  CatalogSpecialCodeFilterPanel,
   useCatalogStockPicker,
   type CatalogCampaignPricingDisplay,
   type CatalogPricingRuleType,
 } from "@/features/catalog";
+import { WarehouseBalanceBadge } from "@/features/warehouse-stock-balances";
 import type { CatalogCategoryNodeDto, CatalogStockItemDto, ProductCatalogDto } from "@/features/catalog/types";
 import type { ProductSelectionResult } from "@/features/stocks/types";
 
-const CARD_GAP = 10;
-const CARD_GRID_MIN_HEIGHT = 192;
-const CARD_HEADER_TINTS = ["#FAF0F5", "#F0F5FA", "#F0FAF5", "#FAF8F0"] as const;
+const CARD_GAP = STOCK_BROWSE_CARD_GAP;
 const HIERARCHY_STAGES = ["root", "subcategory", "brand", "series", "products"] as const;
 const CAMPAIGN_CHIP_GLOW = "#FF4D57";
 const FAVORITES_CHIP_GLOW = "#F2C14E";
@@ -207,32 +214,6 @@ function CatalogHierarchyGuideModal({
   );
 }
 
-const StockUnitBadge = memo(function StockUnitBadge({
-  unit,
-  colors,
-  isDark,
-}: {
-  unit: string;
-  colors: ReturnType<typeof useUIStore.getState>["colors"];
-  isDark: boolean;
-}): React.ReactElement {
-  return (
-    <View
-      style={[
-        styles.stockUnitBadge,
-        {
-          backgroundColor: isDark ? "rgba(255, 255, 255, 0.08)" : colors.backgroundSecondary,
-          borderColor: isDark ? "rgba(255, 255, 255, 0.14)" : colors.border,
-        },
-      ]}
-    >
-      <Text unstyled disableThemeColor style={[styles.stockUnitBadgeText, { color: colors.textSecondary }]}>
-        {unit}
-      </Text>
-    </View>
-  );
-});
-
 const StockCartControls = memo(function StockCartControls({
   quantity,
   onIncrease,
@@ -315,6 +296,42 @@ interface CatalogStockPickerModalProps {
   pricingRuleErpCustomerCode?: string | null;
 }
 
+const StockMetaPill = memo(function StockMetaPill({
+  label,
+  tone,
+}: {
+  label: string;
+  tone: "amber" | "indigo" | "orange";
+}) {
+  const toneStyle =
+    tone === "amber"
+      ? { backgroundColor: "rgba(245, 158, 11, 0.92)", borderColor: "rgba(251, 191, 36, 0.55)" }
+      : tone === "indigo"
+        ? { backgroundColor: "rgba(99, 102, 241, 0.92)", borderColor: "rgba(129, 140, 248, 0.45)" }
+        : { backgroundColor: "rgba(249, 115, 22, 0.92)", borderColor: "rgba(251, 146, 60, 0.45)" };
+
+  return (
+    <View style={[styles.cardMetaPill, toneStyle]}>
+      <Text unstyled disableThemeColor style={styles.cardMetaPillText}>
+        {label}
+      </Text>
+    </View>
+  );
+});
+
+function mapCatalogItemToBrowseItem(item: CatalogStockItemDto): StockBrowseItemFields {
+  return {
+    erpStockCode: item.erpStockCode,
+    stockName: item.stockName,
+    unit: item.unit ?? undefined,
+    imageUrl: item.imageUrl ?? undefined,
+    grupKodu: item.grupKodu ?? undefined,
+    grupAdi: item.grupAdi ?? undefined,
+    kod1: item.kod1 ?? undefined,
+    kod1Adi: item.kod1Adi ?? undefined,
+  };
+}
+
 const StockCard = memo(function StockCard({
   item,
   selected,
@@ -324,15 +341,14 @@ const StockCard = memo(function StockCard({
   pricing,
   colors,
   surfaceColor,
-  imageSurfaceColor,
   frameColor,
   isDark,
-  cardTintIndex,
   onPress,
   multiSelect,
   quantity,
   onIncrease,
   onDecrease,
+  balanceFetchEnabled = false,
 }: {
   item: CatalogStockItemDto;
   selected: boolean;
@@ -342,65 +358,50 @@ const StockCard = memo(function StockCard({
   pricing?: CatalogCampaignPricingDisplay;
   colors: ReturnType<typeof useUIStore.getState>["colors"];
   surfaceColor: string;
-  imageSurfaceColor: string;
   frameColor: string;
   isDark: boolean;
-  cardTintIndex: number;
   onPress: () => void;
   multiSelect: boolean;
   quantity: number;
   onIncrease: () => void;
   onDecrease: () => void;
+  balanceFetchEnabled?: boolean;
 }) {
   const { t } = useTranslation();
-  const imageUri = getImageUrl(item.imageUrl);
-  const headerTint = isDark ? imageSurfaceColor : CARD_HEADER_TINTS[cardTintIndex % CARD_HEADER_TINTS.length];
-  const bodyBg = isDark ? surfaceColor : colors.card;
+  const hasImageOverlayMeta = inDraft || onLine || relationCount > 0;
+  const balanceBadge = (
+    <WarehouseBalanceBadge
+      stockId={item.stockId}
+      unit={item.unit}
+      isDark={isDark}
+      fetchEnabled={balanceFetchEnabled}
+    />
+  );
 
   return (
-    <View
-      style={[
-        styles.cardFrame,
-        {
-          backgroundColor: bodyBg,
-          borderColor: selected ? colors.accent + "99" : frameColor,
-        },
-      ]}
-    >
-      <Pressable
-        style={({ pressed }) => [styles.cardPressable, pressed && styles.cardPressed]}
-        android_ripple={{ color: "rgba(0,0,0,0)" }}
-        onPress={onPress}
-      >
-        <View
-          style={[
-            styles.cardImage,
-            {
-              backgroundColor: headerTint,
-              borderBottomColor: isDark ? "rgba(255, 255, 255, 0.1)" : colors.border,
-            },
-          ]}
-        >
-          {imageUri ? (
-            <Image source={{ uri: imageUri }} style={styles.cardImageAsset} resizeMode="cover" />
-          ) : (
-            <MaterialCommunityIcons name="package-variant-closed" size={24} color={colors.textMuted + "66"} />
-          )}
-          {relationCount > 0 ? (
-            <View style={[styles.relationBadge, { backgroundColor: colors.accent }]}>
-              <Text unstyled disableThemeColor style={styles.relationBadgeText}>
-                x{relationCount}
-              </Text>
-            </View>
+    <StockBrowseGridCard
+      item={mapCatalogItemToBrowseItem(item)}
+      colors={colors}
+      isDark={isDark}
+      frameColor={frameColor}
+      surfaceColor={surfaceColor}
+      onPress={onPress}
+      selected={selected}
+      showSelectedBadge
+      imageOverlay={
+        <>
+          {balanceBadge}
+          {hasImageOverlayMeta ? (
+            <>
+              {inDraft ? <StockMetaPill label={t("stockPicker.catalogDraftBadge")} tone="amber" /> : null}
+              {onLine ? <StockMetaPill label={t("stockPicker.catalogLineBadge")} tone="indigo" /> : null}
+              {relationCount > 0 ? <StockMetaPill label={`×${relationCount}`} tone="orange" /> : null}
+            </>
           ) : null}
-        </View>
-        <View style={[styles.cardBody, { backgroundColor: bodyBg }]}>
-          <Text unstyled disableThemeColor style={[styles.cardCode, { color: colors.accent }]} numberOfLines={1}>
-            {item.erpStockCode}
-          </Text>
-          <Text unstyled disableThemeColor style={[styles.cardName, { color: colors.text }]} numberOfLines={2}>
-            {item.stockName}
-          </Text>
+        </>
+      }
+      bodyExtra={
+        pricing != null ? (
           <CatalogCampaignPricingRow
             pricing={pricing}
             textColor={colors.text}
@@ -408,33 +409,23 @@ const StockCard = memo(function StockCard({
             accentColor={colors.accent}
             compact
           />
-          <View style={styles.badgeRow}>
-            {inDraft ? (
-              <Text unstyled disableThemeColor style={[styles.metaBadge, { color: colors.accent }]}>
-                {t("stockPicker.catalogDraftBadge")}
-              </Text>
-            ) : null}
-            {onLine ? (
-              <Text unstyled disableThemeColor style={[styles.metaBadge, { color: colors.textSecondary }]}>
-                {t("stockPicker.catalogLineBadge")}
-              </Text>
-            ) : null}
-          </View>
-          <View style={styles.cardFooter}>
-            {item.unit ? <StockUnitBadge unit={item.unit} colors={colors} isDark={isDark} /> : <View style={styles.cardUnitSpacer} />}
-            {multiSelect ? (
-              <StockCartControls
-                quantity={quantity}
-                onIncrease={onIncrease}
-                onDecrease={onDecrease}
-                colors={colors}
-                variant="circle"
-              />
-            ) : null}
-          </View>
-        </View>
-      </Pressable>
-    </View>
+        ) : undefined
+      }
+      footer={
+        multiSelect ? (
+          <>
+            <View style={styles.cardUnitSpacer} />
+            <StockCartControls
+              quantity={quantity}
+              onIncrease={onIncrease}
+              onDecrease={onDecrease}
+              colors={colors}
+              variant="circle"
+            />
+          </>
+        ) : undefined
+      }
+    />
   );
 });
 
@@ -453,6 +444,7 @@ const StockListRow = memo(function StockListRow({
   quantity,
   onIncrease,
   onDecrease,
+  balanceFetchEnabled = false,
 }: {
   item: CatalogStockItemDto;
   selected: boolean;
@@ -468,70 +460,43 @@ const StockListRow = memo(function StockListRow({
   quantity: number;
   onIncrease: () => void;
   onDecrease: () => void;
+  balanceFetchEnabled?: boolean;
 }) {
   const { t } = useTranslation();
   const hasMetaRow = pricing != null || inDraft || onLine || relationCount > 0;
+  const balanceBadge = (
+    <WarehouseBalanceBadge
+      stockId={item.stockId}
+      unit={item.unit}
+      isDark={isDark}
+      compact
+      fetchEnabled={balanceFetchEnabled}
+    />
+  );
 
   return (
-    <View style={styles.listItemShell}>
-      <Pressable
-        style={({ pressed }) => [
-          styles.listRowPressable,
-          selected && { backgroundColor: colors.accent + "0A" },
-          pressed && styles.listRowPressed,
-        ]}
-        android_ripple={{ color: "rgba(0,0,0,0)" }}
-        onPress={onPress}
-      >
-        <View style={styles.listRowInner}>
-          <View
-            style={[
-              styles.listIconCircle,
-              {
-                borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : frameColor,
-                backgroundColor: isDark ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 0, 0, 0.02)",
-              },
-            ]}
-          >
-            <MaterialCommunityIcons name="package-variant-closed" size={18} color={colors.textMuted + "55"} />
-          </View>
-          <View style={styles.listTextCol}>
-            <Text
-              unstyled
-              disableThemeColor
-              style={[styles.listCode, { color: colors.accent }]}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {item.erpStockCode}
-            </Text>
-            <Text
-              unstyled
-              disableThemeColor
-              style={[styles.listName, { color: colors.text }]}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {item.stockName}
-            </Text>
-          </View>
-          <View style={styles.listActionsCol}>
-            {item.unit ? <StockUnitBadge unit={item.unit} colors={colors} isDark={isDark} /> : null}
-            {multiSelect ? (
-              <StockCartControls
-                quantity={quantity}
-                onIncrease={onIncrease}
-                onDecrease={onDecrease}
-                colors={colors}
-                variant="circle"
-              />
-            ) : null}
-          </View>
-        </View>
-      </Pressable>
-      {hasMetaRow ? (
-        <View style={[styles.listMetaRow, { borderTopColor: isDark ? "rgba(255,255,255,0.06)" : colors.border }]}>
-          <View style={styles.listMetaContent}>
+    <StockBrowseListRow
+      item={mapCatalogItemToBrowseItem(item)}
+      colors={colors}
+      frameColor={frameColor}
+      isDark={isDark}
+      onPress={onPress}
+      selected={selected}
+      trailing={
+        multiSelect ? (
+          <StockCartControls
+            quantity={quantity}
+            onIncrease={onIncrease}
+            onDecrease={onDecrease}
+            colors={colors}
+            variant="circle"
+          />
+        ) : undefined
+      }
+      prefixActions={balanceBadge}
+      metaRow={
+        hasMetaRow ? (
+          <>
             <CatalogCampaignPricingRow
               pricing={pricing}
               textColor={colors.text}
@@ -556,10 +521,10 @@ const StockListRow = memo(function StockListRow({
                 </Text>
               ) : null}
             </View>
-          </View>
-        </View>
-      ) : null}
-    </View>
+          </>
+        ) : undefined
+      }
+    />
   );
 });
 
@@ -595,11 +560,27 @@ export function CatalogStockPickerModal({
     onClose,
   });
 
-  const stockSearchDisabled =
+  const isCodeTab = picker.activeTab === "codeFilters";
+  const codeFiltersPanelOpen = isCodeTab && picker.mobileFiltersOpen;
+  const codeNeedsSelection =
+    isCodeTab && picker.stockBrowseMode === "specialCodes" && !picker.hasAppliedSpecialCodeSelection;
+  const categoryNeedsLeaf =
     picker.stockBrowseMode === "category" && (!picker.selectedCatalog || !picker.confirmedLeafCategory);
+
+  const stockSearchDisabled = isCodeTab
+    ? picker.stockBrowseMode === "specialCodes" && !picker.hasAppliedSpecialCodeSelection
+    : categoryNeedsLeaf;
 
   const handleOpenCategories = useCallback(() => {
     picker.toggleCategoriesPanel();
+  }, [picker]);
+
+  const handleSelectCodeTab = useCallback(() => {
+    picker.setActiveTab("codeFilters");
+  }, [picker]);
+
+  const handleSelectCatalogTab = useCallback(() => {
+    picker.setActiveTab("catalogTree");
   }, [picker]);
 
   const categoryPathLabel = useMemo(() => {
@@ -614,7 +595,6 @@ export function CatalogStockPickerModal({
 
   const searchSurfaceColor = colors.card;
   const panelSurfaceColor = colors.card;
-  const stockImageSurfaceColor = isDark ? "rgba(255, 255, 255, 0.04)" : colors.backgroundSecondary;
   const pickerBorder = isDark ? "rgba(255, 255, 255, 0.2)" : colors.border;
   const pickerBorderSoft = isDark ? "rgba(255, 255, 255, 0.12)" : colors.cardBorder;
   const stockFrameColor = pickerBorder;
@@ -623,12 +603,31 @@ export function CatalogStockPickerModal({
   const categoryActionShellSurface = isDark ? "rgba(255, 255, 255, 0.07)" : colors.card;
   const categoryConfirmSurface = isDark ? colors.accent + "2E" : colors.accent + "18";
   const categoryConfirmBorder = colors.accent + (isDark ? "55" : "40");
+  const tabActiveSurface = colors.accent + (isDark ? "24" : "12");
+  const tabActiveBorder = colors.accent + (isDark ? "66" : "44");
   const stockListBottomInset = multiSelect ? 58 : 16;
 
   const isStockListLayout = picker.stockLayoutMode === "list";
+  const [viewableStockIds, setViewableStockIds] = useState<number[]>([]);
+  const viewableStockIdSet = useMemo(() => new Set(viewableStockIds), [viewableStockIds]);
+
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 35 }).current;
+
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      const ids: number[] = [];
+      for (const token of viewableItems) {
+        const item = token.item as CatalogStockItemDto | undefined;
+        if (item && typeof item.stockId === "number" && item.stockId > 0) {
+          ids.push(item.stockId);
+        }
+      }
+      setViewableStockIds(ids);
+    }
+  ).current;
 
   const renderListSeparator = useCallback(
-    () => <View style={[styles.listSeparator, { backgroundColor: pickerBorder }]} />,
+    () => <StockBrowseListSeparator color={pickerBorder} />,
     [pickerBorder]
   );
 
@@ -657,7 +656,6 @@ export function CatalogStockPickerModal({
         pricing: picker.stockBrowseMode === "campaign" ? pricing : undefined,
         colors,
         surfaceColor: stockSurfaceColor,
-        imageSurfaceColor: stockImageSurfaceColor,
         frameColor: stockFrameColor,
         isDark,
         onPress: () => picker.handleStockPress(item),
@@ -665,54 +663,88 @@ export function CatalogStockPickerModal({
         quantity,
         onIncrease: () => picker.incrementStockPick(item),
         onDecrease: () => picker.decrementStockPick(item),
+        balanceFetchEnabled: viewableStockIdSet.has(item.stockId),
       };
 
       if (picker.stockLayoutMode === "list") {
         return (
-          <View style={styles.listItemWrap}>
+          <View style={stockBrowseStyles.listItemWrap}>
             <StockListRow {...common} />
           </View>
         );
       }
 
       return (
-        <View style={[styles.cardCell, { width: cardWidth, minHeight: CARD_GRID_MIN_HEIGHT }]}>
-          <StockCard {...common} cardTintIndex={Math.abs(item.stockId) % CARD_HEADER_TINTS.length} />
+        <View style={[stockBrowseStyles.cardCell, { width: cardWidth }]}>
+          <StockCard {...common} />
         </View>
       );
     },
-    [cardWidth, colors, isDark, multiSelect, picker, stockFrameColor, stockImageSurfaceColor, stockSurfaceColor]
+    [cardWidth, colors, isDark, multiSelect, picker, stockFrameColor, stockSurfaceColor, viewableStockIdSet]
   );
 
   const keyExtractor = useCallback((item: CatalogStockItemDto) => `${item.stockId}-${item.erpStockCode}`, []);
 
   const listHeader = useMemo(
-    () => (
-      <View style={styles.resultsHeader}>
-        <View style={styles.resultsLeft}>
-          <Ionicons name="star" size={14} color={colors.accent} />
-          <Text unstyled disableThemeColor style={[styles.resultsText, { color: colors.text }]}>
-            {t("stockPicker.catalogStocksFoundTitle", { count: picker.activeStockRows.length })}
-          </Text>
+    () => {
+      const resultCount =
+        isCodeTab && picker.stockBrowseMode === "specialCodes"
+          ? picker.specialCodeTotalCount
+          : picker.activeStockRows.length;
+
+      return (
+        <View style={styles.resultsHeader}>
+          <View style={styles.resultsLeft}>
+            <Ionicons name={isCodeTab ? "pricetag" : "star"} size={14} color={colors.accent} />
+            <Text unstyled disableThemeColor style={[styles.resultsText, { color: colors.text }]}>
+              {t("stockPicker.catalogStocksFoundTitle", { count: resultCount })}
+            </Text>
+          </View>
+          <View style={styles.resultsActions}>
+            {isCodeTab && picker.stockBrowseMode === "specialCodes" ? (
+              <TouchableOpacity
+                onPress={picker.toggleSpecialCodeFiltersPanel}
+                style={[styles.editFiltersButton, { borderColor: colors.accent + "55", backgroundColor: colors.accent + "12" }]}
+                activeOpacity={0.85}
+              >
+                <MaterialCommunityIcons name="filter-variant" size={14} color={colors.accent} />
+                <Text unstyled disableThemeColor style={[styles.editFiltersText, { color: colors.accent }]}>
+                  {t("stockPicker.specialCodesEditFilters")}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+            <View style={styles.layoutToggle}>
+              <TouchableOpacity
+                onPress={() => picker.setStockLayoutMode("list")}
+                style={[styles.layoutButton, picker.stockLayoutMode === "list" && { backgroundColor: colors.accent + "22" }]}
+              >
+                <Ionicons name="list" size={18} color={picker.stockLayoutMode === "list" ? colors.accent : colors.textMuted} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => picker.setStockLayoutMode("cards")}
+                style={[styles.layoutButton, picker.stockLayoutMode === "cards" && { backgroundColor: colors.accent + "22" }]}
+              >
+                <Ionicons name="grid" size={18} color={picker.stockLayoutMode === "cards" ? colors.accent : colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-        <View style={styles.layoutToggle}>
-          <TouchableOpacity
-            onPress={() => picker.setStockLayoutMode("list")}
-            style={[styles.layoutButton, picker.stockLayoutMode === "list" && { backgroundColor: colors.accent + "22" }]}
-          >
-            <Ionicons name="list" size={18} color={picker.stockLayoutMode === "list" ? colors.accent : colors.textMuted} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => picker.setStockLayoutMode("cards")}
-            style={[styles.layoutButton, picker.stockLayoutMode === "cards" && { backgroundColor: colors.accent + "22" }]}
-          >
-            <Ionicons name="grid" size={18} color={picker.stockLayoutMode === "cards" ? colors.accent : colors.textMuted} />
-          </TouchableOpacity>
-        </View>
-      </View>
-    ),
-    [colors.accent, colors.text, colors.textMuted, picker, t]
+      );
+    },
+    [colors.accent, colors.text, colors.textMuted, isCodeTab, picker, t]
   );
+
+  const stockListEmptyComponent = useMemo(() => {
+    if (picker.activeStockLoading) return null;
+    return (
+      <View style={styles.listEmptyState}>
+        <MaterialCommunityIcons name="package-variant-closed" size={30} color={colors.textMuted} />
+        <Text style={[styles.listEmptyText, { color: colors.textSecondary }]}>
+          {t("stockPicker.specialCodesNoResults")}
+        </Text>
+      </View>
+    );
+  }, [colors.textMuted, colors.textSecondary, picker.activeStockLoading, t]);
 
   const renderCategoryRow = useCallback(
     (category: CatalogCategoryNodeDto) => {
@@ -804,6 +836,10 @@ export function CatalogStockPickerModal({
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <TouchableOpacity
             onPress={() => {
+              if (codeFiltersPanelOpen) {
+                picker.closeSpecialCodeFilters();
+                return;
+              }
               if (picker.mobileCategoriesOpen) {
                 picker.setMobileCategoriesOpen(false);
                 return;
@@ -815,10 +851,67 @@ export function CatalogStockPickerModal({
             <Ionicons name="arrow-back" size={22} color={colors.text} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.text }]}>
-            {picker.mobileCategoriesOpen ? t("stockPicker.catalogCategoryScreenTitle") : t("stockPicker.catalogMobileTitle")}
+            {picker.mobileCategoriesOpen
+              ? t("stockPicker.catalogCategoryScreenTitle")
+              : codeFiltersPanelOpen
+                ? t("stockPicker.specialCodesPanelTitle")
+                : t("stockPicker.catalogMobileTitle")}
           </Text>
           <TouchableOpacity onPress={() => picker.setHierarchyInfoOpen(true)} style={styles.headerIconButton}>
             <Ionicons name="information-circle-outline" size={22} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={[styles.tabBar, { borderColor: pickerBorder, backgroundColor: isDark ? "rgba(255,255,255,0.05)" : colors.backgroundSecondary }]}>
+          <TouchableOpacity
+            style={[
+              styles.tabButton,
+              isCodeTab && {
+                backgroundColor: tabActiveSurface,
+                borderColor: tabActiveBorder,
+                borderWidth: 1,
+              },
+            ]}
+            onPress={handleSelectCodeTab}
+            activeOpacity={0.85}
+          >
+            <MaterialCommunityIcons
+              name="filter-variant"
+              size={16}
+              color={isCodeTab ? colors.accent : colors.textSecondary}
+            />
+            <Text
+              unstyled
+              disableThemeColor
+              style={[styles.tabButtonText, { color: isCodeTab ? colors.accent : colors.textSecondary }]}
+            >
+              {t("stockPicker.catalogTabCodeFilters")}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.tabButton,
+              !isCodeTab && {
+                backgroundColor: tabActiveSurface,
+                borderColor: tabActiveBorder,
+                borderWidth: 1,
+              },
+            ]}
+            onPress={handleSelectCatalogTab}
+            activeOpacity={0.85}
+          >
+            <MaterialCommunityIcons
+              name="file-tree-outline"
+              size={16}
+              color={!isCodeTab ? colors.accent : colors.textSecondary}
+            />
+            <Text
+              unstyled
+              disableThemeColor
+              style={[styles.tabButtonText, { color: !isCodeTab ? colors.accent : colors.textSecondary }]}
+            >
+              {t("stockPicker.catalogTabCatalogTree")}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -833,14 +926,28 @@ export function CatalogStockPickerModal({
             style={[styles.searchInput, { color: colors.text, backgroundColor: "transparent" }]}
             underlineColorAndroid="transparent"
             placeholder={
-              picker.mobileCategoriesOpen
-                ? t("stockPicker.catalogCategorySearchPlaceholder")
-                : t("stockPicker.catalogStockSearchPlaceholder")
+              codeFiltersPanelOpen
+                ? t("stockPicker.specialCodesFilterSearchPlaceholder")
+                : picker.mobileCategoriesOpen
+                  ? t("stockPicker.catalogCategorySearchPlaceholder")
+                  : t("stockPicker.catalogStockSearchPlaceholder")
             }
             placeholderTextColor={colors.textMuted}
-            value={picker.mobileCategoriesOpen ? picker.categoryClientSearch : picker.stockSearch}
-            onChangeText={picker.mobileCategoriesOpen ? picker.setCategoryClientSearch : picker.setStockSearch}
-            editable={picker.mobileCategoriesOpen ? true : !stockSearchDisabled}
+            value={
+              codeFiltersPanelOpen
+                ? picker.specialCodeFilterSearch
+                : picker.mobileCategoriesOpen
+                  ? picker.categoryClientSearch
+                  : picker.stockSearch
+            }
+            onChangeText={
+              codeFiltersPanelOpen
+                ? picker.setSpecialCodeFilterSearch
+                : picker.mobileCategoriesOpen
+                  ? picker.setCategoryClientSearch
+                  : picker.setStockSearch
+            }
+            editable={codeFiltersPanelOpen || picker.mobileCategoriesOpen ? true : !stockSearchDisabled}
           />
         </View>
 
@@ -851,14 +958,25 @@ export function CatalogStockPickerModal({
           style={styles.chipsScroll}
           contentContainerStyle={styles.chipsRow}
         >
-          <ModeBrowseChip
-            variant="category"
-            active={picker.stockBrowseMode === "category"}
-            label={t("stockPicker.catalogSelectCatalogChip")}
-            onPress={handleOpenCategories}
-            colors={colors}
-            isDark={isDark}
-          />
+          {isCodeTab ? (
+            <ModeBrowseChip
+              variant="category"
+              active={picker.mobileFiltersOpen && picker.stockBrowseMode === "specialCodes"}
+              label={t("stockPicker.specialCodesFiltersChip")}
+              onPress={picker.toggleSpecialCodeFiltersPanel}
+              colors={colors}
+              isDark={isDark}
+            />
+          ) : (
+            <ModeBrowseChip
+              variant="category"
+              active={picker.stockBrowseMode === "category" && picker.mobileCategoriesOpen}
+              label={t("stockPicker.catalogSelectCatalogChip")}
+              onPress={handleOpenCategories}
+              colors={colors}
+              isDark={isDark}
+            />
+          )}
           <ModeBrowseChip
             variant="campaign"
             active={picker.stockBrowseMode === "campaign"}
@@ -877,7 +995,22 @@ export function CatalogStockPickerModal({
           />
         </FlatListScrollView>
 
-        {picker.mobileCategoriesOpen ? (
+        {codeFiltersPanelOpen ? (
+          <View style={styles.codeFilterPanel}>
+            <CatalogSpecialCodeFilterPanel
+              facetOptions={picker.specialCodeFacetOptions}
+              selections={picker.specialCodeSelections}
+              expandedSections={picker.expandedSpecialCodeSections}
+              filterSearch={picker.specialCodeFilterSearch}
+              loading={picker.specialCodeFacetLoading}
+              hasDraftSelection={picker.hasDraftSpecialCodeSelection}
+              onToggleSelection={picker.toggleSpecialCodeSelection}
+              onToggleSection={picker.toggleSpecialCodeSection}
+              onApply={picker.applySpecialCodeSelections}
+              onClear={picker.clearSpecialCodeSelections}
+            />
+          </View>
+        ) : picker.mobileCategoriesOpen ? (
           <View style={styles.categoryPanel}>
             {picker.catalogsLoading ? <ActivityIndicator color={colors.accent} style={styles.loader} /> : null}
             <FlatListScrollView
@@ -988,7 +1121,19 @@ export function CatalogStockPickerModal({
           </View>
         ) : (
           <View style={styles.stockPanel}>
-            {picker.stockBrowseMode === "category" && !picker.confirmedLeafCategory ? (
+            {codeNeedsSelection ? (
+              <View style={styles.emptyState}>
+                <View style={[styles.emptyIcon, { borderColor: colors.accent + "55" }]}>
+                  <MaterialCommunityIcons name="filter-variant" size={34} color={colors.accent} />
+                </View>
+                <Text style={[styles.emptyTitle, { color: colors.text }]}>{t("stockPicker.specialCodesEmptyTitle")}</Text>
+                <Text style={[styles.emptyHint, { color: colors.textSecondary }]}>{t("stockPicker.specialCodesPickHint")}</Text>
+                <TouchableOpacity style={[styles.emptyButton, { backgroundColor: colors.accent }]} onPress={picker.openSpecialCodeFilters}>
+                  <MaterialCommunityIcons name="filter-variant" size={18} color="#fff" />
+                  <Text style={styles.emptyButtonText}>{t("stockPicker.specialCodesOpenFilters")}</Text>
+                </TouchableOpacity>
+              </View>
+            ) : !isCodeTab && categoryNeedsLeaf ? (
               <View style={styles.emptyState}>
                 <View style={[styles.emptyIcon, { borderColor: colors.accent + "55" }]}>
                   <MaterialCommunityIcons name="shopping-outline" size={34} color={colors.accent} />
@@ -1017,7 +1162,7 @@ export function CatalogStockPickerModal({
                 {picker.activeStockLoading ? <ActivityIndicator color={colors.accent} style={styles.loader} /> : null}
                 <View
                   style={[
-                    styles.stockListShell,
+                    stockBrowseStyles.stockListShell,
                     styles.stockListShellHug,
                     { borderColor: pickerBorder, backgroundColor: panelSurfaceColor },
                   ]}
@@ -1029,9 +1174,12 @@ export function CatalogStockPickerModal({
                     renderItem={renderStockItem}
                     numColumns={1}
                     scrollEnabled={false}
-                    contentContainerStyle={styles.listContentInset}
+                    contentContainerStyle={stockBrowseStyles.listContentInset}
                     ItemSeparatorComponent={renderListSeparator}
                     showsVerticalScrollIndicator={false}
+                    ListEmptyComponent={stockListEmptyComponent}
+                    onViewableItemsChanged={onViewableItemsChanged}
+                    viewabilityConfig={viewabilityConfig}
                     ListFooterComponent={
                       picker.activeStockFetchingNextPage ? (
                         <ActivityIndicator color={colors.accent} style={styles.loader} />
@@ -1057,9 +1205,12 @@ export function CatalogStockPickerModal({
                     renderItem={renderStockItem}
                     numColumns={2}
                     key="cards"
-                    columnWrapperStyle={styles.cardRow}
+                    columnWrapperStyle={stockBrowseStyles.cardRow}
                     contentContainerStyle={[styles.listContent, { paddingBottom: stockListBottomInset }]}
                     showsVerticalScrollIndicator={false}
+                    ListEmptyComponent={stockListEmptyComponent}
+                    onViewableItemsChanged={onViewableItemsChanged}
+                    viewabilityConfig={viewabilityConfig}
                     onEndReached={() => {
                       if (picker.activeStockHasNextPage) {
                         picker.loadMoreStocks();
@@ -1078,7 +1229,7 @@ export function CatalogStockPickerModal({
           </View>
         )}
 
-        {multiSelect && !picker.mobileCategoriesOpen ? (
+        {multiSelect && !picker.mobileCategoriesOpen && !codeFiltersPanelOpen ? (
           <View
             style={[
               styles.footer,
@@ -1237,51 +1388,67 @@ const styles = StyleSheet.create({
   stockListHug: { flexGrow: 0 },
   favoritesHint: { fontSize: 13, marginBottom: 8 },
   resultsHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
-  resultsLeft: { flexDirection: "row", alignItems: "center", gap: 6 },
+  resultsLeft: { flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 1 },
   resultsText: { fontSize: 12, fontWeight: "600" },
+  resultsActions: { flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 0 },
+  editFiltersButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  editFiltersText: { fontSize: 11, fontWeight: "700" },
+  tabBar: {
+    flexDirection: "row",
+    gap: 4,
+    marginHorizontal: 16,
+    marginTop: 10,
+    padding: 4,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  tabButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: 10,
+  },
+  tabButtonText: { fontSize: 13, fontWeight: "700" },
+  codeFilterPanel: { flex: 1, minHeight: 0 },
+  listEmptyState: { alignItems: "center", justifyContent: "center", paddingVertical: 40, gap: 10 },
+  listEmptyText: { fontSize: 14, fontWeight: "600", textAlign: "center" },
   layoutToggle: { flexDirection: "row", gap: 4 },
   layoutButton: { width: 30, height: 30, borderRadius: 8, alignItems: "center", justifyContent: "center" },
-  stockListShell: { borderRadius: 16, borderWidth: 1.5, overflow: "hidden" },
   stockListShellHug: { alignSelf: "stretch", flexGrow: 0 },
   stockListShellCards: { flex: 1 },
   listContent: { gap: CARD_GAP, paddingTop: 2 },
-  listContentInset: { paddingVertical: 4 },
-  listSeparator: { height: 1, marginHorizontal: 12 },
-  cardRow: { gap: CARD_GAP, alignItems: "stretch" },
-  cardCell: { marginBottom: CARD_GAP, alignSelf: "stretch" },
-  cardFrame: { width: "100%", flex: 1, borderRadius: 14, borderWidth: 1.5, overflow: "hidden" },
-  cardPressable: { width: "100%", flex: 1 },
-  cardPressed: { opacity: 0.92 },
-  cardImage: {
-    height: 88,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-    borderBottomWidth: StyleSheet.hairlineWidth,
+  cardMetaPill: {
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
   },
-  cardImageAsset: { width: "100%", height: "100%" },
-  cardBody: { flex: 1, paddingHorizontal: 10, paddingTop: 8, paddingBottom: 10, gap: 3, justifyContent: "space-between" },
-  cardName: { fontSize: 10, fontWeight: "500", marginTop: 2, lineHeight: 14, minHeight: 28 },
-  cardFooter: { marginTop: 6, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  cardMetaPillText: {
+    color: "#fff",
+    fontSize: 7,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.2,
+  },
+  cardFooter: { marginTop: 2, flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 6 },
   cardUnitSpacer: { flex: 1 },
-  relationBadge: { position: "absolute", left: 8, bottom: 8, borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2 },
-  relationBadgeText: { color: "#fff", fontSize: 9, fontWeight: "700" },
-  cardCode: { fontSize: 10, fontWeight: "700", letterSpacing: 0.2 },
   badgeRow: { flexDirection: "row", flexWrap: "wrap", gap: 4, marginTop: 2 },
   metaBadge: { fontSize: 9, fontWeight: "600" },
-  stockUnitBadge: {
-    borderRadius: 6,
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    minWidth: 32,
-    alignItems: "center",
-  },
-  stockUnitBadgeText: { fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.3 },
   stockAddCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1303,47 +1470,6 @@ const styles = StyleSheet.create({
   },
   cartIconButton: { width: 24, height: 24, alignItems: "center", justifyContent: "center" },
   cartQuantity: { minWidth: 16, textAlign: "center", fontSize: 11, fontWeight: "700" },
-  listItemWrap: { width: "100%", alignSelf: "stretch" },
-  listItemShell: { width: "100%", alignSelf: "stretch" },
-  listRowPressable: { width: "100%" },
-  listRowInner: {
-    width: "100%",
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    minHeight: 58,
-    gap: 10,
-  },
-  listRowPressed: { opacity: 0.9 },
-  listIconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  listTextCol: { flex: 1, minWidth: 0, justifyContent: "center", gap: 1 },
-  listCode: { fontSize: 10, fontWeight: "700", letterSpacing: 0.15 },
-  listName: { fontSize: 11, fontWeight: "500", lineHeight: 14 },
-  listActionsCol: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    gap: 8,
-    flexShrink: 0,
-    marginLeft: 4,
-  },
-  listMetaRow: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 12,
-    paddingBottom: 8,
-    paddingTop: 4,
-    marginLeft: 50,
-  },
-  listMetaContent: { gap: 2 },
   emptyState: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24, gap: 12 },
   emptyIcon: { width: 88, height: 88, borderRadius: 44, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   emptyTitle: { fontSize: 22, fontWeight: "800", textAlign: "center" },
