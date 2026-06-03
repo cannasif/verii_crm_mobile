@@ -96,7 +96,13 @@
     "and": "AND",
     "or": "OR",
     "newest": "Newest",
-    "oldest": "Oldest"
+    "oldest": "Oldest",
+    "warehouseBalanceTooltip": {
+      "totalLabel": "Total balance",
+      "warehouseCount": "{{count}} warehouses",
+      "branch": "Branch {{branch}}",
+      "holdHint": "Press and hold for warehouse breakdown"
+    }
   },
   "permissions": {
     "title": "Permission Control",
@@ -978,7 +984,12 @@
     "setPrimarySuccess": "Primary image updated",
     "setPrimaryError": "Could not set primary image",
     "imagesLoadError": "Could not load images",
-    "foundCount": "{{count}} related stock found"
+    "foundCount": "{{count}} related stock found",
+    "foundWithBalanceCount": "{{count}} stocks with balance",
+    "filterOnlyWithWarehouseBalance": "Show only items with balance",
+    "emptyWithWarehouseBalance": "No stocks with warehouse balance found",
+    "codeFiltersButton": "Code filters",
+    "filterTabFields": "Filter"
   },
   "sales": {
     "createQuotation": "Create Quotation",
@@ -1112,7 +1123,33 @@
     "catalogCampaignDiscount": "{{value}} discount",
     "specialStockListPlaceholderHint": "Only your favorite stocks are listed here.",
     "relatedStocksTitle": "Related Stocks",
-    "relatedMandatory": "Required"
+    "relatedMandatory": "Required",
+    "catalogTabCodeFilters": "Code Filters",
+    "catalogTabCatalogTree": "Catalog Tree",
+    "specialCodesPanelTitle": "Special Code Filters",
+    "specialCodesFiltersChip": "Filters",
+    "specialCodesClear": "Clear",
+    "specialCodesApply": "Apply",
+    "specialCodesAll": "All",
+    "specialCodesFilterSearchPlaceholder": "Search group and code names...",
+    "specialCodesPanelHint": "Multiple values in one field act as OR, different fields as AND. Select and tap Apply.",
+    "specialCodesPickHint": "Select at least one special code above and tap Apply.",
+    "specialCodesEmptyTitle": "Select a special code",
+    "specialCodesLoadingOptions": "Loading options…",
+    "specialCodesNoOptions": "No values found in this pool.",
+    "specialCodesSearchEmpty": "No value matches your search.",
+    "specialCodesSelectedCount": "{{count}} selected",
+    "specialCodesEditFilters": "Filters",
+    "specialCodesOpenFilters": "Open Filters",
+    "specialCodesNoResults": "No stock found",
+    "specialCodesLevels": {
+      "grupKodu": "Group Code",
+      "kod1": "Special Code 1",
+      "kod2": "Special Code 2",
+      "kod3": "Special Code 3",
+      "kod4": "Special Code 4",
+      "kod5": "Special Code 5"
+    }
   },
   "quotation": {
     "list": "Quotation List",

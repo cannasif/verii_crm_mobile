@@ -88,7 +88,13 @@
     "or": "ODER",
     "newest": "Neueste",
     "oldest": "Älteste",
-    "voiceSearchPermissionRequired": "Für die Sprachsuche sind Mikrofon- und Spracherkennungsberechtigungen erforderlich."
+    "voiceSearchPermissionRequired": "Für die Sprachsuche sind Mikrofon- und Spracherkennungsberechtigungen erforderlich.",
+    "warehouseBalanceTooltip": {
+      "totalLabel": "Gesamtbestand",
+      "warehouseCount": "{{count}} Lager",
+      "branch": "Filiale {{branch}}",
+      "holdHint": "Gedrückt halten für Lageraufschlüsselung"
+    }
   },
   "home": {
     "greeting": "Hallo",
@@ -918,7 +924,12 @@
     "setPrimarySuccess": "Hauptbild aktualisiert",
     "setPrimaryError": "Hauptbild konnte nicht gesetzt werden",
     "imagesLoadError": "Bilder konnten nicht geladen werden",
-    "foundCount": "{{count}} zugehöriger Artikel gefunden"
+    "foundCount": "{{count}} zugehöriger Artikel gefunden",
+    "foundWithBalanceCount": "{{count}} Artikel mit Bestand",
+    "filterOnlyWithWarehouseBalance": "Nur Artikel mit Bestand anzeigen",
+    "emptyWithWarehouseBalance": "Keine Artikel mit Lagerbestand gefunden",
+    "codeFiltersButton": "Code-Filter",
+    "filterTabFields": "Filtern"
   },
   "sales": {
     "createQuotation": "Angebot erstellen",
@@ -1050,7 +1061,33 @@
     "catalogCampaignDiscount": "{{value}} Rabatt",
     "specialStockListPlaceholderHint": "In dieser Liste werden nur Ihre Favoriten angezeigt.",
     "relatedStocksTitle": "Verknüpfte Bestände",
-    "relatedMandatory": "Pflicht"
+    "relatedMandatory": "Pflicht",
+    "catalogTabCodeFilters": "Code-Filter",
+    "catalogTabCatalogTree": "Katalogbaum",
+    "specialCodesPanelTitle": "Sondercode-Filter",
+    "specialCodesFiltersChip": "Filter",
+    "specialCodesClear": "Löschen",
+    "specialCodesApply": "Anwenden",
+    "specialCodesAll": "Alle",
+    "specialCodesFilterSearchPlaceholder": "Gruppen- und Codenamen suchen...",
+    "specialCodesPanelHint": "Mehrere Werte in einem Feld wirken als ODER, verschiedene Felder als UND. Auswählen und Anwenden tippen.",
+    "specialCodesPickHint": "Wählen Sie oben mindestens einen Sondercode und tippen Sie auf Anwenden.",
+    "specialCodesEmptyTitle": "Sondercode auswählen",
+    "specialCodesLoadingOptions": "Optionen werden geladen…",
+    "specialCodesNoOptions": "In diesem Pool wurden keine Werte gefunden.",
+    "specialCodesSearchEmpty": "Kein Wert entspricht Ihrer Suche.",
+    "specialCodesSelectedCount": "{{count}} ausgewählt",
+    "specialCodesEditFilters": "Filter",
+    "specialCodesOpenFilters": "Filter öffnen",
+    "specialCodesNoResults": "Kein Bestand gefunden",
+    "specialCodesLevels": {
+      "grupKodu": "Gruppencode",
+      "kod1": "Sondercode 1",
+      "kod2": "Sondercode 2",
+      "kod3": "Sondercode 3",
+      "kod4": "Sondercode 4",
+      "kod5": "Sondercode 5"
+    }
   },
   "quotation": {
     "list": "Angebotsliste",

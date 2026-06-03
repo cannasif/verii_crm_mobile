@@ -97,7 +97,13 @@
     "or": "VEYA",
     "newest": "En Yeniler",
     "oldest": "En Eskiler",
-    "voiceSearchPermissionRequired": "Sesli arama için mikrofon ve konuşma tanıma izinleri gereklidir."
+    "voiceSearchPermissionRequired": "Sesli arama için mikrofon ve konuşma tanıma izinleri gereklidir.",
+    "warehouseBalanceTooltip": {
+      "totalLabel": "Toplam bakiye",
+      "warehouseCount": "{{count}} depo",
+      "branch": "Şube {{branch}}",
+      "holdHint": "Depo kırılımı için basılı tutun"
+    }
   },
   "permissions": {
     "title": "Yetki Kontrolü",
@@ -1007,6 +1013,11 @@
     "setPrimaryError": "Ana görsel ayarlanamadı",
     "imagesLoadError": "Görseller yüklenemedi",
     "foundCount": "{{count}} adet stok bulundu",
+    "foundWithBalanceCount": "{{count}} bakiyeli stok",
+    "filterOnlyWithWarehouseBalance": "Bakiyesi olanları getir",
+    "emptyWithWarehouseBalance": "Depo bakiyesi olan stok bulunamadı",
+    "codeFiltersButton": "Kod filtreleri",
+    "filterTabFields": "Filtrele",
     "group": "Grup",
     "allGroups": "Tüm Gruplar"
   },
@@ -1161,7 +1172,33 @@
     "catalogCampaignDiscount": "{{value}} indirim",
     "specialStockListPlaceholderHint": "Bu listede yalnızca favori stoklarınız gösterilir.",
     "relatedStocksTitle": "İlişkili Stoklar",
-    "relatedMandatory": "Zorunlu"
+    "relatedMandatory": "Zorunlu",
+    "catalogTabCodeFilters": "Kod Filtreleri",
+    "catalogTabCatalogTree": "Katalog Ağacı",
+    "specialCodesPanelTitle": "Özel Kod Filtreleri",
+    "specialCodesFiltersChip": "Filtreler",
+    "specialCodesClear": "Temizle",
+    "specialCodesApply": "Uygula",
+    "specialCodesAll": "Tümü",
+    "specialCodesFilterSearchPlaceholder": "Grup ve kod adlarında ara...",
+    "specialCodesPanelHint": "Aynı alanda çoklu seçim VEYA, farklı alanlar VE olarak çalışır. Seç ve Uygula’ya bas.",
+    "specialCodesPickHint": "Yukarıdan en az bir özel kod seçip Uygula’ya bas.",
+    "specialCodesEmptyTitle": "Özel kod seçin",
+    "specialCodesLoadingOptions": "Seçenekler yükleniyor…",
+    "specialCodesNoOptions": "Bu havuzda değer bulunamadı.",
+    "specialCodesSearchEmpty": "Aramayla eşleşen değer yok.",
+    "specialCodesSelectedCount": "{{count}} seçili",
+    "specialCodesEditFilters": "Filtreler",
+    "specialCodesOpenFilters": "Filtreleri Aç",
+    "specialCodesNoResults": "Stok bulunamadı",
+    "specialCodesLevels": {
+      "grupKodu": "Grup Kodu",
+      "kod1": "Özel Kod 1",
+      "kod2": "Özel Kod 2",
+      "kod3": "Özel Kod 3",
+      "kod4": "Özel Kod 4",
+      "kod5": "Özel Kod 5"
+    }
   },
   "quotation": {
     "list": "Teklif Listesi",
