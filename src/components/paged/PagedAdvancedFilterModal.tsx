@@ -16,6 +16,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useUIStore } from "../../store/ui";
 import { Text } from "../ui/text";
 
+export interface PagedAdvancedFilterTab {
+  id: string;
+  label: string;
+  badge?: number;
+}
+
 interface PagedAdvancedFilterModalProps {
   visible: boolean;
   title: string;
@@ -26,6 +32,12 @@ interface PagedAdvancedFilterModalProps {
   onApply: () => void;
   children: React.ReactNode;
   bottomInset?: number;
+  tabs?: PagedAdvancedFilterTab[];
+  activeTabId?: string;
+  onTabChange?: (tabId: string) => void;
+  showFilterLogic?: boolean;
+  bodyScrollEnabled?: boolean;
+  belowFilterLogic?: React.ReactNode;
 }
 
 export function PagedAdvancedFilterModal({
@@ -38,24 +50,43 @@ export function PagedAdvancedFilterModal({
   onApply,
   children,
   bottomInset = 0,
+  tabs,
+  activeTabId,
+  onTabChange,
+  showFilterLogic = true,
+  bodyScrollEnabled = true,
+  belowFilterLogic,
 }: PagedAdvancedFilterModalProps): React.ReactElement {
   const { t } = useTranslation();
-  const { themeMode } = useUIStore();
+  const { themeMode, colors } = useUIStore();
   const isDark = themeMode === "dark";
   const { height: windowHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const [keyboardInset, setKeyboardInset] = useState(0);
 
-  const theme = {
-    overlay: "rgba(0,0,0,0.55)",
-    surface: isDark ? "#1E293B" : "#FFFFFF",
-    text: isDark ? "#E2E8F0" : "#0F172A",
-    textMuted: isDark ? "#94A3B8" : "#64748B",
-    border: isDark ? "rgba(255,255,255,0.08)" : "rgba(148,163,184,0.18)",
-    softBg: isDark ? "rgba(255,255,255,0.045)" : "#F8FAFC",
-    accent: "#db2777",
-    handle: isDark ? "rgba(148,163,184,0.42)" : "rgba(148,163,184,0.48)",
-  };
+  const theme = useMemo(() => {
+    const accentSoftBg = isDark ? "rgba(236, 72, 153, 0.12)" : "rgba(219, 39, 119, 0.08)";
+    const accentSoftBorder = isDark ? "rgba(236, 72, 153, 0.24)" : "rgba(219, 39, 119, 0.16)";
+    const accentActiveBg = isDark ? "rgba(236, 72, 153, 0.18)" : "rgba(219, 39, 119, 0.12)";
+    const applyButtonBg = isDark ? "rgba(236, 72, 153, 0.14)" : "rgba(219, 39, 119, 0.08)";
+    const applyButtonBorder = isDark ? "rgba(236, 72, 153, 0.28)" : "rgba(219, 39, 119, 0.14)";
+
+    return {
+      overlay: isDark ? "rgba(8, 6, 14, 0.88)" : "rgba(0,0,0,0.55)",
+      surface: isDark ? "#1a0b2e" : "#FFFFFF",
+      text: colors.text,
+      textMuted: colors.textMuted,
+      border: colors.border,
+      softBg: isDark ? "rgba(255,255,255,0.035)" : "#F8FAFC",
+      accent: colors.accent,
+      accentSoftBg,
+      accentSoftBorder,
+      accentActiveBg,
+      applyButtonBg,
+      applyButtonBorder,
+      handle: isDark ? "rgba(148,163,184,0.42)" : "rgba(148,163,184,0.48)",
+    };
+  }, [colors.accent, colors.border, colors.text, colors.textMuted, isDark]);
 
   const sheetMaxHeight = useMemo(() => {
     const topSlack = insets.top + 8;
@@ -106,49 +137,131 @@ export function PagedAdvancedFilterModal({
             </TouchableOpacity>
           </View>
 
-          <Text style={[styles.logicLabel, { color: theme.textMuted }]}>{t("common.logic")}</Text>
-
-          <View style={[styles.logicSegmentTrack, { backgroundColor: theme.softBg, borderColor: theme.border }]}>
-            {(["and", "or"] as const).map((logicValue) => {
-              const isActive = filterLogic === logicValue;
-              return (
-                <TouchableOpacity
-                  key={logicValue}
-                  style={[
-                    styles.logicSegmentButton,
-                    isActive && { backgroundColor: theme.accent },
-                  ]}
-                  onPress={() => onFilterLogicChange(logicValue)}
-                  activeOpacity={0.82}
-                >
-                  <Text
+          {tabs && tabs.length > 0 ? (
+            <View
+              style={[styles.tabTrack, { backgroundColor: theme.softBg, borderColor: theme.border }]}
+            >
+              {tabs.map((tab) => {
+                const isActive = activeTabId === tab.id;
+                const badge = tab.badge ?? 0;
+                return (
+                  <TouchableOpacity
+                    key={tab.id}
                     style={[
-                      styles.logicSegmentButtonText,
-                      { color: isActive ? "#FFFFFF" : theme.textMuted },
+                      styles.tabButton,
+                      isActive && {
+                        backgroundColor: theme.accentActiveBg,
+                        borderColor: theme.accentSoftBorder,
+                        borderWidth: 1,
+                      },
                     ]}
+                    onPress={() => onTabChange?.(tab.id)}
+                    activeOpacity={0.82}
                   >
-                    {logicValue === "and" ? t("common.and") : t("common.or")}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+                    <Text
+                      style={[
+                        styles.tabButtonText,
+                        { color: isActive ? theme.accent : theme.textMuted },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {tab.label}
+                    </Text>
+                    {badge > 0 ? (
+                      <View
+                        style={[
+                          styles.tabBadge,
+                          {
+                            backgroundColor: isActive
+                              ? theme.accent + (isDark ? "28" : "18")
+                              : theme.accent + (isDark ? "20" : "12"),
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.tabBadgeText,
+                            { color: theme.accent },
+                          ]}
+                        >
+                          {badge}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ) : null}
 
-          <ScrollView
-            style={styles.bodyScroll}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={styles.body}
-          >
-            {children}
-          </ScrollView>
+          {showFilterLogic ? (
+            <>
+              <Text style={[styles.logicLabel, { color: theme.textMuted }]}>{t("common.logic")}</Text>
+
+              <View
+                style={[
+                  styles.logicSegmentTrack,
+                  belowFilterLogic ? styles.logicSegmentTrackCompact : null,
+                  { backgroundColor: theme.softBg, borderColor: theme.border },
+                ]}
+              >
+                {(["and", "or"] as const).map((logicValue) => {
+                  const isActive = filterLogic === logicValue;
+                  return (
+                    <TouchableOpacity
+                      key={logicValue}
+                      style={[
+                        styles.logicSegmentButton,
+                        isActive && {
+                          backgroundColor: theme.accentActiveBg,
+                          borderColor: theme.accentSoftBorder,
+                          borderWidth: 1,
+                        },
+                      ]}
+                      onPress={() => onFilterLogicChange(logicValue)}
+                      activeOpacity={0.82}
+                    >
+                      <Text
+                        style={[
+                          styles.logicSegmentButtonText,
+                          { color: isActive ? theme.accent : theme.textMuted },
+                        ]}
+                      >
+                        {logicValue === "and" ? t("common.and") : t("common.or")}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {belowFilterLogic ? (
+                <View style={styles.belowFilterLogicSlot}>{belowFilterLogic}</View>
+              ) : null}
+            </>
+          ) : null}
+
+          {bodyScrollEnabled ? (
+            <ScrollView
+              style={styles.bodyScroll}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.body}
+            >
+              {children}
+            </ScrollView>
+          ) : (
+            <View style={[styles.bodyScroll, styles.bodyFlex, styles.body]}>{children}</View>
+          )}
 
           <View style={[styles.footer, { borderTopColor: theme.border }]}>
             <TouchableOpacity
               style={[
                 styles.footerButton,
                 styles.footerButtonSecondary,
-                { backgroundColor: theme.softBg, borderColor: theme.border },
+                {
+                  backgroundColor: theme.accentSoftBg,
+                  borderColor: theme.accentSoftBorder,
+                },
               ]}
               onPress={onClear}
               activeOpacity={0.82}
@@ -162,12 +275,15 @@ export function PagedAdvancedFilterModal({
               style={[
                 styles.footerButton,
                 styles.footerButtonPrimary,
-                { backgroundColor: theme.accent, borderColor: theme.accent },
+                {
+                  backgroundColor: theme.applyButtonBg,
+                  borderColor: theme.applyButtonBorder,
+                },
               ]}
               onPress={onApply}
               activeOpacity={0.88}
             >
-              <Text style={[styles.footerButtonText, styles.footerButtonPrimaryText]}>
+              <Text style={[styles.footerButtonText, styles.footerButtonPrimaryText, { color: theme.accent }]}>
                 {t("common.apply")}
               </Text>
             </TouchableOpacity>
@@ -231,6 +347,43 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
     flexShrink: 0,
   },
+  tabTrack: {
+    flexDirection: "row",
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 3,
+    gap: 3,
+    marginBottom: 18,
+    flexShrink: 0,
+  },
+  tabButton: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 11,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 6,
+  },
+  tabButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
+    flexShrink: 1,
+  },
+  tabBadge: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 999,
+    paddingHorizontal: 5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tabBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+  },
   logicSegmentTrack: {
     flexDirection: "row",
     borderRadius: 14,
@@ -238,6 +391,15 @@ const styles = StyleSheet.create({
     padding: 3,
     gap: 3,
     marginBottom: 18,
+    flexShrink: 0,
+  },
+  logicSegmentTrackCompact: {
+    marginBottom: 10,
+  },
+  belowFilterLogicSlot: {
+    alignSelf: "stretch",
+    width: "100%",
+    marginBottom: 14,
     flexShrink: 0,
   },
   logicSegmentButton: {
@@ -254,6 +416,9 @@ const styles = StyleSheet.create({
   bodyScroll: {
     flex: 1,
     minHeight: 0,
+  },
+  bodyFlex: {
+    overflow: "hidden",
   },
   body: {
     paddingBottom: 8,
@@ -286,7 +451,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   footerButtonPrimaryText: {
-    color: "#FFFFFF",
     fontWeight: "700",
   },
 });

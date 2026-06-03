@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -10,9 +10,16 @@ import {
 } from "react-native";
 import { FilterIcon } from "hugeicons-react-native";
 import { useTranslation } from "react-i18next";
+import { StockBrowseListSeparator, stockBrowseStyles } from "../shared/stock-browse";
 import { useUIStore } from "../../store/ui";
 import { Text } from "../ui/text";
 import { PagedSearchInput } from "./PagedSearchInput";
+
+interface BrowseListShellConfig {
+  borderColor: string;
+  backgroundColor: string;
+  separatorColor: string;
+}
 
 interface PagedFlatListProps<ItemT>
   extends Omit<FlatListProps<ItemT>, "data" | "renderItem"> {
@@ -37,6 +44,7 @@ interface PagedFlatListProps<ItemT>
   onRefresh?: () => void;
   emptyComponent?: React.ReactNode;
   listKey?: string;
+  browseListShell?: BrowseListShellConfig;
 }
 
 export function PagedFlatList<ItemT>({
@@ -61,8 +69,10 @@ export function PagedFlatList<ItemT>({
   onRefresh,
   emptyComponent,
   listKey,
+  browseListShell,
   ListFooterComponent,
   contentContainerStyle,
+  ItemSeparatorComponent,
   ...flatListProps
 }: PagedFlatListProps<ItemT>): React.ReactElement {
   const { t } = useTranslation();
@@ -75,6 +85,13 @@ export function PagedFlatList<ItemT>({
     border: isDark ? "rgba(255,255,255,0.08)" : "rgba(148,163,184,0.18)",
     accent: "#db2777",
   };
+
+  const renderBrowseSeparator = useCallback(
+    () => (
+      <StockBrowseListSeparator color={browseListShell?.separatorColor ?? theme.border} />
+    ),
+    [browseListShell?.separatorColor, theme.border]
+  );
 
   const resolvedTopRightActions = topRightActions ?? toolbarActions;
 
@@ -184,6 +201,38 @@ export function PagedFlatList<ItemT>({
         <View style={styles.loaderWrap}>
           <ActivityIndicator size="large" color={theme.accent} />
         </View>
+      ) : browseListShell ? (
+        <View style={styles.browseListShellOuter}>
+          <View
+            style={[
+              stockBrowseStyles.stockListShell,
+              {
+                borderColor: browseListShell.borderColor,
+                backgroundColor: browseListShell.backgroundColor,
+              },
+            ]}
+          >
+            <FlatList
+              key={listKey}
+              data={data as ItemT[]}
+              renderItem={renderItem}
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              ListEmptyComponent={emptyNode as React.ReactElement | null | undefined}
+              ListFooterComponent={combinedFooter}
+              contentContainerStyle={[stockBrowseStyles.listContentInset, contentContainerStyle]}
+              ItemSeparatorComponent={ItemSeparatorComponent ?? renderBrowseSeparator}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              removeClippedSubviews={Platform.OS === "android"}
+              initialNumToRender={6}
+              maxToRenderPerBatch={6}
+              updateCellsBatchingPeriod={60}
+              windowSize={7}
+              {...flatListProps}
+            />
+          </View>
+        </View>
       ) : (
         <FlatList
           key={listKey}
@@ -194,6 +243,7 @@ export function PagedFlatList<ItemT>({
           ListEmptyComponent={emptyNode as React.ReactElement | null | undefined}
           ListFooterComponent={combinedFooter}
           contentContainerStyle={contentContainerStyle}
+          ItemSeparatorComponent={ItemSeparatorComponent}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           removeClippedSubviews={Platform.OS === "android"}
@@ -268,6 +318,11 @@ bottomRightActions: {
     alignItems: "center",
     justifyContent: "center",
     marginTop: 60,
+  },
+
+  browseListShellOuter: {
+    flex: 1,
+    paddingHorizontal: 16,
   },
 
   footerLoader: {
