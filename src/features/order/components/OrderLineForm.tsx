@@ -255,11 +255,11 @@ export function OrderLineForm({
     const nextDemirId =
       currentDemir?.profilDefinitionId === profilDefinitionId
         ? demirDefinitionId
-        : (demirOptions[0]?.id ?? null);
+        : null;
     const nextVidaId =
       currentVida?.profilDefinitionId === profilDefinitionId
         ? vidaDefinitionId
-        : (vidaOptions[0]?.id ?? null);
+        : null;
 
     if (nextDemirId !== demirDefinitionId) {
       setDemirDefinitionId(nextDemirId);
