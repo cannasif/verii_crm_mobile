@@ -6,13 +6,19 @@ import { Platform } from "react-native";
  */
 export const BOTTOM_NAV_HEIGHT = 65;
 
+/**
+ * BottomNavBar kapalıyken FAB çentiği ve dekor için wrapper'a eklenen yükseklik.
+ * Aksiyon butonları son kartta kalınca bu alanı hesaba katmazsak tab bar altında kalabiliyor.
+ */
+export const BOTTOM_NAV_DECOR_HEIGHT = 35;
+
 /** Tab bar üzerinde ek nefes payı (px) */
-const LIST_GAP_ABOVE_TAB_BAR = 20;
+const LIST_GAP_ABOVE_TAB_BAR = 28;
 
 /**
  * PagedFlatList / FlatList `contentContainerStyle.paddingBottom` için.
  */
 export function listContentBottomPadding(safeAreaBottom: number): number {
   const bottom = Math.max(safeAreaBottom, Platform.OS === "android" ? 8 : 0);
-  return BOTTOM_NAV_HEIGHT + bottom + LIST_GAP_ABOVE_TAB_BAR;
+  return BOTTOM_NAV_HEIGHT + BOTTOM_NAV_DECOR_HEIGHT + bottom + LIST_GAP_ABOVE_TAB_BAR;
 }

@@ -256,26 +256,26 @@ function QuotationRowComponent({
           <Mail01Icon size={15} color="#0078D4" variant="stroke" />
           <Text style={[styles.actionBtnText, { color: "#0078D4" }]}>Outlook</Text>
         </TouchableOpacity>
-      </View>
 
-      {canRevise ? (
-        <TouchableOpacity
-          style={[
-            styles.revisionBtn,
-            {
-              backgroundColor: colors.softBg,
-              borderColor: colors.border,
-            },
-          ]}
-          onPress={handleRevisionPress}
-          disabled={isPending}
-          activeOpacity={0.78}
-        >
-          <Text style={[styles.revisionBtnText, { color: colors.text }]}>
-            {isPending ? "Yükleniyor..." : "Revize Et"}
-          </Text>
-        </TouchableOpacity>
-      ) : null}
+        {canRevise ? (
+          <TouchableOpacity
+            style={[
+              styles.actionBtn,
+              {
+                backgroundColor: colors.softBg,
+                borderColor: colors.border,
+              },
+            ]}
+            onPress={handleRevisionPress}
+            disabled={isPending}
+            activeOpacity={0.78}
+          >
+            <Text style={[styles.actionBtnText, { color: colors.text }]} numberOfLines={1}>
+              {isPending ? "Bekleyin" : "Revize"}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
     </TouchableOpacity>
   );
 }
@@ -421,6 +421,7 @@ const styles = StyleSheet.create({
   },
   actionBtn: {
     flex: 1,
+    minWidth: 0,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -432,16 +433,5 @@ const styles = StyleSheet.create({
   actionBtnText: {
     fontWeight: "700",
     fontSize: 11.5,
-  },
-  revisionBtn: {
-    borderRadius: 12,
-    paddingVertical: 10,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  revisionBtnText: {
-    fontWeight: "700",
-    fontSize: 12.5,
   },
 });
