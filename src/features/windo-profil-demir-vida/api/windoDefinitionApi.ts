@@ -28,4 +28,5 @@ export const windoDefinitionApi = {
   getProfilDefinitions: () => getDefinitions("/api/ProfilDefinition"),
   getDemirDefinitions: () => getDefinitions("/api/DemirDefinition"),
   getVidaDefinitions: () => getDefinitions("/api/VidaDefinition"),
+  getBaskiDefinitions: () => getDefinitions("/api/BaskiDefinition"),
 };

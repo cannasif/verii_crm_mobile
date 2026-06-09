@@ -48,20 +48,27 @@ export function useWindoDefinitionOptions({
         queryFn: windoDefinitionApi.getVidaDefinitions,
         staleTime: 5 * 60 * 1000,
       },
+      {
+        queryKey: ["windo-definitions", "baski"],
+        queryFn: windoDefinitionApi.getBaskiDefinitions,
+        staleTime: 5 * 60 * 1000,
+      },
     ],
   });
 
-  const [profilResult, demirResult, vidaResult] = results;
+  const [profilResult, demirResult, vidaResult, baskiResult] = results;
 
   const profilDefinitions = profilResult.data ?? [];
   const demirDefinitions = demirResult.data ?? [];
   const vidaDefinitions = vidaResult.data ?? [];
+  const baskiDefinitions = baskiResult.data ?? [];
 
   return useMemo(
     () => ({
       profilDefinitions,
       demirDefinitions,
       vidaDefinitions,
+      baskiDefinitions,
       profilOptions: toOptions(profilDefinitions),
       demirOptions: toOptions(demirDefinitions).filter((option) => {
         if (selectedProfilDefinitionId == null) return true;
@@ -73,12 +80,15 @@ export function useWindoDefinitionOptions({
         if (option.profilDefinitionId === selectedProfilDefinitionId) return true;
         return option.id === preserveSelection?.vidaDefinitionId;
       }),
+      baskiOptions: toOptions(baskiDefinitions),
       profilMap: toMap(profilDefinitions),
       demirMap: toMap(demirDefinitions),
       vidaMap: toMap(vidaDefinitions),
+      baskiMap: toMap(baskiDefinitions),
       isLoading: results.some((result) => result.isLoading),
     }),
     [
+      baskiDefinitions,
       demirDefinitions,
       preserveSelection?.demirDefinitionId,
       preserveSelection?.vidaDefinitionId,

@@ -196,6 +196,7 @@ export function QuotationLineForm({
   const [profilDefinitionId, setProfilDefinitionId] = useState<number | null>(null);
   const [demirDefinitionId, setDemirDefinitionId] = useState<number | null>(null);
   const [vidaDefinitionId, setVidaDefinitionId] = useState<number | null>(null);
+  const [baskiDefinitionId, setBaskiDefinitionId] = useState<number | null>(null);
   const [isLoadingPrice, setIsLoadingPrice] = useState(false);
   const [approvalStatus, setApprovalStatus] = useState<number>(0);
   const [approvalMessage, setApprovalMessage] = useState<string>("");
@@ -210,6 +211,7 @@ export function QuotationLineForm({
   const [profilPickerVisible, setProfilPickerVisible] = useState(false);
   const [demirPickerVisible, setDemirPickerVisible] = useState(false);
   const [vidaPickerVisible, setVidaPickerVisible] = useState(false);
+  const [baskiPickerVisible, setBaskiPickerVisible] = useState(false);
   const productPickerRef = useRef<ProductPickerRef>(null);
   const prevLineFormVisibleRef = useRef(false);
   const lastHydratedLineIdRef = useRef<string | null>(null);
@@ -219,9 +221,11 @@ export function QuotationLineForm({
     profilOptions,
     demirOptions,
     vidaOptions,
+    baskiOptions,
     profilMap,
     demirMap,
     vidaMap,
+    baskiMap,
     demirDefinitions: allDemirDefinitions,
     vidaDefinitions: allVidaDefinitions,
     isLoading: isDefinitionOptionsLoading,
@@ -290,6 +294,7 @@ export function QuotationLineForm({
       profilDefinitionId,
       demirDefinitionId,
       vidaDefinitionId,
+      baskiDefinitionId,
       erpProjectCode: erpProjectCode || null,
       pendingImageUri,
       isEditing: false,
@@ -320,6 +325,7 @@ export function QuotationLineForm({
     profilDefinitionId,
     demirDefinitionId,
     vidaDefinitionId,
+    baskiDefinitionId,
     imagePath,
     pendingImageUri,
     erpProjectCode,
@@ -373,6 +379,7 @@ export function QuotationLineForm({
     setProfilDefinitionId(null);
     setDemirDefinitionId(null);
     setVidaDefinitionId(null);
+    setBaskiDefinitionId(null);
     setImagePath(null);
     setPendingImageUri(null);
     setErpProjectCode(null);
@@ -397,6 +404,7 @@ export function QuotationLineForm({
     setProfilDefinitionId(draft.profilDefinitionId ?? null);
     setDemirDefinitionId(draft.demirDefinitionId ?? null);
     setVidaDefinitionId(draft.vidaDefinitionId ?? null);
+    setBaskiDefinitionId(draft.baskiDefinitionId ?? null);
     setImagePath(draft.imagePath || null);
     setPendingImageUri(draft.pendingImageUri || null);
     setErpProjectCode(draft.erpProjectCode ?? null);
@@ -429,6 +437,7 @@ export function QuotationLineForm({
     setProfilDefinitionId(editing.profilDefinitionId ?? null);
     setDemirDefinitionId(editing.demirDefinitionId ?? null);
     setVidaDefinitionId(editing.vidaDefinitionId ?? null);
+    setBaskiDefinitionId(editing.baskiDefinitionId ?? null);
     setImagePath(editing.imagePath || null);
     setPendingImageUri(editing.pendingImageUri || null);
     setErpProjectCode(editing.erpProjectCode ?? null);
@@ -1444,6 +1453,17 @@ export function QuotationLineForm({
                           </Text>
                         </TouchableOpacity>
                       </View>
+                      <View style={styles.fieldThird}>
+                        <Text style={[styles.label, { color: mutedColor }]}>Baskı</Text>
+                        <TouchableOpacity
+                          style={[styles.pickerButton, styles.compactInput, { backgroundColor: inputBg, borderColor: softPinkBorder }]}
+                          onPress={() => setBaskiPickerVisible(true)}
+                        >
+                          <Text style={[styles.pickerText, { color: baskiDefinitionId ? textColor : mutedColor }]}>
+                            {baskiDefinitionId ? baskiMap[baskiDefinitionId] ?? `#${baskiDefinitionId}` : "Baskı seç"}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   </View>
                 </View>
@@ -1696,6 +1716,16 @@ export function QuotationLineForm({
         onClose={() => setVidaPickerVisible(false)}
         title="Vida seç"
         searchPlaceholder="Vida ara..."
+        isLoading={isDefinitionOptionsLoading}
+      />
+      <PickerModal
+        visible={baskiPickerVisible}
+        options={baskiOptions}
+        selectedValue={baskiDefinitionId ?? undefined}
+        onSelect={(option) => setBaskiDefinitionId(Number(option.id))}
+        onClose={() => setBaskiPickerVisible(false)}
+        title="Baskı seç"
+        searchPlaceholder="Baskı ara..."
         isLoading={isDefinitionOptionsLoading}
       />
     </>

@@ -246,7 +246,7 @@ export function QuotationDetailScreen(): React.ReactElement {
   const { user } = useAuthStore();
   const insets = useSafeAreaInsets();
   const showToast = useToastStore((s) => s.showToast);
-  const { profilMap, demirMap, vidaMap } = useWindoDefinitionOptions();
+  const { profilMap, demirMap, vidaMap, baskiMap } = useWindoDefinitionOptions();
 
   const mainBg = isDark ? "#0c0516" : "#FFFFFF";
   const gradientColors = (
@@ -1100,6 +1100,7 @@ export function QuotationDetailScreen(): React.ReactElement {
       l.profilDefinitionId ? `${t("common.profil")}: ${profilMap[l.profilDefinitionId] ?? `#${l.profilDefinitionId}`}` : "",
       l.demirDefinitionId ? `${t("common.demir")}: ${demirMap[l.demirDefinitionId] ?? `#${l.demirDefinitionId}`}` : "",
       l.vidaDefinitionId ? `${t("common.vida")}: ${vidaMap[l.vidaDefinitionId] ?? `#${l.vidaDefinitionId}`}` : "",
+      l.baskiDefinitionId ? `Baskı: ${baskiMap[l.baskiDefinitionId] ?? `#${l.baskiDefinitionId}`}` : "",
     ]
       .filter(Boolean)
       .join(" · ");

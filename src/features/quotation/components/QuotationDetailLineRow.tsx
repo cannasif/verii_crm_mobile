@@ -46,7 +46,7 @@ function QuotationDetailLineRowComponent({
 }: QuotationDetailLineRowProps): React.ReactElement {
   const { colors, themeMode } = useUIStore();
   const { t } = useTranslation();
-  const { profilMap, demirMap, vidaMap } = useWindoDefinitionOptions();
+  const { profilMap, demirMap, vidaMap, baskiMap } = useWindoDefinitionOptions();
   const cardBackground = themeMode === "dark" ? "rgba(20, 10, 30, 0.7)" : colors.card;
   const descriptionSummary = [line.description1, line.description2, line.description3]
     .filter(Boolean)
@@ -55,6 +55,7 @@ function QuotationDetailLineRowComponent({
     line.profilDefinitionId ? `Profil: ${profilMap[line.profilDefinitionId] || `#${line.profilDefinitionId}`}` : "",
     line.demirDefinitionId ? `Demir: ${demirMap[line.demirDefinitionId] || `#${line.demirDefinitionId}`}` : "",
     line.vidaDefinitionId ? `Vida: ${vidaMap[line.vidaDefinitionId] || `#${line.vidaDefinitionId}`}` : "",
+    line.baskiDefinitionId ? `Baskı: ${baskiMap[line.baskiDefinitionId] || `#${line.baskiDefinitionId}`}` : "",
   ]
     .filter(Boolean)
     .join(" · ");
