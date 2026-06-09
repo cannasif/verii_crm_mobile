@@ -58,6 +58,8 @@
     "quotationApprovalFlowStarted": "Das Angebot wurde an den Genehmigungsprozess gesendet.",
     "demandUpdated": "Die Anfrage wurde aktualisiert.",
     "quotationUpdated": "Das Angebot wurde aktualisiert.",
+    "saveUpdate": "Aktualisierung speichern",
+    "statusClosed": "Geschlossen",
     "rowsUpdated": "Zeilen aktualisiert.",
     "rowsAdded": "Zeilen hinzugefügt.",
     "exchangeRatesUpdated": "Wechselkurse wurden aktualisiert.",

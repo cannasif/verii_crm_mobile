@@ -13,7 +13,11 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { resolveDocumentSerialCustomerTypeId } from "@/lib/resolve-document-serial-customer-type-id";
-import { resolveExchangeRateByCurrency as findExchangeRateByCurrency } from "@/lib/resolve-exchange-rate";
+import {
+  resolveExchangeRateByCurrency as findExchangeRateByCurrency,
+  buildEffectiveExchangeRates,
+} from "@/lib/resolve-exchange-rate";
+import { flattenDocumentLinesForBulk } from "@/lib/flattenDocumentLinesForBulk";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
@@ -36,7 +40,10 @@ import {
   FileEditIcon,
   Tick02Icon,
   SentIcon,
+  Pdf01Icon,
+  FloppyDiskIcon,
 } from "hugeicons-react-native";
+import { listContentBottomPadding, stickyActionBarBottomPadding } from "../../../constants/layout";
 import { ScreenHeader } from "../../../components/navigation";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
@@ -70,6 +77,7 @@ import {
   useUpdateQuotationLines,
   useQuotationNotes,
   useUpdateQuotationNotes,
+  useUpdateQuotationBulk,
 } from "../hooks";
 import {
   ExchangeRateDialog,
@@ -79,10 +87,13 @@ import {
   QuotationLineForm,
   QuotationApprovalFlowTab,
   QuotationReportTab,
+  QuotationPreviewPdfDialog,
   RejectModal,
   QuotationNotesModal,
   notesFromDto,
   notesToPutPayload,
+  notesToDto,
+  validateNotesMaxLength,
 } from "../components";
 
 function addDaysToDateOnly(dateValue: string, days: number): string {
@@ -107,6 +118,7 @@ import {
   APPROVAL_APPROVED,
   APPROVAL_REJECTED,
   PricingRuleType,
+  normalizeOfferType,
 } from "../types";
 import type { StockRelationDto } from "../../stocks/types";
 import {
@@ -120,8 +132,11 @@ import {
   totalsFromDetailLines,
 } from "../utils";
 import { calculateLineTotals, calculateTotals } from "../utils";
-import { resolveLineListCurrencyLabel } from "../../../lib/currencyDisplay";
+import { resolveLineListCurrencyLabel, resolveCurrencyIsoCode } from "../../../lib/currencyDisplay";
+import { buildQuotationPreviewPdfInput } from "../utils/buildQuotationPreviewPdfInput";
+import { resolveQuotationCustomerLabelForPdf } from "../utils/resolveQuotationCustomerLabelForPdf";
 import { getApiBaseUrl } from "../../../constants/config";
+import { useDocumentDetailDirtyState } from "../../../hooks/useDocumentDetailDirtyState";
 
 function resolveMobileImageUri(path?: string | null): string | null {
   if (!path) return null;
@@ -243,7 +258,7 @@ export function QuotationDetailScreen(): React.ReactElement {
   const { t } = useTranslation();
   const { colors, themeMode } = useUIStore();
   const isDark = themeMode === "dark";
-  const { user } = useAuthStore();
+  const { user, branch } = useAuthStore();
   const insets = useSafeAreaInsets();
   const showToast = useToastStore((s) => s.showToast);
   const { profilMap, demirMap, vidaMap, baskiMap } = useWindoDefinitionOptions();
@@ -282,10 +297,12 @@ export function QuotationDetailScreen(): React.ReactElement {
 
   const { data: notesData } = useQuotationNotes(isFocused ? quotationId : undefined);
   const updateQuotationNotesMutation = useUpdateQuotationNotes();
+  const updateQuotationBulk = useUpdateQuotationBulk();
 
   const formInitRef = useRef(false);
   const linesInitRef = useRef(false);
   const ratesInitRef = useRef(false);
+  const notesInitRef = useRef(false);
   const erpRatesFilledRef = useRef(false);
   const activeQuotationIdRef = useRef<number | undefined>(quotationId);
 
@@ -315,6 +332,7 @@ export function QuotationDetailScreen(): React.ReactElement {
   const [activeTab, setActiveTab] = useState<"detail" | "approval" | "report">("detail");
   const [notes, setNotes] = useState<string[]>(Array(15).fill(""));
   const [notesModalVisible, setNotesModalVisible] = useState(false);
+  const [previewPdfVisible, setPreviewPdfVisible] = useState(false);
 
   const schema = useMemo(() => createQuotationSchema(), []);
 
@@ -324,6 +342,8 @@ export function QuotationDetailScreen(): React.ReactElement {
     watch,
     reset,
     clearErrors,
+    handleSubmit,
+    setError,
     formState: { errors },
   } = useForm<CreateQuotationSchema>({
     resolver: zodResolver(schema),
@@ -344,6 +364,10 @@ export function QuotationDetailScreen(): React.ReactElement {
   const watchedRepresentativeId = watch("quotation.representativeId");
   const watchedOfferDate = watch("quotation.offerDate");
   const watchedDeliveryDate = watch("quotation.deliveryDate");
+  const watchedOfferNo = watch("quotation.offerNo");
+  const watchedGeneralDiscountRate = watch("quotation.generalDiscountRate");
+  const watchedGeneralDiscountAmount = watch("quotation.generalDiscountAmount");
+  const formSnapshot = watch();
 
   useEffect(() => {
     if (activeQuotationIdRef.current === quotationId) return;
@@ -352,6 +376,7 @@ export function QuotationDetailScreen(): React.ReactElement {
     formInitRef.current = false;
     linesInitRef.current = false;
     ratesInitRef.current = false;
+    notesInitRef.current = false;
     erpRatesFilledRef.current = false;
 
     setLines([]);
@@ -498,6 +523,26 @@ export function QuotationDetailScreen(): React.ReactElement {
     () => resolveLineListCurrencyLabel(watchedCurrency, currencyOptions ?? null),
     [watchedCurrency, currencyOptions]
   );
+
+  const isDetailHydrated = Boolean(
+    header &&
+    !detailLoading &&
+    notesData !== undefined &&
+    formInitRef.current &&
+    linesInitRef.current &&
+    ratesInitRef.current &&
+    notesInitRef.current
+  );
+
+  const { hasUnsavedChanges, markSaved, syncBaseline } = useDocumentDetailDirtyState({
+    resetKey: quotationId,
+    isHydrated: isDetailHydrated,
+    formSnapshot,
+    lines,
+    exchangeRates,
+    notes,
+  });
+
   const selectedCurrencyLabel = useMemo(() => {
     if (!watchedCurrency) return t("quotation.select");
 
@@ -599,7 +644,9 @@ export function QuotationDetailScreen(): React.ReactElement {
   }, [lines.length, clearErrors]);
 
   useEffect(() => {
-    if (notesData) setNotes(notesFromDto(notesData));
+    if (!notesData) return;
+    setNotes(notesFromDto(notesData));
+    notesInitRef.current = true;
   }, [notesData]);
 
   const applyCurrencyChange = useCallback(
@@ -684,11 +731,12 @@ export function QuotationDetailScreen(): React.ReactElement {
           onSuccess: () => {
             setNotes(savedNotes);
             setNotesModalVisible(false);
+            queueMicrotask(() => syncBaseline());
           },
         }
       );
     },
-    [quotationId, updateQuotationNotesMutation]
+    [quotationId, updateQuotationNotesMutation, syncBaseline]
   );
 
   const handleCustomerSelect = useCallback(
@@ -765,6 +813,7 @@ export function QuotationDetailScreen(): React.ReactElement {
                 setLines(mapDetailLinesToFormState(fetched));
                 setLineFormVisible(false);
                 setEditingLine(null);
+                queueMicrotask(() => syncBaseline());
               },
             }
           );
@@ -817,6 +866,7 @@ export function QuotationDetailScreen(): React.ReactElement {
               setLines(mapDetailLinesToFormState(fetched));
               setLineFormVisible(false);
               setEditingLine(null);
+              queueMicrotask(() => syncBaseline());
             },
           }
         );
@@ -826,7 +876,7 @@ export function QuotationDetailScreen(): React.ReactElement {
       setEditingLine(null);
       setLineFormVisible(false);
     },
-    [editingLine, quotationId, createQuotationLinesMutation, updateQuotationLinesMutation]
+    [editingLine, quotationId, createQuotationLinesMutation, updateQuotationLinesMutation, syncBaseline]
   );
 
   const handleDeleteLine = useCallback((lineId: string) => {
@@ -1034,12 +1084,145 @@ export function QuotationDetailScreen(): React.ReactElement {
     );
   }, [quotationId, apiTotals.grandTotal, startApproval, t]);
 
+  const onSaveUpdate = useCallback(
+    async (formData: CreateQuotationSchema) => {
+      if (!quotationId) return;
+
+      if (lines.length === 0) {
+        setError("root", {
+          type: "manual",
+          message: t("quotation.atLeastOneLine", "En az 1 satır eklenmelidir."),
+        });
+        return;
+      }
+
+      const notesError = validateNotesMaxLength(notes);
+      if (notesError) {
+        setError("root", { type: "manual", message: notesError });
+        return;
+      }
+
+      const flatLines = flattenDocumentLinesForBulk(lines);
+      const cleanedLines = flatLines.map((line) =>
+        mapQuotationLineFormStateToCreateDto(line, quotationId)
+      );
+
+      const effectiveExchangeRatePayload = buildEffectiveExchangeRates(
+        exchangeRates,
+        erpRatesForQuotation,
+        currencyOptions ?? [],
+        formData.quotation.offerDate || new Date().toISOString().split("T")[0]
+      );
+
+      const cleanedExchangeRates = effectiveExchangeRatePayload.map((rate) => {
+        const { id, dovizTipi, ...rest } = rate;
+        return {
+          ...rest,
+          quotationId,
+          isOfficial: rest.isOfficial ?? true,
+        };
+      });
+
+      const quotationPayload = {
+        ...formData.quotation,
+        offerType: normalizeOfferType(formData.quotation.offerType),
+        documentSerialTypeId: formData.quotation.documentSerialTypeId ?? 0,
+        generalDiscountRate: formData.quotation.generalDiscountRate ?? null,
+        generalDiscountAmount: formData.quotation.generalDiscountAmount ?? null,
+        erpProjectCode: formData.quotation.erpProjectCode ?? null,
+        salesTypeDefinitionId: formData.quotation.salesTypeDefinitionId ?? null,
+        revisionNo: formData.quotation.revisionNo ?? null,
+        revisionId:
+          formData.quotation.revisionId && formData.quotation.revisionId > 0
+            ? formData.quotation.revisionId
+            : null,
+      };
+
+      const quotationNotes = notesToDto(notes);
+      const hasNotes = Object.keys(quotationNotes).length > 0;
+
+      await updateQuotationBulk.mutateAsync({
+        id: quotationId,
+        data: {
+          quotation: quotationPayload,
+          lines: cleanedLines,
+          exchangeRates:
+            cleanedExchangeRates.length > 0 ? cleanedExchangeRates : undefined,
+          quotationNotes: hasNotes ? quotationNotes : undefined,
+        },
+      });
+      markSaved();
+    },
+    [
+      quotationId,
+      lines,
+      notes,
+      exchangeRates,
+      erpRatesForQuotation,
+      currencyOptions,
+      updateQuotationBulk,
+      setError,
+      t,
+      markSaved,
+    ]
+  );
+
+  const onInvalidSaveUpdate = useCallback(() => {
+    showToast("error", t("validation.fillRequiredFields", "Lütfen zorunlu alanları doldurun"));
+  }, [showToast, t]);
+
+  const handleSaveUpdate = useCallback(() => {
+    void handleSubmit(onSaveUpdate, onInvalidSaveUpdate)();
+  }, [handleSubmit, onSaveUpdate, onInvalidSaveUpdate]);
+
+  const buildPreviewPdfInput = useCallback(
+    async (draft: boolean) => {
+      const resolvedCustomerName = await resolveQuotationCustomerLabelForPdf({
+        potentialCustomerId: watchedCustomerId,
+        potentialCustomerName: selectedCustomer?.name ?? header?.potentialCustomerName,
+        erpCustomerCode: watchedErpCustomerCode ?? header?.erpCustomerCode,
+        selectedCustomerName: selectedCustomer?.name,
+      });
+
+      return buildQuotationPreviewPdfInput({
+        offerDate: watchedOfferDate ?? header?.offerDate ?? null,
+        offerNo: watchedOfferNo ?? header?.offerNo ?? null,
+        customerName: resolvedCustomerName,
+        branch,
+        currency: watchedCurrency ?? header?.currency ?? "TRY",
+        currencyCode: resolveCurrencyIsoCode(watchedCurrency ?? header?.currency ?? "TRY"),
+        generalDiscountRate: watchedGeneralDiscountRate ?? null,
+        generalDiscountAmount: watchedGeneralDiscountAmount ?? null,
+        draft,
+        lines,
+      });
+    },
+    [
+      branch,
+      header?.currency,
+      header?.erpCustomerCode,
+      header?.offerDate,
+      header?.offerNo,
+      header?.potentialCustomerName,
+      lines,
+      selectedCustomer?.name,
+      watchedCurrency,
+      watchedCustomerId,
+      watchedErpCustomerCode,
+      watchedGeneralDiscountAmount,
+      watchedGeneralDiscountRate,
+      watchedOfferDate,
+      watchedOfferNo,
+    ]
+  );
+
   const pageTitle = header?.offerNo ?? (quotationId != null ? `#${quotationId}` : t("quotation.detail"));
   const isReadonly =
     header?.status === APPROVAL_WAITING ||
     header?.status === APPROVAL_APPROVED ||
     header?.status === APPROVAL_REJECTED;
   const showOnayaGonder = header?.status === APPROVAL_HAVENOT_STARTED;
+  const showSaveUpdate = !isReadonly;
   const showApproveReject = header?.status === APPROVAL_WAITING;
 
   const statusKind = useMemo(() => resolveStatusKind(header?.status), [header?.status]);
@@ -1301,7 +1484,28 @@ export function QuotationDetailScreen(): React.ReactElement {
             title={pageTitle}
             showBackButton
             homeRoute="/(tabs)/sales/quotations"
-            rightElement={statusKind ? <StatusBadge kind={statusKind} isDark={isDark} /> : undefined}
+            rightElement={
+              <View style={{ flexDirection: "row-reverse", alignItems: "center", gap: 6, marginRight: 2 }}>
+                {statusKind ? <StatusBadge kind={statusKind} isDark={isDark} /> : null}
+                <TouchableOpacity
+                  onPress={() => setPreviewPdfVisible(true)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  activeOpacity={0.85}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 10,
+                    borderWidth: 1,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderColor: isDark ? "rgba(236,72,153,0.35)" : "rgba(219,39,119,0.22)",
+                    backgroundColor: isDark ? "rgba(236,72,153,0.10)" : "rgba(219,39,119,0.06)",
+                  }}
+                >
+                  <Pdf01Icon size={16} color={accent} variant="stroke" strokeWidth={1.8} />
+                </TouchableOpacity>
+              </View>
+            }
           />
 
           <View
@@ -1343,15 +1547,19 @@ export function QuotationDetailScreen(): React.ReactElement {
           ) : activeTab === "report" && quotationId != null ? (
             <QuotationReportTab
               quotationId={quotationId}
-              offerNo={header?.offerNo ?? null}
-              customerName={header?.potentialCustomerName ?? null}
-              currency={header?.currency ?? "TRY"}
+              offerNo={header?.offerNo ?? watchedOfferNo ?? null}
+              customerName={selectedCustomer?.name ?? header?.potentialCustomerName ?? null}
+              potentialCustomerId={watchedCustomerId ?? header?.potentialCustomerId ?? null}
+              erpCustomerCode={watchedErpCustomerCode ?? header?.erpCustomerCode ?? null}
+              currency={watchedCurrency ?? header?.currency ?? "TRY"}
+              currencyCode={resolveCurrencyIsoCode(watchedCurrency ?? header?.currency ?? "TRY")}
+              generalDiscountRate={watchedGeneralDiscountRate ?? null}
+              generalDiscountAmount={watchedGeneralDiscountAmount ?? null}
               lines={lines}
               representativeName={header?.representativeName ?? null}
               address={header?.shippingAddressText ?? null}
               shippingAddress={header?.shippingAddressText ?? null}
-              erpCustomerCode={header?.erpCustomerCode ?? null}
-              offerDate={header?.offerDate ?? null}
+              offerDate={header?.offerDate ?? watchedOfferDate ?? null}
               deliveryDate={header?.deliveryDate ?? null}
               validUntil={reportValidUntil}
               paymentTypeName={header?.paymentTypeName ?? null}
@@ -1366,7 +1574,11 @@ export function QuotationDetailScreen(): React.ReactElement {
               style={styles.content}
               contentContainerStyle={[
                 styles.contentContainer,
-                { paddingBottom: insets.bottom + (showApproveReject || showOnayaGonder ? 110 : 28) },
+                {
+                  paddingBottom: showApproveReject
+                    ? insets.bottom + 110
+                    : listContentBottomPadding(insets.bottom),
+                },
               ]}
               showsVerticalScrollIndicator={false}
             >
@@ -1782,87 +1994,113 @@ export function QuotationDetailScreen(): React.ReactElement {
                   </View>
                 </View>
               )}
+
+              {showSaveUpdate && (
+                <View style={styles.inlineActionRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.inlineActionButtonWrap,
+                      !hasUnsavedChanges && styles.submitButtonDisabled,
+                    ]}
+                    onPress={handleSaveUpdate}
+                    disabled={!hasUnsavedChanges || updateQuotationBulk.isPending}
+                    activeOpacity={0.9}
+                  >
+                    <LinearGradient
+                      colors={[colors.accentSecondary || "#f97316", accent]}
+                      start={{ x: 1, y: 0 }}
+                      end={{ x: 0, y: 1 }}
+                      style={styles.actionFullButton}
+                    >
+                      {updateQuotationBulk.isPending ? (
+                        <ActivityIndicator color="#FFFFFF" />
+                      ) : (
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                          <FloppyDiskIcon size={18} color="#FFFFFF" variant="stroke" strokeWidth={2} />
+                          <Text style={styles.actionButtonText}>{t("common.saveUpdate")}</Text>
+                        </View>
+                      )}
+                    </LinearGradient>
+                  </TouchableOpacity>
+
+                  {showOnayaGonder && (
+                    <TouchableOpacity
+                      style={styles.inlineActionButtonWrap}
+                      onPress={handleStartApproval}
+                      disabled={startApproval.isPending || updateQuotationBulk.isPending}
+                      activeOpacity={0.9}
+                    >
+                      <LinearGradient
+                        colors={[accent, colors.accentSecondary || "#f97316"]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.actionFullButton}
+                      >
+                        {startApproval.isPending ? (
+                          <ActivityIndicator color="#FFFFFF" />
+                        ) : (
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                            <SentIcon size={18} color="#FFFFFF" variant="stroke" strokeWidth={2} />
+                            <Text style={styles.actionButtonText}>{t("quotation.sendForApproval")}</Text>
+                          </View>
+                        )}
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
             </FlatListScrollView>
           )}
 
-          {activeTab === "detail" && (showApproveReject || showOnayaGonder) && (
+          {activeTab === "detail" && showApproveReject && (
             <View
               style={[
                 styles.actionBar,
                 {
                   backgroundColor: shellBgAlt,
                   borderTopColor: sectionOutline,
-                  paddingBottom: insets.bottom + 12,
+                  paddingBottom: stickyActionBarBottomPadding(insets.bottom),
                 },
               ]}
             >
-              {showApproveReject && (
-                <>
-                  <TouchableOpacity
-                    style={[styles.actionRejectButton, { backgroundColor: colors.error }]}
-                    onPress={handleRejectClick}
-                    disabled={!canApproveReject || rejectAction.isPending}
-                    activeOpacity={0.9}
-                  >
-                    {rejectAction.isPending ? (
-                      <ActivityIndicator color="#FFFFFF" />
-                    ) : (
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                        <Cancel01Icon size={18} color="#FFFFFF" variant="stroke" strokeWidth={2} />
-                        <Text style={styles.actionButtonText}>{t("quotation.rejectButton")}</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionRejectButton, { backgroundColor: colors.error }]}
+                onPress={handleRejectClick}
+                disabled={!canApproveReject || rejectAction.isPending}
+                activeOpacity={0.9}
+              >
+                {rejectAction.isPending ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <Cancel01Icon size={18} color="#FFFFFF" variant="stroke" strokeWidth={2} />
+                    <Text style={styles.actionButtonText}>{t("quotation.rejectButton")}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={[styles.actionApproveButtonWrap]}
-                    onPress={handleApprove}
-                    disabled={!canApproveReject || approveAction.isPending}
-                    activeOpacity={0.9}
-                  >
-                    <LinearGradient
-                      colors={["#10b981", "#059669"]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.actionApproveButton}
-                    >
-                      {approveAction.isPending ? (
-                        <ActivityIndicator color="#FFFFFF" />
-                      ) : (
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                          <Tick02Icon size={18} color="#FFFFFF" variant="stroke" strokeWidth={2} />
-                          <Text style={styles.actionButtonText}>{t("quotation.approveButton")}</Text>
-                        </View>
-                      )}
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </>
-              )}
-
-              {!showApproveReject && showOnayaGonder && (
-                <TouchableOpacity
-                  style={styles.actionFullButtonWrap}
-                  onPress={handleStartApproval}
-                  disabled={startApproval.isPending}
-                  activeOpacity={0.9}
+              <TouchableOpacity
+                style={[styles.actionApproveButtonWrap]}
+                onPress={handleApprove}
+                disabled={!canApproveReject || approveAction.isPending}
+                activeOpacity={0.9}
+              >
+                <LinearGradient
+                  colors={["#10b981", "#059669"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.actionApproveButton}
                 >
-                  <LinearGradient
-                    colors={[accent, colors.accentSecondary || "#f97316"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.actionFullButton}
-                  >
-                    {startApproval.isPending ? (
-                      <ActivityIndicator color="#FFFFFF" />
-                    ) : (
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                        <SentIcon size={18} color="#FFFFFF" variant="stroke" strokeWidth={2} />
-                        <Text style={styles.actionButtonText}>{t("quotation.sendForApproval")}</Text>
-                      </View>
-                    )}
-                  </LinearGradient>
-                </TouchableOpacity>
-              )}
+                  {approveAction.isPending ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      <Tick02Icon size={18} color="#FFFFFF" variant="stroke" strokeWidth={2} />
+                      <Text style={styles.actionButtonText}>{t("quotation.approveButton")}</Text>
+                    </View>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
             </View>
           )}
 
@@ -2091,6 +2329,7 @@ export function QuotationDetailScreen(): React.ReactElement {
                     onSuccess: () => {
                       setExchangeRates(rates);
                       setExchangeRateDialogVisible(false);
+                      queueMicrotask(() => syncBaseline());
                     },
                   }
                 );
@@ -2162,6 +2401,15 @@ export function QuotationDetailScreen(): React.ReactElement {
               searchPlaceholder={t("quotation.searchAddress")}
             />
           )}
+
+          <QuotationPreviewPdfDialog
+            visible={previewPdfVisible}
+            onClose={() => setPreviewPdfVisible(false)}
+            buildInput={buildPreviewPdfInput}
+            validateBeforeOpen={() =>
+              lines.length === 0 ? "En az bir satır gerekli" : null
+            }
+          />
         </KeyboardAvoidingView>
       </View>
     </>
@@ -2495,6 +2743,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   actionFullButtonWrap: { flex: 1 },
+  inlineActionRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 4,
+  },
+  inlineActionButtonWrap: { flex: 1, marginTop: 0 },
   actionFullButton: {
     minHeight: 52,
     borderRadius: 16,

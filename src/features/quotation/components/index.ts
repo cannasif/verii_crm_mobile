@@ -4,6 +4,7 @@ export { QuotationRow } from "./QuotationRow";
 export { QuotationDetailLineRow } from "./QuotationDetailLineRow";
 export { QuotationApprovalFlowTab } from "./QuotationApprovalFlowTab";
 export { QuotationReportTab } from "./QuotationReportTab";
+export { QuotationPreviewPdfDialog } from "./QuotationPreviewPdfDialog";
 export { ReportTab } from "./ReportTab";
 export { ProductPicker } from "./ProductPicker";
 export { QuotationLineForm } from "./QuotationLineForm";

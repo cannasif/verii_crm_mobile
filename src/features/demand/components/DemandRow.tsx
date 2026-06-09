@@ -11,6 +11,7 @@ import {
 } from "hugeicons-react-native";
 import type { DemandGetDto } from "../types";
 import { getCurrencyDisplayLabel, resolveCurrencyIsoCode } from "../../../lib/currencyDisplay";
+import { resolveDocumentApprovalStatusMeta } from "../../../lib/documentApprovalStatus";
 
 interface DemandRowProps {
   demand: DemandGetDto;
@@ -70,7 +71,7 @@ function DemandRowComponent({
   isPending,
 }: DemandRowProps): React.ReactElement {
   const { themeMode } = useUIStore();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isDark = themeMode === "dark";
 
   const colors = useMemo(
@@ -112,9 +113,7 @@ function DemandRowComponent({
   };
 
   const canRevise = demand.status === 0 || demand.status === 3;
-  const statusColor = demand.status === 1 ? colors.green : colors.muted;
-  const statusBg = demand.status === 1 ? colors.greenSoft : colors.softBg;
-  const statusText = demand.status === 1 ? "Aktif" : "Pasif";
+  const statusMeta = resolveDocumentApprovalStatusMeta(demand.status, isDark, t, "demand");
 
   const totalFormatted =
     demand.grandTotalDisplay?.trim() ||
@@ -157,13 +156,13 @@ function DemandRowComponent({
           style={[
             styles.statusPill,
             {
-              backgroundColor: statusBg,
-              borderColor: `${statusColor}35`,
+              backgroundColor: statusMeta.backgroundColor,
+              borderColor: statusMeta.borderColor,
             },
           ]}
         >
-          <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-          <Text style={[styles.statusText, { color: statusColor }]}>{statusText}</Text>
+          <View style={[styles.statusDot, { backgroundColor: statusMeta.color }]} />
+          <Text style={[styles.statusText, { color: statusMeta.color }]}>{statusMeta.label}</Text>
         </View>
       </View>
 

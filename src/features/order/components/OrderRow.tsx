@@ -12,6 +12,7 @@ import {
 import type { OrderGetDto } from "../types";
 import { formatCurrencyBySettings, getCurrencyDisplayLabel } from "../../../lib/currencyDisplay";
 import { formatSystemDate } from "../../../lib/systemSettings";
+import { resolveDocumentApprovalStatusMeta } from "../../../lib/documentApprovalStatus";
 
 interface OrderRowProps {
   order: OrderGetDto;
@@ -53,7 +54,7 @@ function OrderRowComponent({
   isPending,
 }: OrderRowProps): React.ReactElement {
   const { themeMode } = useUIStore();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isDark = themeMode === "dark";
 
   const colors = useMemo(
@@ -95,9 +96,7 @@ function OrderRowComponent({
   };
 
   const canRevise = order.status === 0 || order.status === 3;
-  const statusColor = order.status === 1 ? colors.green : colors.muted;
-  const statusBg = order.status === 1 ? colors.greenSoft : colors.softBg;
-  const statusText = order.status === 1 ? "Aktif" : "Pasif";
+  const statusMeta = resolveDocumentApprovalStatusMeta(order.status, isDark, t, "order");
 
   const totalFormatted =
     order.grandTotalDisplay?.trim() ||
@@ -140,13 +139,13 @@ function OrderRowComponent({
           style={[
             styles.statusPill,
             {
-              backgroundColor: statusBg,
-              borderColor: `${statusColor}35`,
+              backgroundColor: statusMeta.backgroundColor,
+              borderColor: statusMeta.borderColor,
             },
           ]}
         >
-          <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-          <Text style={[styles.statusText, { color: statusColor }]}>{statusText}</Text>
+          <View style={[styles.statusDot, { backgroundColor: statusMeta.color }]} />
+          <Text style={[styles.statusText, { color: statusMeta.color }]}>{statusMeta.label}</Text>
         </View>
       </View>
 
