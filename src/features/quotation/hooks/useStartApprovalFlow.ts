@@ -19,6 +19,8 @@ export function useStartApprovalFlow() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["quotation", "list"] });
       queryClient.invalidateQueries({ queryKey: ["quotation", "detail", variables.entityId] });
+      queryClient.invalidateQueries({ queryKey: ["quotation", "detail", "lines", variables.entityId] });
+      queryClient.invalidateQueries({ queryKey: ["quotation", "detail", "exchangeRates", variables.entityId] });
       queryClient.invalidateQueries({ queryKey: ["quotation", "waitingApprovals"] });
       showToast("success", t("common.quotationApprovalFlowStarted"));
     },

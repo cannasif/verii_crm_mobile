@@ -928,7 +928,7 @@ export function QuotationCreateScreen(): React.ReactElement {
 
       await finalizePendingQuotationImages(result, lines);
       showToast("success", t("common.quotationCreatedAndSentForApproval"));
-      router.push(`/(tabs)/sales/quotations/${result.id}`);
+      router.replace(`/(tabs)/sales/quotations/${result.id}`);
     },
     [lines, exchangeRates, erpRatesForQuotation, currencyOptions, notes, createQuotation, setError, showToast, t, router]
   );

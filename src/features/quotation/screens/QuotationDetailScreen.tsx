@@ -980,7 +980,10 @@ export function QuotationDetailScreen(): React.ReactElement {
   }, [quotationId, apiTotals.grandTotal, startApproval, t]);
 
   const pageTitle = header?.offerNo ?? (quotationId != null ? `#${quotationId}` : t("quotation.detail"));
-  const isReadonly = header?.status === APPROVAL_APPROVED || header?.status === APPROVAL_REJECTED;
+  const isReadonly =
+    header?.status === APPROVAL_WAITING ||
+    header?.status === APPROVAL_APPROVED ||
+    header?.status === APPROVAL_REJECTED;
   const showOnayaGonder = header?.status === APPROVAL_HAVENOT_STARTED;
   const showApproveReject = header?.status === APPROVAL_WAITING;
 
@@ -1241,6 +1244,7 @@ export function QuotationDetailScreen(): React.ReactElement {
           <ScreenHeader
             title={pageTitle}
             showBackButton
+            homeRoute="/(tabs)/sales/quotations"
             rightElement={statusKind ? <StatusBadge kind={statusKind} isDark={isDark} /> : undefined}
           />
 
