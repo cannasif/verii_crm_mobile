@@ -287,6 +287,7 @@ export function QuotationDetailScreen(): React.ReactElement {
   const linesInitRef = useRef(false);
   const ratesInitRef = useRef(false);
   const erpRatesFilledRef = useRef(false);
+  const activeQuotationIdRef = useRef<number | undefined>(quotationId);
 
   const [lines, setLines] = useState<QuotationLineFormState[]>([]);
   const [exchangeRates, setExchangeRates] = useState<QuotationExchangeRateFormState[]>([]);
@@ -343,6 +344,33 @@ export function QuotationDetailScreen(): React.ReactElement {
   const watchedRepresentativeId = watch("quotation.representativeId");
   const watchedOfferDate = watch("quotation.offerDate");
   const watchedDeliveryDate = watch("quotation.deliveryDate");
+
+  useEffect(() => {
+    if (activeQuotationIdRef.current === quotationId) return;
+
+    activeQuotationIdRef.current = quotationId;
+    formInitRef.current = false;
+    linesInitRef.current = false;
+    ratesInitRef.current = false;
+    erpRatesFilledRef.current = false;
+
+    setLines([]);
+    setExchangeRates([]);
+    setErpRatesForQuotation([]);
+    setSelectedCustomer(undefined);
+    setEditingLine(null);
+    setLineFormVisible(false);
+    setActiveTab("detail");
+    reset({
+      quotation: {
+        offerType: "YURTICI",
+        currency: "",
+        offerDate: new Date().toISOString().split("T")[0],
+        deliveryDate: addDaysToDateOnly(new Date().toISOString().split("T")[0], 21),
+        representativeId: user?.id ?? null,
+      },
+    });
+  }, [quotationId, reset, user?.id]);
   const offerDateSyncInitializedRef = useRef(false);
 
   useEffect(() => {
@@ -470,6 +498,18 @@ export function QuotationDetailScreen(): React.ReactElement {
     () => resolveLineListCurrencyLabel(watchedCurrency, currencyOptions ?? null),
     [watchedCurrency, currencyOptions]
   );
+  const selectedCurrencyLabel = useMemo(() => {
+    if (!watchedCurrency) return t("quotation.select");
+
+    const normalizedCurrency = String(watchedCurrency).trim();
+    const option = currencyOptions?.find(
+      (c) =>
+        String(c.code).trim() === normalizedCurrency ||
+        String(c.dovizTipi).trim() === normalizedCurrency
+    );
+
+    return option?.dovizIsmi ?? normalizedCurrency;
+  }, [currencyOptions, t, watchedCurrency]);
 
   const startApproval = useStartApprovalFlow();
   const { data: waitingApprovalsData } = useWaitingApprovals();
@@ -492,6 +532,21 @@ export function QuotationDetailScreen(): React.ReactElement {
     reset({ quotation: mapDetailHeaderToForm(header) });
     formInitRef.current = true;
   }, [header, reset]);
+
+  useEffect(() => {
+    if (!watchedCurrency || !currencyOptions?.length) return;
+
+    const normalizedCurrency = String(watchedCurrency).trim();
+    const option = currencyOptions.find(
+      (c) =>
+        String(c.code).trim() === normalizedCurrency ||
+        String(c.dovizTipi).trim() === normalizedCurrency
+    );
+
+    if (option && option.code !== watchedCurrency) {
+      setValue("quotation.currency", option.code, { shouldDirty: false, shouldValidate: false });
+    }
+  }, [currencyOptions, setValue, watchedCurrency]);
 
   useEffect(() => {
     if (linesInitRef.current) return;
@@ -1562,7 +1617,7 @@ export function QuotationDetailScreen(): React.ReactElement {
                         activeOpacity={isReadonly ? 1 : 0.85}
                       >
                         <Text style={[styles.pickerText, styles.pickerTextCompact, { color: titleText }]} numberOfLines={1}>
-                          {currencyOptions?.find((c) => c.code === value)?.dovizIsmi ?? t("quotation.select")}
+                          {value ? selectedCurrencyLabel : t("quotation.select")}
                         </Text>
                       </TouchableOpacity>
                       {errors.quotation?.currency?.message && (

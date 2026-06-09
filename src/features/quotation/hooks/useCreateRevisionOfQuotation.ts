@@ -14,6 +14,7 @@ export function useCreateRevisionOfQuotation() {
     mutationFn: (quotationId: number) => quotationApi.createRevision(quotationId),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["quotation", "quotations"] });
+      queryClient.invalidateQueries({ queryKey: ["quotation", "detail"] });
       showToast("success", t("quotation.revisionSuccess"));
       router.push(`/(tabs)/sales/quotations/${data.id}`);
     },
