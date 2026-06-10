@@ -59,6 +59,7 @@ import {
   DocumentSerialTypePicker,
   OfferTypePicker,
   QuotationNotesModal,
+  QuotationPreviewPdfDialog,
   notesToDto,
   validateNotesMaxLength,
 } from "../components";
@@ -82,7 +83,9 @@ import {
 import type { StockRelationDto } from "../../stocks/types";
 import type { ProductSelectionResult } from "../../stocks/types";
 import { calculateLineTotals, calculateTotals } from "../utils";
-import { resolveLineListCurrencyLabel } from "../../../lib/currencyDisplay";
+import { resolveLineListCurrencyLabel, resolveCurrencyIsoCode } from "../../../lib/currencyDisplay";
+import { buildQuotationPreviewPdfInput } from "../utils/buildQuotationPreviewPdfInput";
+import { resolveQuotationCustomerLabelForPdf } from "../utils/resolveQuotationCustomerLabelForPdf";
 import type { ExchangeRateDto } from "../types";
 import {
   UserIcon,
@@ -92,6 +95,7 @@ import {
   Edit02Icon,
   Delete02Icon,
   Alert02Icon,
+  Pdf01Icon,
 } from "hugeicons-react-native";
 
 async function finalizePendingQuotationImages(
@@ -173,7 +177,7 @@ export function QuotationCreateScreen(): React.ReactElement {
   const { t } = useTranslation();
   const router = useRouter();
   const { colors, themeMode } = useUIStore();
-  const { user } = useAuthStore();
+  const { user, branch } = useAuthStore();
   const insets = useSafeAreaInsets();
   const showToast = useToastStore((state) => state.showToast);
 
@@ -233,6 +237,7 @@ export function QuotationCreateScreen(): React.ReactElement {
   >(null);
   const [notes, setNotes] = useState<string[]>(Array(15).fill(""));
   const [notesModalVisible, setNotesModalVisible] = useState(false);
+  const [previewPdfVisible, setPreviewPdfVisible] = useState(false);
 
   const schema = useMemo(() => createQuotationSchema(), []);
 
@@ -263,6 +268,9 @@ export function QuotationCreateScreen(): React.ReactElement {
   const watchedRepresentativeId = watch("quotation.representativeId");
   const watchedOfferDate = watch("quotation.offerDate");
   const watchedDeliveryDate = watch("quotation.deliveryDate");
+  const watchedOfferNo = watch("quotation.offerNo");
+  const watchedGeneralDiscountRate = watch("quotation.generalDiscountRate");
+  const watchedGeneralDiscountAmount = watch("quotation.generalDiscountAmount");
   const offerDateSyncInitializedRef = useRef(false);
 
   useEffect(() => {
@@ -940,6 +948,42 @@ export function QuotationCreateScreen(): React.ReactElement {
     showToast("error", t("validation.fillRequiredFields", "Lütfen zorunlu alanları doldurun"));
   }, [showToast, t]);
 
+  const buildPreviewPdfInput = useCallback(
+    async (draft: boolean) => {
+      const resolvedCustomerName = await resolveQuotationCustomerLabelForPdf({
+        potentialCustomerId: watchedCustomerId,
+        potentialCustomerName: selectedCustomer?.name,
+        erpCustomerCode: watchedErpCustomerCode,
+        selectedCustomerName: selectedCustomer?.name,
+      });
+
+      return buildQuotationPreviewPdfInput({
+        offerDate: watchedOfferDate ?? null,
+        offerNo: watchedOfferNo ?? null,
+        customerName: resolvedCustomerName,
+        branch,
+        currency: watchedCurrency,
+        currencyCode: resolveCurrencyIsoCode(watchedCurrency),
+        generalDiscountRate: watchedGeneralDiscountRate ?? null,
+        generalDiscountAmount: watchedGeneralDiscountAmount ?? null,
+        draft,
+        lines,
+      });
+    },
+    [
+      branch,
+      lines,
+      selectedCustomer?.name,
+      watchedCurrency,
+      watchedCustomerId,
+      watchedErpCustomerCode,
+      watchedGeneralDiscountAmount,
+      watchedGeneralDiscountRate,
+      watchedOfferDate,
+      watchedOfferNo,
+    ]
+  );
+
   return (
     <>
       <StatusBar style={isDark ? "light" : "dark"} />
@@ -958,7 +1002,31 @@ export function QuotationCreateScreen(): React.ReactElement {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
         >
-          <ScreenHeader title={t("quotation.createNew")} showBackButton />
+          <ScreenHeader
+            title={t("quotation.createNew")}
+            showBackButton
+            rightElement={
+              <View style={{ marginRight: 4 }}>
+                <TouchableOpacity
+                  onPress={() => setPreviewPdfVisible(true)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  activeOpacity={0.85}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 10,
+                    borderWidth: 1,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderColor: isDark ? "rgba(236,72,153,0.35)" : "rgba(219,39,119,0.22)",
+                    backgroundColor: isDark ? "rgba(236,72,153,0.10)" : "rgba(219,39,119,0.06)",
+                  }}
+                >
+                  <Pdf01Icon size={16} color={accent} variant="stroke" strokeWidth={1.8} />
+                </TouchableOpacity>
+              </View>
+            }
+          />
 
           <FlatListScrollView
             style={[styles.content, { backgroundColor: contentBackground }]}
@@ -2206,6 +2274,15 @@ export function QuotationCreateScreen(): React.ReactElement {
               searchPlaceholder="Adres ara..."
             />
           )}
+
+          <QuotationPreviewPdfDialog
+            visible={previewPdfVisible}
+            onClose={() => setPreviewPdfVisible(false)}
+            buildInput={buildPreviewPdfInput}
+            validateBeforeOpen={() =>
+              lines.length === 0 ? "En az bir satır gerekli" : null
+            }
+          />
         </KeyboardAvoidingView>
       </View>
     </>

@@ -9,6 +9,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { useTranslation } from "react-i18next";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Buffer } from "buffer";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
@@ -29,6 +30,7 @@ import { useReportTemplateList, useGenerateReportPdf } from "../hooks";
 import { PickerModal } from "./PickerModal";
 import type { DocumentRuleTypeValue } from "../types";
 import { canPreviewPdfInApp, openPdfExternallyAsync } from "../../../lib/pdf";
+import { listContentBottomPadding } from "../../../constants/layout";
 
 function arrayBufferToBase64(ab: ArrayBuffer): string {
   return Buffer.from(new Uint8Array(ab)).toString("base64");
@@ -45,12 +47,18 @@ interface ReportTabProps {
   }[];
 }
 
+const REPORT_PDF_PRIMARY_GRADIENT = {
+  dark: ["#ea580c", "#e11d48", "#db2777"] as const,
+  light: ["#fb923c", "#fb7185", "#ec4899"] as const,
+};
+
 export function ReportTab({
   entityId,
   ruleType,
   builtInTemplates = [],
 }: ReportTabProps): React.ReactElement {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { colors, themeMode } = useUIStore();
   const showToast = useToastStore((s) => s.showToast);
   const { height: windowHeight } = useWindowDimensions();
@@ -63,6 +71,9 @@ export function ReportTab({
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | string | undefined>(undefined);
   const [templatePickerVisible, setTemplatePickerVisible] = useState(false);
   const [pdfFileUri, setPdfFileUri] = useState<string | null>(null);
+  const [isGeneratingBuiltIn, setIsGeneratingBuiltIn] = useState(false);
+
+  const isGenerating = generatePdf.isPending || isGeneratingBuiltIn;
 
   const isDark = themeMode === "dark";
   const inAppPdfPreviewAvailable = useMemo(() => canPreviewPdfInApp(), []);
@@ -119,6 +130,7 @@ export function ReportTab({
 
     if (builtInTemplate) {
       generatePdf.reset();
+      setIsGeneratingBuiltIn(true);
 
       void builtInTemplate
         .generate()
@@ -138,6 +150,9 @@ export function ReportTab({
         .catch((err) => {
           const message = err instanceof Error ? err.message : t("report.generateError");
           showToast("error", message);
+        })
+        .finally(() => {
+          setIsGeneratingBuiltIn(false);
         });
 
       return;
@@ -341,7 +356,10 @@ export function ReportTab({
     <>
       <FlatListScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: listContentBottomPadding(insets.bottom) },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <View
@@ -383,25 +401,26 @@ export function ReportTab({
           style={[
             styles.reportPrimaryButton,
             {
-              opacity: selectedTemplateId == null ? 0.6 : 1,
+              opacity: selectedTemplateId == null || isGenerating ? 0.85 : 1,
               shadowColor: palette.brand,
             },
           ]}
           onPress={handleGeneratePdf}
-          disabled={generatePdf.isPending || selectedTemplateId == null}
+          disabled={isGenerating || selectedTemplateId == null}
         >
           <LinearGradient
-            colors={
-              isDark
-                ? ["rgba(236,72,153,0.95)", "rgba(192,38,211,0.92)"]
-                : ["#EC4899", "#A855F7"]
-            }
+            colors={isDark ? REPORT_PDF_PRIMARY_GRADIENT.dark : REPORT_PDF_PRIMARY_GRADIENT.light}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.reportPrimaryButtonInner}
           >
-            {generatePdf.isPending ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
+            {isGenerating ? (
+              <>
+                <ActivityIndicator color="#FFFFFF" size="small" />
+                <Text style={[styles.reportPrimaryButtonText, { color: "#FFFFFF" }]}>
+                  {t("report.generatingPdf")}
+                </Text>
+              </>
             ) : (
               <>
                 <SparklesIcon size={16} color="#FFFFFF" variant="stroke" strokeWidth={2.2} />
@@ -495,7 +514,22 @@ export function ReportTab({
           </TouchableOpacity>
         </View>
 
-        {pdfFileUri == null ? (
+        {isGenerating ? (
+          <View
+            style={[
+              styles.generatingCard,
+              {
+                borderColor: isDark ? "rgba(251,146,60,0.28)" : "rgba(251,113,133,0.24)",
+                backgroundColor: isDark ? "rgba(234,88,12,0.10)" : "rgba(251,113,133,0.08)",
+              },
+            ]}
+          >
+            <ActivityIndicator color={isDark ? "#fb7185" : "#e11d48"} size="small" />
+            <Text style={[styles.generatingText, { color: isDark ? "#fda4af" : "#db2777" }]}>
+              {t("report.generatingPdf")}
+            </Text>
+          </View>
+        ) : pdfFileUri == null ? (
           <View
             style={[
               styles.previewInfoCard,
@@ -633,9 +667,9 @@ const styles = StyleSheet.create({
   },
 
   scrollContent: {
-    gap: 14,
+    gap: 10,
+    paddingHorizontal: 14,
     paddingTop: 4,
-    paddingBottom: 10,
   },
 
   centered: {
@@ -736,7 +770,7 @@ const styles = StyleSheet.create({
   },
 
   reportPrimaryButton: {
-    minHeight: 48,
+    minHeight: 46,
     borderRadius: 14,
     overflow: "hidden",
     marginTop: 2,
@@ -752,8 +786,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    paddingHorizontal: 16,
-    minHeight: 48,
+    paddingHorizontal: 12,
+    minHeight: 46,
   },
 
   reportPrimaryButtonText: {
@@ -764,24 +798,39 @@ const styles = StyleSheet.create({
   },
   pdfActionRow: {
     flexDirection: "row",
-    gap: 10,
+    gap: 8,
     marginTop: 2,
   },
 
   reportSecondaryButton: {
-    minHeight: 44,
+    minHeight: 42,
     borderRadius: 12,
     borderWidth: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 10,
-    gap: 6,
+    paddingHorizontal: 8,
+    gap: 5,
   },
   reportSecondaryButtonText: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: "700",
     lineHeight: 14,
+  },
+
+  generatingCard: {
+    minHeight: 88,
+    borderWidth: 1,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    paddingVertical: 18,
+  },
+
+  generatingText: {
+    fontSize: 13,
+    fontWeight: "700",
   },
 
   previewSection: {

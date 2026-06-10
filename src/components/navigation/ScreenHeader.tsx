@@ -192,7 +192,8 @@ leftActionBox: {
   paddingTop: 2,
 },
   sideBox: {
-    width: 52,
+    minWidth: 56,
+    paddingHorizontal: 10,
     justifyContent: "center",
     alignItems: "center",
   },

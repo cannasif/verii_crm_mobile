@@ -15,6 +15,7 @@ import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { createClientId } from "@/lib/create-client-id";
 import { resolveDocumentSerialCustomerTypeId } from "@/lib/resolve-document-serial-customer-type-id";
 import { resolveExchangeRateByCurrency as findExchangeRateByCurrency } from "@/lib/resolve-exchange-rate";
+import { flattenDocumentLinesForBulk } from "@/lib/flattenDocumentLinesForBulk";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
@@ -36,7 +37,9 @@ import {
   FileEditIcon,
   Tick02Icon,
   SentIcon,
+  FloppyDiskIcon,
 } from "hugeicons-react-native";
+import { stickyActionBarBottomPadding } from "../../../constants/layout";
 import { ScreenHeader } from "../../../components/navigation";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
@@ -65,6 +68,7 @@ import {
   useDeleteDemandLine,
   useCreateDemandLines,
   useUpdateDemandLines,
+  useUpdateDemandBulk,
 } from "../hooks";
 import {
   ExchangeRateDialog,
@@ -106,6 +110,7 @@ import {
 import { calculateLineTotals, calculateTotals } from "../utils";
 import { resolveLineListCurrencyLabel } from "../../../lib/currencyDisplay";
 import { getApiBaseUrl } from "../../../constants/config";
+import { useDocumentDetailDirtyState } from "../../../hooks/useDocumentDetailDirtyState";
 
 function resolveMobileImageUri(path?: string | null): string | null {
   if (!path) return null;
@@ -272,6 +277,8 @@ export function DemandDetailScreen(): React.ReactElement {
     watch,
     reset,
     clearErrors,
+    handleSubmit,
+    setError,
     formState: { errors },
   } = useForm<CreateDemandSchema>({
     resolver: zodResolver(schema),
@@ -292,6 +299,7 @@ export function DemandDetailScreen(): React.ReactElement {
   const watchedRepresentativeId = watch("demand.representativeId");
   const watchedOfferDate = watch("demand.offerDate");
   const watchedDeliveryDate = watch("demand.deliveryDate");
+  const formSnapshot = watch();
 
   const { data: customer } = useCustomer(watchedCustomerId ?? undefined);
   const { data: isCustomerInRepresentativeScope } = useCustomerScopeAccess(
@@ -355,6 +363,22 @@ export function DemandDetailScreen(): React.ReactElement {
     [watchedCurrency, currencyOptions]
   );
 
+  const isDetailHydrated = Boolean(
+    header &&
+    !detailLoading &&
+    formInitRef.current &&
+    linesInitRef.current &&
+    ratesInitRef.current
+  );
+
+  const { hasUnsavedChanges, markSaved, syncBaseline } = useDocumentDetailDirtyState({
+    resetKey: demandId,
+    isHydrated: isDetailHydrated,
+    formSnapshot,
+    lines,
+    exchangeRates,
+  });
+
   const startApproval = useStartApprovalFlow();
   const { data: waitingApprovalsData } = useWaitingApprovals();
   const approveAction = useApproveAction();
@@ -363,6 +387,7 @@ export function DemandDetailScreen(): React.ReactElement {
   const deleteDemandLineMutation = useDeleteDemandLine();
   const createDemandLinesMutation = useCreateDemandLines();
   const updateDemandLinesMutation = useUpdateDemandLines();
+  const updateDemandBulk = useUpdateDemandBulk();
 
   useEffect(() => {
     if (exchangeRatesData?.length && !erpRatesFilledRef.current) {
@@ -571,6 +596,7 @@ export function DemandDetailScreen(): React.ReactElement {
                 setLines(mapDetailLinesToFormState(fetched));
                 setLineFormVisible(false);
                 setEditingLine(null);
+                queueMicrotask(() => syncBaseline());
               },
             }
           );
@@ -621,6 +647,7 @@ export function DemandDetailScreen(): React.ReactElement {
               setLines((prev) => [...prev, ...mapDetailLinesToFormState(data)]);
               setLineFormVisible(false);
               setEditingLine(null);
+              queueMicrotask(() => syncBaseline());
             },
           }
         );
@@ -630,7 +657,7 @@ export function DemandDetailScreen(): React.ReactElement {
       setEditingLine(null);
       setLineFormVisible(false);
     },
-    [editingLine, demandId, createDemandLinesMutation, updateDemandLinesMutation]
+    [editingLine, demandId, createDemandLinesMutation, updateDemandLinesMutation, syncBaseline]
   );
 
   const handleDeleteLine = useCallback((lineId: string) => {
@@ -821,9 +848,67 @@ export function DemandDetailScreen(): React.ReactElement {
     );
   }, [demandId, startApproval, t]);
 
+  const onSaveUpdate = useCallback(
+    async (formData: CreateDemandSchema) => {
+      if (!demandId) return;
+
+      if (lines.length === 0) {
+        setError("root", {
+          type: "manual",
+          message: t("demand.atLeastOneLine", "En az 1 satır eklenmelidir."),
+        });
+        return;
+      }
+
+      const flatLines = flattenDocumentLinesForBulk(lines);
+      const cleanedLines = flatLines.map((line) =>
+        mapDemandLineFormStateToCreateDto(line, demandId)
+      );
+
+      const cleanedExchangeRates = exchangeRates.map((rate) => {
+        const { id, dovizTipi, ...rest } = rate;
+        return {
+          ...rest,
+          demandId,
+          isOfficial: rest.isOfficial ?? true,
+        };
+      });
+
+      const demandPayload = {
+        ...formData.demand,
+        revisionNo: formData.demand.revisionNo ?? null,
+        revisionId:
+          formData.demand.revisionId && formData.demand.revisionId > 0
+            ? formData.demand.revisionId
+            : null,
+      };
+
+      await updateDemandBulk.mutateAsync({
+        id: demandId,
+        data: {
+          demand: demandPayload,
+          lines: cleanedLines,
+          exchangeRates:
+            cleanedExchangeRates.length > 0 ? cleanedExchangeRates : undefined,
+        },
+      });
+      markSaved();
+    },
+    [demandId, lines, exchangeRates, updateDemandBulk, setError, t, markSaved]
+  );
+
+  const onInvalidSaveUpdate = useCallback(() => {
+    showToast("error", t("validation.fillRequiredFields", "Lütfen zorunlu alanları doldurun"));
+  }, [showToast, t]);
+
+  const handleSaveUpdate = useCallback(() => {
+    void handleSubmit(onSaveUpdate, onInvalidSaveUpdate)();
+  }, [handleSubmit, onSaveUpdate, onInvalidSaveUpdate]);
+
   const pageTitle = header?.offerNo ?? (demandId != null ? `#${demandId}` : t("demand.detail"));
   const isReadonly = header?.status === APPROVAL_APPROVED || header?.status === APPROVAL_REJECTED;
   const showOnayaGonder = header?.status === APPROVAL_HAVENOT_STARTED;
+  const showSaveUpdate = !isReadonly;
   const showApproveReject = header?.status === APPROVAL_WAITING;
 
   const statusKind = useMemo(() => resolveStatusKind(header?.status), [header?.status]);
@@ -1117,7 +1202,7 @@ export function DemandDetailScreen(): React.ReactElement {
               style={styles.content}
               contentContainerStyle={[
                 styles.contentContainer,
-                { paddingBottom: insets.bottom + (showApproveReject || showOnayaGonder ? 110 : 28) },
+                { paddingBottom: insets.bottom + (showApproveReject || showSaveUpdate ? 110 : 28) },
               ]}
               showsVerticalScrollIndicator={false}
             >
@@ -1495,14 +1580,14 @@ export function DemandDetailScreen(): React.ReactElement {
             </FlatListScrollView>
           )}
 
-          {activeTab === "detail" && (showApproveReject || showOnayaGonder) && (
+          {activeTab === "detail" && (showApproveReject || showSaveUpdate) && (
             <View
               style={[
                 styles.actionBar,
                 {
                   backgroundColor: shellBgAlt,
                   borderTopColor: sectionOutline,
-                  paddingBottom: insets.bottom + 12,
+                  paddingBottom: stickyActionBarBottomPadding(insets.bottom),
                 },
               ]}
             >
@@ -1549,29 +1634,59 @@ export function DemandDetailScreen(): React.ReactElement {
                 </>
               )}
 
-              {!showApproveReject && showOnayaGonder && (
-                <TouchableOpacity
-                  style={styles.actionFullButtonWrap}
-                  onPress={handleStartApproval}
-                  disabled={startApproval.isPending}
-                  activeOpacity={0.9}
-                >
-                  <LinearGradient
-                    colors={[accent, colors.accentSecondary || "#f97316"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.actionFullButton}
+              {!showApproveReject && showSaveUpdate && (
+                <>
+                  <TouchableOpacity
+                    style={[
+                      styles.actionFullButtonWrap,
+                      !hasUnsavedChanges && styles.submitButtonDisabled,
+                    ]}
+                    onPress={handleSaveUpdate}
+                    disabled={!hasUnsavedChanges || updateDemandBulk.isPending}
+                    activeOpacity={0.9}
                   >
-                    {startApproval.isPending ? (
-                      <ActivityIndicator color="#FFFFFF" />
-                    ) : (
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                        <SentIcon size={18} color="#FFFFFF" variant="stroke" strokeWidth={2} />
-                        <Text style={styles.actionButtonText}>{t("demand.sendForApproval")}</Text>
-                      </View>
-                    )}
-                  </LinearGradient>
-                </TouchableOpacity>
+                    <LinearGradient
+                      colors={[colors.accentSecondary || "#f97316", accent]}
+                      start={{ x: 1, y: 0 }}
+                      end={{ x: 0, y: 1 }}
+                      style={styles.actionFullButton}
+                    >
+                      {updateDemandBulk.isPending ? (
+                        <ActivityIndicator color="#FFFFFF" />
+                      ) : (
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                          <FloppyDiskIcon size={18} color="#FFFFFF" variant="stroke" strokeWidth={2} />
+                          <Text style={styles.actionButtonText}>{t("common.saveUpdate")}</Text>
+                        </View>
+                      )}
+                    </LinearGradient>
+                  </TouchableOpacity>
+
+                  {showOnayaGonder && (
+                    <TouchableOpacity
+                      style={styles.actionFullButtonWrap}
+                      onPress={handleStartApproval}
+                      disabled={startApproval.isPending || updateDemandBulk.isPending}
+                      activeOpacity={0.9}
+                    >
+                      <LinearGradient
+                        colors={[accent, colors.accentSecondary || "#f97316"]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.actionFullButton}
+                      >
+                        {startApproval.isPending ? (
+                          <ActivityIndicator color="#FFFFFF" />
+                        ) : (
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                            <SentIcon size={18} color="#FFFFFF" variant="stroke" strokeWidth={2} />
+                            <Text style={styles.actionButtonText}>{t("demand.sendForApproval")}</Text>
+                          </View>
+                        )}
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  )}
+                </>
               )}
             </View>
           )}
@@ -1790,6 +1905,7 @@ export function DemandDetailScreen(): React.ReactElement {
                     onSuccess: () => {
                       setExchangeRates(rates);
                       setExchangeRateDialogVisible(false);
+                      queueMicrotask(() => syncBaseline());
                     },
                   }
                 );

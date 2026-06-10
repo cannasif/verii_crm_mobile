@@ -15,6 +15,26 @@ export const BOTTOM_NAV_DECOR_HEIGHT = 35;
 /** Tab bar üzerinde ek nefes payı (px) */
 const LIST_GAP_ABOVE_TAB_BAR = 28;
 
+/** BottomNavBar `safeBottom` ile aynı */
+export function normalizeBottomInset(safeAreaBottom: number): number {
+  return Math.max(safeAreaBottom, Platform.OS === "android" ? 15 : 0);
+}
+
+/** Ekran altında BottomNavBar tarafından kaplanan toplam yükseklik */
+export function bottomNavReservedHeight(safeAreaBottom: number): number {
+  return BOTTOM_NAV_HEIGHT + BOTTOM_NAV_DECOR_HEIGHT + normalizeBottomInset(safeAreaBottom);
+}
+
+/**
+ * Sabit alt aksiyon çubuğu (Onaya Gönder, Onayla/Reddet vb.) için paddingBottom.
+ */
+export function stickyActionBarBottomPadding(
+  safeAreaBottom: number,
+  contentPadding = 12,
+): number {
+  return bottomNavReservedHeight(safeAreaBottom) + contentPadding;
+}
+
 /**
  * PagedFlatList / FlatList `contentContainerStyle.paddingBottom` için.
  */

@@ -12,6 +12,7 @@ import {
 import type { QuotationGetDto } from "../types";
 import { formatCurrencyBySettings, getCurrencyDisplayLabel } from "../../../lib/currencyDisplay";
 import { formatSystemDate } from "../../../lib/systemSettings";
+import { resolveDocumentApprovalStatusMeta } from "../../../lib/documentApprovalStatus";
 
 interface QuotationRowProps {
   quotation: QuotationGetDto;
@@ -54,7 +55,7 @@ function QuotationRowComponent({
   isPending,
 }: QuotationRowProps): React.ReactElement {
   const { themeMode } = useUIStore();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isDark = themeMode === "dark";
 
   const colors = useMemo(
@@ -96,9 +97,12 @@ function QuotationRowComponent({
   };
 
   const canRevise = quotation.status === 0 || quotation.status === 3;
-  const statusColor = quotation.status === 1 ? colors.green : colors.muted;
-  const statusBg = quotation.status === 1 ? colors.greenSoft : colors.softBg;
-  const statusText = quotation.status === 1 ? "Aktif" : "Pasif";
+  const statusMeta = resolveDocumentApprovalStatusMeta(
+    quotation.status,
+    isDark,
+    t,
+    "quotation"
+  );
 
   const totalFormatted =
     quotation.grandTotalDisplay?.trim() ||
@@ -141,13 +145,13 @@ function QuotationRowComponent({
           style={[
             styles.statusPill,
             {
-              backgroundColor: statusBg,
-              borderColor: `${statusColor}35`,
+              backgroundColor: statusMeta.backgroundColor,
+              borderColor: statusMeta.borderColor,
             },
           ]}
         >
-          <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-          <Text style={[styles.statusText, { color: statusColor }]}>{statusText}</Text>
+          <View style={[styles.statusDot, { backgroundColor: statusMeta.color }]} />
+          <Text style={[styles.statusText, { color: statusMeta.color }]}>{statusMeta.label}</Text>
         </View>
       </View>
 
