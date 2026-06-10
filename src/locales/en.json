@@ -1194,6 +1194,8 @@
     "representative": "Representative",
     "paymentType": "Payment Type",
     "documentSerialType": "Document Serial Type",
+    "koliBaski": "Package Print",
+    "koliBaskiSearch": "Search package print...",
     "currency": "Currency",
     "description": "Description",
     "shippingAddress": "Shipping Address",

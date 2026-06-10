@@ -53,15 +53,21 @@ export function useWindoDefinitionOptions({
         queryFn: windoDefinitionApi.getBaskiDefinitions,
         staleTime: 5 * 60 * 1000,
       },
+      {
+        queryKey: ["windo-definitions", "koli-baski"],
+        queryFn: windoDefinitionApi.getKoliBaskiDefinitions,
+        staleTime: 5 * 60 * 1000,
+      },
     ],
   });
 
-  const [profilResult, demirResult, vidaResult, baskiResult] = results;
+  const [profilResult, demirResult, vidaResult, baskiResult, koliBaskiResult] = results;
 
   const profilDefinitions = profilResult.data ?? [];
   const demirDefinitions = demirResult.data ?? [];
   const vidaDefinitions = vidaResult.data ?? [];
   const baskiDefinitions = baskiResult.data ?? [];
+  const koliBaskiDefinitions = koliBaskiResult.data ?? [];
 
   return useMemo(
     () => ({
@@ -69,6 +75,7 @@ export function useWindoDefinitionOptions({
       demirDefinitions,
       vidaDefinitions,
       baskiDefinitions,
+      koliBaskiDefinitions,
       profilOptions: toOptions(profilDefinitions),
       demirOptions: toOptions(demirDefinitions).filter((option) => {
         if (selectedProfilDefinitionId == null) return true;
@@ -81,15 +88,18 @@ export function useWindoDefinitionOptions({
         return option.id === preserveSelection?.vidaDefinitionId;
       }),
       baskiOptions: toOptions(baskiDefinitions),
+      koliBaskiOptions: toOptions(koliBaskiDefinitions),
       profilMap: toMap(profilDefinitions),
       demirMap: toMap(demirDefinitions),
       vidaMap: toMap(vidaDefinitions),
       baskiMap: toMap(baskiDefinitions),
+      koliBaskiMap: toMap(koliBaskiDefinitions),
       isLoading: results.some((result) => result.isLoading),
     }),
     [
       baskiDefinitions,
       demirDefinitions,
+      koliBaskiDefinitions,
       preserveSelection?.demirDefinitionId,
       preserveSelection?.vidaDefinitionId,
       profilDefinitions,

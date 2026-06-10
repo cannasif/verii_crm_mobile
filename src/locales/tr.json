@@ -1244,6 +1244,8 @@
     "representative": "Temsilci",
     "paymentType": "Ödeme Tipi",
     "documentSerialType": "Belge Seri Tipi",
+    "koliBaski": "Koli Baskı",
+    "koliBaskiSearch": "Koli baskı ara...",
     "currency": "Para Birimi",
     "description": "Açıklama",
     "shippingAddress": "Sevk Adresi",

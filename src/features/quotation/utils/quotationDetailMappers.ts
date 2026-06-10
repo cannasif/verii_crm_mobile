@@ -82,6 +82,7 @@ export function mapDetailHeaderToForm(
     generalDiscountAmount: (h as unknown as Record<string, unknown>).generalDiscountAmount as number | null | undefined ?? null,
     erpProjectCode: (h as unknown as Record<string, unknown>).erpProjectCode as string | null | undefined ?? null,
     salesTypeDefinitionId: (h as unknown as Record<string, unknown>).salesTypeDefinitionId as number | null | undefined ?? null,
+    koliBaskiDefinitionId: (h as unknown as Record<string, unknown>).koliBaskiDefinitionId as number | null | undefined ?? null,
   };
 }
 

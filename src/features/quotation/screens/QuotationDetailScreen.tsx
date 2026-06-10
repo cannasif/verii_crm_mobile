@@ -262,7 +262,7 @@ export function QuotationDetailScreen(): React.ReactElement {
   const { user, branch } = useAuthStore();
   const insets = useSafeAreaInsets();
   const showToast = useToastStore((s) => s.showToast);
-  const { profilMap, demirMap, vidaMap, baskiMap } = useWindoDefinitionOptions();
+  const { profilMap, demirMap, vidaMap, baskiMap, koliBaskiOptions } = useWindoDefinitionOptions();
 
   const mainBg = isDark ? "#0c0516" : "#FFFFFF";
   const gradientColors = (
@@ -321,6 +321,7 @@ export function QuotationDetailScreen(): React.ReactElement {
   const [shippingAddressModalVisible, setShippingAddressModalVisible] = useState(false);
   const [customerSelectDialogOpen, setCustomerSelectDialogOpen] = useState(false);
   const [representativeModalVisible, setRepresentativeModalVisible] = useState(false);
+  const [koliBaskiModalVisible, setKoliBaskiModalVisible] = useState(false);
   const [lineFormVisible, setLineFormVisible] = useState(false);
   const [editingLine, setEditingLine] = useState<QuotationLineFormState | null>(null);
   const [pendingStockForRelated, setPendingStockForRelated] = useState<
@@ -355,6 +356,7 @@ export function QuotationDetailScreen(): React.ReactElement {
         offerDate: new Date().toISOString().split("T")[0],
         deliveryDate: addDaysToDateOnly(new Date().toISOString().split("T")[0], 21),
         representativeId: user?.id ?? null,
+        koliBaskiDefinitionId: null,
       },
     },
   });
@@ -1134,6 +1136,7 @@ export function QuotationDetailScreen(): React.ReactElement {
         generalDiscountAmount: formData.quotation.generalDiscountAmount ?? null,
         erpProjectCode: formData.quotation.erpProjectCode ?? null,
         salesTypeDefinitionId: formData.quotation.salesTypeDefinitionId ?? null,
+        koliBaskiDefinitionId: formData.quotation.koliBaskiDefinitionId ?? null,
         revisionNo: formData.quotation.revisionNo ?? null,
         revisionId:
           formData.quotation.revisionId && formData.quotation.revisionId > 0
@@ -1851,6 +1854,37 @@ export function QuotationDetailScreen(): React.ReactElement {
                   disabled={isReadonly || !watchedRepresentativeId}
                 />
 
+                <Controller
+                  control={control}
+                  name="quotation.koliBaskiDefinitionId"
+                  render={({ field: { value } }) => (
+                    <View style={styles.fieldContainerTight}>
+                      <Text style={[styles.labelCompact, { color: mutedText }]}>
+                        {t("quotation.koliBaski")}
+                      </Text>
+                      <TouchableOpacity
+                        style={[
+                          styles.pickerButton,
+                          styles.pickerShellCompact,
+                          {
+                            backgroundColor: innerBg,
+                            borderColor: innerBorder,
+                          },
+                        ]}
+                        onPress={() => !isReadonly && setKoliBaskiModalVisible(true)}
+                        disabled={isReadonly}
+                        activeOpacity={isReadonly ? 1 : 0.85}
+                      >
+                        <Text style={[styles.pickerText, styles.pickerTextCompact, { color: titleText }]} numberOfLines={1}>
+                          {value
+                            ? koliBaskiOptions.find((option) => option.id === value)?.name ?? t("quotation.select")
+                            : t("quotation.select")}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                />
+
                 <FormField
                   label={t("quotation.description")}
                   value={watch("quotation.description") || ""}
@@ -2374,6 +2408,22 @@ export function QuotationDetailScreen(): React.ReactElement {
             onClose={() => setCurrencyModalVisible(false)}
             title={t("quotation.selectCurrency")}
             searchPlaceholder={t("quotation.searchCurrency")}
+          />
+
+          <PickerModal
+            visible={koliBaskiModalVisible}
+            options={koliBaskiOptions.map((option) => ({
+              id: option.id,
+              name: option.name,
+            }))}
+            selectedValue={watch("quotation.koliBaskiDefinitionId") ?? undefined}
+            onSelect={(option) => {
+              setValue("quotation.koliBaskiDefinitionId", option.id as number);
+              setKoliBaskiModalVisible(false);
+            }}
+            onClose={() => setKoliBaskiModalVisible(false)}
+            title={t("quotation.koliBaski")}
+            searchPlaceholder={t("quotation.koliBaskiSearch")}
           />
 
           <PickerModal

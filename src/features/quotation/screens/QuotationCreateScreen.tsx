@@ -232,6 +232,7 @@ export function QuotationCreateScreen(): React.ReactElement {
   const [activeTab, setActiveTab] = useState<"general" | "lines">("general");
   const [projectCodeModalVisible, setProjectCodeModalVisible] = useState(false);
   const [salesTypeModalVisible, setSalesTypeModalVisible] = useState(false);
+  const [koliBaskiModalVisible, setKoliBaskiModalVisible] = useState(false);
   const [pendingStockForRelated, setPendingStockForRelated] = useState<
     (StockGetDto & { parentRelations: StockRelationDto[] }) | null
   >(null);
@@ -258,6 +259,7 @@ export function QuotationCreateScreen(): React.ReactElement {
         offerDate: new Date().toISOString().split("T")[0],
         deliveryDate: addDaysToDateOnly(new Date().toISOString().split("T")[0], 21),
         representativeId: user?.id || null,
+        koliBaskiDefinitionId: null,
       },
     },
   });
@@ -554,7 +556,7 @@ export function QuotationCreateScreen(): React.ReactElement {
     () => resolveLineListCurrencyLabel(watchedCurrency, currencyOptions ?? null),
     [watchedCurrency, currencyOptions]
   );
-  const { profilMap, demirMap, vidaMap } = useWindoDefinitionOptions();
+  const { profilMap, demirMap, vidaMap, koliBaskiOptions } = useWindoDefinitionOptions();
 
   const handleEditLine = useCallback((line: QuotationLineFormState) => {
     setEditingLine(line);
@@ -924,6 +926,7 @@ export function QuotationCreateScreen(): React.ReactElement {
         generalDiscountAmount: formData.quotation.generalDiscountAmount ?? null,
         erpProjectCode: formData.quotation.erpProjectCode ?? null,
         salesTypeDefinitionId: formData.quotation.salesTypeDefinitionId ?? null,
+        koliBaskiDefinitionId: formData.quotation.koliBaskiDefinitionId ?? null,
       };
 
       const quotationNotes = notesToDto(notes);
@@ -1547,6 +1550,35 @@ export function QuotationCreateScreen(): React.ReactElement {
                   )}
                 />
               )}
+
+              <Controller
+                control={control}
+                name="quotation.koliBaskiDefinitionId"
+                render={({ field: { value } }) => (
+                  <View style={styles.fieldContainerTight}>
+                    <Text style={[styles.labelCompact, { color: mutedText }]}>
+                      {t("quotation.koliBaski")}
+                    </Text>
+                    <TouchableOpacity
+                      style={[
+                        styles.pickerButton,
+                        styles.pickerShellCompact,
+                        {
+                          backgroundColor: innerBg,
+                          borderColor: innerBorder,
+                        },
+                      ]}
+                      onPress={() => setKoliBaskiModalVisible(true)}
+                    >
+                      <Text style={[styles.pickerText, styles.pickerTextCompact, { color: colors.text }]} numberOfLines={1}>
+                        {value
+                          ? koliBaskiOptions.find((option) => option.id === value)?.name ?? t("common.select")
+                          : t("common.select")}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              />
 
               <View style={styles.twoColumnRow}>
                 <View style={styles.twoColumnItem}>
@@ -2240,6 +2272,22 @@ export function QuotationCreateScreen(): React.ReactElement {
               searchPlaceholder={t("common.search")}
             />
           )}
+
+          <PickerModal
+            visible={koliBaskiModalVisible}
+            options={koliBaskiOptions.map((option) => ({
+              id: option.id,
+              name: option.name,
+            }))}
+            selectedValue={watch("quotation.koliBaskiDefinitionId") ?? undefined}
+            onSelect={(option) => {
+              setValue("quotation.koliBaskiDefinitionId", option.id as number);
+              setKoliBaskiModalVisible(false);
+            }}
+            onClose={() => setKoliBaskiModalVisible(false)}
+            title={t("quotation.koliBaski")}
+            searchPlaceholder={t("quotation.koliBaskiSearch")}
+          />
 
           <PickerModal
             visible={representativeModalVisible}

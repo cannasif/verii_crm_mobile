@@ -25,6 +25,7 @@ export const createQuotationSchema = () =>
         generalDiscountAmount: z.number().min(0).nullable().optional(),
         erpProjectCode: z.string().max(50).nullable().optional(),
         salesTypeDefinitionId: z.number().nullable().optional(),
+        koliBaskiDefinitionId: z.number().nullable().optional(),
       }),
     })
     .superRefine((data, ctx) => {
