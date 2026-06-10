@@ -77,6 +77,10 @@ export interface QuotationGetDto {
   representativeName?: string | null;
   status?: number | null;
   description?: string | null;
+  cancelledByUserId?: number | null;
+  cancelledByUserFullName?: string | null;
+  cancelledAt?: string | null;
+  cancellationReason?: string | null;
   paymentTypeId?: number | null;
   paymentTypeName?: string | null;
   documentSerialTypeId?: number | null;
@@ -97,6 +101,9 @@ export interface QuotationGetDto {
   validUntil?: string | null;
   contactId?: number | null;
   activityId?: number | null;
+  isERPIntegrated?: boolean | null;
+  erpIntegrationNumber?: string | null;
+  lastSyncDate?: string | null;
   createdAt: string;
   updatedAt?: string | null;
   createdBy?: string | null;
@@ -170,7 +177,9 @@ export interface CreateQuotationLineDto {
   profilDefinitionId?: number | null;
   demirDefinitionId?: number | null;
   vidaDefinitionId?: number | null;
+  vidaDefinitionName?: string | null;
   baskiDefinitionId?: number | null;
+  baskiDefinitionName?: string | null;
   imagePath?: string | null;
   pricingRuleHeaderId?: number | null;
   relatedStockId?: number | null;
@@ -206,7 +215,9 @@ export interface QuotationLineUpdateDto {
   profilDefinitionId?: number | null;
   demirDefinitionId?: number | null;
   vidaDefinitionId?: number | null;
+  vidaDefinitionName?: string | null;
   baskiDefinitionId?: number | null;
+  baskiDefinitionName?: string | null;
   imagePath?: string | null;
   pricingRuleHeaderId?: number | null;
   relatedStockId?: number | null;
@@ -300,7 +311,9 @@ export interface QuotationLineFormState {
   profilDefinitionId?: number | null;
   demirDefinitionId?: number | null;
   vidaDefinitionId?: number | null;
+  vidaDefinitionName?: string | null;
   baskiDefinitionId?: number | null;
+  baskiDefinitionName?: string | null;
   imagePath?: string | null;
   pricingRuleHeaderId?: number | null;
   relatedStockId?: number | null;
@@ -458,12 +471,14 @@ export interface CalculationTotals {
 
 export type ApprovalStatus = 0 | 1;
 
-export type DetailApprovalStatus = 0 | 1 | 2 | 3;
+export type DetailApprovalStatus = 0 | 1 | 2 | 3 | 4 | 5;
 
 export const APPROVAL_HAVENOT_STARTED: DetailApprovalStatus = 0;
 export const APPROVAL_WAITING: DetailApprovalStatus = 1;
 export const APPROVAL_APPROVED: DetailApprovalStatus = 2;
 export const APPROVAL_REJECTED: DetailApprovalStatus = 3;
+export const APPROVAL_CLOSED: DetailApprovalStatus = 4;
+export const APPROVAL_CUSTOMER_CANCELLED: DetailApprovalStatus = 5;
 
 export interface QuotationDetailGetDto {
   id: number;
@@ -537,7 +552,9 @@ export interface QuotationLineDetailGetDto {
   profilDefinitionId?: number | null;
   demirDefinitionId?: number | null;
   vidaDefinitionId?: number | null;
+  vidaDefinitionName?: string | null;
   baskiDefinitionId?: number | null;
+  baskiDefinitionName?: string | null;
   imagePath?: string | null;
   pricingRuleHeaderId: number | null;
   relatedStockId: number | null;

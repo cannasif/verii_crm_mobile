@@ -54,8 +54,8 @@ function QuotationDetailLineRowComponent({
   const definitionSummary = [
     line.profilDefinitionId ? `Profil: ${profilMap[line.profilDefinitionId] || `#${line.profilDefinitionId}`}` : "",
     line.demirDefinitionId ? `Demir: ${demirMap[line.demirDefinitionId] || `#${line.demirDefinitionId}`}` : "",
-    line.vidaDefinitionId ? `Vida: ${vidaMap[line.vidaDefinitionId] || `#${line.vidaDefinitionId}`}` : "",
-    line.baskiDefinitionId ? `Baskı: ${baskiMap[line.baskiDefinitionId] || `#${line.baskiDefinitionId}`}` : "",
+    line.vidaDefinitionId ? `Vida: ${line.vidaDefinitionName || vidaMap[line.vidaDefinitionId] || `#${line.vidaDefinitionId}`}` : "",
+    line.baskiDefinitionId ? `Baskı: ${line.baskiDefinitionName || baskiMap[line.baskiDefinitionId] || `#${line.baskiDefinitionId}`}` : "",
   ]
     .filter(Boolean)
     .join(" · ");

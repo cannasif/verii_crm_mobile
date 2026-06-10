@@ -10,6 +10,7 @@ export { useErpProjects } from "./useErpProjects";
 export { useSalesTypeList } from "./useSalesTypeList";
 export { useUpdateQuotationBulk } from "./useUpdateQuotationBulk";
 export { useStartApprovalFlow } from "./useStartApprovalFlow";
+export { useCancelQuotationByCustomer } from "./useCancelQuotationByCustomer";
 export { usePriceRuleOfQuotation } from "./usePriceRuleOfQuotation";
 export { useUserDiscountLimitsBySalesperson } from "./useUserDiscountLimitsBySalesperson";
 export { useExchangeRate } from "./useExchangeRate";

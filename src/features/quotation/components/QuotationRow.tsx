@@ -179,6 +179,11 @@ function QuotationRowComponent({
                 Temsilci: {quotation.representativeName}
               </Text>
             ) : null}
+            {quotation.koliBaskiDefinitionName ? (
+              <Text style={[styles.customerSubText, { color: colors.muted }]} numberOfLines={1}>
+                Koli Baskı: {quotation.koliBaskiDefinitionName}
+              </Text>
+            ) : null}
           </View>
         </View>
 

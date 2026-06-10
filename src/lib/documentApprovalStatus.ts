@@ -36,6 +36,10 @@ export function resolveDocumentApprovalStatusMeta(
       color: isDark ? "#94A3B8" : "#475569",
       backgroundColor: isDark ? "rgba(148,163,184,0.14)" : "#F1F5F9",
     },
+    customerCancelled: {
+      color: isDark ? "#f472b6" : "#be123c",
+      backgroundColor: isDark ? "rgba(244,114,182,0.16)" : "rgba(244,63,94,0.10)",
+    },
     unknown: {
       color: isDark ? "#94A3B8" : "#64748B",
       backgroundColor: isDark ? "rgba(255,255,255,0.035)" : "#F8FAFC",
@@ -63,6 +67,8 @@ export function resolveDocumentApprovalStatusMeta(
       return pick(palettes.rejected, t(`${module}.status.rejected`, "Reddedildi"));
     case 4:
       return pick(palettes.closed, t("common.statusClosed", "Kapatıldı"));
+    case 5:
+      return pick(palettes.customerCancelled, t("common.customerCancelled", "Müşteri tarafından iptal edildi"));
     default:
       return pick(palettes.unknown, "-");
   }

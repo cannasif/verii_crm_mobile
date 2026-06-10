@@ -556,7 +556,7 @@ export function QuotationCreateScreen(): React.ReactElement {
     () => resolveLineListCurrencyLabel(watchedCurrency, currencyOptions ?? null),
     [watchedCurrency, currencyOptions]
   );
-  const { profilMap, demirMap, vidaMap, koliBaskiOptions } = useWindoDefinitionOptions();
+  const { profilMap, demirMap, vidaMap, baskiMap, koliBaskiOptions } = useWindoDefinitionOptions();
 
   const handleEditLine = useCallback((line: QuotationLineFormState) => {
     setEditingLine(line);
@@ -1771,7 +1771,8 @@ export function QuotationCreateScreen(): React.ReactElement {
                       [
                         l.profilDefinitionId ? `Profil: ${profilMap[l.profilDefinitionId] || `#${l.profilDefinitionId}`}` : "",
                         l.demirDefinitionId ? `Demir: ${demirMap[l.demirDefinitionId] || `#${l.demirDefinitionId}`}` : "",
-                        l.vidaDefinitionId ? `Vida: ${vidaMap[l.vidaDefinitionId] || `#${l.vidaDefinitionId}`}` : "",
+                        l.vidaDefinitionId ? `Vida: ${l.vidaDefinitionName || vidaMap[l.vidaDefinitionId] || `#${l.vidaDefinitionId}`}` : "",
+                        l.baskiDefinitionId ? `Baskı: ${l.baskiDefinitionName || baskiMap[l.baskiDefinitionId] || `#${l.baskiDefinitionId}`}` : "",
                       ]
                         .filter(Boolean)
                         .join(" · ");

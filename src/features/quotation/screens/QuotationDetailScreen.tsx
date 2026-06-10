@@ -46,6 +46,7 @@ import {
 } from "hugeicons-react-native";
 import { listContentBottomPadding, stickyActionBarBottomPadding } from "../../../constants/layout";
 import { ScreenHeader } from "../../../components/navigation";
+import { CustomerCancellationReasonModal } from "../../../components/CustomerCancellationReasonModal";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { PermissionDeniedState } from "../../access-control/components/PermissionDeniedState";
@@ -79,6 +80,7 @@ import {
   useQuotationNotes,
   useUpdateQuotationNotes,
   useUpdateQuotationBulk,
+  useCancelQuotationByCustomer,
 } from "../hooks";
 import {
   ExchangeRateDialog,
@@ -118,6 +120,8 @@ import {
   APPROVAL_WAITING,
   APPROVAL_APPROVED,
   APPROVAL_REJECTED,
+  APPROVAL_CLOSED,
+  APPROVAL_CUSTOMER_CANCELLED,
   PricingRuleType,
   normalizeOfferType,
 } from "../types";
@@ -199,13 +203,14 @@ function formatRateTr(n: number): string {
   return v.toLocaleString("tr-TR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
-type StatusKind = "draft" | "pending" | "approved" | "rejected";
+type StatusKind = "draft" | "pending" | "approved" | "rejected" | "cancelled";
 
 function resolveStatusKind(status: number | null | undefined): StatusKind | null {
   if (status === APPROVAL_HAVENOT_STARTED) return "draft";
   if (status === APPROVAL_WAITING) return "pending";
   if (status === APPROVAL_APPROVED) return "approved";
   if (status === APPROVAL_REJECTED) return "rejected";
+  if (status === APPROVAL_CUSTOMER_CANCELLED) return "cancelled";
   return null;
 }
 
@@ -230,6 +235,12 @@ function StatusBadge({ kind, isDark }: StatusBadgeProps): React.ReactElement | n
           bg: isDark ? "rgba(244,114,182,0.16)" : "rgba(219,39,119,0.10)",
           border: isDark ? "rgba(244,114,182,0.40)" : "rgba(219,39,119,0.32)",
           icon: <Cancel01Icon size={16} color={isDark ? "#f472b6" : "#DB2777"} variant="stroke" strokeWidth={2.4} />,
+        };
+      case "cancelled":
+        return {
+          bg: isDark ? "rgba(244,114,182,0.16)" : "rgba(244,63,94,0.10)",
+          border: isDark ? "rgba(244,114,182,0.40)" : "rgba(244,63,94,0.32)",
+          icon: <Cancel01Icon size={16} color={isDark ? "#f472b6" : "#be123c"} variant="stroke" strokeWidth={2.4} />,
         };
       case "pending":
         return {
@@ -328,6 +339,7 @@ export function QuotationDetailScreen(): React.ReactElement {
     (StockGetDto & { parentRelations: StockRelationDto[] }) | null
   >(null);
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
+  const [customerCancellationVisible, setCustomerCancellationVisible] = useState(false);
   const [selectedApprovalForReject, setSelectedApprovalForReject] = useState<ApprovalActionGetDto | null>(null);
   const [deleteLineDialogVisible, setDeleteLineDialogVisible] = useState(false);
   const [deleteLineId, setDeleteLineId] = useState<string | null>(null);
@@ -560,6 +572,7 @@ export function QuotationDetailScreen(): React.ReactElement {
   }, [currencyOptions, t, watchedCurrency]);
 
   const startApproval = useStartApprovalFlow();
+  const cancelByCustomer = useCancelQuotationByCustomer();
   const { data: waitingApprovalsData } = useWaitingApprovals();
   const approveAction = useApproveAction();
   const rejectAction = useRejectAction();
@@ -1089,6 +1102,23 @@ export function QuotationDetailScreen(): React.ReactElement {
     );
   }, [quotationId, apiTotals.grandTotal, startApproval, t]);
 
+  const handleCustomerCancel = useCallback(() => {
+    setCustomerCancellationVisible(true);
+  }, []);
+
+  const handleConfirmCustomerCancel = useCallback(
+    (reason: string) => {
+      if (!quotationId) return;
+      cancelByCustomer.mutate(
+        { id: quotationId, reason },
+        {
+          onSuccess: () => setCustomerCancellationVisible(false),
+        }
+      );
+    },
+    [cancelByCustomer, quotationId]
+  );
+
   const onSaveUpdate = useCallback(
     async (formData: CreateQuotationSchema) => {
       if (!quotationId) return;
@@ -1226,10 +1256,17 @@ export function QuotationDetailScreen(): React.ReactElement {
   const isReadonly =
     header?.status === APPROVAL_WAITING ||
     header?.status === APPROVAL_APPROVED ||
-    header?.status === APPROVAL_REJECTED;
+    header?.status === APPROVAL_REJECTED ||
+    header?.status === APPROVAL_CLOSED ||
+    header?.status === APPROVAL_CUSTOMER_CANCELLED;
   const showOnayaGonder = header?.status === APPROVAL_HAVENOT_STARTED;
   const showSaveUpdate = !isReadonly;
   const showApproveReject = header?.status === APPROVAL_WAITING;
+  const showCustomerCancel =
+    Boolean(header) &&
+    !header?.isERPIntegrated &&
+    header?.status !== APPROVAL_CLOSED &&
+    header?.status !== APPROVAL_CUSTOMER_CANCELLED;
 
   const statusKind = useMemo(() => resolveStatusKind(header?.status), [header?.status]);
 
@@ -1343,8 +1380,8 @@ export function QuotationDetailScreen(): React.ReactElement {
     const definitions = [
       l.profilDefinitionId ? `${t("common.profil")}: ${profilMap[l.profilDefinitionId] ?? `#${l.profilDefinitionId}`}` : "",
       l.demirDefinitionId ? `${t("common.demir")}: ${demirMap[l.demirDefinitionId] ?? `#${l.demirDefinitionId}`}` : "",
-      l.vidaDefinitionId ? `${t("common.vida")}: ${vidaMap[l.vidaDefinitionId] ?? `#${l.vidaDefinitionId}`}` : "",
-      l.baskiDefinitionId ? `Baskı: ${baskiMap[l.baskiDefinitionId] ?? `#${l.baskiDefinitionId}`}` : "",
+      l.vidaDefinitionId ? `${t("common.vida")}: ${l.vidaDefinitionName ?? vidaMap[l.vidaDefinitionId] ?? `#${l.vidaDefinitionId}`}` : "",
+      l.baskiDefinitionId ? `Baskı: ${l.baskiDefinitionName ?? baskiMap[l.baskiDefinitionId] ?? `#${l.baskiDefinitionId}`}` : "",
     ]
       .filter(Boolean)
       .join(" · ");
@@ -2084,6 +2121,30 @@ export function QuotationDetailScreen(): React.ReactElement {
                       </LinearGradient>
                     </TouchableOpacity>
                   )}
+                  {showCustomerCancel && (
+                    <TouchableOpacity
+                      style={styles.inlineActionButtonWrap}
+                      onPress={handleCustomerCancel}
+                      disabled={cancelByCustomer.isPending || updateQuotationBulk.isPending}
+                      activeOpacity={0.9}
+                    >
+                      <LinearGradient
+                        colors={["#be123c", "#e11d48"]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.actionFullButton}
+                      >
+                        {cancelByCustomer.isPending ? (
+                          <ActivityIndicator color="#FFFFFF" />
+                        ) : (
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                            <Cancel01Icon size={18} color="#FFFFFF" variant="stroke" strokeWidth={2} />
+                            <Text style={styles.actionButtonText}>{t("quotation.customerCancelButton", "Müşteri İptali")}</Text>
+                          </View>
+                        )}
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  )}
                 </View>
               )}
             </FlatListScrollView>
@@ -2196,6 +2257,26 @@ export function QuotationDetailScreen(): React.ReactElement {
             onClose={handleRejectModalClose}
             onConfirm={handleRejectConfirm}
             isPending={rejectAction.isPending}
+          />
+
+          <CustomerCancellationReasonModal
+            visible={customerCancellationVisible}
+            title={t("quotation.customerCancelTitle", "Müşteri iptali")}
+            description={t("quotation.customerCancelDescription", "Bu teklifi müşteri tarafından iptal edildi olarak işaretlemek üzeresiniz.")}
+            reasonLabel={t("quotation.customerCancelReasonLabel", "İptal nedeni")}
+            reasonPlaceholder={t("quotation.customerCancelReasonPlaceholder", "Müşterinin iptal nedenini yazın...")}
+            cancelLabel={t("common.cancel")}
+            confirmLabel={t("quotation.customerCancelConfirmButton", "İptal Et")}
+            isPending={cancelByCustomer.isPending}
+            colors={{
+              card: shellBgAlt,
+              text: titleText,
+              textSecondary: mutedText,
+              textMuted: softText,
+              border: innerBorder,
+            }}
+            onClose={() => setCustomerCancellationVisible(false)}
+            onConfirm={handleConfirmCustomerCancel}
           />
 
           <Modal visible={deleteLineDialogVisible} transparent animationType="fade">

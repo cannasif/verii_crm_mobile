@@ -113,6 +113,7 @@ export function OrderLineForm({
   const [profilDefinitionId, setProfilDefinitionId] = useState<number | null>(null);
   const [demirDefinitionId, setDemirDefinitionId] = useState<number | null>(null);
   const [vidaDefinitionId, setVidaDefinitionId] = useState<number | null>(null);
+  const [baskiDefinitionId, setBaskiDefinitionId] = useState<number | null>(null);
   const [isLoadingPrice, setIsLoadingPrice] = useState(false);
   const [approvalStatus, setApprovalStatus] = useState<number>(0);
   const [approvalMessage, setApprovalMessage] = useState<string>("");
@@ -124,14 +125,17 @@ export function OrderLineForm({
   const [profilPickerVisible, setProfilPickerVisible] = useState(false);
   const [demirPickerVisible, setDemirPickerVisible] = useState(false);
   const [vidaPickerVisible, setVidaPickerVisible] = useState(false);
+  const [baskiPickerVisible, setBaskiPickerVisible] = useState(false);
   const productPickerRef = useRef<ProductPickerRef>(null);
   const {
     profilOptions,
     demirOptions,
     vidaOptions,
+    baskiOptions,
     profilMap,
     demirMap,
     vidaMap,
+    baskiMap,
     demirDefinitions: allDemirDefinitions,
     vidaDefinitions: allVidaDefinitions,
     isLoading: isDefinitionOptionsLoading,
@@ -177,6 +181,9 @@ export function OrderLineForm({
       profilDefinitionId,
       demirDefinitionId,
       vidaDefinitionId,
+      vidaDefinitionName: vidaDefinitionId ? vidaMap[vidaDefinitionId] ?? null : null,
+      baskiDefinitionId,
+      baskiDefinitionName: baskiDefinitionId ? baskiMap[baskiDefinitionId] ?? null : null,
       imagePath,
       isEditing: false,
       approvalStatus,
@@ -202,6 +209,9 @@ export function OrderLineForm({
     profilDefinitionId,
     demirDefinitionId,
     vidaDefinitionId,
+    vidaMap,
+    baskiDefinitionId,
+    baskiMap,
     imagePath,
     approvalStatus,
   ]);
@@ -221,6 +231,7 @@ export function OrderLineForm({
       setProfilDefinitionId(line.profilDefinitionId ?? null);
       setDemirDefinitionId(line.demirDefinitionId ?? null);
       setVidaDefinitionId(line.vidaDefinitionId ?? null);
+      setBaskiDefinitionId(line.baskiDefinitionId ?? null);
       setImagePath(line.imagePath || null);
       setApprovalStatus(line.approvalStatus || 0);
       setRelatedLinesDisplay(line.relatedLines ?? []);
@@ -311,6 +322,7 @@ export function OrderLineForm({
     setProfilDefinitionId(null);
     setDemirDefinitionId(null);
     setVidaDefinitionId(null);
+    setBaskiDefinitionId(null);
     setImagePath(null);
     setApprovalStatus(0);
     setApprovalMessage("");
@@ -355,6 +367,7 @@ export function OrderLineForm({
     setProfilDefinitionId(draft.profilDefinitionId ?? null);
     setDemirDefinitionId(draft.demirDefinitionId ?? null);
     setVidaDefinitionId(draft.vidaDefinitionId ?? null);
+    setBaskiDefinitionId(draft.baskiDefinitionId ?? null);
     setImagePath(draft.imagePath || null);
     setApprovalStatus(draft.approvalStatus || 0);
     setRelatedLinesDisplay(draft.relatedLines ?? []);
@@ -1175,6 +1188,25 @@ export function OrderLineForm({
               </TouchableOpacity>
             </View>
 
+            <View style={styles.fieldContainer}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Baskı</Text>
+              <TouchableOpacity
+                style={[
+                  styles.pickerButton,
+                  { backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
+                ]}
+                onPress={() => setBaskiPickerVisible(true)}
+              >
+                <Text style={[styles.pickerText, { color: colors.text }]}>
+                  {baskiDefinitionId != null
+                    ? baskiMap[baskiDefinitionId] || `#${baskiDefinitionId}`
+                    : isDefinitionOptionsLoading
+                      ? "Yükleniyor..."
+                      : "Baskı seçin"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
             {approvalStatus === 1 && approvalMessage && (
               <View style={[styles.approvalWarning, { backgroundColor: colors.warning + "20" }]}>
                 <Text style={[styles.approvalWarningText, { color: colors.warning }]}>
@@ -1296,6 +1328,16 @@ export function OrderLineForm({
       onClose={() => setVidaPickerVisible(false)}
       onSelect={(option) =>
         setVidaDefinitionId(typeof option.id === "number" ? option.id : Number(option.id) || null)
+      }
+    />
+    <PickerModal
+      visible={baskiPickerVisible}
+      title="Baskı seç"
+      options={baskiOptions}
+      selectedValue={baskiDefinitionId ?? undefined}
+      onClose={() => setBaskiPickerVisible(false)}
+      onSelect={(option) =>
+        setBaskiDefinitionId(typeof option.id === "number" ? option.id : Number(option.id) || null)
       }
     />
   </>

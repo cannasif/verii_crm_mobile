@@ -8,6 +8,7 @@ export { useCreateRevisionOfDemand } from "./useCreateRevisionOfDemand";
 export { useCreateDemandBulk } from "./useCreateDemandBulk";
 export { useUpdateDemandBulk } from "./useUpdateDemandBulk";
 export { useStartApprovalFlow } from "./useStartApprovalFlow";
+export { useCancelDemandByCustomer } from "./useCancelDemandByCustomer";
 export { usePriceRuleOfDemand } from "./usePriceRuleOfDemand";
 export { useUserDiscountLimitsBySalesperson } from "./useUserDiscountLimitsBySalesperson";
 export { useExchangeRate } from "./useExchangeRate";

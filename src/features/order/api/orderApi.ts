@@ -329,6 +329,23 @@ export const orderApi = {
     return response.data.data;
   },
 
+  cancelByCustomer: async (id: number, reason?: string | null): Promise<boolean> => {
+    const response = await apiClient.post<ApiResponse<boolean>>(
+      `/api/order/${id}/customer-cancel`,
+      { reason: reason?.trim() || null }
+    );
+
+    if (!response.data.success) {
+      throw new Error(
+        response.data.message ||
+          response.data.exceptionMessage ||
+          "Sipariş müşteri tarafından iptal edilemedi"
+      );
+    }
+
+    return response.data.data === true;
+  },
+
   getPriceRuleOfOrder: async (params: {
     customerCode: string;
     salesmenId: number;

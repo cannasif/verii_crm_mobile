@@ -386,7 +386,7 @@ export function OrderCreateScreen(): React.ReactElement {
     () => resolveLineListCurrencyLabel(watchedCurrency, currencyOptions ?? null),
     [watchedCurrency, currencyOptions]
   );
-  const { profilMap, demirMap, vidaMap } = useWindoDefinitionOptions();
+  const { profilMap, demirMap, vidaMap, baskiMap } = useWindoDefinitionOptions();
 
   const handleEditLine = useCallback(
     (line: OrderLineFormState) => {
@@ -1079,7 +1079,8 @@ export function OrderCreateScreen(): React.ReactElement {
                     [
                       l.profilDefinitionId ? `Profil: ${profilMap[l.profilDefinitionId] || `#${l.profilDefinitionId}`}` : "",
                       l.demirDefinitionId ? `Demir: ${demirMap[l.demirDefinitionId] || `#${l.demirDefinitionId}`}` : "",
-                      l.vidaDefinitionId ? `Vida: ${vidaMap[l.vidaDefinitionId] || `#${l.vidaDefinitionId}`}` : "",
+                      l.vidaDefinitionId ? `Vida: ${l.vidaDefinitionName || vidaMap[l.vidaDefinitionId] || `#${l.vidaDefinitionId}`}` : "",
+                      l.baskiDefinitionId ? `Baskı: ${l.baskiDefinitionName || baskiMap[l.baskiDefinitionId] || `#${l.baskiDefinitionId}`}` : "",
                     ]
                       .filter(Boolean)
                       .join(" · ");

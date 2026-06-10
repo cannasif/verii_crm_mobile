@@ -8,6 +8,7 @@ export { useCreateRevisionOfOrder } from "./useCreateRevisionOfOrder";
 export { useCreateOrderBulk } from "./useCreateOrderBulk";
 export { useUpdateOrderBulk } from "./useUpdateOrderBulk";
 export { useStartApprovalFlow } from "./useStartApprovalFlow";
+export { useCancelOrderByCustomer } from "./useCancelOrderByCustomer";
 export { usePriceRuleOfOrder } from "./usePriceRuleOfOrder";
 export { useUserDiscountLimitsBySalesperson } from "./useUserDiscountLimitsBySalesperson";
 export { useExchangeRate } from "./useExchangeRate";

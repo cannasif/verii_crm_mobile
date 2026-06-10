@@ -41,6 +41,7 @@ import {
 } from "hugeicons-react-native";
 import { stickyActionBarBottomPadding } from "../../../constants/layout";
 import { ScreenHeader } from "../../../components/navigation";
+import { CustomerCancellationReasonModal } from "../../../components/CustomerCancellationReasonModal";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { PermissionDeniedState } from "../../access-control/components/PermissionDeniedState";
@@ -69,6 +70,7 @@ import {
   useCreateOrderLines,
   useUpdateOrderLines,
   useUpdateOrderBulk,
+  useCancelOrderByCustomer,
 } from "../hooks";
 import {
   ExchangeRateDialog,
@@ -95,6 +97,8 @@ import {
   APPROVAL_WAITING,
   APPROVAL_APPROVED,
   APPROVAL_REJECTED,
+  APPROVAL_CLOSED,
+  APPROVAL_CUSTOMER_CANCELLED,
 } from "../types";
 import type { StockRelationDto } from "../../stocks/types";
 import {
@@ -111,6 +115,7 @@ import { calculateLineTotals, calculateTotals } from "../utils";
 import { resolveLineListCurrencyLabel } from "../../../lib/currencyDisplay";
 import { getApiBaseUrl } from "../../../constants/config";
 import { useDocumentDetailDirtyState } from "../../../hooks/useDocumentDetailDirtyState";
+import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida/hooks/useWindoDefinitionOptions";
 
 function resolveMobileImageUri(path?: string | null): string | null {
   if (!path) return null;
@@ -143,13 +148,14 @@ function formatRateTr(n: number): string {
   return v.toLocaleString("tr-TR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
-type StatusKind = "draft" | "pending" | "approved" | "rejected";
+type StatusKind = "draft" | "pending" | "approved" | "rejected" | "cancelled";
 
 function resolveStatusKind(status: number | null | undefined): StatusKind | null {
   if (status === APPROVAL_HAVENOT_STARTED) return "draft";
   if (status === APPROVAL_WAITING) return "pending";
   if (status === APPROVAL_APPROVED) return "approved";
   if (status === APPROVAL_REJECTED) return "rejected";
+  if (status === APPROVAL_CUSTOMER_CANCELLED) return "cancelled";
   return null;
 }
 
@@ -174,6 +180,12 @@ function StatusBadge({ kind, isDark }: StatusBadgeProps): React.ReactElement | n
           bg: isDark ? "rgba(244,114,182,0.16)" : "rgba(219,39,119,0.10)",
           border: isDark ? "rgba(244,114,182,0.40)" : "rgba(219,39,119,0.32)",
           icon: <Cancel01Icon size={16} color={isDark ? "#f472b6" : "#DB2777"} variant="stroke" strokeWidth={2.4} />,
+        };
+      case "cancelled":
+        return {
+          bg: isDark ? "rgba(244,114,182,0.16)" : "rgba(244,63,94,0.10)",
+          border: isDark ? "rgba(244,114,182,0.40)" : "rgba(244,63,94,0.32)",
+          icon: <Cancel01Icon size={16} color={isDark ? "#f472b6" : "#be123c"} variant="stroke" strokeWidth={2.4} />,
         };
       case "pending":
         return {
@@ -238,6 +250,7 @@ export function OrderDetailScreen(): React.ReactElement {
     error: detailErrorObj,
     refetch,
   } = useOrderDetail(isFocused ? orderId : undefined);
+  const { profilMap, demirMap, vidaMap, baskiMap } = useWindoDefinitionOptions();
 
   const formInitRef = useRef(false);
   const linesInitRef = useRef(false);
@@ -264,6 +277,7 @@ export function OrderDetailScreen(): React.ReactElement {
     (StockGetDto & { parentRelations: StockRelationDto[] }) | null
   >(null);
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
+  const [customerCancellationVisible, setCustomerCancellationVisible] = useState(false);
   const [selectedApprovalForReject, setSelectedApprovalForReject] = useState<ApprovalActionGetDto | null>(null);
   const [deleteLineDialogVisible, setDeleteLineDialogVisible] = useState(false);
   const [deleteLineId, setDeleteLineId] = useState<string | null>(null);
@@ -380,6 +394,7 @@ export function OrderDetailScreen(): React.ReactElement {
   });
 
   const startApproval = useStartApprovalFlow();
+  const cancelByCustomer = useCancelOrderByCustomer();
   const { data: waitingApprovalsData } = useWaitingApprovals();
   const approveAction = useApproveAction();
   const rejectAction = useRejectAction();
@@ -848,6 +863,23 @@ export function OrderDetailScreen(): React.ReactElement {
     );
   }, [orderId, startApproval, t]);
 
+  const handleCustomerCancel = useCallback(() => {
+    setCustomerCancellationVisible(true);
+  }, []);
+
+  const handleConfirmCustomerCancel = useCallback(
+    (reason: string) => {
+      if (!orderId) return;
+      cancelByCustomer.mutate(
+        { id: orderId, reason },
+        {
+          onSuccess: () => setCustomerCancellationVisible(false),
+        }
+      );
+    },
+    [cancelByCustomer, orderId]
+  );
+
   const onSaveUpdate = useCallback(
     async (formData: CreateOrderSchema) => {
       if (!orderId) return;
@@ -906,10 +938,19 @@ export function OrderDetailScreen(): React.ReactElement {
   }, [handleSubmit, onSaveUpdate, onInvalidSaveUpdate]);
 
   const pageTitle = header?.offerNo ?? (orderId != null ? `#${orderId}` : t("order.detail"));
-  const isReadonly = header?.status === APPROVAL_APPROVED || header?.status === APPROVAL_REJECTED;
+  const isReadonly =
+    header?.status === APPROVAL_APPROVED ||
+    header?.status === APPROVAL_REJECTED ||
+    header?.status === APPROVAL_CLOSED ||
+    header?.status === APPROVAL_CUSTOMER_CANCELLED;
   const showOnayaGonder = header?.status === APPROVAL_HAVENOT_STARTED;
   const showSaveUpdate = !isReadonly;
   const showApproveReject = header?.status === APPROVAL_WAITING;
+  const showCustomerCancel =
+    Boolean(header) &&
+    !header?.isERPIntegrated &&
+    header?.status !== APPROVAL_CLOSED &&
+    header?.status !== APPROVAL_CUSTOMER_CANCELLED;
 
   const statusKind = useMemo(() => resolveStatusKind(header?.status), [header?.status]);
 
@@ -1019,7 +1060,13 @@ export function OrderDetailScreen(): React.ReactElement {
 
   const renderLineRow = (l: OrderLineFormState, opts: { related?: boolean }): React.ReactElement => {
     const hasImage = Boolean(l.imagePath?.trim());
-    const descs = [l.description1, l.description2, l.description3].filter(Boolean).join(" Ã‚Â· ");
+    const descs = [l.description1, l.description2, l.description3].filter(Boolean).join(" · ");
+    const definitions = [
+      l.profilDefinitionId ? `Profil: ${profilMap[l.profilDefinitionId] ?? `#${l.profilDefinitionId}`}` : "",
+      l.demirDefinitionId ? `Demir: ${demirMap[l.demirDefinitionId] ?? `#${l.demirDefinitionId}`}` : "",
+      l.vidaDefinitionId ? `Vida: ${l.vidaDefinitionName ?? vidaMap[l.vidaDefinitionId] ?? `#${l.vidaDefinitionId}`}` : "",
+      l.baskiDefinitionId ? `Baskı: ${l.baskiDefinitionName ?? baskiMap[l.baskiDefinitionId] ?? `#${l.baskiDefinitionId}`}` : "",
+    ].filter(Boolean).join(" · ");
     const rates = [l.discountRate1, l.discountRate2, l.discountRate3]
       .filter((r) => r > 0)
       .map((r) => `${formatRateTr(r)}%`);
@@ -1061,6 +1108,11 @@ export function OrderDetailScreen(): React.ReactElement {
             {descs ? (
               <Text style={[styles.lineRowDesc, { color: softText }]} numberOfLines={1}>
                 {descs}
+              </Text>
+            ) : null}
+            {definitions ? (
+              <Text style={[styles.lineRowDesc, { color: softText }]} numberOfLines={1}>
+                {definitions}
               </Text>
             ) : null}
             <Text style={[styles.lineRowMeta, styles.lineRowMetaFine, { color: mutedText }]} numberOfLines={2}>
@@ -1686,6 +1738,30 @@ export function OrderDetailScreen(): React.ReactElement {
                       </LinearGradient>
                     </TouchableOpacity>
                   )}
+                  {showCustomerCancel && (
+                    <TouchableOpacity
+                      style={styles.actionFullButtonWrap}
+                      onPress={handleCustomerCancel}
+                      disabled={cancelByCustomer.isPending || updateOrderBulk.isPending}
+                      activeOpacity={0.9}
+                    >
+                      <LinearGradient
+                        colors={["#be123c", "#e11d48"]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.actionFullButton}
+                      >
+                        {cancelByCustomer.isPending ? (
+                          <ActivityIndicator color="#FFFFFF" />
+                        ) : (
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                            <Cancel01Icon size={18} color="#FFFFFF" variant="stroke" strokeWidth={2} />
+                            <Text style={styles.actionButtonText}>{t("order.customerCancelButton", "Müşteri İptali")}</Text>
+                          </View>
+                        )}
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  )}
                 </>
               )}
             </View>
@@ -1733,6 +1809,26 @@ export function OrderDetailScreen(): React.ReactElement {
             onClose={handleRejectModalClose}
             onConfirm={handleRejectConfirm}
             isPending={rejectAction.isPending}
+          />
+
+          <CustomerCancellationReasonModal
+            visible={customerCancellationVisible}
+            title={t("order.customerCancelTitle", "Müşteri iptali")}
+            description={t("order.customerCancelDescription", "Bu siparişi müşteri tarafından iptal edildi olarak işaretlemek üzeresiniz.")}
+            reasonLabel={t("order.customerCancelReasonLabel", "İptal nedeni")}
+            reasonPlaceholder={t("order.customerCancelReasonPlaceholder", "Müşterinin iptal nedenini yazın...")}
+            cancelLabel={t("common.cancel")}
+            confirmLabel={t("order.customerCancelConfirmButton", "İptal Et")}
+            isPending={cancelByCustomer.isPending}
+            colors={{
+              card: shellBgAlt,
+              text: titleText,
+              textSecondary: mutedText,
+              textMuted: softText,
+              border: innerBorder,
+            }}
+            onClose={() => setCustomerCancellationVisible(false)}
+            onConfirm={handleConfirmCustomerCancel}
           />
 
           <Modal visible={deleteLineDialogVisible} transparent animationType="fade">
