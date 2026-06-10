@@ -13,6 +13,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { createClientId } from "@/lib/create-client-id";
+import { getValidRelatedProductGroup } from "@/lib/relatedProductGroup";
 import { resolveDocumentSerialCustomerTypeId } from "@/lib/resolve-document-serial-customer-type-id";
 import { resolveExchangeRateByCurrency as findExchangeRateByCurrency } from "@/lib/resolve-exchange-rate";
 import { flattenDocumentLinesForBulk } from "@/lib/flattenDocumentLinesForBulk";
@@ -706,11 +707,10 @@ export function OrderDetailScreen(): React.ReactElement {
     }
     setLines((prev) => {
       const toDelete = prev.find((line) => line.id === lineId);
-      const relatedProductKey = toDelete?.relatedProductKey?.trim();
-      if (relatedProductKey) {
-        return prev.filter(
-          (line) => line.id !== lineId && line.relatedProductKey?.trim() !== relatedProductKey
-        );
+      const relatedGroup = getValidRelatedProductGroup(prev, toDelete);
+      if (relatedGroup.length > 0) {
+        const relatedGroupIds = new Set(relatedGroup.map((line) => line.id));
+        return prev.filter((line) => !relatedGroupIds.has(line.id));
       }
       if (toDelete?.relatedLines && toDelete.relatedLines.length > 0) {
         const relatedIds = toDelete.relatedLines.map((rl) => rl.id);
@@ -1842,10 +1842,7 @@ export function OrderDetailScreen(): React.ReactElement {
                 <Text style={[styles.deleteConfirmTitle, { color: titleText }]}>
                   {deleteLineId != null && (() => {
                     const lineToDelete = lines.find((l) => l.id === deleteLineId);
-                    const relatedProductKey = lineToDelete?.relatedProductKey?.trim();
-                    const sameGroup = relatedProductKey
-                      ? lines.filter((l) => l.relatedProductKey?.trim() === relatedProductKey)
-                      : [];
+                    const sameGroup = getValidRelatedProductGroup(lines, lineToDelete);
                     const relatedCount = sameGroup.length - 1;
                     return relatedCount > 0
                       ? t("order.deleteRelatedGroupTitle")
@@ -1855,10 +1852,7 @@ export function OrderDetailScreen(): React.ReactElement {
                 <Text style={[styles.deleteConfirmMessage, { color: mutedText }]}>
                   {deleteLineId != null && (() => {
                     const lineToDelete = lines.find((l) => l.id === deleteLineId);
-                    const relatedProductKey = lineToDelete?.relatedProductKey?.trim();
-                    const sameGroup = relatedProductKey
-                      ? lines.filter((l) => l.relatedProductKey?.trim() === relatedProductKey)
-                      : [];
+                    const sameGroup = getValidRelatedProductGroup(lines, lineToDelete);
                     const relatedCount = sameGroup.length - 1;
                     return relatedCount > 0
                       ? t("order.deleteRelatedGroupMessage", { count: relatedCount })

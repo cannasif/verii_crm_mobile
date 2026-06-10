@@ -15,6 +15,7 @@ import {
 import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { createClientId } from "@/lib/create-client-id";
 import { resolveDocumentSerialCustomerTypeId } from "@/lib/resolve-document-serial-customer-type-id";
+import { getValidRelatedProductGroup } from "@/lib/relatedProductGroup";
 import { parseDecimalInput, sanitizeDecimalInput } from "@/lib/decimal-input";
 import {
   buildEffectiveExchangeRates,
@@ -792,13 +793,10 @@ export function QuotationCreateScreen(): React.ReactElement {
           onPress: () => {
             setLines((prev) => {
               const lineToDelete = prev.find((line) => line.id === lineId);
-              const relatedProductKey = lineToDelete?.relatedProductKey?.trim();
-              if (relatedProductKey) {
-                return prev.filter(
-                  (line) =>
-                    line.id !== lineId &&
-                    line.relatedProductKey?.trim() !== relatedProductKey
-                );
+              const relatedGroup = getValidRelatedProductGroup(prev, lineToDelete);
+              if (relatedGroup.length > 0) {
+                const relatedGroupIds = new Set(relatedGroup.map((line) => line.id));
+                return prev.filter((line) => !relatedGroupIds.has(line.id));
               }
               if (lineToDelete?.relatedLines && lineToDelete.relatedLines.length > 0) {
                 const relatedIds = lineToDelete.relatedLines.map((rl) => rl.id);

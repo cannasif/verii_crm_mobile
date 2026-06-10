@@ -16,6 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import * as Sharing from "expo-sharing";
 import { Edit02Icon, Delete02Icon, Coins01Icon, File01Icon } from "hugeicons-react-native";
+import { getValidRelatedProductGroup } from "@/lib/relatedProductGroup";
 
 import { ScreenHeader } from "../../../components/navigation";
 import { Text } from "../../../components/ui/text";
@@ -584,10 +585,10 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
   const handleDeleteLine = useCallback((lineId: string) => {
     setLines((prev) => {
       const lineToDelete = prev.find((line) => line.id === lineId);
-      if (lineToDelete?.relatedProductKey) {
-        return prev.filter(
-          (line) => line.id !== lineId && line.relatedProductKey !== lineToDelete.relatedProductKey
-        );
+      const relatedGroup = getValidRelatedProductGroup(prev, lineToDelete);
+      if (relatedGroup.length > 0) {
+        const relatedGroupIds = new Set(relatedGroup.map((line) => line.id));
+        return prev.filter((line) => !relatedGroupIds.has(line.id));
       }
       return prev.filter((line) => line.id !== lineId);
     });
@@ -626,7 +627,7 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
           approvalStatus: 0,
           isEditing: false,
           relatedStockId: product.id ?? null,
-          relatedProductKey: product.id != null ? `main-${product.id}-m${index}` : null,
+          relatedProductKey: null,
           isMainRelatedProduct: true,
         })
       );
