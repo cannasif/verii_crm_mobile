@@ -28,6 +28,7 @@ import { useStock } from "../../stocks/hooks";
 import { parseDecimalInput, sanitizeDecimalInput } from "../../../lib/decimal-input";
 import { getApiBaseUrl } from "../../../constants/config";
 import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida/hooks/useWindoDefinitionOptions";
+import { BaskiQuickCreateModal } from "../../windo-profil-demir-vida/components/BaskiQuickCreateModal";
 import type {
   QuotationLineFormState,
   PricingRuleLineGetDto,
@@ -212,6 +213,7 @@ export function QuotationLineForm({
   const [demirPickerVisible, setDemirPickerVisible] = useState(false);
   const [vidaPickerVisible, setVidaPickerVisible] = useState(false);
   const [baskiPickerVisible, setBaskiPickerVisible] = useState(false);
+  const [baskiCreateVisible, setBaskiCreateVisible] = useState(false);
   const productPickerRef = useRef<ProductPickerRef>(null);
   const prevLineFormVisibleRef = useRef(false);
   const lastHydratedLineIdRef = useRef<string | null>(null);
@@ -1462,6 +1464,13 @@ export function QuotationLineForm({
                             {baskiDefinitionId ? baskiMap[baskiDefinitionId] ?? `#${baskiDefinitionId}` : "Baskı seç"}
                           </Text>
                         </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.quickCreateButton}
+                          onPress={() => setBaskiCreateVisible(true)}
+                          activeOpacity={0.82}
+                        >
+                          <Text style={[styles.quickCreateButtonText, { color: brandColor }]}>+ Yeni baskı ekle</Text>
+                        </TouchableOpacity>
                       </View>
                     </View>
                   </View>
@@ -1727,6 +1736,11 @@ export function QuotationLineForm({
         searchPlaceholder="Baskı ara..."
         isLoading={isDefinitionOptionsLoading}
       />
+      <BaskiQuickCreateModal
+        visible={baskiCreateVisible}
+        onClose={() => setBaskiCreateVisible(false)}
+        onCreated={(item) => setBaskiDefinitionId(item.id)}
+      />
     </>
   );
 }
@@ -1860,6 +1874,16 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     minHeight: 42,
     justifyContent: "center",
+  },
+  quickCreateButton: {
+    alignSelf: "flex-start",
+    marginTop: 6,
+    paddingHorizontal: 2,
+    paddingVertical: 4,
+  },
+  quickCreateButtonText: {
+    fontSize: 12,
+    fontWeight: "800",
   },
   pickerText: {
     fontSize: 12.5,

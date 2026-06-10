@@ -28,6 +28,7 @@ import { useStock } from "../../stocks/hooks";
 import { parseDecimalInput, sanitizeDecimalInput } from "../../../lib/decimal-input";
 import { getApiBaseUrl } from "../../../constants/config";
 import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida/hooks/useWindoDefinitionOptions";
+import { BaskiQuickCreateModal } from "../../windo-profil-demir-vida/components/BaskiQuickCreateModal";
 import type {
   DemandLineFormState,
   PricingRuleLineGetDto,
@@ -126,6 +127,7 @@ export function DemandLineForm({
   const [demirPickerVisible, setDemirPickerVisible] = useState(false);
   const [vidaPickerVisible, setVidaPickerVisible] = useState(false);
   const [baskiPickerVisible, setBaskiPickerVisible] = useState(false);
+  const [baskiCreateVisible, setBaskiCreateVisible] = useState(false);
   const productPickerRef = useRef<ProductPickerRef>(null);
   const {
     profilOptions,
@@ -1205,6 +1207,13 @@ export function DemandLineForm({
                       : "Baskı seçin"}
                 </Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickCreateButton}
+                onPress={() => setBaskiCreateVisible(true)}
+                activeOpacity={0.82}
+              >
+                <Text style={[styles.quickCreateButtonText, { color: colors.accent }]}>+ Yeni baskı ekle</Text>
+              </TouchableOpacity>
             </View>
 
             {approvalStatus === 1 && approvalMessage && (
@@ -1340,6 +1349,11 @@ export function DemandLineForm({
         setBaskiDefinitionId(typeof option.id === "number" ? option.id : Number(option.id) || null)
       }
     />
+    <BaskiQuickCreateModal
+      visible={baskiCreateVisible}
+      onClose={() => setBaskiCreateVisible(false)}
+      onCreated={(item) => setBaskiDefinitionId(item.id)}
+    />
   </>
   );
 }
@@ -1470,6 +1484,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     justifyContent: "center",
+  },
+  quickCreateButton: {
+    alignSelf: "flex-start",
+    marginTop: 6,
+    paddingHorizontal: 2,
+    paddingVertical: 4,
+  },
+  quickCreateButtonText: {
+    fontSize: 12,
+    fontWeight: "800",
   },
   pickerText: {
     fontSize: 15,
