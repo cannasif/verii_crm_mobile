@@ -11,6 +11,7 @@ import {
   Platform,
 } from "react-native";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
+import { createClientId } from "@/lib/create-client-id";
 import { resolveDocumentSerialCustomerTypeId } from "@/lib/resolve-document-serial-customer-type-id";
 import { resolveExchangeRateByCurrency as findExchangeRateByCurrency } from "@/lib/resolve-exchange-rate";
 import { resolveLineListCurrencyLabel } from "../../../lib/currencyDisplay";
@@ -500,6 +501,7 @@ export function OrderCreateScreen(): React.ReactElement {
       const mainUnitPrice = mainPrice
         ? applyCurrencyToPrice(mainPrice.listPrice, mainPrice.currency)
         : 0;
+      const relatedProductKey = createClientId(`main-${stock.id}`);
       const mainLine: OrderLineFormState = calculateLineTotals({
         id: `temp-${Date.now()}`,
         productId: stock.id,
@@ -519,7 +521,7 @@ export function OrderCreateScreen(): React.ReactElement {
         lineTotal: 0,
         lineGrandTotal: 0,
         relatedStockId: stock.id,
-        relatedProductKey: `main-${stock.id}`,
+        relatedProductKey,
         isMainRelatedProduct: true,
         isEditing: false,
       });
@@ -550,7 +552,7 @@ export function OrderCreateScreen(): React.ReactElement {
             lineTotal: 0,
             lineGrandTotal: 0,
             relatedStockId: stock.id,
-            relatedProductKey: `main-${stock.id}`,
+            relatedProductKey,
             isMainRelatedProduct: false,
             isEditing: false,
             relationQuantity: relation.quantity,
@@ -575,9 +577,10 @@ export function OrderCreateScreen(): React.ReactElement {
           onPress: () => {
             setLines((prev) => {
               const lineToDelete = prev.find((line) => line.id === lineId);
-              if (lineToDelete?.relatedProductKey) {
+              const relatedProductKey = lineToDelete?.relatedProductKey?.trim();
+              if (relatedProductKey) {
                 return prev.filter(
-                  (line) => line.id !== lineId && line.relatedProductKey !== lineToDelete.relatedProductKey
+                  (line) => line.id !== lineId && line.relatedProductKey?.trim() !== relatedProductKey
                 );
               }
               if (lineToDelete?.relatedLines && lineToDelete.relatedLines.length > 0) {
@@ -627,7 +630,7 @@ export function OrderCreateScreen(): React.ReactElement {
           lineGrandTotal: 0,
           isEditing: false,
           relatedStockId: product.id ?? null,
-          relatedProductKey: product.id != null ? `main-${product.id}-m${index}` : null,
+          relatedProductKey: null,
           isMainRelatedProduct: true,
         });
       });

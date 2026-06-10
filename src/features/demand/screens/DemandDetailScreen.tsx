@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
+import { createClientId } from "@/lib/create-client-id";
 import { resolveDocumentSerialCustomerTypeId } from "@/lib/resolve-document-serial-customer-type-id";
 import { resolveExchangeRateByCurrency as findExchangeRateByCurrency } from "@/lib/resolve-exchange-rate";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -663,9 +664,10 @@ export function DemandDetailScreen(): React.ReactElement {
     }
     setLines((prev) => {
       const toDelete = prev.find((line) => line.id === lineId);
-      if (toDelete?.relatedProductKey) {
+      const relatedProductKey = toDelete?.relatedProductKey?.trim();
+      if (relatedProductKey) {
         return prev.filter(
-          (line) => line.id !== lineId && line.relatedProductKey !== toDelete.relatedProductKey
+          (line) => line.id !== lineId && line.relatedProductKey?.trim() !== relatedProductKey
         );
       }
       if (toDelete?.relatedLines && toDelete.relatedLines.length > 0) {
@@ -741,6 +743,7 @@ export function DemandDetailScreen(): React.ReactElement {
       const mainUnitPrice = mainPrice
         ? applyCurrencyToPrice(mainPrice.listPrice, mainPrice.currency)
         : 0;
+      const relatedProductKey = createClientId(`main-${stock.id}`);
       const mainLine: DemandLineFormState = calculateLineTotals({
         id: `temp-${Date.now()}`,
         productId: stock.id,
@@ -760,7 +763,7 @@ export function DemandDetailScreen(): React.ReactElement {
         lineTotal: 0,
         lineGrandTotal: 0,
         relatedStockId: stock.id,
-        relatedProductKey: `main-${stock.id}`,
+        relatedProductKey,
         isMainRelatedProduct: true,
         isEditing: false,
       });
@@ -791,7 +794,7 @@ export function DemandDetailScreen(): React.ReactElement {
             lineTotal: 0,
             lineGrandTotal: 0,
             relatedStockId: stock.id,
-            relatedProductKey: `main-${stock.id}`,
+            relatedProductKey,
             isMainRelatedProduct: false,
             isEditing: false,
             relationQuantity: relation.quantity,
@@ -1628,8 +1631,9 @@ export function DemandDetailScreen(): React.ReactElement {
                 <Text style={[styles.deleteConfirmTitle, { color: titleText }]}>
                   {deleteLineId != null && (() => {
                     const lineToDelete = lines.find((l) => l.id === deleteLineId);
-                    const sameGroup = lineToDelete?.relatedProductKey
-                      ? lines.filter((l) => l.relatedProductKey === lineToDelete.relatedProductKey)
+                    const relatedProductKey = lineToDelete?.relatedProductKey?.trim();
+                    const sameGroup = relatedProductKey
+                      ? lines.filter((l) => l.relatedProductKey?.trim() === relatedProductKey)
                       : [];
                     const relatedCount = sameGroup.length - 1;
                     return relatedCount > 0
@@ -1640,8 +1644,9 @@ export function DemandDetailScreen(): React.ReactElement {
                 <Text style={[styles.deleteConfirmMessage, { color: mutedText }]}>
                   {deleteLineId != null && (() => {
                     const lineToDelete = lines.find((l) => l.id === deleteLineId);
-                    const sameGroup = lineToDelete?.relatedProductKey
-                      ? lines.filter((l) => l.relatedProductKey === lineToDelete.relatedProductKey)
+                    const relatedProductKey = lineToDelete?.relatedProductKey?.trim();
+                    const sameGroup = relatedProductKey
+                      ? lines.filter((l) => l.relatedProductKey?.trim() === relatedProductKey)
                       : [];
                     const relatedCount = sameGroup.length - 1;
                     return relatedCount > 0

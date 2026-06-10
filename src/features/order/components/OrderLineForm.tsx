@@ -181,7 +181,7 @@ export function OrderLineForm({
       isEditing: false,
       approvalStatus,
       relatedStockId: line?.relatedStockId ?? selectedStock?.id ?? null,
-      relatedProductKey: line?.relatedProductKey ?? (selectedStock ? `main-${selectedStock.id}` : undefined),
+      relatedProductKey: line?.relatedProductKey ?? null,
       isMainRelatedProduct: line?.isMainRelatedProduct ?? true,
     };
 
