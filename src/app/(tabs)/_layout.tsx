@@ -12,6 +12,8 @@ export default function TabsLayout(): React.ReactElement {
   const pathname = usePathname();
   const hideNavBarByRoute =
     pathname === "/settings" ||
+    pathname === "/app-settings" ||
+    pathname === "/api-url-settings" ||
     pathname === "/integrations-settings" ||
     pathname === "/access-control-simulator";
 

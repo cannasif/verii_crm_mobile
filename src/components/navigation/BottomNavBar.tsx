@@ -58,24 +58,24 @@ export function BottomNavBar(): React.ReactElement {
   const isDark = themeMode === "dark";
 
   const THEME = {
-    bg: isDark ? "#0f0518" : colors.navBar || "#FFFFFF",
+    bg: colors.navBar,
     iconBg: isDark ? "#1E122D" : "#FFFFFF", 
     iconBorder: isDark ? "rgba(219, 39, 119, 0.4)" : "rgba(219, 39, 119, 0.15)",
-    navTopBorder: isDark ? "rgba(255, 255, 255, 0.24)" : "#94A3B8",
+    navTopBorder: colors.navBarBorder,
     backdropBg: isDark ? "rgba(0, 0, 0, 0.6)" : "rgba(255, 255, 255, 0.3)",
 
-    active: isDark ? "#db2777" : "#db2777",
+    active: colors.accent,
     fabGradient: isDark
       ? (["#ea580c", "#e11d48", "#be185d"] as const)
       : (["#fdba74", "#fb7185", "#f472b6"] as const),
     fabShadow: isDark ? "#be185d" : "#fb7185",
     fabRing: isDark ? "rgba(251, 146, 60, 0.35)" : "rgba(251, 113, 133, 0.4)",
 
-    inactive: isDark ? "#94a3b8" : "#64748B",
+    inactive: colors.textMuted,
     sheetBg: isDark ? "#160B24" : "#FFFFFF",
-    sheetBorder: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
-    text: isDark ? "#F8FAFC" : "#1E293B",
-    textMute: isDark ? "#94A3B8" : "#64748B",
+    sheetBorder: colors.border,
+    text: colors.text,
+    textMute: colors.textSecondary,
   };
 
   const isActive = (route: string): boolean => {

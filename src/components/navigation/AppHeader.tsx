@@ -17,7 +17,7 @@ export function AppHeader(): React.ReactElement {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   
-  const { colors, openSidebar, themeMode } = useUIStore();
+  const { openSidebar, themeMode } = useUIStore();
   const { user, branch, clearAuth } = useAuthStore(); 
 
   const isDark = themeMode === "dark";

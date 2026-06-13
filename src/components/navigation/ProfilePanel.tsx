@@ -203,11 +203,11 @@ export default function ProfilePanel({
                 <ArrowRight01Icon size={18} color={colors.textMuted} />
               </TouchableOpacity>
               <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
-              <TouchableOpacity style={styles.menuRow} onPress={() => handleMenuItemPress("/integrations-settings")}>
-                <View style={[styles.iconBox, { backgroundColor: "rgba(16, 185, 129, 0.1)" }]}>
-                  <Mail01Icon size={20} color="#10B981" variant="stroke" />
+              <TouchableOpacity style={styles.menuRow} onPress={() => handleMenuItemPress("/app-settings")}>
+                <View style={[styles.iconBox, { backgroundColor: "rgba(245, 158, 11, 0.1)" }]}>
+                  <Settings02Icon size={20} color="#F59E0B" variant="stroke" />
                 </View>
-                <Text style={[styles.menuText, { color: colors.text }]}>{t("profile.integrationSettings")}</Text>
+                <Text style={[styles.menuText, { color: colors.text }]}>{t("profile.appSettings")}</Text>
                 <ArrowRight01Icon size={18} color={colors.textMuted} />
               </TouchableOpacity>
             </MenuGroup>

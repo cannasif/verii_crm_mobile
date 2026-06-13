@@ -43,6 +43,8 @@ export const MOBILE_ROUTE_PERMISSION_RULES: MobileRoutePermissionRule[] = [
   { pattern: /^\/sales\/quotations\/waiting-approvals$/, requiredCodes: ["sales.quotations.approve"] },
   { pattern: /^\/sales\/quotations(\/.*)?$/, requiredCodes: ["sales.quotations.view"] },
 
+  { pattern: /^\/sales\/orders\/erp(\/.*)?$/, requiredCodes: ["sales.erp-orders.view"] },
+
   { pattern: /^\/sales\/orders\/create$/, requiredCodes: ["sales.orders.create"] },
   { pattern: /^\/sales\/orders\/waiting-approvals$/, requiredCodes: ["sales.orders.approve"] },
   { pattern: /^\/sales\/orders(\/.*)?$/, requiredCodes: ["sales.orders.view"] },

@@ -20,6 +20,7 @@ import { Text } from "../ui/text";
 import { useUIStore } from "../../store/ui";
 import { useAuthStore } from "../../store/auth";
 import { hasAnyPermission } from "../../features/access-control/utils/hasPermission";
+import { SHOW_ERP_CUSTOMERS_MENU } from "@/constants/config";
 
 import { 
   Cancel01Icon,
@@ -36,7 +37,8 @@ import {
   Note01Icon,            
   PackageIcon,           
   Calendar03Icon,        
-  TaskDaily01Icon        
+  TaskDaily01Icon,
+  File02Icon,
 } from "hugeicons-react-native";
 
 const LOCAL_LOGO = require("../../../assets/veriicrmlogo.png");
@@ -72,9 +74,12 @@ export function Sidebar(): React.ReactElement {
     { key: "contacts", title: t("customerMenu.contacts"), icon: ContactIcon, route: "/customers/contacts", permissionCodes: ["customers.contact-management.view"] },
     { key: "shipping", title: t("customerMenu.shippingAddresses"), icon: TruckIcon, route: "/customers/shipping", permissionCodes: ["definitions.shipping-address-management.view"] },
     { key: "titles", title: t("customerMenu.titles"), icon: LicenseIcon, route: "/customers/titles", permissionCodes: ["customers.customer-type-management.view"] },
-    { key: "erp", title: t("customerMenu.erpCustomers"), icon: Globe02Icon, route: "/customers/erp", permissionCodes: ["customers.erp-customers.view"] },
+    ...(SHOW_ERP_CUSTOMERS_MENU
+      ? [{ key: "erp", title: t("customerMenu.erpCustomers"), icon: Globe02Icon, route: "/customers/erp", permissionCodes: ["customers.erp-customers.view"] }]
+      : []),
     { key: "sales_header", title: t("modules.sales"), isHeader: true },
     { key: "orders", title: t("sales.orderList"), icon: ShoppingCart01Icon, route: "/sales/orders", permissionCodes: ["sales.orders.view"] },
+    { key: "erpOrders", title: t("sales.erpOrderList"), icon: File02Icon, route: "/sales/orders/erp", permissionCodes: ["sales.erp-orders.view"] },
     { key: "quotations", title: t("sales.quotationList"), icon: Invoice01Icon, route: "/sales/quotations", permissionCodes: ["sales.quotations.view"] },
     { key: "demands", title: t("sales.demandList"), icon: Note01Icon, route: "/sales/demands", permissionCodes: ["sales.demands.view"] },
     { key: "stock_header", title: t("stockMenu.title"), isHeader: true },
