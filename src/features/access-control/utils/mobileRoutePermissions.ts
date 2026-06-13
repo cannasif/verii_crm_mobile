@@ -51,6 +51,8 @@ export const MOBILE_ROUTE_PERMISSION_RULES: MobileRoutePermissionRule[] = [
   { pattern: /^\/sales\/demands\/waiting-approvals$/, requiredCodes: ["sales.demands.approve"] },
   { pattern: /^\/sales\/demands(\/.*)?$/, requiredCodes: ["sales.demands.view"] },
 
+  { pattern: /^\/sales\/sales-kpi$/, requiredCodes: ["salesmen360.overview.view"] },
+
   { pattern: /^\/sales(\/.*)?$/, requiredCodes: SALES_VIEW_CODES, mode: "any" },
 
   { pattern: /^\/activities\/create$/, requiredCodes: ["activity.activity-management.create"] },
