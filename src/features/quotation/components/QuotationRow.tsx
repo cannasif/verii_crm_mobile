@@ -1,26 +1,27 @@
 import React, { memo, useMemo } from "react";
-import { View, TouchableOpacity, StyleSheet, type GestureResponderEvent } from "react-native";
+import {
+  View,
+  TouchableOpacity,
+  StyleSheet,
+  Pressable,
+  type GestureResponderEvent,
+} from "react-native";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useTranslation } from "react-i18next";
-import {
-  Mail01Icon,
-  UserIcon,
-  Coins01Icon,
-  Calendar03Icon,
-} from "hugeicons-react-native";
+import { UserIcon, Calendar03Icon, Coins01Icon } from "hugeicons-react-native";
 import type { QuotationGetDto } from "../types";
-import { formatCurrencyBySettings, getCurrencyDisplayLabel } from "../../../lib/currencyDisplay";
+import { formatNumberBySettings, getCurrencyDisplayLabel, stripCurrencySuffixFromDisplay } from "../../../lib/currencyDisplay";
 import { formatSystemDate } from "../../../lib/systemSettings";
 import { resolveDocumentApprovalStatusMeta } from "../../../lib/documentApprovalStatus";
+import { useToastStore } from "../../../store/toast";
+import { ApprovalStatus } from "../../../lib/documentApprovalFilter";
 
 interface QuotationRowProps {
   quotation: QuotationGetDto;
+  paymentTypeLabel: string;
   onPress: (id: number) => void;
-  onRevision: (e: GestureResponderEvent, id: number) => void;
-  onGoogleMail: (e: GestureResponderEvent, quotation: QuotationGetDto) => void;
-  onOutlookMail: (e: GestureResponderEvent, quotation: QuotationGetDto) => void;
-  isPending: boolean;
+  onMenuPress: (e: GestureResponderEvent, quotation: QuotationGetDto) => void;
 }
 
 function formatDate(dateString: string | null | undefined): string {
@@ -28,7 +29,6 @@ function formatDate(dateString: string | null | undefined): string {
   return formatSystemDate(dateString);
 }
 
-/** API bazen string veya eksik değer döndürebilir; NaN üretmemek için. */
 function parseAmount(raw: unknown): number | null {
   if (raw === null || raw === undefined) return null;
   if (typeof raw === "number") return Number.isFinite(raw) ? raw : null;
@@ -40,63 +40,57 @@ function parseAmount(raw: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-function formatCurrency(amount: unknown, currencyCode: string | null | undefined): string {
+function formatAmountOnly(amount: unknown): string {
   const n = parseAmount(amount);
   if (n === null) return "-";
-  return formatCurrencyBySettings(n, currencyCode);
+  return formatNumberBySettings(n, 2, 2);
+}
+
+function resolveRowCurrencyLabel(quotation: QuotationGetDto): string {
+  const fromDisplay = quotation.currencyDisplay?.trim();
+  if (fromDisplay) {
+    const cleaned = fromDisplay
+      .replace(/\s*\(\d+\)\s*/g, "")
+      .replace(/\s*Döviz\s*/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (cleaned) return cleaned;
+  }
+  return getCurrencyDisplayLabel(quotation.currencyCode ?? quotation.currency);
 }
 
 function QuotationRowComponent({
   quotation,
+  paymentTypeLabel,
   onPress,
-  onRevision,
-  onGoogleMail,
-  onOutlookMail,
-  isPending,
+  onMenuPress,
 }: QuotationRowProps): React.ReactElement {
   const { themeMode } = useUIStore();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const isDark = themeMode === "dark";
 
   const colors = useMemo(
     () => ({
       cardBg: isDark ? "rgba(17,17,24,0.95)" : "rgba(255,255,255,0.98)",
-      border: isDark ? "rgba(255,255,255,0.16)" : "rgba(148,163,184,0.26)",
+      border: isDark ? "rgba(236,72,153,0.20)" : "rgba(219,39,119,0.14)",
       borderStrong: isDark ? "rgba(236,72,153,0.28)" : "rgba(219,39,119,0.22)",
       brand: isDark ? "#EC4899" : "#DB2777",
-      brandSoft: isDark ? "rgba(236,72,153,0.10)" : "rgba(219,39,119,0.08)",
+      brandSoft: isDark ? "rgba(236,72,153,0.10)" : "rgba(219,39,119,0.07)",
       text: isDark ? "#F8FAFC" : "#0F172A",
       muted: isDark ? "#94A3B8" : "#64748B",
-      blue: "#38BDF8",
-      blueSoft: "rgba(56,189,248,0.10)",
-      softBg: isDark ? "rgba(255,255,255,0.035)" : "#F8FAFC",
       shadow: isDark ? "#000000" : "#0F172A",
-      green: "#10B981",
-      greenSoft: "rgba(16,185,129,0.10)",
+      menuBg: isDark ? "rgba(236,72,153,0.08)" : "rgba(219,39,119,0.05)",
+      menuBorder: isDark ? "rgba(236,72,153,0.24)" : "rgba(219,39,119,0.18)",
+      violet: isDark ? "#C4B5FD" : "#7C3AED",
+      violetSoft: isDark ? "rgba(167,139,250,0.14)" : "rgba(124,58,237,0.08)",
+      violetBorder: isDark ? "rgba(167,139,250,0.28)" : "rgba(124,58,237,0.18)",
+      blue: isDark ? "#7DD3FC" : "#0284C7",
+      blueSoft: isDark ? "rgba(56,189,248,0.12)" : "rgba(14,165,233,0.08)",
+      blueBorder: isDark ? "rgba(56,189,248,0.28)" : "rgba(14,165,233,0.18)",
     }),
     [isDark]
   );
 
-  const handleRowPress = (): void => {
-    onPress(quotation.id);
-  };
-
-  const handleRevisionPress = (e: GestureResponderEvent): void => {
-    e.stopPropagation();
-    onRevision(e, quotation.id);
-  };
-
-  const handleGoogleMailPress = (e: GestureResponderEvent): void => {
-    e.stopPropagation();
-    onGoogleMail(e, quotation);
-  };
-
-  const handleOutlookMailPress = (e: GestureResponderEvent): void => {
-    e.stopPropagation();
-    onOutlookMail(e, quotation);
-  };
-
-  const canRevise = quotation.status === 0 || quotation.status === 3;
   const statusMeta = resolveDocumentApprovalStatusMeta(
     quotation.status,
     isDark,
@@ -104,13 +98,44 @@ function QuotationRowComponent({
     "quotation"
   );
 
-  const totalFormatted =
-    quotation.grandTotalDisplay?.trim() ||
-    formatCurrency(quotation.grandTotal, quotation.currencyCode || quotation.currency);
+  const currencyLabel = useMemo(
+    () => resolveRowCurrencyLabel(quotation),
+    [quotation]
+  );
+
+  const amountText = useMemo(() => {
+    const display = quotation.grandTotalDisplay?.trim();
+    if (display) {
+      return stripCurrencySuffixFromDisplay(display, currencyLabel);
+    }
+    return formatAmountOnly(quotation.grandTotal);
+  }, [currencyLabel, quotation.grandTotal, quotation.grandTotalDisplay]);
+
+  const paymentChipValue = paymentTypeLabel;
+
+  const showToast = useToastStore((state) => state.showToast);
+  const cancellationReason = quotation.cancellationReason?.trim();
+  const canShowCancellationReason =
+    quotation.status === ApprovalStatus.CustomerCancelled && Boolean(cancellationReason);
+
+  const handleStatusPress = (e: GestureResponderEvent): void => {
+    e.stopPropagation();
+    if (!canShowCancellationReason || !cancellationReason) return;
+    showToast("info", cancellationReason);
+  };
+
+  const handleRowPress = (): void => {
+    onPress(quotation.id);
+  };
+
+  const handleMenuPress = (e: GestureResponderEvent): void => {
+    e.stopPropagation();
+    onMenuPress(e, quotation);
+  };
 
   return (
     <TouchableOpacity
-      activeOpacity={0.88}
+      activeOpacity={0.9}
       onPress={handleRowPress}
       style={[
         styles.card,
@@ -121,8 +146,8 @@ function QuotationRowComponent({
         },
       ]}
     >
-      <View style={styles.cardHeader}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
+      <View style={styles.topRow}>
+        <View style={styles.idColumn}>
           <View
             style={[
               styles.idBadge,
@@ -135,155 +160,139 @@ function QuotationRowComponent({
             <Text style={[styles.idText, { color: colors.brand }]}>#{quotation.id}</Text>
           </View>
           {quotation.offerNo ? (
-            <Text style={[styles.offerNoInline, { color: colors.muted }]} numberOfLines={1}>
+            <Text style={[styles.offerNoText, { color: colors.muted }]} numberOfLines={1}>
               {quotation.offerNo}
             </Text>
           ) : null}
         </View>
 
-        <View
-          style={[
-            styles.statusPill,
-            {
-              backgroundColor: statusMeta.backgroundColor,
-              borderColor: statusMeta.borderColor,
-            },
-          ]}
-        >
-          <View style={[styles.statusDot, { backgroundColor: statusMeta.color }]} />
-          <Text style={[styles.statusText, { color: statusMeta.color }]}>{statusMeta.label}</Text>
-        </View>
+        {canShowCancellationReason ? (
+          <Pressable
+            onPress={handleStatusPress}
+            hitSlop={6}
+            style={[
+              styles.statusPill,
+              {
+                backgroundColor: statusMeta.backgroundColor,
+                borderColor: statusMeta.borderColor,
+              },
+            ]}
+          >
+            <View style={[styles.statusDot, { backgroundColor: statusMeta.color }]} />
+            <Text style={[styles.statusText, { color: statusMeta.color }]}>{statusMeta.label}</Text>
+          </Pressable>
+        ) : (
+          <View
+            style={[
+              styles.statusPill,
+              {
+                backgroundColor: statusMeta.backgroundColor,
+                borderColor: statusMeta.borderColor,
+              },
+            ]}
+          >
+            <View style={[styles.statusDot, { backgroundColor: statusMeta.color }]} />
+            <Text style={[styles.statusText, { color: statusMeta.color }]}>{statusMeta.label}</Text>
+          </View>
+        )}
       </View>
 
-      <View style={styles.cardBody}>
-        <View style={styles.primaryInfoRow}>
-          <View
-            style={[
-              styles.iconBox,
-              {
-                backgroundColor: colors.brandSoft,
-                borderColor: colors.borderStrong,
-              },
-            ]}
-          >
-            <UserIcon size={15} color={colors.brand} variant="stroke" />
-          </View>
-
-          <View style={styles.primaryInfoContent}>
-            <Text style={[styles.fieldLabel, { color: colors.muted }]}>Müşteri</Text>
-            <Text style={[styles.customerName, { color: colors.text }]} numberOfLines={2} ellipsizeMode="tail">
-              {quotation.potentialCustomerName || "-"}
-            </Text>
-            {quotation.representativeName ? (
-              <Text style={[styles.customerSubText, { color: colors.muted }]} numberOfLines={1}>
-                Temsilci: {quotation.representativeName}
-              </Text>
-            ) : null}
-            {quotation.koliBaskiDefinitionName ? (
-              <Text style={[styles.customerSubText, { color: colors.muted }]} numberOfLines={1}>
-                Koli Baskı: {quotation.koliBaskiDefinitionName}
-              </Text>
-            ) : null}
-          </View>
-        </View>
-
-        <View style={styles.metaRow}>
-          <View
-            style={[
-              styles.metaChip,
-              {
-                backgroundColor: colors.blueSoft,
-                borderColor: "rgba(56,189,248,0.20)",
-              },
-            ]}
-          >
-            <Coins01Icon size={13} color={colors.blue} variant="stroke" />
-            <Text style={[styles.metaChipText, { color: colors.text }]} numberOfLines={1}>
-              {quotation.currencyDisplay?.trim() || getCurrencyDisplayLabel(quotation.currencyCode || quotation.currency)}
-            </Text>
-          </View>
-
-          <View
-            style={[
-              styles.metaChip,
-              {
-                backgroundColor: colors.softBg,
-                borderColor: colors.border,
-              },
-            ]}
-          >
-            <Calendar03Icon size={13} color={colors.muted} variant="stroke" />
-            <Text style={[styles.metaChipText, { color: colors.text }]} numberOfLines={1}>
-              {formatDate(quotation.offerDate)}
-            </Text>
-          </View>
-        </View>
-
+      <View style={styles.customerRow}>
         <View
           style={[
-            styles.totalStrip,
+            styles.avatarBox,
             {
               backgroundColor: colors.brandSoft,
               borderColor: colors.borderStrong,
             },
           ]}
         >
-          <Text style={[styles.totalLabel, { color: colors.muted }]}>Toplam</Text>
-          <Text style={[styles.totalAmount, { color: colors.brand }]} numberOfLines={1}>
-            {totalFormatted}
+          <UserIcon size={14} color={colors.brand} variant="stroke" />
+        </View>
+
+        <View style={styles.customerContent}>
+          <Text style={[styles.customerName, { color: colors.text }]} numberOfLines={1}>
+            {quotation.potentialCustomerName || "-"}
+          </Text>
+
+          {quotation.representativeName ? (
+            <Text style={[styles.metaLine, { color: colors.muted }]} numberOfLines={1}>
+              {t("quotation.representative")}: {quotation.representativeName}
+            </Text>
+          ) : null}
+
+          {quotation.koliBaskiDefinitionName ? (
+            <Text style={[styles.metaLine, { color: colors.muted }]} numberOfLines={1}>
+              {t("quotation.koliBaski")}: {quotation.koliBaskiDefinitionName}
+            </Text>
+          ) : null}
+        </View>
+      </View>
+
+      <View style={styles.chipRow}>
+        <View
+          style={[
+            styles.chip,
+            styles.chipFlex,
+            {
+              backgroundColor: colors.blueSoft,
+              borderColor: colors.blueBorder,
+            },
+          ]}
+        >
+          <Coins01Icon size={11} color={colors.blue} variant="stroke" />
+          <Text style={[styles.chipText, { color: colors.text }]} numberOfLines={1}>
+            {paymentChipValue}
+          </Text>
+        </View>
+
+        <View
+          style={[
+            styles.chip,
+            styles.chipFlex,
+            {
+              backgroundColor: colors.violetSoft,
+              borderColor: colors.violetBorder,
+            },
+          ]}
+        >
+          <Calendar03Icon size={11} color={colors.violet} variant="stroke" />
+          <Text style={[styles.chipText, { color: colors.text }]} numberOfLines={1}>
+            {formatDate(quotation.offerDate)}
           </Text>
         </View>
       </View>
 
-      <View style={styles.actionsRow}>
-        <TouchableOpacity
-          style={[
-            styles.actionBtn,
-            {
-              backgroundColor: colors.blueSoft,
-              borderColor: "rgba(56,189,248,0.24)",
-            },
-          ]}
-          onPress={handleGoogleMailPress}
-          activeOpacity={0.78}
-        >
-          <Mail01Icon size={15} color={colors.blue} variant="stroke" />
-          <Text style={[styles.actionBtnText, { color: colors.blue }]}>Google</Text>
-        </TouchableOpacity>
+      <View style={[styles.footerDivider, { backgroundColor: colors.borderStrong }]} />
 
-        <TouchableOpacity
-          style={[
-            styles.actionBtn,
-            {
-              backgroundColor: "rgba(0,120,212,0.10)",
-              borderColor: "rgba(0,120,212,0.24)",
-            },
-          ]}
-          onPress={handleOutlookMailPress}
-          activeOpacity={0.78}
-        >
-          <Mail01Icon size={15} color="#0078D4" variant="stroke" />
-          <Text style={[styles.actionBtnText, { color: "#0078D4" }]}>Outlook</Text>
-        </TouchableOpacity>
-
-        {canRevise ? (
-          <TouchableOpacity
-            style={[
-              styles.actionBtn,
-              {
-                backgroundColor: colors.softBg,
-                borderColor: colors.border,
-              },
-            ]}
-            onPress={handleRevisionPress}
-            disabled={isPending}
-            activeOpacity={0.78}
-          >
-            <Text style={[styles.actionBtnText, { color: colors.text }]} numberOfLines={1}>
-              {isPending ? "Bekleyin" : "Revize"}
+      <View style={styles.footerRow}>
+        <View style={styles.totalBlock}>
+          <Text style={[styles.totalLabel, { color: colors.muted }]}>
+            {t("quotation.rowActions.totalAmount")}
+          </Text>
+          <View style={styles.totalValueRow}>
+            <Text style={[styles.totalAmount, { color: colors.text }]} numberOfLines={1}>
+              {amountText}
             </Text>
-          </TouchableOpacity>
-        ) : null}
+            <Text style={[styles.totalCurrency, { color: colors.brand }]}>{currencyLabel}</Text>
+          </View>
+        </View>
+
+        <Pressable
+          onPress={handleMenuPress}
+          hitSlop={8}
+          style={({ pressed }) => [
+            styles.menuBtn,
+            {
+              backgroundColor: pressed ? colors.brandSoft : colors.menuBg,
+              borderColor: colors.menuBorder,
+            },
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel={t("quotation.rowActions.menuTitle")}
+        >
+          <Text style={[styles.menuDots, { color: colors.brand }]}>•••</Text>
+        </Pressable>
       </View>
     </TouchableOpacity>
   );
@@ -293,154 +302,164 @@ export const QuotationRow = memo(QuotationRowComponent);
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: 1.2,
-    borderRadius: 20,
-    padding: 14,
-    gap: 12,
-    marginBottom: 0,
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    gap: 9,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
   },
-  cardHeader: {
+  topRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
-    gap: 10,
+    gap: 8,
+  },
+  idColumn: {
+    flex: 1,
+    minWidth: 0,
+    gap: 3,
   },
   idBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
     borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10,
   },
   idText: {
+    fontSize: 12,
     fontWeight: "800",
-    fontSize: 13,
   },
-  offerNoInline: {
-    fontSize: 11,
-    fontWeight: "600",
-    flexShrink: 1,
+  offerNoText: {
+    fontSize: 10,
+    fontWeight: "500",
+    lineHeight: 13,
   },
   statusPill: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
     borderWidth: 1,
-    gap: 6,
+    gap: 5,
+    flexShrink: 0,
   },
   statusDot: {
-    width: 6,
-    height: 6,
+    width: 5,
+    height: 5,
     borderRadius: 3,
   },
   statusText: {
     fontWeight: "700",
-    fontSize: 10.5,
+    fontSize: 9,
     textTransform: "uppercase",
   },
-  cardBody: {
-    gap: 10,
-  },
-  primaryInfoRow: {
+  customerRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 10,
+    gap: 8,
   },
-  iconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
+  avatarBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 1,
   },
-  primaryInfoContent: {
+  customerContent: {
     flex: 1,
     minWidth: 0,
-  },
-  fieldLabel: {
-    fontSize: 10,
-    fontWeight: "700",
-    lineHeight: 12,
-    marginBottom: 2,
+    gap: 1,
   },
   customerName: {
-    fontSize: 13,
-    fontWeight: "600",
-    lineHeight: 17,
+    fontSize: 14,
+    fontWeight: "700",
+    lineHeight: 18,
   },
-  customerSubText: {
-    marginTop: 3,
+  metaLine: {
     fontSize: 10,
-    fontWeight: "500",
-    lineHeight: 12,
-  },
-  metaRow: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  metaChip: {
-    flex: 1,
-    minHeight: 36,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  metaChipText: {
-    flex: 1,
-    fontSize: 10.8,
     fontWeight: "500",
     lineHeight: 13,
   },
-  totalStrip: {
+  chipRow: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 8,
-  },
-  totalLabel: {
-    fontSize: 10,
-    fontWeight: "700",
-    textTransform: "uppercase",
-  },
-  totalAmount: {
-    fontSize: 14,
-    fontWeight: "800",
-    flex: 1,
-    textAlign: "right",
-  },
-  actionsRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 2,
-  },
-  actionBtn: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 12,
-    paddingVertical: 10,
-    borderWidth: 1,
     gap: 6,
   },
-  actionBtnText: {
+  chip: {
+    minHeight: 28,
+    borderWidth: 1,
+    borderRadius: 9,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  chipFlex: {
+    flex: 1,
+  },
+  chipText: {
+    flex: 1,
+    fontSize: 10.5,
+    fontWeight: "600",
+  },
+  footerDivider: {
+    height: 1,
+    width: "100%",
+  },
+  footerRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 10,
+    paddingTop: 2,
+  },
+  totalBlock: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  totalLabel: {
+    fontSize: 9,
     fontWeight: "700",
-    fontSize: 11.5,
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
+  },
+  totalValueRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 5,
+    flexWrap: "wrap",
+  },
+  totalAmount: {
+    fontSize: 19,
+    fontWeight: "800",
+    lineHeight: 22,
+  },
+  totalCurrency: {
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  menuBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2,
+  },
+  menuDots: {
+    fontSize: 14,
+    fontWeight: "900",
+    letterSpacing: 1,
+    lineHeight: 16,
   },
 });
