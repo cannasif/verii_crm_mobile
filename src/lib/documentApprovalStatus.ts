@@ -68,7 +68,7 @@ export function resolveDocumentApprovalStatusMeta(
     case 4:
       return pick(palettes.closed, t("common.statusClosed", "Kapatıldı"));
     case 5:
-      return pick(palettes.customerCancelled, t("common.customerCancelled", "Müşteri tarafından iptal edildi"));
+      return pick(palettes.customerCancelled, t("common.customerCancelled", "İptal edildi"));
     default:
       return pick(palettes.unknown, "-");
   }

@@ -144,3 +144,53 @@ export function formatNumberBySettings(value: number, minimumFractionDigits?: nu
     maximumFractionDigits,
   }).format(value);
 }
+
+const DISPLAY_CURRENCY_SUFFIXES = [
+  "TL",
+  "TRY",
+  "USD",
+  "EUR",
+  "EURO",
+  "GBP",
+  "STERLIN",
+  "DOLAR",
+  "DOLLAR",
+  "DÖVİZ",
+  "DOVIZ",
+] as const;
+
+export function stripCurrencySuffixFromDisplay(
+  display: string,
+  currencyLabel?: string | null
+): string {
+  let result = display
+    .replace(/\s*\(\d+\)\s*/g, " ")
+    .replace(/\s*Döviz\s*/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  let changed = true;
+  while (changed) {
+    changed = false;
+
+    for (const suffix of DISPLAY_CURRENCY_SUFFIXES) {
+      const pattern = new RegExp(`\\s*${suffix}\\s*$`, "i");
+      if (pattern.test(result)) {
+        result = result.replace(pattern, "").trim();
+        changed = true;
+      }
+    }
+
+    const label = currencyLabel?.trim();
+    if (label) {
+      const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const labelPattern = new RegExp(`\\s*${escaped}\\s*$`, "i");
+      if (labelPattern.test(result)) {
+        result = result.replace(labelPattern, "").trim();
+        changed = true;
+      }
+    }
+  }
+
+  return result;
+}
