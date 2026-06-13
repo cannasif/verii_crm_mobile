@@ -8,6 +8,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { ScreenHeader } from "../../../components/navigation";
 import { useUIStore } from "../../../store/ui";
+import { useAuthStore } from "../../../store/auth";
+import { hasPermission } from "../../access-control/utils/hasPermission";
 import { MenuCard } from "../../customer/components";
 import { Text } from "../../../components/ui/text";
 
@@ -21,6 +23,7 @@ import {
   ChartLineData01Icon,
   ArrowRight01Icon,
   FlashIcon,
+  File02Icon,
 } from "hugeicons-react-native";
 
 export function SalesMenuScreen(): React.ReactElement {
@@ -28,6 +31,8 @@ export function SalesMenuScreen(): React.ReactElement {
   const router = useRouter();
   
   const { colors, themeMode, menuViewType } = useUIStore() as any;
+  const permissions = useAuthStore((state) => state.permissions);
+  const canViewErpOrders = hasPermission(permissions, "sales.erp-orders.view");
   const menuLayoutStyle = useMemo(
     () =>
       menuViewType === "grid"
@@ -67,6 +72,7 @@ export function SalesMenuScreen(): React.ReactElement {
   const handleCreateOrderPress = useCallback(() => router.push("/(tabs)/sales/orders/create"), [router]);
   const handleOrderListPress = useCallback(() => router.push("/(tabs)/sales/orders"), [router]);
   const handleOrderWaitingApprovalsPress = useCallback(() => router.push("/(tabs)/sales/orders/waiting-approvals"), [router]);
+  const handleErpOrderListPress = useCallback(() => router.push("/(tabs)/sales/orders/erp"), [router]);
 
   const handleSalesKpiPress = useCallback(() => router.push("/(tabs)/sales/sales-kpi"), [router]);
 
@@ -180,6 +186,16 @@ export function SalesMenuScreen(): React.ReactElement {
             rightIcon={<ArrowRight01Icon size={20} color={arrowColor} />}
             onPress={handleOrderWaitingApprovalsPress}
           />
+          {canViewErpOrders ? (
+            <MenuCard
+              title={t("sales.erpOrderList")}
+              description={t("sales.erpOrderListDesc")}
+              viewType={menuViewType}
+              icon={renderIcon(File02Icon)}
+              rightIcon={<ArrowRight01Icon size={20} color={arrowColor} />}
+              onPress={handleErpOrderListPress}
+            />
+          ) : null}
           </View>
 
           {/* --- BÖLÜM: TALEPLER (DEMANDS) --- */}
