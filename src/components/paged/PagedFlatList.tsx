@@ -292,7 +292,9 @@ const styles = StyleSheet.create({
   topRightActions: {
     flexDirection: "row",
     alignItems: "center",
+    alignSelf: "stretch",
     marginLeft: 10,
+    gap: 8,
   },
 
   bottomRowRight: {

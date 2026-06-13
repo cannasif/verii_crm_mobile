@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, TextInput, StyleSheet, Pressable } from "react-native";
+import { View, Text, TextInput, StyleSheet, Pressable } from "react-native";
 import { Search01Icon, Cancel01Icon } from "hugeicons-react-native";
 import { useUIStore } from "../../store/ui";
 
@@ -50,20 +50,35 @@ export function PagedSearchInput({
         style={styles.icon}
       />
 
-      <TextInput
-        style={[styles.input, { color: theme.text }]}
-        value={localValue}
-        onChangeText={(nextValue) => {
-          setLocalValue(nextValue);
-          onChangeText(nextValue);
-        }}
-        placeholder={placeholder}
-        placeholderTextColor={theme.placeholder}
-        autoCapitalize="none"
-        autoCorrect={false}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
-      />
+      <View style={styles.inputWrap}>
+        <TextInput
+          style={[styles.input, { color: theme.text }]}
+          value={localValue}
+          onChangeText={(nextValue) => {
+            setLocalValue(nextValue);
+            onChangeText(nextValue);
+          }}
+          placeholder=""
+          placeholderTextColor={theme.placeholder}
+          autoCapitalize="none"
+          autoCorrect={false}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+        />
+
+        {localValue.length === 0 ? (
+          <Text
+            pointerEvents="none"
+            style={[styles.placeholderOverlay, { color: theme.placeholder }]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+            adjustsFontSizeToFit
+            minimumFontScale={0.72}
+          >
+            {placeholder}
+          </Text>
+        ) : null}
+      </View>
 
       {localValue.length > 0 ? (
         <Pressable
@@ -97,11 +112,25 @@ const styles = StyleSheet.create({
   icon: {
     marginRight: 10,
   },
+  inputWrap: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: "center",
+  },
   input: {
     flex: 1,
     fontSize: 15,
     padding: 0,
     fontWeight: "500",
+    minWidth: 0,
+  },
+  placeholderOverlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    fontSize: 15,
+    fontWeight: "500",
+    lineHeight: 18,
   },
   clearButton: {
     padding: 4,
