@@ -5,6 +5,7 @@ import { API_BASE_URL_STORAGE_KEY } from "./storage";
 
 export const DEFAULT_API_BASE_URL = (appConfig as { apiUrl?: string }).apiUrl ?? "https://crmapi.v3rii.com";
 export const API_TIMEOUT = (appConfig as { apiTimeout?: number }).apiTimeout ?? 10000;
+export const SHOW_ERP_CUSTOMERS_MENU = false;
 
 let currentApiBaseUrl = normalizeApiBaseUrl(DEFAULT_API_BASE_URL);
 
