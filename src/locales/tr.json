@@ -66,6 +66,7 @@
     "quotationUpdated": "Teklif güncellendi.",
     "saveUpdate": "Güncellemeyi Kaydet",
     "statusClosed": "Kapatıldı",
+    "customerCancelled": "İptal edildi",
     "rowsUpdated": "Satırlar güncellendi.",
     "rowsAdded": "Satırlar eklendi.",
     "exchangeRatesUpdated": "Döviz kurları güncellendi.",
@@ -177,6 +178,7 @@
   "profile": {
     "account": "Hesap",
     "settings": "Profil Ayarları",
+    "appSettings": "Uygulama Ayarları",
     "integrationSettings": "Entegrasyon Ayarları",
     "preferences": "Tercihler",
     "support": "Destek",
@@ -244,7 +246,8 @@
     "createDemand": "Talep Aç",
     "addPayment": "Tahsilat",
     "reports": "Raporlar",
-    "salesKpi": "Satış KPI"
+    "salesKpi": "Satış KPI",
+    "erpOrders": "ERP Siparişler"
   },
   "modules": {
     "customers": "Müşteri İşlemleri",
@@ -361,6 +364,7 @@
   },
   "settings": {
     "title": "Profil Ayarları",
+    "appSettingsTitle": "Uygulama Ayarları",
     "uploadPhoto": "Profil Resmi Yükle",
     "changePassword": "Şifre Değiştir",
     "changePasswordDescription": "Güvenliğiniz için şifrenizi ayrı ekrandan güncelleyebilirsiniz.",
@@ -417,6 +421,34 @@
     "apiUrlSaveSuccess": "API URL kaydedildi.",
     "apiUrlSaveError": "API URL kaydedilemedi.",
     "apiUrlResetInfo": "Varsayılan API URL alana getirildi. Kaydetmeden aktif olmaz."
+  },
+  "profileDetail": {
+    "sectionTitle": "Kişisel Bilgiler",
+    "sectionDescription": "Profil detay bilgilerinizi buradan güncelleyebilirsiniz.",
+    "height": "Boy (cm)",
+    "weight": "Kilo (kg)",
+    "gender": "Cinsiyet",
+    "genderPlaceholder": "Cinsiyet seçin",
+    "genderNone": "Seçilmedi",
+    "genderNotSpecified": "Belirtilmemiş",
+    "genderMale": "Erkek",
+    "genderFemale": "Kadın",
+    "genderOther": "Diğer",
+    "phoneNumber": "Telefon Numarası",
+    "email": "E-posta Adresi",
+    "linkedinUrl": "LinkedIn Profili",
+    "description": "Açıklama",
+    "descriptionPlaceholder": "Kendiniz hakkında kısa bir açıklama yazın",
+    "saveButton": "Bilgileri Kaydet",
+    "createSuccess": "Profil detayı oluşturuldu",
+    "updateSuccess": "Profil güncellendi",
+    "saveError": "Profil bilgileri kaydedilemedi",
+    "invalidEmail": "Geçerli bir e-posta girin",
+    "invalidUrl": "Geçerli bir URL girin",
+    "heightRange": "Boy 0-300 cm arasında olmalı",
+    "weightRange": "Kilo 0-500 kg arasında olmalı",
+    "phoneMax": "Telefon en fazla 20 karakter olabilir",
+    "descriptionMax": "Açıklama en fazla 2000 karakter olabilir"
   },
   "mailComposer": {
     "googleTitle": "Google ile E-posta Gönder",
@@ -651,6 +683,11 @@
     "noteCreatedAt": "Not tarihi",
     "salesRepresentative": "Satış Temsilcisi",
     "updateLocation": "Konumu Güncelle",
+    "updateLocationConfirmTitle": "Konumu güncelle",
+    "updateLocationConfirmMessage": "Mevcut konumunuz bu müşterinin harita konumu olarak kaydedilsin mi?",
+    "locationPermissionDenied": "Konum izni verilmedi. Lütfen ayarlardan konum iznini açın.",
+    "locationUpdateError": "Konum alınamadı veya müşteri konumu güncellenemedi.",
+    "addressMayDifferFromMapLocation": "Harita konumu kayıtlı. Yazılı adres farklı olabilir.",
     "latestQuotations": "En Son Teklifler",
     "noQuotations": "Henüz teklif bulunmuyor.",
     "modal": {
@@ -685,8 +722,30 @@
     "branchCode": "Şube Kodu",
     "businessUnitCode": "İş Birimi Kodu"
   },
+  "erpOrder": {
+    "title": "ERP Sipariş Listesi",
+    "detailTitle": "ERP Sipariş Detayı",
+    "scopeBadge": "Giriş yapan kullanıcı esaslıdır",
+    "searchPlaceholder": "Sipariş no, cari, plasiyer veya tarih ile ara...",
+    "foundCount": "{{count}} ERP siparişi bulundu",
+    "headerLoadFail": "ERP siparişleri yüklenemedi.",
+    "headerEmpty": "ERP siparişi bulunamadı.",
+    "linesTitle": "Sipariş Kalemleri",
+    "linesLoading": "Sipariş kalemleri yükleniyor...",
+    "linesLoadFail": "Sipariş kalemleri yüklenemedi.",
+    "linesEmpty": "Bu sipariş için kalem bulunamadı.",
+    "noCustomerName": "Cari adı yok",
+    "customer403": "Bu cari için ERP sipariş görüntüleme yetkiniz yok.",
+    "summary": {
+      "branch": "Şube",
+      "date": "Tarih",
+      "deliveryDate": "Teslim Tarihi",
+      "salesRep": "Plasiyer",
+      "grandTotal": "Genel Toplam"
+    }
+  },
   "contact": {
-    "title": "Ünvan",
+    "title": "Kişiler",
     "list": "Kişi Listesi",
     "detail": "Kişi Detayı",
     "create": "Yeni Kişi",
@@ -709,6 +768,15 @@
     "createSuccess": "Kişi başarıyla oluşturuldu",
     "updateSuccess": "Kişi başarıyla güncellendi",
     "noContacts": "Henüz kişi bulunmuyor",
+    "foundCount": "{{count}} kişi bulundu",
+    "unnamed": "İsimsiz Kişi",
+    "noTitle": "Ünvan belirtilmemiş",
+    "noCompany": "Şirket bağlantısı yok",
+    "noPhone": "Telefon eklenmemiş",
+    "noEmail": "E-posta eklenmemiş",
+    "callAction": "Ara",
+    "emailAction": "E-posta Gönder",
+    "viewDetail": "Detay",
     "salutation": "Hitap",
     "salutationNone": "Yok",
     "salutationMr": "Bay",
@@ -936,18 +1004,19 @@
     "deleteSuccess": "Ünvan başarıyla silindi",
     "createSuccess": "Ünvan başarıyla oluşturuldu",
     "updateSuccess": "Ünvan başarıyla güncellendi",
-    "noTitles": "Henüz ünvan bulunmuyor"
+    "noTitles": "Henüz ünvan bulunmuyor",
+    "foundCount": "{{count}} ünvan bulundu"
   },
   "stockMenu": {
-    "title": "Stok İşlemleri",
-    "stockMovements": "Stok Hareketleri",
-    "stockMovementsDesc": "Stok hareketleri listesi ve yönetimi",
+    "title": "Stok Yönetimi",
+    "stockMovements": "Stok Yönetimi",
+    "stockMovementsDesc": "Stok listesi ve yönetimi",
     "stockDetails": "Stok Detayı",
     "stockDetailsDesc": "Stok detay bilgileri ve ilişkileri"
   },
   "stock": {
     "title": "Stok",
-    "list": "Stok Hareketleri",
+    "list": "Stok Yönetimi",
     "detail": "Stok Detayı",
     "description": "Açıklama",
     "technicalSpecs": "Teknik Özellikler",
@@ -1041,6 +1110,8 @@
     "createOrderDesc": "Yeni bir sipariş oluşturun",
     "orderList": "Sipariş Listesi",
     "orderListDesc": "Tüm siparişleri görüntüleyin ve yönetin",
+    "erpOrderList": "ERP Sipariş Listesi",
+    "erpOrderListDesc": "Netsis ERP sipariş üst kayıtları",
     "orderWaitingApprovals": "Sipariş Onay Listesi",
     "orderWaitingApprovalsDesc": "Onayı bekleyen sipariş isteklerini görüntüle ve yönet",
     "quotations": "Teklifler",
@@ -1208,6 +1279,7 @@
     "listDescription": "Tüm teklifleri görüntüleyin ve yönetin",
     "createNew": "Yeni Teklif Oluştur",
     "searchPlaceholder": "Teklif no veya müşteri adı ile ara...",
+    "foundCount": "{{count}} teklif bulundu",
     "noQuotations": "Henüz teklif bulunmuyor",
     "showing": "gösteriliyor",
     "page": "Sayfa",
@@ -1246,6 +1318,33 @@
     "documentSerialType": "Belge Seri Tipi",
     "koliBaski": "Koli Baskı",
     "koliBaskiSearch": "Koli baskı ara...",
+    "rowActions": {
+      "menuTitle": "İşlemler",
+      "share": "Paylaş",
+      "shareDesc": "PDF oluşturup WhatsApp veya e-posta ile paylaş",
+      "download": "İndir",
+      "downloadDesc": "Taslak önizleme PDF'ini telefona kaydet",
+      "revise": "Revize",
+      "revisePending": "Revize ediliyor...",
+      "whatsapp": "WhatsApp",
+      "gmail": "Gmail",
+      "outlook": "Outlook",
+      "totalAmount": "Toplam Tutar",
+      "noLinesForPdf": "PDF oluşturmak için en az bir satır gerekli",
+      "downloadSuccess": "PDF telefona kaydedildi",
+      "sharePdfTitle": "Teklif PDF Paylaş",
+      "downloadPdfTitle": "Teklif PDF İndir"
+    },
+    "approvalStatusFilter": {
+      "title": "Onay Durumu",
+      "subtitle": "Listelenecek teklif durumunu seçin",
+      "noResults": "Seçilen duruma uygun teklif bulunamadı",
+      "options": {
+        "all": "Tümü",
+        "1": "Onay Bekliyor",
+        "5": "Müşteri tarafından iptal edildi"
+      }
+    },
     "currency": "Para Birimi",
     "description": "Açıklama",
     "shippingAddress": "Sevk Adresi",
@@ -1353,6 +1452,7 @@
     "listDescription": "Tüm talepleri görüntüleyin ve yönetin",
     "createNew": "Yeni Talep Oluştur",
     "searchPlaceholder": "Talep no veya müşteri adı ile ara...",
+    "foundCount": "{{count}} talep bulundu",
     "noDemands": "Henüz talep bulunmuyor",
     "showing": "gösteriliyor",
     "page": "Sayfa",
@@ -1477,13 +1577,34 @@
     "deleteLineTitle": "Satırı silmek istediğinize emin misiniz?",
     "deleteLineMessage": "Bu işlem geri alınamaz.",
     "deleteRelatedGroupTitle": "Bu satır grubunu silmek istediğinize emin misiniz?",
-    "deleteRelatedGroupMessage": "{{count}} bağlı satır da silinecektir."
+    "deleteRelatedGroupMessage": "{{count}} bağlı satır da silinecektir.",
+    "rowActions": {
+      "menuTitle": "İşlemler",
+      "share": "Paylaş",
+      "shareDesc": "E-posta ile paylaş",
+      "revise": "Revize",
+      "revisePending": "Revize ediliyor...",
+      "gmail": "Gmail",
+      "outlook": "Outlook",
+      "totalAmount": "Toplam Tutar"
+    },
+    "approvalStatusFilter": {
+      "title": "Onay Durumu",
+      "subtitle": "Listelenecek talep durumunu seçin",
+      "noResults": "Seçilen duruma uygun talep bulunamadı",
+      "options": {
+        "all": "Tümü",
+        "1": "Onay Bekliyor",
+        "5": "Müşteri tarafından iptal edildi"
+      }
+    }
   },
   "order": {
     "list": "Sipariş Listesi",
     "listDescription": "Tüm siparişleri görüntüleyin ve yönetin",
     "createNew": "Yeni Sipariş Oluştur",
     "searchPlaceholder": "Sipariş no veya müşteri adı ile ara...",
+    "foundCount": "{{count}} sipariş bulundu",
     "noOrders": "Henüz sipariş bulunmuyor",
     "showing": "gösteriliyor",
     "page": "Sayfa",
@@ -1622,7 +1743,95 @@
     "deleteLineTitle": "Satırı silmek istediğinize emin misiniz?",
     "deleteLineMessage": "Bu işlem geri alınamaz.",
     "deleteRelatedGroupTitle": "Bu satır grubunu silmek istediğinize emin misiniz?",
-    "deleteRelatedGroupMessage": "{{count}} bağlı satır da silinecektir."
+    "deleteRelatedGroupMessage": "{{count}} bağlı satır da silinecektir.",
+    "rowActions": {
+      "menuTitle": "İşlemler",
+      "share": "Paylaş",
+      "shareDesc": "PDF oluşturup WhatsApp veya e-posta ile paylaş",
+      "download": "İndir",
+      "downloadDesc": "Taslak önizleme PDF'ini telefona kaydet",
+      "revise": "Revize",
+      "revisePending": "Revize ediliyor...",
+      "whatsapp": "WhatsApp",
+      "gmail": "Gmail",
+      "outlook": "Outlook",
+      "totalAmount": "Toplam Tutar",
+      "noLinesForPdf": "PDF oluşturmak için en az bir satır gerekli",
+      "downloadSuccess": "PDF telefona kaydedildi",
+      "sharePdfTitle": "Sipariş PDF Paylaş",
+      "downloadPdfTitle": "Sipariş PDF İndir"
+    },
+    "exportPreview": {
+      "trigger": "Önizle ve Paylaş",
+      "title": "Önizle ve paylaş",
+      "subtitle": "PDF'i inceleyin; indirin veya WhatsApp ve e-posta ile paylaşın.",
+      "draftPreview": "Taslak Önizle",
+      "close": "Kapat",
+      "loading": "PDF hazırlanıyor...",
+      "error": "PDF oluşturulamadı. Lütfen tekrar deneyin.",
+      "download": "Bilgisayara indir",
+      "errorDismiss": "Kapat",
+      "downloadFileName": "siparis.pdf"
+    },
+    "pdfExportTemplate": {
+      "builtInTemplateTitle": "V3RII Hazır Şablon (Önizleme)",
+      "documentTitle": "SİPARİŞ",
+      "metaDate": "Tarih",
+      "metaOrderNo": "Sipariş No",
+      "senderLabel": "Sipariş Veren",
+      "recipientLabel": "Sipariş Verilen",
+      "footerNote": "Bu belge sipariş onayı için hazırlanmıştır.",
+      "draftWatermark": "TASLAK",
+      "notSpecified": "—",
+      "lineImage": "Görsel",
+      "productCode": "Ürün Kodu",
+      "productName": "Ürün Adı",
+      "quantity": "Miktar",
+      "unitPrice": "Birim Fiyat",
+      "unitPriceNet": "Net Birim",
+      "lineTotal": "Toplam",
+      "priceDetail": "Fiyat Detayı",
+      "grossTotal": "Brüt Toplam",
+      "generalDiscount": "Genel İskonto",
+      "netSubtotal": "Net Ara Toplam",
+      "totalVat": "KDV",
+      "grandTotalWithVat": "Genel Toplam (KDV Dahil)"
+    },
+    "approvalStatusFilter": {
+      "title": "Onay Durumu",
+      "subtitle": "Listelenecek sipariş durumunu seçin",
+      "noResults": "Seçilen duruma uygun sipariş bulunamadı",
+      "options": {
+        "all": "Tümü",
+        "1": "Onay Bekliyor",
+        "5": "Müşteri tarafından iptal edildi"
+      }
+    }
+  },
+  "tempQuickQuotation": {
+    "list": "Hızlı Teklif Listesi",
+    "createNew": "Yeni Hızlı Teklif",
+    "searchPlaceholder": "Müşteri adı veya ID ile ara...",
+    "foundCount": "{{count}} hızlı teklif bulundu",
+    "noItems": "Henüz hızlı teklif bulunmuyor",
+    "revise": "Revize Et",
+    "convert": "Dönüştür",
+    "converted": "Dönüştürüldü",
+    "convertSuccess": "Teklife dönüştürme akışına alındı",
+    "convertError": "Teklife dönüştürme başarısız",
+    "statusDraft": "Taslak",
+    "statusApproved": "Onaylandı",
+    "customerIdLabel": "Cari ID: {{id}}",
+    "statusFilter": {
+      "title": "Durum",
+      "subtitle": "Listelenecek hızlı teklif durumunu seçin",
+      "noResults": "Seçilen duruma uygun hızlı teklif bulunamadı",
+      "options": {
+        "all": "Tümü",
+        "draft": "Taslak",
+        "approved": "Onaylandı"
+      }
+    }
   },
   "customer360": {
     "title": "Customer 360",

@@ -60,6 +60,7 @@
     "quotationUpdated": "Das Angebot wurde aktualisiert.",
     "saveUpdate": "Aktualisierung speichern",
     "statusClosed": "Geschlossen",
+    "customerCancelled": "Storniert",
     "rowsUpdated": "Zeilen aktualisiert.",
     "rowsAdded": "Zeilen hinzugefügt.",
     "exchangeRatesUpdated": "Wechselkurse wurden aktualisiert.",
@@ -122,6 +123,7 @@
   "profile": {
     "account": "Konto",
     "settings": "Profileinstellungen",
+    "appSettings": "App-Einstellungen",
     "integrationSettings": "Integrationseinstellungen",
     "preferences": "Präferenzen",
     "support": "Support",
@@ -189,7 +191,8 @@
     "createDemand": "Neue Anfrage",
     "addPayment": "Zahlung",
     "reports": "Berichte",
-    "salesKpi": "Vertrieb KPI"
+    "salesKpi": "Vertrieb KPI",
+    "erpOrders": "ERP-Bestellungen"
   },
   "modules": {
     "customers": "Kunden",
@@ -294,6 +297,7 @@
   },
   "settings": {
     "title": "Profileinstellungen",
+    "appSettingsTitle": "App-Einstellungen",
     "uploadPhoto": "Profilbild hochladen",
     "changePassword": "Passwort ändern",
     "changePasswordDescription": "Aktualisieren Sie Ihr Passwort aus Sicherheitsgründen.",
@@ -350,6 +354,34 @@
     "apiUrlSaveSuccess": "API-URL gespeichert.",
     "apiUrlSaveError": "API-URL konnte nicht gespeichert werden.",
     "apiUrlResetInfo": "Die Standard-API-URL wurde eingefügt. Sie wird erst nach dem Speichern aktiv."
+  },
+  "profileDetail": {
+    "sectionTitle": "Persönliche Informationen",
+    "sectionDescription": "Aktualisieren Sie hier Ihre Profildetails.",
+    "height": "Größe (cm)",
+    "weight": "Gewicht (kg)",
+    "gender": "Geschlecht",
+    "genderPlaceholder": "Geschlecht wählen",
+    "genderNone": "Nicht ausgewählt",
+    "genderNotSpecified": "Nicht angegeben",
+    "genderMale": "Männlich",
+    "genderFemale": "Weiblich",
+    "genderOther": "Divers",
+    "phoneNumber": "Telefonnummer",
+    "email": "E-Mail-Adresse",
+    "linkedinUrl": "LinkedIn-Profil",
+    "description": "Beschreibung",
+    "descriptionPlaceholder": "Schreiben Sie eine kurze Beschreibung über sich",
+    "saveButton": "Details speichern",
+    "createSuccess": "Profildetail erstellt",
+    "updateSuccess": "Profil aktualisiert",
+    "saveError": "Profildetails konnten nicht gespeichert werden",
+    "invalidEmail": "Geben Sie eine gültige E-Mail ein",
+    "invalidUrl": "Geben Sie eine gültige URL ein",
+    "heightRange": "Größe muss zwischen 0 und 300 cm liegen",
+    "weightRange": "Gewicht muss zwischen 0 und 500 kg liegen",
+    "phoneMax": "Telefonnummer darf höchstens 20 Zeichen lang sein",
+    "descriptionMax": "Beschreibung darf höchstens 2000 Zeichen lang sein"
   },
   "mailComposer": {
     "googleTitle": "Mail über Google senden",
@@ -579,6 +611,11 @@
     "noteCreatedAt": "Noten-Erstellungsdatum",
     "salesRepresentative": "Vertriebsmitarbeiter",
     "updateLocation": "Standort aktualisieren",
+    "updateLocationConfirmTitle": "Standort aktualisieren",
+    "updateLocationConfirmMessage": "Soll Ihr aktueller Standort als Kartenstandort dieses Kunden gespeichert werden?",
+    "locationPermissionDenied": "Standortberechtigung wurde verweigert. Bitte aktivieren Sie den Standortzugriff in den Einstellungen.",
+    "locationUpdateError": "Standort konnte nicht abgerufen oder der Kartenstandort des Kunden nicht aktualisiert werden.",
+    "addressMayDifferFromMapLocation": "Kartenstandort ist gespeichert. Die geschriebene Adresse kann abweichen.",
     "latestQuotations": "En Son Teklifler",
     "noQuotations": "Keine teklif gefunden.",
     "modal": {
@@ -613,8 +650,30 @@
     "branchCode": "Filialcode",
     "businessUnitCode": "Geschäftsbereich"
   },
+  "erpOrder": {
+    "title": "ERP-Bestellliste",
+    "detailTitle": "ERP-Bestelldetails",
+    "scopeBadge": "Basierend auf dem angemeldeten Benutzer",
+    "searchPlaceholder": "Suche nach Bestellnr., Kunde, Vertreter oder Datum...",
+    "foundCount": "{{count}} ERP-Bestellungen gefunden",
+    "headerLoadFail": "ERP-Bestellungen konnten nicht geladen werden.",
+    "headerEmpty": "Keine ERP-Bestellungen gefunden.",
+    "linesTitle": "Bestellpositionen",
+    "linesLoading": "Bestellpositionen werden geladen...",
+    "linesLoadFail": "Bestellpositionen konnten nicht geladen werden.",
+    "linesEmpty": "Für diese Bestellung wurden keine Positionen gefunden.",
+    "noCustomerName": "Kein Kundenname",
+    "customer403": "Sie haben keine Berechtigung, ERP-Bestellungen für diesen Kunden anzuzeigen.",
+    "summary": {
+      "branch": "Filiale",
+      "date": "Datum",
+      "deliveryDate": "Lieferdatum",
+      "salesRep": "Vertreter",
+      "grandTotal": "Gesamtsumme"
+    }
+  },
   "contact": {
-    "title": "Titel",
+    "title": "Kontakte",
     "list": "Kontaktliste",
     "detail": "Kontaktdetails",
     "create": "Neuer Kontakt",
@@ -637,6 +696,15 @@
     "createSuccess": "Kontakt erfolgreich erstellt",
     "updateSuccess": "Kontakt erfolgreich aktualisiert",
     "noContacts": "Noch keine Kontakte",
+    "foundCount": "{{count}} Kontakte gefunden",
+    "unnamed": "Unbenannter Kontakt",
+    "noTitle": "Kein Titel angegeben",
+    "noCompany": "Kein Unternehmen verknüpft",
+    "noPhone": "Kein Telefon hinzugefügt",
+    "noEmail": "Keine E-Mail hinzugefügt",
+    "callAction": "Anrufen",
+    "emailAction": "E-Mail senden",
+    "viewDetail": "Details",
     "salutation": "Anrede",
     "salutationNone": "Keine",
     "salutationMr": "Herr",
@@ -849,18 +917,19 @@
     "deleteSuccess": "Titel erfolgreich gelöscht",
     "createSuccess": "Titel erfolgreich erstellt",
     "updateSuccess": "Titel erfolgreich aktualisiert",
-    "noTitles": "Noch keine Titel"
+    "noTitles": "Noch keine Titel",
+    "foundCount": "{{count}} Titel gefunden"
   },
   "stockMenu": {
-    "title": "Lageroperationen",
-    "stockMovements": "Lagerbewegungen",
-    "stockMovementsDesc": "Liste und Verwaltung von Lagerbewegungen",
+    "title": "Lagerverwaltung",
+    "stockMovements": "Lagerverwaltung",
+    "stockMovementsDesc": "Lagerliste und -verwaltung",
     "stockDetails": "Lagerdetails",
     "stockDetailsDesc": "Lagerdetailinformationen und Beziehungen"
   },
   "stock": {
     "title": "Lager",
-    "list": "Lagerbewegungen",
+    "list": "Lagerverwaltung",
     "detail": "Lagerdetails",
     "stockCode": "Lagercode",
     "stockName": "Lagerbezeichnung",
@@ -950,6 +1019,8 @@
     "createOrderDesc": "Neue Bestellung erstellen",
     "orderList": "Bestellliste",
     "orderListDesc": "Alle Bestellungen anzeigen und verwalten",
+    "erpOrderList": "ERP-Bestellliste",
+    "erpOrderListDesc": "Netsis ERP-Bestellköpfe",
     "orderWaitingApprovals": "Bestellgenehmigungsliste",
     "orderWaitingApprovalsDesc": "Zur Genehmigung anstehende Bestellungen anzeigen und verwalten",
     "quotations": "Angebote",
@@ -1096,6 +1167,7 @@
     "listDescription": "Alle Angebote anzeigen und verwalten",
     "createNew": "Neues Angebot erstellen",
     "searchPlaceholder": "Suche nach Angebotsnr. oder Kundenname...",
+    "foundCount": "{{count}} Angebote gefunden",
     "noQuotations": "Noch keine Angebote",
     "showing": "angezeigt",
     "page": "Seite",
@@ -1132,6 +1204,35 @@
     "representative": "Vertreter",
     "paymentType": "Zahlungsart",
     "documentSerialType": "Belegserientyp",
+    "koliBaski": "Kartonbedruckung",
+    "koliBaskiSearch": "Kartonbedruckung suchen...",
+    "rowActions": {
+      "menuTitle": "Aktionen",
+      "share": "Teilen",
+      "shareDesc": "PDF erstellen und per WhatsApp oder E-Mail teilen",
+      "download": "Herunterladen",
+      "downloadDesc": "Entwurfs-PDF auf dem Gerät speichern",
+      "revise": "Revision",
+      "revisePending": "Revision wird erstellt...",
+      "whatsapp": "WhatsApp",
+      "gmail": "Gmail",
+      "outlook": "Outlook",
+      "totalAmount": "Gesamtbetrag",
+      "noLinesForPdf": "Mindestens eine Zeile ist für die PDF-Erstellung erforderlich",
+      "downloadSuccess": "PDF auf dem Gerät gespeichert",
+      "sharePdfTitle": "Angebots-PDF teilen",
+      "downloadPdfTitle": "Angebots-PDF herunterladen"
+    },
+    "approvalStatusFilter": {
+      "title": "Genehmigungsstatus",
+      "subtitle": "Wählen Sie den anzuzeigenden Angebotsstatus",
+      "noResults": "Keine Angebote für den ausgewählten Status gefunden",
+      "options": {
+        "all": "Alle",
+        "1": "Genehmigung ausstehend",
+        "5": "Vom Kunden storniert"
+      }
+    },
     "currency": "Währung",
     "description": "Beschreibung",
     "shippingAddress": "Lieferadresse",
@@ -1232,6 +1333,7 @@
     "listDescription": "Alle Anfragen anzeigen und verwalten",
     "createNew": "Neue Anfrage erstellen",
     "searchPlaceholder": "Suche nach Anfragenr. oder Kundenname...",
+    "foundCount": "{{count}} Anfragen gefunden",
     "noDemands": "Noch keine Anfragen",
     "showing": "angezeigt",
     "page": "Seite",
@@ -1348,13 +1450,34 @@
     "deleteLineTitle": "Sind Sie sicher, dass Sie diese Zeile löschen möchten?",
     "deleteLineMessage": "Diese Aktion kann nicht rückgängig gemacht werden.",
     "deleteRelatedGroupTitle": "Sind Sie sicher, dass Sie diese Zeilengruppe löschen möchten?",
-    "deleteRelatedGroupMessage": "{{count}} zugehörige Zeilen werden ebenfalls gelöscht."
+    "deleteRelatedGroupMessage": "{{count}} zugehörige Zeilen werden ebenfalls gelöscht.",
+    "rowActions": {
+      "menuTitle": "Aktionen",
+      "share": "Teilen",
+      "shareDesc": "Per E-Mail teilen",
+      "revise": "Überarbeiten",
+      "revisePending": "Wird überarbeitet...",
+      "gmail": "Gmail",
+      "outlook": "Outlook",
+      "totalAmount": "Gesamtbetrag"
+    },
+    "approvalStatusFilter": {
+      "title": "Genehmigungsstatus",
+      "subtitle": "Wählen Sie den anzuzeigenden Anfragestatus",
+      "noResults": "Keine Anfragen entsprechen dem ausgewählten Status",
+      "options": {
+        "all": "Alle",
+        "1": "Genehmigung ausstehend",
+        "5": "Vom Kunden storniert"
+      }
+    }
   },
   "order": {
     "list": "Bestellliste",
     "listDescription": "Alle Bestellungen anzeigen und verwalten",
     "createNew": "Neue Bestellung erstellen",
     "searchPlaceholder": "Suche nach Bestellnr. oder Kundenname...",
+    "foundCount": "{{count}} Bestellungen gefunden",
     "noOrders": "Noch keine Bestellungen",
     "showing": "angezeigt",
     "page": "Seite",
@@ -1485,7 +1608,95 @@
     "deleteLineTitle": "Sind Sie sicher, dass Sie diese Zeile löschen möchten?",
     "deleteLineMessage": "Diese Aktion kann nicht rückgängig gemacht werden.",
     "deleteRelatedGroupTitle": "Sind Sie sicher, dass Sie diese Zeilengruppe löschen möchten?",
-    "deleteRelatedGroupMessage": "{{count}} zugehörige Zeilen werden ebenfalls gelöscht."
+    "deleteRelatedGroupMessage": "{{count}} zugehörige Zeilen werden ebenfalls gelöscht.",
+    "rowActions": {
+      "menuTitle": "Aktionen",
+      "share": "Teilen",
+      "shareDesc": "PDF erstellen und per WhatsApp oder E-Mail teilen",
+      "download": "Herunterladen",
+      "downloadDesc": "Entwurfs-PDF auf dem Gerät speichern",
+      "revise": "Überarbeiten",
+      "revisePending": "Wird überarbeitet...",
+      "whatsapp": "WhatsApp",
+      "gmail": "Gmail",
+      "outlook": "Outlook",
+      "totalAmount": "Gesamtbetrag",
+      "noLinesForPdf": "Mindestens eine Zeile ist für die PDF-Erstellung erforderlich",
+      "downloadSuccess": "PDF auf dem Gerät gespeichert",
+      "sharePdfTitle": "Bestell-PDF teilen",
+      "downloadPdfTitle": "Bestell-PDF herunterladen"
+    },
+    "exportPreview": {
+      "trigger": "Vorschau & Teilen",
+      "title": "Vorschau und teilen",
+      "subtitle": "PDF prüfen; herunterladen oder per WhatsApp und E-Mail teilen.",
+      "draftPreview": "Entwurfsvorschau",
+      "close": "Schließen",
+      "loading": "PDF wird erstellt...",
+      "error": "PDF konnte nicht erstellt werden. Bitte erneut versuchen.",
+      "download": "Herunterladen",
+      "errorDismiss": "Schließen",
+      "downloadFileName": "bestellung.pdf"
+    },
+    "pdfExportTemplate": {
+      "builtInTemplateTitle": "V3RII Integrierte Vorlage (Vorschau)",
+      "documentTitle": "BESTELLUNG",
+      "metaDate": "Datum",
+      "metaOrderNo": "Bestell-Nr.",
+      "senderLabel": "Besteller",
+      "recipientLabel": "Bestellung an",
+      "footerNote": "Dieses Dokument wurde zur Bestellbestätigung erstellt.",
+      "draftWatermark": "ENTWURF",
+      "notSpecified": "—",
+      "lineImage": "Bild",
+      "productCode": "Produktcode",
+      "productName": "Produktname",
+      "quantity": "Menge",
+      "unitPrice": "Stückpreis",
+      "unitPriceNet": "Netto-Stückpreis",
+      "lineTotal": "Gesamt",
+      "priceDetail": "Preisdetail",
+      "grossTotal": "Bruttosumme",
+      "generalDiscount": "Allgemeiner Rabatt",
+      "netSubtotal": "Netto-Zwischensumme",
+      "totalVat": "MwSt.",
+      "grandTotalWithVat": "Gesamtsumme (inkl. MwSt.)"
+    },
+    "approvalStatusFilter": {
+      "title": "Genehmigungsstatus",
+      "subtitle": "Wählen Sie den anzuzeigenden Bestellstatus",
+      "noResults": "Keine Bestellungen entsprechen dem ausgewählten Status",
+      "options": {
+        "all": "Alle",
+        "1": "Genehmigung ausstehend",
+        "5": "Vom Kunden storniert"
+      }
+    }
+  },
+  "tempQuickQuotation": {
+    "list": "Schnellangebotsliste",
+    "createNew": "Neues Schnellangebot",
+    "searchPlaceholder": "Nach Kundenname oder ID suchen...",
+    "foundCount": "{{count}} Schnellangebote gefunden",
+    "noItems": "Noch keine Schnellangebote vorhanden",
+    "revise": "Überarbeiten",
+    "convert": "Umwandeln",
+    "converted": "Umgewandelt",
+    "convertSuccess": "In Angebotsumwandlungsfluss aufgenommen",
+    "convertError": "Umwandlung in Angebot fehlgeschlagen",
+    "statusDraft": "Entwurf",
+    "statusApproved": "Genehmigt",
+    "customerIdLabel": "Kunden-ID: {{id}}",
+    "statusFilter": {
+      "title": "Status",
+      "subtitle": "Wählen Sie den anzuzeigenden Schnellangebotsstatus",
+      "noResults": "Keine Schnellangebote entsprechen dem ausgewählten Status",
+      "options": {
+        "all": "Alle",
+        "draft": "Entwurf",
+        "approved": "Genehmigt"
+      }
+    }
   },
   "customer360": {
     "title": "Kunden-360",

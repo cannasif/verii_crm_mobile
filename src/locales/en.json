@@ -65,6 +65,7 @@
     "quotationUpdated": "The offer has been updated.",
     "saveUpdate": "Save Update",
     "statusClosed": "Closed",
+    "customerCancelled": "Cancelled",
     "rowsUpdated": "Rows updated.",
     "rowsAdded": "Rows added.",
     "exchangeRatesUpdated": "Exchange rates have been updated.",
@@ -169,6 +170,7 @@
   "profile": {
     "account": "Account",
     "settings": "Profile Settings",
+    "appSettings": "App Settings",
     "integrationSettings": "Integration Settings",
     "preferences": "Preferences",
     "support": "Support",
@@ -236,7 +238,8 @@
     "createDemand": "New Demand",
     "addPayment": "Payment",
     "reports": "Reports",
-    "salesKpi": "Sales KPI"
+    "salesKpi": "Sales KPI",
+    "erpOrders": "ERP Orders"
   },
   "modules": {
     "customers": "Customers",
@@ -341,6 +344,7 @@
   },
   "settings": {
     "title": "Profile Settings",
+    "appSettingsTitle": "App Settings",
     "uploadPhoto": "Upload Profile Photo",
     "changePassword": "Change Password",
     "changePasswordDescription": "For security, update your password from a dedicated screen.",
@@ -397,6 +401,34 @@
     "apiUrlSaveSuccess": "API URL saved.",
     "apiUrlSaveError": "API URL could not be saved.",
     "apiUrlResetInfo": "Default API URL was filled into the field. It will not be active until you save it."
+  },
+  "profileDetail": {
+    "sectionTitle": "Personal Information",
+    "sectionDescription": "Update your profile details here.",
+    "height": "Height (cm)",
+    "weight": "Weight (kg)",
+    "gender": "Gender",
+    "genderPlaceholder": "Select gender",
+    "genderNone": "Not selected",
+    "genderNotSpecified": "Not specified",
+    "genderMale": "Male",
+    "genderFemale": "Female",
+    "genderOther": "Other",
+    "phoneNumber": "Phone Number",
+    "email": "Email Address",
+    "linkedinUrl": "LinkedIn Profile",
+    "description": "Description",
+    "descriptionPlaceholder": "Write a short bio about yourself",
+    "saveButton": "Save Details",
+    "createSuccess": "Profile detail created",
+    "updateSuccess": "Profile updated",
+    "saveError": "Profile details could not be saved",
+    "invalidEmail": "Enter a valid email",
+    "invalidUrl": "Enter a valid URL",
+    "heightRange": "Height must be between 0 and 300 cm",
+    "weightRange": "Weight must be between 0 and 500 kg",
+    "phoneMax": "Phone number can be at most 20 characters",
+    "descriptionMax": "Description can be at most 2000 characters"
   },
   "mailComposer": {
     "googleTitle": "Send Mail via Google",
@@ -626,6 +658,11 @@
     "noteCreatedAt": "Note Created At",
     "salesRepresentative": "Sales Representative",
     "updateLocation": "Update Location",
+    "updateLocationConfirmTitle": "Update location",
+    "updateLocationConfirmMessage": "Save your current location as this customer's map location?",
+    "locationPermissionDenied": "Location permission was denied. Please enable location access in settings.",
+    "locationUpdateError": "Could not get location or update the customer map location.",
+    "addressMayDifferFromMapLocation": "Map location is saved. The written address may differ.",
     "latestQuotations": "Latest Quotations",
     "noQuotations": "No quotations found.",
     "modal": {
@@ -660,8 +697,30 @@
     "branchCode": "Branch Code",
     "businessUnitCode": "Business Unit Code"
   },
+  "erpOrder": {
+    "title": "ERP Order List",
+    "detailTitle": "ERP Order Detail",
+    "scopeBadge": "Based on the logged-in user",
+    "searchPlaceholder": "Search by order no, customer, rep or date...",
+    "foundCount": "{{count}} ERP orders found",
+    "headerLoadFail": "ERP orders could not be loaded.",
+    "headerEmpty": "No ERP orders found.",
+    "linesTitle": "Order Lines",
+    "linesLoading": "Loading order lines...",
+    "linesLoadFail": "Order lines could not be loaded.",
+    "linesEmpty": "No lines found for this order.",
+    "noCustomerName": "No customer name",
+    "customer403": "You do not have permission to view ERP orders for this customer.",
+    "summary": {
+      "branch": "Branch",
+      "date": "Date",
+      "deliveryDate": "Delivery Date",
+      "salesRep": "Sales Rep",
+      "grandTotal": "Grand Total"
+    }
+  },
   "contact": {
-    "title": "Title",
+    "title": "Contacts",
     "list": "Contact List",
     "detail": "Contact Detail",
     "create": "New Contact",
@@ -684,6 +743,15 @@
     "createSuccess": "Contact created successfully",
     "updateSuccess": "Contact updated successfully",
     "noContacts": "No contacts yet",
+    "foundCount": "{{count}} contacts found",
+    "unnamed": "Unnamed Contact",
+    "noTitle": "No title specified",
+    "noCompany": "No company linked",
+    "noPhone": "No phone added",
+    "noEmail": "No email added",
+    "callAction": "Call",
+    "emailAction": "Send Email",
+    "viewDetail": "Details",
     "salutation": "Salutation",
     "salutationNone": "None",
     "salutationMr": "Mr",
@@ -910,18 +978,19 @@
     "deleteSuccess": "Title deleted successfully",
     "createSuccess": "Title created successfully",
     "updateSuccess": "Title updated successfully",
-    "noTitles": "No titles yet"
+    "noTitles": "No titles yet",
+    "foundCount": "{{count}} titles found"
   },
   "stockMenu": {
-    "title": "Stock Operations",
-    "stockMovements": "Stock Movements",
-    "stockMovementsDesc": "Stock movements list and management",
+    "title": "Stock Management",
+    "stockMovements": "Stock Management",
+    "stockMovementsDesc": "Stock list and management",
     "stockDetails": "Stock Details",
     "stockDetailsDesc": "Stock detail information and relations"
   },
   "stock": {
     "title": "Stock",
-    "list": "Stock Movements",
+    "list": "Stock Management",
     "detail": "Stock Detail",
     "stockCode": "Stock Code",
     "stockName": "Stock Name",
@@ -1011,6 +1080,8 @@
     "createOrderDesc": "Create a new order",
     "orderList": "Order List",
     "orderListDesc": "View and manage all orders",
+    "erpOrderList": "ERP Order List",
+    "erpOrderListDesc": "Netsis ERP order headers",
     "orderWaitingApprovals": "Order Approval List",
     "orderWaitingApprovalsDesc": "View and manage order requests awaiting approval",
     "quotations": "Offers",
@@ -1159,6 +1230,7 @@
     "listDescription": "View and manage all quotations",
     "createNew": "Create New Quotation",
     "searchPlaceholder": "Search by quotation no or customer name...",
+    "foundCount": "{{count}} quotations found",
     "noQuotations": "No quotations yet",
     "showing": "displayed",
     "page": "Page",
@@ -1196,6 +1268,33 @@
     "documentSerialType": "Document Serial Type",
     "koliBaski": "Package Print",
     "koliBaskiSearch": "Search package print...",
+    "rowActions": {
+      "menuTitle": "Actions",
+      "share": "Share",
+      "shareDesc": "Generate PDF and share via WhatsApp or email",
+      "download": "Download",
+      "downloadDesc": "Save draft preview PDF to your device",
+      "revise": "Revise",
+      "revisePending": "Revising...",
+      "whatsapp": "WhatsApp",
+      "gmail": "Gmail",
+      "outlook": "Outlook",
+      "totalAmount": "Total Amount",
+      "noLinesForPdf": "At least one line is required to generate PDF",
+      "downloadSuccess": "PDF saved to your device",
+      "sharePdfTitle": "Share Quotation PDF",
+      "downloadPdfTitle": "Download Quotation PDF"
+    },
+    "approvalStatusFilter": {
+      "title": "Approval Status",
+      "subtitle": "Choose which quotation status to list",
+      "noResults": "No quotations match the selected status",
+      "options": {
+        "all": "All",
+        "1": "Waiting for Approval",
+        "5": "Cancelled by Customer"
+      }
+    },
     "currency": "Currency",
     "description": "Description",
     "shippingAddress": "Shipping Address",
@@ -1304,6 +1403,7 @@
     "listDescription": "View and manage all demands",
     "createNew": "Create New Demand",
     "searchPlaceholder": "Search by demand no or customer name...",
+    "foundCount": "{{count}} demands found",
     "noDemands": "No demands yet",
     "showing": "displayed",
     "page": "Page",
@@ -1428,13 +1528,34 @@
     "deleteLineTitle": "Are you sure you want to delete this line?",
     "deleteLineMessage": "This action cannot be undone.",
     "deleteRelatedGroupTitle": "Are you sure you want to delete this line group?",
-    "deleteRelatedGroupMessage": "{{count}} related lines will also be deleted."
+    "deleteRelatedGroupMessage": "{{count}} related lines will also be deleted.",
+    "rowActions": {
+      "menuTitle": "Actions",
+      "share": "Share",
+      "shareDesc": "Share via email",
+      "revise": "Revise",
+      "revisePending": "Revising...",
+      "gmail": "Gmail",
+      "outlook": "Outlook",
+      "totalAmount": "Total Amount"
+    },
+    "approvalStatusFilter": {
+      "title": "Approval Status",
+      "subtitle": "Choose which demand status to list",
+      "noResults": "No demands match the selected status",
+      "options": {
+        "all": "All",
+        "1": "Waiting for Approval",
+        "5": "Cancelled by Customer"
+      }
+    }
   },
   "order": {
     "list": "Order List",
     "listDescription": "View and manage all orders",
     "createNew": "Create New Order",
     "searchPlaceholder": "Search by order no or customer name...",
+    "foundCount": "{{count}} orders found",
     "noOrders": "No orders yet",
     "showing": "displayed",
     "page": "Page",
@@ -1573,7 +1694,95 @@
     "deleteLineTitle": "Are you sure you want to delete this line?",
     "deleteLineMessage": "This action cannot be undone.",
     "deleteRelatedGroupTitle": "Are you sure you want to delete this line group?",
-    "deleteRelatedGroupMessage": "{{count}} related lines will also be deleted."
+    "deleteRelatedGroupMessage": "{{count}} related lines will also be deleted.",
+    "rowActions": {
+      "menuTitle": "Actions",
+      "share": "Share",
+      "shareDesc": "Generate PDF and share via WhatsApp or email",
+      "download": "Download",
+      "downloadDesc": "Save draft preview PDF to device",
+      "revise": "Revise",
+      "revisePending": "Revising...",
+      "whatsapp": "WhatsApp",
+      "gmail": "Gmail",
+      "outlook": "Outlook",
+      "totalAmount": "Total Amount",
+      "noLinesForPdf": "At least one line is required to generate PDF",
+      "downloadSuccess": "PDF saved to device",
+      "sharePdfTitle": "Share Order PDF",
+      "downloadPdfTitle": "Download Order PDF"
+    },
+    "exportPreview": {
+      "trigger": "Preview & Share",
+      "title": "Preview and share",
+      "subtitle": "Review the PDF; download or share via WhatsApp and email.",
+      "draftPreview": "Draft Preview",
+      "close": "Close",
+      "loading": "Preparing PDF...",
+      "error": "Could not generate PDF. Please try again.",
+      "download": "Download",
+      "errorDismiss": "Close",
+      "downloadFileName": "order.pdf"
+    },
+    "pdfExportTemplate": {
+      "builtInTemplateTitle": "V3RII Built-in Template (Preview)",
+      "documentTitle": "ORDER",
+      "metaDate": "Date",
+      "metaOrderNo": "Order No",
+      "senderLabel": "Order From",
+      "recipientLabel": "Order To",
+      "footerNote": "This document is prepared for order confirmation.",
+      "draftWatermark": "DRAFT",
+      "notSpecified": "—",
+      "lineImage": "Image",
+      "productCode": "Product Code",
+      "productName": "Product Name",
+      "quantity": "Quantity",
+      "unitPrice": "Unit Price",
+      "unitPriceNet": "Net Unit",
+      "lineTotal": "Total",
+      "priceDetail": "Price Detail",
+      "grossTotal": "Gross Total",
+      "generalDiscount": "General Discount",
+      "netSubtotal": "Net Subtotal",
+      "totalVat": "VAT",
+      "grandTotalWithVat": "Grand Total (incl. VAT)"
+    },
+    "approvalStatusFilter": {
+      "title": "Approval Status",
+      "subtitle": "Choose which order status to list",
+      "noResults": "No orders match the selected status",
+      "options": {
+        "all": "All",
+        "1": "Waiting for Approval",
+        "5": "Cancelled by Customer"
+      }
+    }
+  },
+  "tempQuickQuotation": {
+    "list": "Quick Quotation List",
+    "createNew": "New Quick Quotation",
+    "searchPlaceholder": "Search by customer name or ID...",
+    "foundCount": "{{count}} quick quotations found",
+    "noItems": "No quick quotations yet",
+    "revise": "Revise",
+    "convert": "Convert",
+    "converted": "Converted",
+    "convertSuccess": "Added to quotation conversion flow",
+    "convertError": "Conversion to quotation failed",
+    "statusDraft": "Draft",
+    "statusApproved": "Approved",
+    "customerIdLabel": "Customer ID: {{id}}",
+    "statusFilter": {
+      "title": "Status",
+      "subtitle": "Choose which quick quotation status to list",
+      "noResults": "No quick quotations match the selected status",
+      "options": {
+        "all": "All",
+        "draft": "Draft",
+        "approved": "Approved"
+      }
+    }
   },
   "customer360": {
     "title": "Customer 360",
