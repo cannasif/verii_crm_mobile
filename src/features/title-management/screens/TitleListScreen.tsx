@@ -23,8 +23,9 @@ import {
 } from "../../../components/paged";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
+import { stockBrowseStyles } from "../../../components/shared/stock-browse";
 import { useTitles, useDeleteTitle } from "../hooks";
-import { TitleCard, TitleFormModal } from "../components";
+import { TitleListRow, TitleFormModal } from "../components";
 import type { TitleDto } from "../types";
 import {
   Add01Icon,
@@ -36,7 +37,7 @@ import {
 
 export function TitleListScreen(): React.ReactElement {
   const { t } = useTranslation();
-  const { themeMode } = useUIStore();
+  const { themeMode, colors } = useUIStore();
   const insets = useSafeAreaInsets();
   const deleteTitle = useDeleteTitle();
 
@@ -120,6 +121,15 @@ export function TitleListScreen(): React.ReactElement {
   const totalCount = data?.pages?.[0]?.totalCount || titles.length || 0;
   const isInitialLoading = isLoading && titles.length === 0;
 
+  const browseListShell = useMemo(
+    () => ({
+      borderColor: isDark ? "rgba(255, 255, 255, 0.2)" : colors.border,
+      backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : colors.card,
+      separatorColor: isDark ? "rgba(255,255,255,0.06)" : colors.border,
+    }),
+    [colors.border, colors.card, isDark]
+  );
+
   const handleTitlePress = useCallback((title: TitleDto) => {
     setSelectedTitle(title);
     setModalVisible(true);
@@ -170,13 +180,13 @@ export function TitleListScreen(): React.ReactElement {
     ({ item }: { item: TitleDto }) => {
       if (!item) return null;
       return (
-        <View style={{ marginBottom: 14 }}>
-            <TitleCard
-              title={item}
-              onPress={() => handleTitlePress(item)}
-              onEdit={() => handleEdit(item)}
-              onDelete={() => handleDelete(item)}
-            />
+        <View style={stockBrowseStyles.listItemWrap}>
+          <TitleListRow
+            title={item}
+            onPress={() => handleTitlePress(item)}
+            onEdit={() => handleEdit(item)}
+            onDelete={() => handleDelete(item)}
+          />
         </View>
       );
     },
@@ -223,6 +233,7 @@ export function TitleListScreen(): React.ReactElement {
                     data={titles}
                     keyExtractor={(item, index) => String(item?.id ?? index)}
                     renderItem={renderItem}
+                    browseListShell={browseListShell}
                     searchValue={searchText}
                     onSearchChange={setSearchText}
                     searchPlaceholder={t("titleManagement.searchPlaceholder")}
@@ -263,7 +274,7 @@ export function TitleListScreen(): React.ReactElement {
                     metaContent={
                       <View style={styles.metaRow}>
                         <Text style={[styles.metaText, { color: theme.textMute }]}>
-                          {totalCount} unvan bulundu
+                          {t("titleManagement.foundCount", { count: totalCount })}
                         </Text>
                       </View>
                     }
@@ -273,8 +284,7 @@ export function TitleListScreen(): React.ReactElement {
                     onEndReached={handleEndReached}
                     onEndReachedThreshold={0.5}
                     contentContainerStyle={{
-                        paddingHorizontal: 16,
-                        paddingTop: 4,
+                        paddingTop: 12,
                         paddingBottom: insets.bottom + 100,
                     }}
                     showsVerticalScrollIndicator={false}
