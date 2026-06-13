@@ -251,7 +251,7 @@ export function DemandDetailScreen(): React.ReactElement {
     error: detailErrorObj,
     refetch,
   } = useDemandDetail(isFocused ? demandId : undefined);
-  const { profilMap, demirMap, vidaMap, baskiMap } = useWindoDefinitionOptions();
+  const { profilMap, demirMap, vidaMap, baskiMap, koliBaskiOptions } = useWindoDefinitionOptions();
 
   const formInitRef = useRef(false);
   const linesInitRef = useRef(false);
@@ -270,6 +270,7 @@ export function DemandDetailScreen(): React.ReactElement {
   const [paymentTypeModalVisible, setPaymentTypeModalVisible] = useState(false);
   const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
   const [shippingAddressModalVisible, setShippingAddressModalVisible] = useState(false);
+  const [koliBaskiModalVisible, setKoliBaskiModalVisible] = useState(false);
   const [customerSelectDialogOpen, setCustomerSelectDialogOpen] = useState(false);
   const [representativeModalVisible, setRepresentativeModalVisible] = useState(false);
   const [lineFormVisible, setLineFormVisible] = useState(false);
@@ -304,6 +305,7 @@ export function DemandDetailScreen(): React.ReactElement {
         offerDate: new Date().toISOString().split("T")[0],
         deliveryDate: new Date().toISOString().split("T")[0],
         representativeId: user?.id ?? null,
+        koliBaskiDefinitionId: null,
       },
     },
   });
@@ -913,6 +915,7 @@ export function DemandDetailScreen(): React.ReactElement {
           formData.demand.revisionId && formData.demand.revisionId > 0
             ? formData.demand.revisionId
             : null,
+        koliBaskiDefinitionId: formData.demand.koliBaskiDefinitionId ?? null,
       };
 
       await updateDemandBulk.mutateAsync({
@@ -1524,6 +1527,34 @@ export function DemandDetailScreen(): React.ReactElement {
                   disabled={isReadonly || !watchedRepresentativeId}
                 />
 
+                <Controller
+                  control={control}
+                  name="demand.koliBaskiDefinitionId"
+                  render={({ field: { value } }) => (
+                    <View style={styles.fieldContainerTight}>
+                      <Text style={[styles.labelCompact, { color: mutedText }]}>
+                        {t("demand.koliBaski")}
+                      </Text>
+                      <TouchableOpacity
+                        style={[
+                          styles.pickerButton,
+                          styles.pickerShellCompact,
+                          { backgroundColor: innerBg, borderColor: innerBorder },
+                        ]}
+                        onPress={() => !isReadonly && setKoliBaskiModalVisible(true)}
+                        disabled={isReadonly}
+                        activeOpacity={isReadonly ? 1 : 0.85}
+                      >
+                        <Text style={[styles.pickerText, styles.pickerTextCompact, { color: titleText }]} numberOfLines={1}>
+                          {value
+                            ? koliBaskiOptions.find((option) => option.id === value)?.name ?? t("demand.select")
+                            : t("demand.select")}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                />
+
                 <FormField
                   label={t("demand.description")}
                   value={watch("demand.description") || ""}
@@ -2051,6 +2082,22 @@ export function DemandDetailScreen(): React.ReactElement {
             onClose={() => setRepresentativeModalVisible(false)}
             title={t("demand.selectRepresentative")}
             searchPlaceholder={t("demand.searchRepresentative")}
+          />
+
+          <PickerModal
+            visible={koliBaskiModalVisible}
+            options={koliBaskiOptions.map((option) => ({
+              id: option.id,
+              name: option.name,
+            }))}
+            selectedValue={watch("demand.koliBaskiDefinitionId") ?? undefined}
+            onSelect={(option) => {
+              setValue("demand.koliBaskiDefinitionId", option.id as number);
+              setKoliBaskiModalVisible(false);
+            }}
+            onClose={() => setKoliBaskiModalVisible(false)}
+            title={t("demand.koliBaski")}
+            searchPlaceholder={t("demand.koliBaskiSearch")}
           />
 
           {watchedCustomerId && shippingAddresses && shippingAddresses.length > 0 && (

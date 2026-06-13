@@ -71,6 +71,7 @@ export function mapDetailHeaderToForm(
     description: h.description ?? null,
     paymentTypeId: h.paymentTypeId ?? null,
     documentSerialTypeId: h.documentSerialTypeId ?? null,
+    koliBaskiDefinitionId: h.koliBaskiDefinitionId ?? null,
     offerType: h.offerType || "Domestic",
     offerDate: toDateOnly(h.offerDate),
     offerNo: h.offerNo ?? null,

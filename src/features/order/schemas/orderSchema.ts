@@ -17,6 +17,7 @@ export const createOrderSchema = () =>
           .nullable()
           .optional()
           .refine((v) => v != null && v > 0, { message: "Seri no seçilmelidir" }),
+        koliBaskiDefinitionId: z.number().nullable().optional(),
         offerType: z.string().min(1, "Sipariş tipi seçilmelidir"),
         offerDate: z.string().nullable().optional(),
         offerNo: z.string().max(50).nullable().optional(),

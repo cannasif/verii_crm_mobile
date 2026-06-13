@@ -138,6 +138,7 @@ export function DemandCreateScreen(): React.ReactElement {
   const [paymentTypeModalVisible, setPaymentTypeModalVisible] = useState(false);
   const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
   const [shippingAddressModalVisible, setShippingAddressModalVisible] = useState(false);
+  const [koliBaskiModalVisible, setKoliBaskiModalVisible] = useState(false);
   const [customerSelectDialogOpen, setCustomerSelectDialogOpen] = useState(false);
   const [representativeModalVisible, setRepresentativeModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<"general" | "lines">("general");
@@ -164,6 +165,7 @@ export function DemandCreateScreen(): React.ReactElement {
         offerDate: new Date().toISOString().split("T")[0],
         deliveryDate: new Date().toISOString().split("T")[0],
         representativeId: user?.id || null,
+        koliBaskiDefinitionId: null,
       },
     },
   });
@@ -386,7 +388,7 @@ export function DemandCreateScreen(): React.ReactElement {
     () => resolveLineListCurrencyLabel(watchedCurrency, currencyOptions ?? null),
     [watchedCurrency, currencyOptions]
   );
-  const { profilMap, demirMap, vidaMap, baskiMap } = useWindoDefinitionOptions();
+  const { profilMap, demirMap, vidaMap, baskiMap, koliBaskiOptions } = useWindoDefinitionOptions();
 
   const handleEditLine = useCallback(
     (line: DemandLineFormState) => {
@@ -670,7 +672,10 @@ export function DemandCreateScreen(): React.ReactElement {
       });
 
       createDemand.mutate({
-        demand: formData.demand,
+        demand: {
+          ...formData.demand,
+          koliBaskiDefinitionId: formData.demand.koliBaskiDefinitionId ?? null,
+        },
         lines: cleanedLines,
         exchangeRates: cleanedExchangeRates.length > 0 ? cleanedExchangeRates : undefined,
       });
@@ -1014,6 +1019,32 @@ export function DemandCreateScreen(): React.ReactElement {
               customerTypeId={customerTypeId}
               representativeId={watchedRepresentativeId || undefined}
               disabled={!watchedRepresentativeId}
+            />
+
+            <Controller
+              control={control}
+              name="demand.koliBaskiDefinitionId"
+              render={({ field: { value } }) => (
+                <View style={styles.fieldContainerTight}>
+                  <Text style={[styles.labelCompact, { color: colors.textSecondary }]}>
+                    {t("demand.koliBaski")}
+                  </Text>
+                  <TouchableOpacity
+                    style={[
+                      styles.pickerButton,
+                      styles.pickerShellCompact,
+                      { backgroundColor: innerBg, borderColor: innerBorder },
+                    ]}
+                    onPress={() => setKoliBaskiModalVisible(true)}
+                  >
+                    <Text style={[styles.pickerText, styles.pickerTextCompact, { color: colors.text }]} numberOfLines={1}>
+                      {value
+                        ? koliBaskiOptions.find((option) => option.id === value)?.name ?? t("common.select")
+                        : t("common.select")}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             />
 
             <FormField
@@ -1484,6 +1515,22 @@ export function DemandCreateScreen(): React.ReactElement {
           onClose={() => setRepresentativeModalVisible(false)}
           title="Satış Temsilcisi Seçiniz"
           searchPlaceholder="Temsilci ara..."
+        />
+
+        <PickerModal
+          visible={koliBaskiModalVisible}
+          options={koliBaskiOptions.map((option) => ({
+            id: option.id,
+            name: option.name,
+          }))}
+          selectedValue={watch("demand.koliBaskiDefinitionId") ?? undefined}
+          onSelect={(option) => {
+            setValue("demand.koliBaskiDefinitionId", option.id as number);
+            setKoliBaskiModalVisible(false);
+          }}
+          onClose={() => setKoliBaskiModalVisible(false)}
+          title={t("demand.koliBaski")}
+          searchPlaceholder={t("demand.koliBaskiSearch")}
         />
 
         {watchedCustomerId && shippingAddresses && shippingAddresses.length > 0 && (

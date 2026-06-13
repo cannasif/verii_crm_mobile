@@ -135,6 +135,22 @@ function OrderRowComponent({
           ) : null}
         </View>
 
+        {order.koliBaskiDefinitionName ? (
+          <View
+            style={[
+              styles.infoStrip,
+              {
+                backgroundColor: colors.softBg,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Text style={[styles.infoStripText, { color: colors.text }]} numberOfLines={1}>
+              {t("order.koliBaski")}: {order.koliBaskiDefinitionName}
+            </Text>
+          </View>
+        ) : null}
+
         <View
           style={[
             styles.statusPill,
@@ -389,6 +405,17 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 10.8,
     fontWeight: "500",
+    lineHeight: 13,
+  },
+  infoStrip: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  infoStripText: {
+    fontSize: 10.8,
+    fontWeight: "700",
     lineHeight: 13,
   },
   totalStrip: {
