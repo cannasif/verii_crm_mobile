@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
+import { SHOW_ERP_CUSTOMERS_MENU } from "@/constants/config";
 import { ScreenHeader } from "../../../components/navigation";
 import { useUIStore } from "../../../store/ui";
 import { MenuCard } from "../components";
@@ -55,6 +56,24 @@ export function CustomerMenuScreen(): React.ReactElement {
   const handleErpCustomersPress = useCallback(() => {
     router.push("/(tabs)/customers/erp");
   }, [router]);
+
+  const erpCustomersMenuCard = SHOW_ERP_CUSTOMERS_MENU ? (
+    <MenuCard
+      title={t("customerMenu.erpCustomers")}
+      description={t("customerMenu.erpCustomersDesc")}
+      viewType={menuViewType}
+      icon={
+        <Building02Icon 
+          size={24} 
+          color={THEME_PINK} 
+          variant="stroke" 
+          strokeWidth={1.5}
+        />
+      }
+      rightIcon={<ArrowRight01Icon size={20} color={arrowColor} variant="stroke" strokeWidth={2} />}
+      onPress={handleErpCustomersPress}
+    />
+  ) : null;
 
   return (
     <View style={[styles.container, { backgroundColor: mainBg }]}>
@@ -108,21 +127,7 @@ export function CustomerMenuScreen(): React.ReactElement {
             onPress={handleCustomersPress}
           />
 
-          <MenuCard
-            title={t("customerMenu.erpCustomers")}
-            description={t("customerMenu.erpCustomersDesc")}
-            viewType={menuViewType}
-            icon={
-              <Building02Icon 
-                size={24} 
-                color={THEME_PINK} 
-                variant="stroke" 
-                strokeWidth={1.5}
-              />
-            }
-            rightIcon={<ArrowRight01Icon size={20} color={arrowColor} variant="stroke" strokeWidth={2} />}
-            onPress={handleErpCustomersPress}
-          />
+          {erpCustomersMenuCard}
 
           <MenuCard
             title={t("customerMenu.contacts")}

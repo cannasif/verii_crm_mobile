@@ -4,6 +4,7 @@ export { useCustomerScopeAccess } from "./useCustomerScopeAccess";
 export { useCustomer } from "./useCustomer";
 export { useCustomerImages } from "./useCustomerImages";
 export { useCreateCustomer, useCreateCustomerFromMobile, useUpdateCustomer, useDeleteCustomer, useUploadCustomerImage } from "./useCustomerMutation";
+export { useUpdateCustomerLocation } from "./useUpdateCustomerLocation";
 export { useBusinessCardScan } from "./useBusinessCardScan";
 export { useBusinessCardPotentialMatches } from "./useBusinessCardPotentialMatches";
 export { useQrCustomerScan } from "./useQrCustomerScan";

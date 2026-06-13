@@ -3,7 +3,6 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  Platform,
   Linking,
   TouchableOpacity,
   Image,
@@ -23,6 +22,11 @@ import { useUIStore } from "../../../store/ui";
 import { getApiBaseUrl } from "../../../constants/config";
 import i18n from "../../../locales";
 import type { CustomerDto, CustomerImageDto } from "../types";
+import {
+  buildCustomerMapUrl,
+  canOpenCustomerMap,
+  hasValidCustomerCoordinates,
+} from "../utils/customerCoordinates";
 import type { QuotationGetDto } from "../../../features/quotation/types";
 import { formatSystemCurrency, formatSystemDate, formatSystemNumber, getSystemLocale } from "../../../lib/systemSettings";
 import {
@@ -466,21 +470,15 @@ export function CustomerDetailContent({
   const visibleImages = useMemo(() => images.filter((item) => !!toAbsoluteImageUrl(item.imageUrl)), [images]);
 
   const handleMapOpen = useCallback(async () => {
-    if (!customer?.address && !customer?.cityName) return;
-    const address = `${customer?.address || ""} ${customer?.cityName || ""}`.trim();
-    if (!address) return;
-
-    const query = encodeURIComponent(address);
-    const url = Platform.select({
-      ios: `maps:0,0?q=${query}`,
-      android: `geo:0,0?q=${query}`,
-      default: `https://www.google.com/maps/search/?api=1&query=${query}`,
-    });
-
+    if (!customer) return;
+    const url = buildCustomerMapUrl(customer);
     if (url) {
       await openUrlSafely(url);
     }
-  }, [customer?.address, customer?.cityName]);
+  }, [customer]);
+
+  const showAddressLocationMismatchWarning = hasValidCustomerCoordinates(customer);
+  const isMapActionEnabled = canOpenCustomerMap(customer);
 
   const handleCallPress = useCallback(async () => {
     if (!customer?.phone?.trim()) return;
@@ -665,7 +663,7 @@ export function CustomerDetailContent({
                 color="#ef4444"
                 icon={<MapsCircle01Icon size={22} color="#ef4444" variant="stroke" />}
                 onPress={handleMapOpen}
-                disabled={!customer?.address?.trim() && !customer?.cityName?.trim()}
+                disabled={!isMapActionEnabled}
               />
             </View>
           </View>
@@ -784,6 +782,22 @@ export function CustomerDetailContent({
           >
             {customer?.address?.trim() || t("customer.addressNotSpecified")}
           </Text>
+
+          {showAddressLocationMismatchWarning ? (
+            <View
+              style={[
+                styles.addressLocationWarning,
+                {
+                  backgroundColor: isDark ? "rgba(245, 158, 11, 0.12)" : "rgba(245, 158, 11, 0.10)",
+                  borderColor: isDark ? "rgba(245, 158, 11, 0.28)" : "rgba(245, 158, 11, 0.22)",
+                },
+              ]}
+            >
+              <Text style={[styles.addressLocationWarningText, { color: isDark ? "#fbbf24" : "#b45309" }]}>
+                {t("customer.addressMayDifferFromMapLocation")}
+              </Text>
+            </View>
+          ) : null}
 
           <View style={[styles.locationGrid, { borderTopColor: theme.divider }]}>
             <View style={[styles.locItemBox, { backgroundColor: theme.cardBgSoft, borderColor: theme.divider }]}>
@@ -1409,6 +1423,20 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     opacity: 0.96,
     fontWeight: "400",
+  },
+
+  addressLocationWarning: {
+    marginBottom: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+
+  addressLocationWarningText: {
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: "500",
   },
 
   locationGrid: {

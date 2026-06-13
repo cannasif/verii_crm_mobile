@@ -24,11 +24,12 @@ import {
   useDeleteCustomer,
   useCustomerImages,
   useUploadCustomerImage,
+  useUpdateCustomerLocation,
   CustomerDetailContent,
 } from "../../../../features/customer";
 import {
   useCustomerContacts,
-  ContactCard,
+  ContactListCard,
   type ContactDto,
 } from "../../../../features/contact";
 import { Customer360Screen } from "../../../../features/customer360";
@@ -180,6 +181,7 @@ function CustomerDetailPage(): React.ReactElement {
 
   const deleteCustomer = useDeleteCustomer();
   const uploadCustomerImage = useUploadCustomerImage();
+  const { requestLocationUpdate, isUpdatingLocation } = useUpdateCustomerLocation(customerId, customer);
 
   const {
     data: contacts = [],
@@ -409,7 +411,7 @@ function CustomerDetailPage(): React.ReactElement {
 
   const renderContactItem = useCallback(
     ({ item }: { item: ContactDto }) => (
-      <ContactCard contact={item} onPress={() => handleContactPress(item)} />
+      <ContactListCard contact={item} onPress={() => handleContactPress(item)} />
     ),
     [handleContactPress]
   );
@@ -480,12 +482,14 @@ function CustomerDetailPage(): React.ReactElement {
             quotations={customerQuotations}
             isQuotationLoading={isQuotationLoading}
             isUploadingImage={uploadCustomerImage.isPending}
+            isUpdatingLocation={isUpdatingLocation}
             insets={insets}
             t={t}
             on360Press={handleCustomer360Press}
             onQuickQuotationPress={handleQuickQuotationPress}
             onQuickActivityPress={handleQuickActivityPress}
             onAddImagePress={handleAddImagePress}
+            onUpdateLocationPress={requestLocationUpdate}
             onQuotationPress={handleQuotationPress}
             onViewAllQuotationsPress={handleViewAllQuotationsPress}
           />
