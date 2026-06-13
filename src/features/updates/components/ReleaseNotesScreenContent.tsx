@@ -6,13 +6,16 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   ArrowLeft01Icon,
+  ArrowRight01Icon,
   CheckmarkCircle02Icon,
   Download04Icon,
+  Link04Icon,
   Rotate360Icon,
 } from "hugeicons-react-native";
 import type { UseQueryResult } from "@tanstack/react-query";
@@ -52,6 +55,7 @@ export function ReleaseNotesScreenContent({
   onRefetch,
 }: ReleaseNotesScreenContentProps): React.ReactElement {
   const { t } = useTranslation();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
 
   const backgroundColor = isDarkMode ? "#0c0516" : "#F8FAFC";
@@ -162,6 +166,22 @@ export function ReleaseNotesScreenContent({
             </Text>
           </View>
         </View>
+
+        <Pressable
+          style={[styles.linkCard, { backgroundColor: cardBg, borderColor }]}
+          onPress={() => router.push("/api-url-settings")}
+        >
+          <View style={[styles.linkIconWrap, { backgroundColor: accentSoft }]}>
+            <Link04Icon size={18} color={accent} variant="stroke" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text bold style={{ color: textColor }}>{t("settings.apiUrlTitle")}</Text>
+            <Text size="sm" style={{ color: mutedColor, marginTop: 4 }}>
+              {t("settings.apiUrlDescription")}
+            </Text>
+          </View>
+          <ArrowRight01Icon size={18} color={mutedColor} />
+        </Pressable>
 
         {releaseQuery.isLoading ? (
           <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
@@ -311,6 +331,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 18,
     alignItems: "flex-start",
+  },
+  linkCard: {
+    borderRadius: 22,
+    borderWidth: 1,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  linkIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
   },
   notesBody: {
     marginTop: 14,
