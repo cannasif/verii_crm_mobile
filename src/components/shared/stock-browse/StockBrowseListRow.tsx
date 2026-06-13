@@ -69,7 +69,7 @@ export const StockBrowseListRow = memo(function StockBrowseListRow({
               isDark={isDark}
               nameStyle={styles.listName}
               onTooltipOpenChange={setNameTooltipOpen}
-              tooltipPlacement="below"
+              tooltipPlacement="above"
             />
           </View>
           <View style={styles.listActionsCol}>
