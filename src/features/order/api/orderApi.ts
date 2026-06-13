@@ -249,7 +249,7 @@ export const orderApi = {
   },
 
   getList: async (params: PagedParams = {}): Promise<PagedResponse<OrderGetDto>> => {
-    const response = await apiClient.post<OrderListResponse>("/api/order/query", {
+    const response = await apiClient.post<OrderListResponse>("/api/Order/related/query", {
       pageNumber: params.pageNumber ?? 1,
       pageSize: params.pageSize ?? 20,
       search: params.search ?? "",
@@ -261,7 +261,7 @@ export const orderApi = {
 
     if (!response.data.success) {
       throw new Error(
-        response.data.message || response.data.exceptionMessage || "Talep listesi alınamadı"
+        response.data.message || response.data.exceptionMessage || "Sipariş listesi alınamadı"
       );
     }
 

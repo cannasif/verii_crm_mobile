@@ -300,7 +300,7 @@ export const quotationApi = {
   },
 
   getList: async (params: PagedParams = {}): Promise<PagedResponse<QuotationGetDto>> => {
-    const response = await apiClient.post<QuotationListResponse>("/api/quotation/query", {
+    const response = await apiClient.post<QuotationListResponse>("/api/Quotation/related/query", {
       pageNumber: params.pageNumber ?? 1,
       pageSize: params.pageSize ?? 20,
       search: params.search ?? "",

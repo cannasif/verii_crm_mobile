@@ -249,7 +249,7 @@ export const demandApi = {
   },
 
   getList: async (params: PagedParams = {}): Promise<PagedResponse<DemandGetDto>> => {
-    const response = await apiClient.post<DemandListResponse>("/api/demand/query", {
+    const response = await apiClient.post<DemandListResponse>("/api/Demand/related/query", {
       pageNumber: params.pageNumber ?? 1,
       pageSize: params.pageSize ?? 20,
       search: params.search ?? "",
