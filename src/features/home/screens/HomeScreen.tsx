@@ -9,6 +9,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useAuthStore } from "../../../store/auth";
+import { hasAnyPermission } from "../../access-control/utils/hasPermission";
 import { CRM_MODULES } from "../constants/modules";
 import type { Module } from "../types";
 
@@ -28,6 +29,7 @@ export function HomeScreen(): React.ReactElement {
   const router = useRouter();
   const { themeMode } = useUIStore();
   const branch = useAuthStore((state) => state.branch);
+  const permissions = useAuthStore((state) => state.permissions);
   const insets = useSafeAreaInsets();
   const [isSecondaryDataEnabled, setIsSecondaryDataEnabled] = useState(false);
   const isBranchReady = Boolean(branch?.code);
@@ -108,6 +110,16 @@ export function HomeScreen(): React.ReactElement {
 
   const recentActivitiesList = activitiesData?.pages?.[0]?.items?.filter(item => item != null) || [];
 
+  const quickActionModules = useMemo(
+    () =>
+      CRM_MODULES.filter(
+        (item) =>
+          !item.permissionCodes?.length ||
+          hasAnyPermission(permissions, item.permissionCodes)
+      ),
+    [permissions]
+  );
+
   return (
     <View style={[styles.root, { backgroundColor: mainBg }]}>
       <StatusBar style={isDark ? "light" : "dark"} />
@@ -134,7 +146,7 @@ export function HomeScreen(): React.ReactElement {
             <Text style={[styles.sectionTitle, { color: textColor }]}>
               {t("home.quickActions")}
             </Text>
-            <HomeQuickActionsStrip items={CRM_MODULES} onOpenModule={onOpenModule} />
+            <HomeQuickActionsStrip items={quickActionModules} onOpenModule={onOpenModule} />
           </View>
         }
         ListFooterComponent={

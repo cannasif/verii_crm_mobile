@@ -10,6 +10,7 @@ import {
   PackageIcon,
   CalendarAdd01Icon,
   ChartLineData01Icon,
+  File02Icon,
 } from "hugeicons-react-native";
 
 const MODULE_ICONS: Record<string, React.ElementType> = {
@@ -19,6 +20,7 @@ const MODULE_ICONS: Record<string, React.ElementType> = {
   createActivity: CalendarAdd01Icon,
   stock: PackageIcon,
   salesKpi: ChartLineData01Icon,
+  erpOrders: File02Icon,
 };
 
 const STRIP_TILE_WIDTH = 96;

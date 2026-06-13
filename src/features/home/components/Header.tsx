@@ -37,8 +37,9 @@ function getDisplayFirstName(name: string | undefined): string {
 
 export function Header({ user, onSettingsPress }: HeaderProps): React.ReactElement {
   const { t } = useTranslation();
-  const { openSidebar } = useUIStore();
+  const { openSidebar, colors, themeMode } = useUIStore();
   const branch = useAuthStore((state) => state.branch);
+  const isDark = themeMode === "dark";
   const displayName = getDisplayFirstName(user?.name);
   const greetingText = displayName
     ? `${t("home.greeting")}, ${displayName}`
@@ -46,7 +47,12 @@ export function Header({ user, onSettingsPress }: HeaderProps): React.ReactEleme
   const subtitle = branch ? `${branch.code} — ${branch.name}` : t("home.branch");
 
   return (
-    <View className="flex-row items-center justify-between px-5 pt-3 pb-4 bg-app-header dark:bg-app-headerDark">
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: isDark ? colors.header : colors.navBar },
+      ]}
+    >
       <View className="flex-row items-center flex-1 min-w-0">
         <TouchableOpacity
           onPress={openSidebar}
@@ -99,3 +105,14 @@ export function Header({ user, onSettingsPress }: HeaderProps): React.ReactEleme
     </View>
   );
 }
+
+const styles = {
+  container: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 16,
+  },
+};

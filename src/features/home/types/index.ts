@@ -8,6 +8,7 @@ export interface Module {
   icon: string;
   color: string;
   route: string;
+  permissionCodes?: string[];
 }
 
 export interface ActivityItem {

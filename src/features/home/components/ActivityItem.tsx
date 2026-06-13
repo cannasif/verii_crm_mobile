@@ -1,5 +1,5 @@
 import React from "react";
-import { View } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import type { ActivityItem as ActivityItemType } from "../types";
@@ -60,7 +60,8 @@ function formatTime(timestamp: string): string {
 }
 
 export function ActivityItem({ item }: ActivityItemProps): React.ReactElement {
-  const { colors } = useUIStore();
+  const { colors, themeMode } = useUIStore();
+  const isDark = themeMode === "dark";
   const IconComponent = getIcon(item.type);
   const iconColor = getIconColor(item.type);
   const statusColor =
@@ -71,33 +72,98 @@ export function ActivityItem({ item }: ActivityItemProps): React.ReactElement {
         : colors.error;
 
   return (
-    <View className="flex-row items-center rounded-2xl mb-3 border border-app-border dark:border-app-borderDark bg-app-card dark:bg-app-cardDark overflow-hidden">
-      <View className="w-11 h-11 rounded-xl items-center justify-center ml-4 my-3.5 mr-3.5 bg-app-backgroundSecondary dark:bg-white/5">
+    <View
+      style={[
+        styles.row,
+        {
+          borderColor: colors.border,
+          backgroundColor: colors.card,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.iconWrap,
+          {
+            backgroundColor: isDark ? "rgba(255,255,255,0.05)" : colors.backgroundSecondary,
+          },
+        ]}
+      >
         <IconComponent size={20} color={iconColor} />
       </View>
-      <View className="flex-1 min-w-0 py-3.5 pr-4">
+      <View style={styles.content}>
         <Text
-          className="text-[14px] font-semibold text-app-text dark:text-app-textDark mb-0.5"
+          disableThemeColor
+          style={[styles.title, { color: colors.text }]}
           numberOfLines={1}
         >
           {item.title}
         </Text>
         <Text
-          className="text-[12px] leading-4 text-app-textSecondary dark:text-app-textSecondaryDark"
+          disableThemeColor
+          style={[styles.description, { color: colors.textSecondary }]}
           numberOfLines={1}
         >
           {item.description}
         </Text>
       </View>
-      <View className="items-end justify-center pr-4 py-3.5">
-        <Text className="text-[11px] text-app-textMuted dark:text-app-textMutedDark mb-1.5">
+      <View style={styles.meta}>
+        <Text disableThemeColor style={[styles.time, { color: colors.textMuted }]}>
           {formatTime(item.timestamp)}
         </Text>
-        <View
-          className="w-2 h-2 rounded-full"
-          style={{ backgroundColor: statusColor }}
-        />
+        <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
       </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  iconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 16,
+    marginVertical: 14,
+    marginRight: 14,
+  },
+  content: {
+    flex: 1,
+    minWidth: 0,
+    paddingVertical: 14,
+    paddingRight: 16,
+  },
+  title: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+  description: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  meta: {
+    alignItems: "flex-end",
+    justifyContent: "center",
+    paddingRight: 16,
+    paddingVertical: 14,
+  },
+  time: {
+    fontSize: 11,
+    marginBottom: 6,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+});

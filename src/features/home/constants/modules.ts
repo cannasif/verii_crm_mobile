@@ -36,4 +36,12 @@ export const CRM_MODULES: Module[] = [
     color: "#0EA5E9",
     route: "/(tabs)/sales/sales-kpi",
   },
+  {
+    id: "6",
+    key: "erpOrders",
+    icon: "",
+    color: "#10B981",
+    route: "/(tabs)/sales/orders/erp",
+    permissionCodes: ["sales.erp-orders.view"],
+  },
 ];
