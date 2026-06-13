@@ -256,7 +256,7 @@ export function ContactListScreen(): React.ReactElement {
               metaContent={
                 <View style={styles.metaRow}>
                   <Text style={[styles.metaText, { color: theme.textMute }]}>
-                    {totalCount} kişi bulundu
+                    {t("contact.foundCount", { count: totalCount })}
                   </Text>
                 </View>
               }
