@@ -248,6 +248,7 @@ export interface OrderLineFormState {
   baskiDefinitionId?: number | null;
   baskiDefinitionName?: string | null;
   imagePath?: string | null;
+  pendingImageUri?: string | null;
   pricingRuleHeaderId?: number | null;
   relatedStockId?: number | null;
   relatedProductKey?: string | null;

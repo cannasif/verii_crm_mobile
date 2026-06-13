@@ -15,7 +15,9 @@ import { createClientId } from "@/lib/create-client-id";
 import { getValidRelatedProductGroup } from "@/lib/relatedProductGroup";
 import { resolveDocumentSerialCustomerTypeId } from "@/lib/resolve-document-serial-customer-type-id";
 import { resolveExchangeRateByCurrency as findExchangeRateByCurrency } from "@/lib/resolve-exchange-rate";
-import { resolveLineListCurrencyLabel } from "../../../lib/currencyDisplay";
+import { resolveLineListCurrencyLabel, resolveCurrencyIsoCode } from "../../../lib/currencyDisplay";
+import { resolveOrderCustomerLabelForPdf } from "../utils/resolveOrderCustomerLabelForPdf";
+import { buildOrderPreviewPdfInput } from "../utils/buildOrderPreviewPdfInput";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { StatusBar } from "expo-status-bar";
@@ -31,6 +33,7 @@ import {
   Edit02Icon,
   Delete02Icon,
   Alert02Icon,
+  Pdf01Icon,
 } from "hugeicons-react-native";
 import { ScreenHeader } from "../../../components/navigation";
 import { Text } from "../../../components/ui/text";
@@ -61,6 +64,7 @@ import {
   DocumentSerialTypePicker,
   OfferTypePicker,
   ProductPicker,
+  OrderPreviewPdfDialog,
 } from "../components";
 import { CustomerSelectDialog, type CustomerSelectionResult } from "../../customer";
 import type { CustomerDto } from "../../customer/types";
@@ -99,7 +103,7 @@ export function OrderCreateScreen(): React.ReactElement {
   const { t } = useTranslation();
   const router = useRouter();
   const { colors, themeMode } = useUIStore();
-  const { user } = useAuthStore();
+  const { user, branch } = useAuthStore();
   const insets = useSafeAreaInsets();
   const showToast = useToastStore((state) => state.showToast);
 
@@ -143,6 +147,7 @@ export function OrderCreateScreen(): React.ReactElement {
   const [customerSelectDialogOpen, setCustomerSelectDialogOpen] = useState(false);
   const [representativeModalVisible, setRepresentativeModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<"general" | "lines">("general");
+  const [previewPdfVisible, setPreviewPdfVisible] = useState(false);
   const [pendingStockForRelated, setPendingStockForRelated] = useState<
     (StockGetDto & { parentRelations: StockRelationDto[] }) | null
   >(null);
@@ -688,6 +693,42 @@ export function OrderCreateScreen(): React.ReactElement {
     showToast("error", t("validation.fillRequiredFields", "Lütfen zorunlu alanları doldurun"));
   }, [showToast, t]);
 
+  const buildPreviewPdfInput = useCallback(
+    async (draft: boolean) => {
+      const resolvedCustomerName = await resolveOrderCustomerLabelForPdf({
+        potentialCustomerId: watchedCustomerId,
+        potentialCustomerName: selectedCustomer?.name,
+        erpCustomerCode: watchedErpCustomerCode,
+        selectedCustomerName: selectedCustomer?.name,
+        t,
+      });
+
+      return buildOrderPreviewPdfInput({
+        offerDate: watchedOfferDate ?? null,
+        offerNo: null,
+        customerName: resolvedCustomerName,
+        branch,
+        currency: watchedCurrency,
+        currencyCode: resolveCurrencyIsoCode(watchedCurrency),
+        generalDiscountRate: null,
+        generalDiscountAmount: null,
+        draft,
+        lines,
+        t,
+      });
+    },
+    [
+      branch,
+      lines,
+      selectedCustomer?.name,
+      t,
+      watchedCurrency,
+      watchedCustomerId,
+      watchedErpCustomerCode,
+      watchedOfferDate,
+    ]
+  );
+
   return (
     <>
       <StatusBar style={isDark ? "light" : "dark"} />
@@ -706,7 +747,30 @@ export function OrderCreateScreen(): React.ReactElement {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
         >
-        <ScreenHeader title={t("order.createNew")} showBackButton />
+        <ScreenHeader
+          title={t("order.createNew")}
+          showBackButton
+          rightElement={
+            <TouchableOpacity
+              onPress={() => setPreviewPdfVisible(true)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              activeOpacity={0.85}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 10,
+                borderWidth: 1,
+                alignItems: "center",
+                justifyContent: "center",
+                borderColor: isDark ? "rgba(236,72,153,0.35)" : "rgba(219,39,119,0.22)",
+                backgroundColor: isDark ? "rgba(236,72,153,0.10)" : "rgba(219,39,119,0.06)",
+                marginRight: 4,
+              }}
+            >
+              <Pdf01Icon size={16} color={accent} variant="stroke" strokeWidth={1.8} />
+            </TouchableOpacity>
+          }
+        />
         <FlatListScrollView
           style={[styles.content, { backgroundColor: contentBackground }]}
           contentContainerStyle={[
@@ -1265,6 +1329,23 @@ export function OrderCreateScreen(): React.ReactElement {
           )}
           </View>
 
+          <TouchableOpacity
+            style={[
+              styles.previewButton,
+              {
+                borderColor: isDark ? "rgba(236,72,153,0.35)" : "rgba(219,39,119,0.22)",
+                backgroundColor: isDark ? "rgba(236,72,153,0.08)" : "rgba(219,39,119,0.05)",
+              },
+            ]}
+            onPress={() => setPreviewPdfVisible(true)}
+            activeOpacity={0.88}
+          >
+            <Pdf01Icon size={16} color={accent} variant="stroke" strokeWidth={1.8} />
+            <Text style={[styles.previewButtonText, { color: accent }]}>
+              {t("order.exportPreview.trigger")}
+            </Text>
+          </TouchableOpacity>
+
           <View style={styles.submitRow}>
             <TouchableOpacity
               style={[styles.cancelButton, { borderColor: colors.border }]}
@@ -1553,6 +1634,15 @@ export function OrderCreateScreen(): React.ReactElement {
             searchPlaceholder="Adres ara..."
           />
         )}
+
+        <OrderPreviewPdfDialog
+          visible={previewPdfVisible}
+          onClose={() => setPreviewPdfVisible(false)}
+          buildInput={buildPreviewPdfInput}
+          validateBeforeOpen={() =>
+            lines.length === 0 ? t("order.rowActions.noLinesForPdf") : null
+          }
+        />
 
       </KeyboardAvoidingView>
       </View>
@@ -1955,6 +2045,21 @@ const styles = StyleSheet.create({
   },
   lineCardWrapper: {
     marginBottom: 8,
+  },
+  previewButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    minHeight: 44,
+    borderWidth: 1,
+    borderRadius: 14,
+    marginTop: 8,
+    paddingHorizontal: 14,
+  },
+  previewButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
   },
   submitRow: {
     flexDirection: "row",

@@ -14,6 +14,8 @@ export { useUserDiscountLimitsBySalesperson } from "./useUserDiscountLimitsBySal
 export { useExchangeRate } from "./useExchangeRate";
 export { useCurrencyOptions } from "./useCurrencyOptions";
 export { usePaymentTypes } from "./usePaymentTypes";
+export { usePaymentTypeNameMap } from "./usePaymentTypeNameMap";
+export { useOrderListRowActions } from "./useOrderListRowActions";
 export { useAvailableDocumentSerialTypes } from "./useDocumentSerialTypes";
 export { useDocumentSerialTypeList } from "./useDocumentSerialTypeList";
 export { useUserList } from "./useUserList";

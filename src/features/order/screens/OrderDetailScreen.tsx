@@ -39,6 +39,7 @@ import {
   Tick02Icon,
   SentIcon,
   FloppyDiskIcon,
+  Pdf01Icon,
 } from "hugeicons-react-native";
 import { stickyActionBarBottomPadding } from "../../../constants/layout";
 import { ScreenHeader } from "../../../components/navigation";
@@ -81,10 +82,14 @@ import {
   OrderLineForm,
   OrderApprovalFlowTab,
   RejectModal,
+  OrderPreviewPdfDialog,
+  OrderReportTab,
 } from "../components";
 import { CustomerSelectDialog, type CustomerSelectionResult } from "../../customer";
 import type { CustomerDto } from "../../customer/types";
-import { ReportTab, DocumentRuleType } from "../../quotation";
+import { resolveCurrencyIsoCode } from "../../../lib/currencyDisplay";
+import { resolveOrderCustomerLabelForPdf } from "../utils/resolveOrderCustomerLabelForPdf";
+import { buildOrderPreviewPdfInput } from "../utils/buildOrderPreviewPdfInput";
 import { createOrderSchema, type CreateOrderSchema } from "../schemas";
 import type {
   OrderLineFormState,
@@ -216,7 +221,7 @@ export function OrderDetailScreen(): React.ReactElement {
   const { t } = useTranslation();
   const { colors, themeMode } = useUIStore();
   const isDark = themeMode === "dark";
-  const { user } = useAuthStore();
+  const { user, branch } = useAuthStore();
   const insets = useSafeAreaInsets();
   const showToast = useToastStore((s) => s.showToast);
 
@@ -284,6 +289,7 @@ export function OrderDetailScreen(): React.ReactElement {
   const [deleteLineDialogVisible, setDeleteLineDialogVisible] = useState(false);
   const [deleteLineId, setDeleteLineId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"detail" | "approval" | "report">("detail");
+  const [previewPdfVisible, setPreviewPdfVisible] = useState(false);
 
   const schema = useMemo(() => createOrderSchema(), []);
 
@@ -940,6 +946,49 @@ export function OrderDetailScreen(): React.ReactElement {
     void handleSubmit(onSaveUpdate, onInvalidSaveUpdate)();
   }, [handleSubmit, onSaveUpdate, onInvalidSaveUpdate]);
 
+  const buildPreviewPdfInput = useCallback(
+    async (draft: boolean) => {
+      const resolvedCustomerName = await resolveOrderCustomerLabelForPdf({
+        potentialCustomerId: watchedCustomerId,
+        potentialCustomerName: selectedCustomer?.name ?? header?.potentialCustomerName,
+        erpCustomerCode: watchedErpCustomerCode ?? header?.erpCustomerCode,
+        selectedCustomerName: selectedCustomer?.name,
+        t,
+      });
+
+      const headerRecord = header as unknown as Record<string, unknown> | undefined;
+      const generalDiscountRate =
+        (headerRecord?.generalDiscountRate as number | null | undefined) ?? null;
+      const generalDiscountAmount =
+        (headerRecord?.generalDiscountAmount as number | null | undefined) ?? null;
+
+      return buildOrderPreviewPdfInput({
+        offerDate: watchedOfferDate ?? header?.offerDate ?? null,
+        offerNo: header?.offerNo ?? null,
+        customerName: resolvedCustomerName,
+        branch,
+        currency: watchedCurrency ?? header?.currency ?? "TRY",
+        currencyCode: resolveCurrencyIsoCode(watchedCurrency ?? header?.currency ?? "TRY"),
+        generalDiscountRate,
+        generalDiscountAmount,
+        draft,
+        lines,
+        t,
+      });
+    },
+    [
+      branch,
+      header,
+      lines,
+      selectedCustomer?.name,
+      t,
+      watchedCurrency,
+      watchedCustomerId,
+      watchedErpCustomerCode,
+      watchedOfferDate,
+    ]
+  );
+
   const pageTitle = header?.offerNo ?? (orderId != null ? `#${orderId}` : t("order.detail"));
   const isReadonly =
     header?.status === APPROVAL_APPROVED ||
@@ -1211,7 +1260,28 @@ export function OrderDetailScreen(): React.ReactElement {
           <ScreenHeader
             title={pageTitle}
             showBackButton
-            rightElement={statusKind ? <StatusBadge kind={statusKind} isDark={isDark} /> : undefined}
+            rightElement={
+              <View style={{ flexDirection: "row-reverse", alignItems: "center", gap: 6, marginRight: 2 }}>
+                {statusKind ? <StatusBadge kind={statusKind} isDark={isDark} /> : null}
+                <TouchableOpacity
+                  onPress={() => setPreviewPdfVisible(true)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  activeOpacity={0.85}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 10,
+                    borderWidth: 1,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderColor: isDark ? "rgba(236,72,153,0.35)" : "rgba(219,39,119,0.22)",
+                    backgroundColor: isDark ? "rgba(236,72,153,0.10)" : "rgba(219,39,119,0.06)",
+                  }}
+                >
+                  <Pdf01Icon size={16} color={accent} variant="stroke" strokeWidth={1.8} />
+                </TouchableOpacity>
+              </View>
+            }
           />
 
           <View
@@ -1251,7 +1321,29 @@ export function OrderDetailScreen(): React.ReactElement {
           {activeTab === "approval" && orderId != null ? (
             <OrderApprovalFlowTab orderId={orderId} />
           ) : activeTab === "report" && orderId != null ? (
-            <ReportTab entityId={orderId} ruleType={DocumentRuleType.Order} />
+            <OrderReportTab
+              orderId={orderId}
+              offerNo={header?.offerNo}
+              customerName={header?.potentialCustomerName}
+              potentialCustomerId={header?.potentialCustomerId}
+              erpCustomerCode={header?.erpCustomerCode}
+              currency={watchedCurrency ?? header?.currency}
+              currencyCode={resolveCurrencyIsoCode(watchedCurrency ?? header?.currency ?? "TRY")}
+              generalDiscountRate={
+                (header as unknown as Record<string, unknown> | undefined)?.generalDiscountRate as
+                  | number
+                  | null
+                  | undefined
+              }
+              generalDiscountAmount={
+                (header as unknown as Record<string, unknown> | undefined)?.generalDiscountAmount as
+                  | number
+                  | null
+                  | undefined
+              }
+              lines={lines}
+              offerDate={watchedOfferDate ?? header?.offerDate}
+            />
           ) : (
             <FlatListScrollView
               style={styles.content}
@@ -2114,6 +2206,15 @@ export function OrderDetailScreen(): React.ReactElement {
               searchPlaceholder={t("order.searchAddress")}
             />
           )}
+
+          <OrderPreviewPdfDialog
+            visible={previewPdfVisible}
+            onClose={() => setPreviewPdfVisible(false)}
+            buildInput={buildPreviewPdfInput}
+            validateBeforeOpen={() =>
+              lines.length === 0 ? t("order.rowActions.noLinesForPdf") : null
+            }
+          />
         </KeyboardAvoidingView>
       </View>
     </>

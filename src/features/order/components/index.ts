@@ -1,6 +1,9 @@
 export { ApprovalRow } from "./ApprovalRow";
 export { RejectModal } from "./RejectModal";
 export { OrderRow } from "./OrderRow";
+export { OrderPreviewPdfDialog } from "./OrderPreviewPdfDialog";
+export { OrderReportTab } from "./OrderReportTab";
+export { OrderRowActionsSheet } from "./OrderRowActionsSheet";
 export { OrderDetailLineRow } from "./OrderDetailLineRow";
 export { OrderApprovalFlowTab } from "./OrderApprovalFlowTab";
 export { ProductPicker } from "./ProductPicker";
