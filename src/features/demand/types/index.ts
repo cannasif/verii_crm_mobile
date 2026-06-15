@@ -158,6 +158,7 @@ export interface CreateDemandLineDto {
   vidaDefinitionName?: string | null;
   baskiDefinitionId?: number | null;
   baskiDefinitionName?: string | null;
+  baskiAciklama?: string | null;
   imagePath?: string | null;
   pricingRuleHeaderId?: number | null;
   relatedStockId?: number | null;
@@ -195,6 +196,7 @@ export interface DemandLineUpdateDto {
   vidaDefinitionName?: string | null;
   baskiDefinitionId?: number | null;
   baskiDefinitionName?: string | null;
+  baskiAciklama?: string | null;
   imagePath?: string | null;
   pricingRuleHeaderId?: number | null;
   relatedStockId?: number | null;
@@ -247,6 +249,7 @@ export interface DemandLineFormState {
   vidaDefinitionName?: string | null;
   baskiDefinitionId?: number | null;
   baskiDefinitionName?: string | null;
+  baskiAciklama?: string | null;
   imagePath?: string | null;
   pricingRuleHeaderId?: number | null;
   relatedStockId?: number | null;
@@ -471,6 +474,7 @@ export interface DemandLineDetailGetDto {
   vidaDefinitionName?: string | null;
   baskiDefinitionId?: number | null;
   baskiDefinitionName?: string | null;
+  baskiAciklama?: string | null;
   imagePath?: string | null;
   pricingRuleHeaderId: number | null;
   relatedStockId: number | null;

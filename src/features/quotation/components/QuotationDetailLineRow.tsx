@@ -56,6 +56,7 @@ function QuotationDetailLineRowComponent({
     line.demirDefinitionId ? `Demir: ${demirMap[line.demirDefinitionId] || `#${line.demirDefinitionId}`}` : "",
     line.vidaDefinitionId ? `Vida: ${line.vidaDefinitionName || vidaMap[line.vidaDefinitionId] || `#${line.vidaDefinitionId}`}` : "",
     line.baskiDefinitionId ? `Baskı: ${line.baskiDefinitionName || baskiMap[line.baskiDefinitionId] || `#${line.baskiDefinitionId}`}` : "",
+    line.baskiAciklama ? `Baskı açıklaması: ${line.baskiAciklama}` : "",
   ]
     .filter(Boolean)
     .join(" · ");

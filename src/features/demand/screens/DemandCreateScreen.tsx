@@ -1109,6 +1109,7 @@ export function DemandCreateScreen(): React.ReactElement {
                       l.demirDefinitionId ? `Demir: ${demirMap[l.demirDefinitionId] || `#${l.demirDefinitionId}`}` : "",
                       l.vidaDefinitionId ? `Vida: ${l.vidaDefinitionName || vidaMap[l.vidaDefinitionId] || `#${l.vidaDefinitionId}`}` : "",
                       l.baskiDefinitionId ? `Baskı: ${l.baskiDefinitionName || baskiMap[l.baskiDefinitionId] || `#${l.baskiDefinitionId}`}` : "",
+                      l.baskiAciklama ? `Baskı açıklaması: ${l.baskiAciklama}` : "",
                     ]
                       .filter(Boolean)
                       .join(" · ");

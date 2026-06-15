@@ -180,6 +180,7 @@ export interface CreateQuotationLineDto {
   vidaDefinitionName?: string | null;
   baskiDefinitionId?: number | null;
   baskiDefinitionName?: string | null;
+  baskiAciklama?: string | null;
   imagePath?: string | null;
   pricingRuleHeaderId?: number | null;
   relatedStockId?: number | null;
@@ -218,6 +219,7 @@ export interface QuotationLineUpdateDto {
   vidaDefinitionName?: string | null;
   baskiDefinitionId?: number | null;
   baskiDefinitionName?: string | null;
+  baskiAciklama?: string | null;
   imagePath?: string | null;
   pricingRuleHeaderId?: number | null;
   relatedStockId?: number | null;
@@ -314,6 +316,7 @@ export interface QuotationLineFormState {
   vidaDefinitionName?: string | null;
   baskiDefinitionId?: number | null;
   baskiDefinitionName?: string | null;
+  baskiAciklama?: string | null;
   imagePath?: string | null;
   pricingRuleHeaderId?: number | null;
   relatedStockId?: number | null;
@@ -555,6 +558,7 @@ export interface QuotationLineDetailGetDto {
   vidaDefinitionName?: string | null;
   baskiDefinitionId?: number | null;
   baskiDefinitionName?: string | null;
+  baskiAciklama?: string | null;
   imagePath?: string | null;
   pricingRuleHeaderId: number | null;
   relatedStockId: number | null;

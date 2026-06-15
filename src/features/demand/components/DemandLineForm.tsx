@@ -115,6 +115,7 @@ export function DemandLineForm({
   const [demirDefinitionId, setDemirDefinitionId] = useState<number | null>(null);
   const [vidaDefinitionId, setVidaDefinitionId] = useState<number | null>(null);
   const [baskiDefinitionId, setBaskiDefinitionId] = useState<number | null>(null);
+  const [baskiAciklama, setBaskiAciklama] = useState<string>("");
   const [isLoadingPrice, setIsLoadingPrice] = useState(false);
   const [approvalStatus, setApprovalStatus] = useState<number>(0);
   const [approvalMessage, setApprovalMessage] = useState<string>("");
@@ -186,6 +187,7 @@ export function DemandLineForm({
       vidaDefinitionName: vidaDefinitionId ? vidaMap[vidaDefinitionId] ?? null : null,
       baskiDefinitionId,
       baskiDefinitionName: baskiDefinitionId ? baskiMap[baskiDefinitionId] ?? null : null,
+      baskiAciklama: baskiAciklama.trim() || null,
       imagePath,
       isEditing: false,
       approvalStatus,
@@ -214,6 +216,7 @@ export function DemandLineForm({
     vidaMap,
     baskiDefinitionId,
     baskiMap,
+    baskiAciklama,
     imagePath,
     approvalStatus,
   ]);
@@ -234,6 +237,7 @@ export function DemandLineForm({
       setDemirDefinitionId(line.demirDefinitionId ?? null);
       setVidaDefinitionId(line.vidaDefinitionId ?? null);
       setBaskiDefinitionId(line.baskiDefinitionId ?? null);
+      setBaskiAciklama(line.baskiAciklama || "");
       setImagePath(line.imagePath || null);
       setApprovalStatus(line.approvalStatus || 0);
       setRelatedLinesDisplay(line.relatedLines ?? []);
@@ -325,6 +329,7 @@ export function DemandLineForm({
     setDemirDefinitionId(null);
     setVidaDefinitionId(null);
     setBaskiDefinitionId(null);
+    setBaskiAciklama("");
     setImagePath(null);
     setApprovalStatus(0);
     setApprovalMessage("");
@@ -370,6 +375,7 @@ export function DemandLineForm({
     setDemirDefinitionId(draft.demirDefinitionId ?? null);
     setVidaDefinitionId(draft.vidaDefinitionId ?? null);
     setBaskiDefinitionId(draft.baskiDefinitionId ?? null);
+    setBaskiAciklama(draft.baskiAciklama || "");
     setImagePath(draft.imagePath || null);
     setApprovalStatus(draft.approvalStatus || 0);
     setRelatedLinesDisplay(draft.relatedLines ?? []);
@@ -1204,9 +1210,17 @@ export function DemandLineForm({
                     ? baskiMap[baskiDefinitionId] || `#${baskiDefinitionId}`
                     : isDefinitionOptionsLoading
                       ? "Yükleniyor..."
-                      : "Baskı seçin"}
+                    : "Baskı seçin"}
                 </Text>
               </TouchableOpacity>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border, color: colors.text }]}
+                value={baskiAciklama}
+                onChangeText={(value) => setBaskiAciklama(value.slice(0, 50))}
+                maxLength={50}
+                placeholder="Baskı açıklaması"
+                placeholderTextColor={colors.textSecondary}
+              />
               <TouchableOpacity
                 style={styles.quickCreateButton}
                 onPress={() => setBaskiCreateVisible(true)}

@@ -198,6 +198,7 @@ export function QuotationLineForm({
   const [demirDefinitionId, setDemirDefinitionId] = useState<number | null>(null);
   const [vidaDefinitionId, setVidaDefinitionId] = useState<number | null>(null);
   const [baskiDefinitionId, setBaskiDefinitionId] = useState<number | null>(null);
+  const [baskiAciklama, setBaskiAciklama] = useState<string>("");
   const [isLoadingPrice, setIsLoadingPrice] = useState(false);
   const [approvalStatus, setApprovalStatus] = useState<number>(0);
   const [approvalMessage, setApprovalMessage] = useState<string>("");
@@ -297,6 +298,7 @@ export function QuotationLineForm({
       demirDefinitionId,
       vidaDefinitionId,
       baskiDefinitionId,
+      baskiAciklama: baskiAciklama.trim() || null,
       erpProjectCode: erpProjectCode || null,
       pendingImageUri,
       isEditing: false,
@@ -327,6 +329,7 @@ export function QuotationLineForm({
     demirDefinitionId,
     vidaDefinitionId,
     baskiDefinitionId,
+    baskiAciklama,
     imagePath,
     pendingImageUri,
     erpProjectCode,
@@ -381,6 +384,7 @@ export function QuotationLineForm({
     setDemirDefinitionId(null);
     setVidaDefinitionId(null);
     setBaskiDefinitionId(null);
+    setBaskiAciklama("");
     setImagePath(null);
     setPendingImageUri(null);
     setErpProjectCode(null);
@@ -406,6 +410,7 @@ export function QuotationLineForm({
     setDemirDefinitionId(draft.demirDefinitionId ?? null);
     setVidaDefinitionId(draft.vidaDefinitionId ?? null);
     setBaskiDefinitionId(draft.baskiDefinitionId ?? null);
+    setBaskiAciklama(draft.baskiAciklama || "");
     setImagePath(draft.imagePath || null);
     setPendingImageUri(draft.pendingImageUri || null);
     setErpProjectCode(draft.erpProjectCode ?? null);
@@ -439,6 +444,7 @@ export function QuotationLineForm({
     setDemirDefinitionId(editing.demirDefinitionId ?? null);
     setVidaDefinitionId(editing.vidaDefinitionId ?? null);
     setBaskiDefinitionId(editing.baskiDefinitionId ?? null);
+    setBaskiAciklama(editing.baskiAciklama || "");
     setImagePath(editing.imagePath || null);
     setPendingImageUri(editing.pendingImageUri || null);
     setErpProjectCode(editing.erpProjectCode ?? null);
@@ -1464,6 +1470,14 @@ export function QuotationLineForm({
                             {baskiDefinitionId ? baskiMap[baskiDefinitionId] ?? `#${baskiDefinitionId}` : "Baskı seç"}
                           </Text>
                         </TouchableOpacity>
+                        <TextInput
+                          style={[styles.input, styles.compactInput, { backgroundColor: inputBg, borderColor: softPinkBorder, color: textColor }]}
+                          value={baskiAciklama}
+                          onChangeText={(value) => setBaskiAciklama(value.slice(0, 50))}
+                          maxLength={50}
+                          placeholder="Baskı açıklaması"
+                          placeholderTextColor={mutedColor}
+                        />
                         <TouchableOpacity
                           style={styles.quickCreateButton}
                           onPress={() => setBaskiCreateVisible(true)}

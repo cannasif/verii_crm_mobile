@@ -1382,6 +1382,7 @@ export function QuotationDetailScreen(): React.ReactElement {
       l.demirDefinitionId ? `${t("common.demir")}: ${demirMap[l.demirDefinitionId] ?? `#${l.demirDefinitionId}`}` : "",
       l.vidaDefinitionId ? `${t("common.vida")}: ${l.vidaDefinitionName ?? vidaMap[l.vidaDefinitionId] ?? `#${l.vidaDefinitionId}`}` : "",
       l.baskiDefinitionId ? `Baskı: ${l.baskiDefinitionName ?? baskiMap[l.baskiDefinitionId] ?? `#${l.baskiDefinitionId}`}` : "",
+      l.baskiAciklama ? `Baskı açıklaması: ${l.baskiAciklama}` : "",
     ]
       .filter(Boolean)
       .join(" · ");

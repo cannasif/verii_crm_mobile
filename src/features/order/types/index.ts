@@ -158,6 +158,7 @@ export interface CreateOrderLineDto {
   vidaDefinitionName?: string | null;
   baskiDefinitionId?: number | null;
   baskiDefinitionName?: string | null;
+  baskiAciklama?: string | null;
   imagePath?: string | null;
   pricingRuleHeaderId?: number | null;
   relatedStockId?: number | null;
@@ -195,6 +196,7 @@ export interface OrderLineUpdateDto {
   vidaDefinitionName?: string | null;
   baskiDefinitionId?: number | null;
   baskiDefinitionName?: string | null;
+  baskiAciklama?: string | null;
   imagePath?: string | null;
   pricingRuleHeaderId?: number | null;
   relatedStockId?: number | null;
@@ -247,6 +249,7 @@ export interface OrderLineFormState {
   vidaDefinitionName?: string | null;
   baskiDefinitionId?: number | null;
   baskiDefinitionName?: string | null;
+  baskiAciklama?: string | null;
   imagePath?: string | null;
   pendingImageUri?: string | null;
   pricingRuleHeaderId?: number | null;
@@ -472,6 +475,7 @@ export interface OrderLineDetailGetDto {
   vidaDefinitionName?: string | null;
   baskiDefinitionId?: number | null;
   baskiDefinitionName?: string | null;
+  baskiAciklama?: string | null;
   imagePath?: string | null;
   pricingRuleHeaderId: number | null;
   relatedStockId: number | null;
