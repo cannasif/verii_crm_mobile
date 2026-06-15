@@ -1,11 +1,17 @@
 export interface ShippingAddressDto {
   id: number;
+  name?: string | null;
+  erpShippingCode?: string | null;
+  erpMainCustomerCode?: string | null;
+  branchCode?: number | null;
+  isErpMirror?: boolean;
+  lastSyncDate?: string | null;
   address: string;
   postalCode?: string;
   contactPerson?: string;
   phone?: string;
   notes?: string;
-  customerId: number;
+  customerId?: number | null;
   customerName?: string;
   countryId?: number;
   countryName?: string;
@@ -32,7 +38,7 @@ export interface CreateShippingAddressDto {
   contactPerson?: string;
   phone?: string;
   notes?: string;
-  customerId: number;
+  customerId?: number | null;
   countryId?: number;
   cityId?: number;
   districtId?: number;
@@ -44,7 +50,7 @@ export interface UpdateShippingAddressDto {
   contactPerson?: string;
   phone?: string;
   notes?: string;
-  customerId: number;
+  customerId?: number | null;
   countryId?: number;
   cityId?: number;
   districtId?: number;

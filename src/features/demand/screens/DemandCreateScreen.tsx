@@ -40,6 +40,7 @@ import { useToastStore } from "../../../store/toast";
 import { FormField } from "../../activity/components";
 import { useCustomer, useCustomerScopeAccess } from "../../customer/hooks";
 import { useCustomerShippingAddresses } from "../../shipping-address/hooks";
+import { buildShippingAddressLabel } from "../../shipping-address/utils/shippingAddressLabel";
 import { useErpCustomers } from "../../erp-customer/hooks";
 import { useStock } from "../../stocks/hooks";
 import { stockApi } from "../../stocks/api";
@@ -1539,7 +1540,7 @@ export function DemandCreateScreen(): React.ReactElement {
             visible={shippingAddressModalVisible}
             options={shippingAddresses.map((addr) => ({
               id: addr.id,
-              name: addr.address || "",
+              name: buildShippingAddressLabel(addr),
             }))}
             selectedValue={watch("demand.shippingAddressId") ?? undefined}
             onSelect={(option) => {

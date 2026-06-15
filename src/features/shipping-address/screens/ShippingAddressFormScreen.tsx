@@ -20,16 +20,15 @@ import { ScreenHeader } from "../../../components/navigation";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useToastStore } from "../../../store/toast";
-import { FormField, LocationPicker, CustomerPicker } from "../../customer";
+import { FormField, LocationPicker } from "../../customer";
 import { useCountries, useCities, useDistricts } from "../../customer/hooks";
 import { useShippingAddress, useCreateShippingAddress, useUpdateShippingAddress } from "../hooks";
 import { createShippingAddressSchema, type ShippingAddressFormData } from "../schemas";
-import type { CustomerDto, CountryDto, CityDto, DistrictDto } from "../../customer";
+import type { CountryDto, CityDto, DistrictDto } from "../../customer";
 
 import { 
   Location01Icon,
   ContactBookIcon,
-  Briefcase01Icon,
   NoteIcon,
   ArrowRight01Icon
 } from "hugeicons-react-native";
@@ -46,8 +45,6 @@ export function ShippingAddressFormScreen(): React.ReactElement {
   const addressId = id ? Number(id) : undefined;
 
   const [activeTab, setActiveTab] = useState<"general" | "details">("general");
-  const [selectedCustomerName, setSelectedCustomerName] = useState<string | undefined>();
-
   const isDark = themeMode === "dark";
   const mainBg = isDark ? "#0c0516" : "#FAFAFA"; 
   const gradientColors = (isDark
@@ -89,14 +86,13 @@ export function ShippingAddressFormScreen(): React.ReactElement {
       contactPerson: "",
       phone: "",
       notes: "",
-      customerId: 0,
+      customerId: undefined,
     },
   });
 
   const watchCountryId = watch("countryId");
   const watchCityId = watch("cityId");
   const watchDistrictId = watch("districtId");
-  const watchCustomerId = watch("customerId");
   const { data: countries } = useCountries();
   const { data: cities } = useCities(watchCountryId);
   const { data: districts } = useDistricts(watchCityId);
@@ -135,30 +131,13 @@ export function ShippingAddressFormScreen(): React.ReactElement {
         contactPerson: existingAddress.contactPerson || "",
         phone: existingAddress.phone || "",
         notes: existingAddress.notes || "",
-        customerId: existingAddress.customerId,
+        customerId: undefined,
         countryId: existingAddress.countryId,
         cityId: existingAddress.cityId,
         districtId: existingAddress.districtId,
       });
-      setSelectedCustomerName(existingAddress.customerName);
     }
   }, [existingAddress, reset]);
-
-  const handleCustomerChange = useCallback(
-    (customer: CustomerDto | undefined) => {
-      setValue("customerId", customer?.id || 0);
-      setSelectedCustomerName(customer?.name);
-
-      setValue("countryId", customer?.countryId);
-      setValue("cityId", customer?.cityId);
-      setValue("districtId", customer?.districtId);
-
-      setPendingCountryName(customer?.countryName ?? null);
-      setPendingCityName(customer?.cityName ?? null);
-      setPendingDistrictName(customer?.districtName ?? null);
-    },
-    [setValue]
-  );
 
   const handleCountryChange = useCallback(
     (country: CountryDto | undefined) => {
@@ -240,7 +219,7 @@ export function ShippingAddressFormScreen(): React.ReactElement {
   const onError = useCallback((formErrors: any) => {
     showToast("error", "Lütfen kırmızı ile işaretlenmiş zorunlu alanları doldurun.");
     
-    const generalFields = ["customerId", "contactPerson", "phone"];
+    const generalFields = ["contactPerson", "phone"];
     const errorKeys = Object.keys(formErrors);
     const hasGeneralError = errorKeys.some(field => generalFields.includes(field));
 
@@ -328,7 +307,7 @@ export function ShippingAddressFormScreen(): React.ReactElement {
                 onPress={() => setActiveTab("general")}
               >
                 <Text style={[styles.tabText, activeTab === "general" ? { color: THEME.primary } : { color: THEME.textMute, fontWeight: '600' }]}>
-                  Müşteri & İletişim
+                  İletişim
                 </Text>
               </TouchableOpacity>
 
@@ -353,22 +332,6 @@ export function ShippingAddressFormScreen(): React.ReactElement {
             </View>
 
             <View style={{ display: activeTab === "general" ? "flex" : "none", gap: 10 }}>
-              <FormSection title="Müşteri Bilgisi" icon={<Briefcase01Icon size={16} color={THEME.primary} variant="stroke" />}>
-                <View style={styles.fieldContainer}>
-                  <CustomerPicker
-                    value={watchCustomerId || undefined}
-                    customerName={selectedCustomerName}
-                    onChange={handleCustomerChange}
-                    label={t("shippingAddress.customer")}
-                  />
-                  {errors.customerId && (
-                    <Text style={[styles.error, { color: THEME.error }]}>
-                      {errors.customerId.message}
-                    </Text>
-                  )}
-                </View>
-              </FormSection>
-
               <FormSection title="İletişim" icon={<ContactBookIcon size={16} color={THEME.primary} variant="stroke" />}>
                 <Controller
                   control={control}

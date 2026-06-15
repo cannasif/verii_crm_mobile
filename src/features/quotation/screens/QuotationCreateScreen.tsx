@@ -39,6 +39,7 @@ import { useToastStore } from "../../../store/toast";
 import { FormField } from "../../activity/components";
 import { useCustomer, useCustomerScopeAccess } from "../../customer/hooks";
 import { useCustomerShippingAddresses } from "../../shipping-address/hooks";
+import { buildShippingAddressLabel } from "../../shipping-address/utils/shippingAddressLabel";
 import { stockApi } from "../../stocks/api";
 import { quotationApi } from "../api";
 import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida/hooks/useWindoDefinitionOptions";
@@ -2308,10 +2309,10 @@ export function QuotationCreateScreen(): React.ReactElement {
           {watchedCustomerId && shippingAddresses && shippingAddresses.length > 0 && (
             <PickerModal
               visible={shippingAddressModalVisible}
-              options={shippingAddresses.map((addr) => ({
-                id: addr.id,
-                name: addr.address || "",
-              }))}
+            options={shippingAddresses.map((addr) => ({
+              id: addr.id,
+              name: buildShippingAddressLabel(addr),
+            }))}
               selectedValue={watch("quotation.shippingAddressId") ?? undefined}
               onSelect={(option) => {
                 setValue("quotation.shippingAddressId", option.id as number);

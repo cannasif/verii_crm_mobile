@@ -53,6 +53,7 @@ import { useToastStore } from "../../../store/toast";
 import { FormField } from "../../activity/components";
 import { useCustomer, useCustomerScopeAccess } from "../../customer/hooks";
 import { useCustomerShippingAddresses } from "../../shipping-address/hooks";
+import { buildShippingAddressLabel } from "../../shipping-address/utils/shippingAddressLabel";
 import { stockApi } from "../../stocks/api";
 import { orderApi } from "../api";
 import {
@@ -2196,7 +2197,7 @@ export function OrderDetailScreen(): React.ReactElement {
           {watchedCustomerId && shippingAddresses && shippingAddresses.length > 0 && (
             <PickerModal
               visible={shippingAddressModalVisible}
-              options={shippingAddresses.map((a) => ({ id: a.id, name: a.address ?? "" }))}
+              options={shippingAddresses.map((a) => ({ id: a.id, name: buildShippingAddressLabel(a) }))}
               selectedValue={watch("order.shippingAddressId") ?? undefined}
               onSelect={(o) => {
                 setValue("order.shippingAddressId", o.id as number);

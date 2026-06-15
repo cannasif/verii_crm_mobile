@@ -8,7 +8,7 @@ export const createShippingAddressSchema = () =>
     contactPerson: z.string().max(100).optional(),
     phone: z.string().max(20).optional(),
     notes: z.string().max(100).optional(),
-    customerId: z.number().min(1, i18n.t("validation.customerRequired")),
+    customerId: z.number().optional().nullable(),
     countryId: z.number().optional(),
     cityId: z.number().optional(),
     districtId: z.number().optional(),

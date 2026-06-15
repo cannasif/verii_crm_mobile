@@ -52,6 +52,7 @@ import { useToastStore } from "../../../store/toast";
 import { FormField } from "../../activity/components";
 import { useCustomer, useCustomerScopeAccess } from "../../customer/hooks";
 import { useCustomerShippingAddresses } from "../../shipping-address/hooks";
+import { buildShippingAddressLabel } from "../../shipping-address/utils/shippingAddressLabel";
 import { stockApi } from "../../stocks/api";
 import { demandApi } from "../api";
 import {
@@ -2104,7 +2105,7 @@ export function DemandDetailScreen(): React.ReactElement {
           {watchedCustomerId && shippingAddresses && shippingAddresses.length > 0 && (
             <PickerModal
               visible={shippingAddressModalVisible}
-              options={shippingAddresses.map((a) => ({ id: a.id, name: a.address ?? "" }))}
+              options={shippingAddresses.map((a) => ({ id: a.id, name: buildShippingAddressLabel(a) }))}
               selectedValue={watch("demand.shippingAddressId") ?? undefined}
               onSelect={(o) => {
                 setValue("demand.shippingAddressId", o.id as number);
