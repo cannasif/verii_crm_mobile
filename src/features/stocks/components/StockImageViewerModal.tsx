@@ -33,6 +33,8 @@ interface StockImageViewerModalProps {
   getImageUri: (filePath: string) => string;
   onRequestDelete: (imageId: number) => void;
   onSetPrimary: (imageId: number) => void;
+  canUpdateImage: boolean;
+  canDeleteImage: boolean;
   isMutationPending: boolean;
   isDark: boolean;
   t: (key: string, options?: Record<string, string | number>) => string;
@@ -50,6 +52,8 @@ export function StockImageViewerModal({
   getImageUri,
   onRequestDelete,
   onSetPrimary,
+  canUpdateImage,
+  canDeleteImage,
   isMutationPending,
   isDark,
   t,
@@ -204,91 +208,95 @@ export function StockImageViewerModal({
           }}
         />
 
-        <View
-          style={[
-            styles.bottomBar,
-            {
-              paddingBottom: insets.bottom + 14,
-              backgroundColor: ui.bottomBarBg,
-              borderTopColor: ui.bottomBarBorder,
-            },
-          ]}
-        >
-          {current ? (
+        {current && (canUpdateImage || canDeleteImage) ? (
+          <View
+            style={[
+              styles.bottomBar,
+              {
+                paddingBottom: insets.bottom + 14,
+                backgroundColor: ui.bottomBarBg,
+                borderTopColor: ui.bottomBarBorder,
+              },
+            ]}
+          >
             <View style={styles.bottomInner}>
-              <TouchableOpacity
-                disabled={isMutationPending || current.isPrimary}
-                onPress={() => {
-                  onSetPrimary(current.id);
-                }}
-                style={[
-                  styles.actionBtnSoft,
-                  {
-                    backgroundColor:
-                      current.isPrimary || isMutationPending ? ui.btnMutedBg : ui.btnPrimaryBg,
-                    borderColor:
-                      current.isPrimary || isMutationPending ? ui.btnMutedBorder : ui.btnPrimaryBorder,
-                    opacity: current.isPrimary || isMutationPending ? 0.85 : 1,
-                  },
-                ]}
-              >
-                {isMutationPending ? (
-                  <ActivityIndicator size="small" color={ui.spinColor} />
-                ) : (
-                  <>
-                    <Award01Icon
-                      size={18}
-                      color={
-                        current.isPrimary || isMutationPending ? ui.mutedFg : ui.labelPrimary
-                      }
-                      variant="stroke"
-                    />
-                    <Text
-                      style={[
-                        styles.actionLabelSoft,
-                        {
-                          color:
-                            current.isPrimary || isMutationPending ? ui.mutedFg : ui.labelPrimary,
-                        },
-                      ]}
-                    >
-                      {current.isPrimary ? t("stock.primaryBadge") : t("stock.setAsPrimary")}
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                disabled={isMutationPending}
-                onPress={() => {
-                  onRequestDelete(current.id);
-                }}
-                style={[
-                  styles.actionBtnSoft,
-                  {
-                    backgroundColor: isMutationPending ? ui.btnMutedBg : ui.btnDangerBg,
-                    borderColor: isMutationPending ? ui.btnMutedBorder : ui.btnDangerBorder,
-                    opacity: isMutationPending ? 0.85 : 1,
-                  },
-                ]}
-              >
-                <Delete02Icon
-                  size={18}
-                  color={isMutationPending ? ui.mutedFg : ui.labelDanger}
-                  variant="stroke"
-                />
-                <Text
+              {canUpdateImage ? (
+                <TouchableOpacity
+                  disabled={isMutationPending || current.isPrimary}
+                  onPress={() => {
+                    onSetPrimary(current.id);
+                  }}
                   style={[
-                    styles.actionLabelSoft,
-                    { color: isMutationPending ? ui.mutedFg : ui.labelDanger },
+                    styles.actionBtnSoft,
+                    {
+                      backgroundColor:
+                        current.isPrimary || isMutationPending ? ui.btnMutedBg : ui.btnPrimaryBg,
+                      borderColor:
+                        current.isPrimary || isMutationPending ? ui.btnMutedBorder : ui.btnPrimaryBorder,
+                      opacity: current.isPrimary || isMutationPending ? 0.85 : 1,
+                    },
                   ]}
                 >
-                  {t("stock.deleteImage")}
-                </Text>
-              </TouchableOpacity>
+                  {isMutationPending ? (
+                    <ActivityIndicator size="small" color={ui.spinColor} />
+                  ) : (
+                    <>
+                      <Award01Icon
+                        size={18}
+                        color={
+                          current.isPrimary || isMutationPending ? ui.mutedFg : ui.labelPrimary
+                        }
+                        variant="stroke"
+                      />
+                      <Text
+                        style={[
+                          styles.actionLabelSoft,
+                          {
+                            color:
+                              current.isPrimary || isMutationPending ? ui.mutedFg : ui.labelPrimary,
+                          },
+                        ]}
+                      >
+                        {current.isPrimary ? t("stock.primaryBadge") : t("stock.setAsPrimary")}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              ) : null}
+
+              {canDeleteImage ? (
+                <TouchableOpacity
+                  disabled={isMutationPending}
+                  onPress={() => {
+                    onRequestDelete(current.id);
+                  }}
+                  style={[
+                    styles.actionBtnSoft,
+                    {
+                      backgroundColor: isMutationPending ? ui.btnMutedBg : ui.btnDangerBg,
+                      borderColor: isMutationPending ? ui.btnMutedBorder : ui.btnDangerBorder,
+                      opacity: isMutationPending ? 0.85 : 1,
+                    },
+                  ]}
+                >
+                  <Delete02Icon
+                    size={18}
+                    color={isMutationPending ? ui.mutedFg : ui.labelDanger}
+                    variant="stroke"
+                  />
+                  <Text
+                    style={[
+                      styles.actionLabelSoft,
+                      { color: isMutationPending ? ui.mutedFg : ui.labelDanger },
+                    ]}
+                  >
+                    {t("stock.deleteImage")}
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
-          ) : null}
-        </View>
+          </View>
+        ) : null}
       </View>
     </Modal>
   );

@@ -161,6 +161,8 @@ export function ActivityFormScreen(): React.ReactElement {
   const permissions = useAuthStore((state) => state.permissions);
   const canCreate = hasPermission(permissions, "activity.activity-management.create");
   const canUpdate = hasPermission(permissions, "activity.activity-management.update");
+  const canAddActivityImage = hasPermission(permissions, "activity.images.create");
+  const canDeleteActivityImage = hasPermission(permissions, "activity.images.delete");
   const canSubmit = isEditMode ? canUpdate : canCreate;
   const { data: existingActivity, isLoading: activityLoading } = useActivity(activityId);
   const { data: activityTypes, isLoading: typesLoading } = useActivityTypes();
@@ -754,7 +756,7 @@ export function ActivityFormScreen(): React.ReactElement {
   }, []);
 
   const handlePickFromGallery = useCallback(async () => {
-    if (!canSubmit) return;
+    if (!canAddActivityImage) return;
 
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
@@ -775,10 +777,10 @@ export function ActivityFormScreen(): React.ReactElement {
     }
 
     setPreviewPickedAssets(result.assets);
-  }, [canSubmit, t]);
+  }, [canAddActivityImage, t]);
 
   const handlePickFromCamera = useCallback(async () => {
-    if (!canSubmit) return;
+    if (!canAddActivityImage) return;
 
     const permission = await ImagePicker.requestCameraPermissionsAsync();
 
@@ -798,10 +800,10 @@ export function ActivityFormScreen(): React.ReactElement {
     }
 
     setPreviewPickedAssets(result.assets);
-  }, [canSubmit, t]);
+  }, [canAddActivityImage, t]);
 
   const handlePickAndUploadImages = useCallback(() => {
-    if (!canSubmit) return;
+    if (!canAddActivityImage) return;
 
     if (!activityId) {
       Alert.alert(t("common.warning"), t("activity.imageSaveFirst"));
@@ -830,7 +832,7 @@ export function ActivityFormScreen(): React.ReactElement {
         },
       ]
     );
-  }, [activityId, canSubmit, t, handlePickFromGallery, handlePickFromCamera]);
+  }, [activityId, canAddActivityImage, t, handlePickFromGallery, handlePickFromCamera]);
 
   const onSubmit = useCallback(
     async (data: ActivityFormData) => {
@@ -869,6 +871,11 @@ export function ActivityFormScreen(): React.ReactElement {
           await updateActivity.mutateAsync({ id: activityId, data: payload });
 
           if (pendingImageAssets.length > 0) {
+            if (!canAddActivityImage) {
+              Alert.alert(t("common.warning"), t("accessControl.permissionDenied", "Bu işlem için yetkiniz yok."));
+              return;
+            }
+
             try {
               await activityImageApi.upload(
                 activityId,
@@ -927,6 +934,7 @@ export function ActivityFormScreen(): React.ReactElement {
       pendingImageAssets,
       queryClient,
       canSubmit,
+      canAddActivityImage,
     ]
   );
 
@@ -950,7 +958,7 @@ export function ActivityFormScreen(): React.ReactElement {
 
   const handleDeleteImage = useCallback(
     async (imageId: number) => {
-      if (!canSubmit) return;
+      if (!canDeleteActivityImage) return;
 
       setDeletingImageId(imageId);
       try {
@@ -970,7 +978,7 @@ export function ActivityFormScreen(): React.ReactElement {
         setDeletingImageId(null);
       }
     },
-    [activityId, canSubmit, queryClient, t]
+    [activityId, canDeleteActivityImage, queryClient, t]
   );
 
   const renderTypeItem = useCallback(
@@ -1895,23 +1903,25 @@ export function ActivityFormScreen(): React.ReactElement {
                   <Text style={[styles.sectionTitle, { color: titleText }]}>{t("activity.images")}</Text>
                 </View>
 
-                <TouchableOpacity
-                  style={[
-                    styles.secondaryActionButton,
-                    {
-                      borderColor: innerBorder,
-                      backgroundColor: innerBg,
-                      opacity: !activityId || isSubmitting ? 0.7 : 1,
-                    },
-                  ]}
-                  onPress={handlePickAndUploadImages}
-                  disabled={!activityId || isSubmitting}
-                  activeOpacity={0.82}
-                >
-                  <Text style={[styles.secondaryActionButtonText, { color: titleText }]}>
-                    {activityId ? t("activity.addImage") : t("activity.imageSaveFirst")}
-                  </Text>
-                </TouchableOpacity>
+                {canAddActivityImage ? (
+                  <TouchableOpacity
+                    style={[
+                      styles.secondaryActionButton,
+                      {
+                        borderColor: innerBorder,
+                        backgroundColor: innerBg,
+                        opacity: !activityId || isSubmitting ? 0.7 : 1,
+                      },
+                    ]}
+                    onPress={handlePickAndUploadImages}
+                    disabled={!activityId || isSubmitting}
+                    activeOpacity={0.82}
+                  >
+                    <Text style={[styles.secondaryActionButtonText, { color: titleText }]}>
+                      {activityId ? t("activity.addImage") : t("activity.imageSaveFirst")}
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
 
                 {pendingImageAssets.length > 0 ? (
                   <Text style={[styles.activityPendingImagesHint, { color: mutedText }]}>
@@ -1948,22 +1958,24 @@ export function ActivityFormScreen(): React.ReactElement {
                               <Text style={[styles.activityImageStripCaption, { color: titleText }]} numberOfLines={2}>
                                 {caption}
                               </Text>
-                              <TouchableOpacity
-                                style={[
-                                  styles.activityImageStripRemoveBtn,
-                                  { backgroundColor: isDark ? "rgba(15,23,42,0.78)" : "rgba(255,255,255,0.92)" },
-                                ]}
-                                onPress={() => handleDeleteImage(image.id)}
-                                disabled={deletingImageId === image.id}
-                              >
-                                {deletingImageId === image.id ? (
-                                  <ActivityIndicator size="small" color={accent} />
-                                ) : (
-                                  <Text style={[styles.activityImageStripRemoveText, { color: accent }]}>
-                                    {t("common.delete")}
-                                  </Text>
-                                )}
-                              </TouchableOpacity>
+                              {canDeleteActivityImage ? (
+                                <TouchableOpacity
+                                  style={[
+                                    styles.activityImageStripRemoveBtn,
+                                    { backgroundColor: isDark ? "rgba(15,23,42,0.78)" : "rgba(255,255,255,0.92)" },
+                                  ]}
+                                  onPress={() => handleDeleteImage(image.id)}
+                                  disabled={deletingImageId === image.id}
+                                >
+                                  {deletingImageId === image.id ? (
+                                    <ActivityIndicator size="small" color={accent} />
+                                  ) : (
+                                    <Text style={[styles.activityImageStripRemoveText, { color: accent }]}>
+                                      {t("common.delete")}
+                                    </Text>
+                                  )}
+                                </TouchableOpacity>
+                              ) : null}
                             </View>
                           );
                         })}

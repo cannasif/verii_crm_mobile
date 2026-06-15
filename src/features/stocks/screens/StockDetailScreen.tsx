@@ -13,6 +13,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { ScreenHeader } from "../../../components/navigation";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
+import { useAuthStore } from "../../../store/auth";
+import { hasPermission } from "../../access-control/utils/hasPermission";
 import { useStock, useStockImageController, useStockImagesByStock, useStockRelations } from "../hooks";
 import { StockDetailContent } from "../components";
 import { sortStockImagesForDisplay } from "../utils/stockImageSort";
@@ -26,8 +28,12 @@ export function StockDetailScreen(): React.ReactElement {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors, themeMode } = useUIStore();
+  const permissions = useAuthStore((state) => state.permissions);
   const insets = useSafeAreaInsets();
   const isDark = themeMode === "dark";
+  const canAddStockImage = hasPermission(permissions, "stock.images.create");
+  const canUpdateStockImage = hasPermission(permissions, "stock.images.update");
+  const canDeleteStockImage = hasPermission(permissions, "stock.images.delete");
 
   const mainBg = isDark ? "#0c0516" : "#FFFFFF";
   const accentColor = colors.accent || "#db2777";
@@ -49,7 +55,12 @@ export function StockDetailScreen(): React.ReactElement {
   const { data: stock, isLoading, isError, refetch } = useStock(stockId);
   const { data: relationsData } = useStockRelations({ stockId });
   const imagesQuery = useStockImagesByStock(stockId);
-  const imageCtrl = useStockImageController({ stockId });
+  const imageCtrl = useStockImageController({
+    stockId,
+    canAddImage: canAddStockImage,
+    canUpdateImage: canUpdateStockImage,
+    canDeleteImage: canDeleteStockImage,
+  });
 
   const sortedStockImages = useMemo(() => {
     const source =
@@ -76,6 +87,9 @@ export function StockDetailScreen(): React.ReactElement {
       pendingUploadUri,
       isUploading,
       isImageMutationPending,
+      canAddImage: canAddStockImage,
+      canUpdateImage: canUpdateStockImage,
+      canDeleteImage: canDeleteStockImage,
       onOpenAddImage,
       onClearPendingUpload,
       onConfirmPendingUpload,
@@ -88,6 +102,9 @@ export function StockDetailScreen(): React.ReactElement {
     onOpenAddImage,
     isImageMutationPending,
     isUploading,
+    canAddStockImage,
+    canUpdateStockImage,
+    canDeleteStockImage,
     pendingUploadUri,
     requestDeleteImage,
     setPrimaryImage,

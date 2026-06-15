@@ -8,6 +8,9 @@ import { pickStockImageFromCamera, pickStockImageFromGallery } from "../services
 
 interface UseStockImageControllerParams {
   stockId: number | undefined;
+  canAddImage?: boolean;
+  canUpdateImage?: boolean;
+  canDeleteImage?: boolean;
 }
 
 async function invalidateStockImageQueries(
@@ -20,7 +23,12 @@ async function invalidateStockImageQueries(
   ]);
 }
 
-export function useStockImageController({ stockId }: UseStockImageControllerParams) {
+export function useStockImageController({
+  stockId,
+  canAddImage = true,
+  canUpdateImage = true,
+  canDeleteImage = true,
+}: UseStockImageControllerParams) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const showToast = useToastStore((state) => state.showToast);
@@ -72,21 +80,21 @@ export function useStockImageController({ stockId }: UseStockImageControllerPara
   });
 
   const runGalleryPick = useCallback(async () => {
-    if (!stockId || uploadMutation.isPending) return;
+    if (!stockId || uploadMutation.isPending || !canAddImage) return;
     const uri = await pickStockImageFromGallery(t);
     if (!uri) return;
     setPendingUploadUri(uri);
-  }, [stockId, t, uploadMutation.isPending]);
+  }, [canAddImage, stockId, t, uploadMutation.isPending]);
 
   const runCameraPick = useCallback(async () => {
-    if (!stockId || uploadMutation.isPending) return;
+    if (!stockId || uploadMutation.isPending || !canAddImage) return;
     const uri = await pickStockImageFromCamera(t);
     if (!uri) return;
     setPendingUploadUri(uri);
-  }, [stockId, t, uploadMutation.isPending]);
+  }, [canAddImage, stockId, t, uploadMutation.isPending]);
 
   const onOpenAddImage = useCallback(() => {
-    if (!stockId || uploadMutation.isPending) return;
+    if (!stockId || uploadMutation.isPending || !canAddImage) return;
     Alert.alert(t("stock.addImage"), t("customer.chooseImageSource"), [
       { text: t("common.cancel"), style: "cancel" },
       {
@@ -102,7 +110,7 @@ export function useStockImageController({ stockId }: UseStockImageControllerPara
         },
       },
     ]);
-  }, [runCameraPick, runGalleryPick, stockId, t, uploadMutation.isPending]);
+  }, [canAddImage, runCameraPick, runGalleryPick, stockId, t, uploadMutation.isPending]);
 
   const onClearPendingUpload = useCallback(() => {
     setPendingUploadUri(null);
@@ -116,6 +124,7 @@ export function useStockImageController({ stockId }: UseStockImageControllerPara
 
   const requestDeleteImage = useCallback(
     (imageId: number) => {
+      if (!canDeleteImage) return;
       Alert.alert(t("stock.deleteImageTitle"), t("stock.deleteImageMessage"), [
         { text: t("common.cancel"), style: "cancel" },
         {
@@ -127,14 +136,15 @@ export function useStockImageController({ stockId }: UseStockImageControllerPara
         },
       ]);
     },
-    [deleteMutation, t]
+    [canDeleteImage, deleteMutation, t]
   );
 
   const setPrimaryImage = useCallback(
     (imageId: number) => {
+      if (!canUpdateImage) return;
       setPrimaryMutation.mutate(imageId);
     },
-    [setPrimaryMutation]
+    [canUpdateImage, setPrimaryMutation]
   );
 
   const isImageMutationPending = deleteMutation.isPending || setPrimaryMutation.isPending;
@@ -143,6 +153,9 @@ export function useStockImageController({ stockId }: UseStockImageControllerPara
     pendingUploadUri,
     isUploading: uploadMutation.isPending,
     isImageMutationPending,
+    canAddImage,
+    canUpdateImage,
+    canDeleteImage,
     onOpenAddImage,
     onClearPendingUpload,
     onConfirmPendingUpload,

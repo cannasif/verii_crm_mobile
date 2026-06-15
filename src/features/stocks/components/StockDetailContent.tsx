@@ -135,6 +135,9 @@ export interface StockImageUploadActions {
   pendingUploadUri: string | null;
   isUploading: boolean;
   isImageMutationPending: boolean;
+  canAddImage: boolean;
+  canUpdateImage: boolean;
+  canDeleteImage: boolean;
   onOpenAddImage: () => void | Promise<void>;
   onClearPendingUpload: () => void;
   onConfirmPendingUpload: () => void;
@@ -734,7 +737,7 @@ export function StockDetailContent({
     const addIconColor = theme.accent;
 
     const uploadBar =
-      imageUpload && stock ? (
+      imageUpload && stock && imageUpload.canAddImage ? (
         <TouchableOpacity
           activeOpacity={0.78}
           disabled={uploadBusy}
@@ -1003,6 +1006,8 @@ export function StockDetailContent({
           getImageUri={getImageUri}
           onRequestDelete={imageUpload.requestDeleteImage}
           onSetPrimary={imageUpload.setPrimaryImage}
+          canUpdateImage={imageUpload.canUpdateImage}
+          canDeleteImage={imageUpload.canDeleteImage}
           isMutationPending={imageUpload.isImageMutationPending}
           isDark={isDark}
           t={t}

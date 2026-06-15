@@ -251,6 +251,7 @@ export function ActivityDetailScreen(): React.ReactElement {
   const insets = useSafeAreaInsets();
   const canUpdate = hasPermission(permissions, "activity.activity-management.update");
   const canDelete = hasPermission(permissions, "activity.activity-management.delete");
+  const canAddActivityImage = hasPermission(permissions, "activity.images.create");
 
   const activityId = id ? Number(id) : undefined;
   const isDark = themeMode === "dark";
@@ -374,7 +375,7 @@ export function ActivityDetailScreen(): React.ReactElement {
   );
 
   const openActivityDetailGalleryPicker = useCallback(async () => {
-    if (!canUpdate) return;
+    if (!canAddActivityImage) return;
 
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (permission.status !== "granted") {
@@ -389,10 +390,10 @@ export function ActivityDetailScreen(): React.ReactElement {
     });
     if (result.canceled || !result.assets?.[0]?.uri) return;
     setPickActivityImagePreviewAsset(result.assets[0]);
-  }, [canUpdate, t]);
+  }, [canAddActivityImage, t]);
 
   const openActivityDetailCameraPicker = useCallback(async () => {
-    if (!canUpdate) return;
+    if (!canAddActivityImage) return;
 
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (permission.status !== "granted") {
@@ -406,10 +407,10 @@ export function ActivityDetailScreen(): React.ReactElement {
     });
     if (result.canceled || !result.assets?.[0]?.uri) return;
     setPickActivityImagePreviewAsset(result.assets[0]);
-  }, [canUpdate, t]);
+  }, [canAddActivityImage, t]);
 
   const handleAddActivityImageFromDetail = useCallback(() => {
-    if (!canUpdate) return;
+    if (!canAddActivityImage) return;
     if (!activityId || isUploadingActivityImage) return;
     Alert.alert(t("activity.addImage"), t("customer.chooseImageSource"), [
       { text: t("common.cancel"), style: "cancel" },
@@ -426,7 +427,7 @@ export function ActivityDetailScreen(): React.ReactElement {
         },
       },
     ]);
-  }, [activityId, canUpdate, isUploadingActivityImage, openActivityDetailCameraPicker, openActivityDetailGalleryPicker, t]);
+  }, [activityId, canAddActivityImage, isUploadingActivityImage, openActivityDetailCameraPicker, openActivityDetailGalleryPicker, t]);
 
   const handleCancelActivityDetailImagePick = useCallback(() => {
     if (isUploadingActivityImage) return;
@@ -434,7 +435,7 @@ export function ActivityDetailScreen(): React.ReactElement {
   }, [isUploadingActivityImage]);
 
   const handleConfirmActivityDetailImagePick = useCallback(async () => {
-    if (!canUpdate) return;
+    if (!canAddActivityImage) return;
     if (!activityId || !pickActivityImagePreviewAsset?.uri) return;
     setIsUploadingActivityImage(true);
     try {
@@ -455,7 +456,7 @@ export function ActivityDetailScreen(): React.ReactElement {
     } finally {
       setIsUploadingActivityImage(false);
     }
-  }, [activityId, canUpdate, pickActivityImagePreviewAsset, queryClient, refetchActivityImages, t]);
+  }, [activityId, canAddActivityImage, pickActivityImagePreviewAsset, queryClient, refetchActivityImages, t]);
 
   const handleEdit = useCallback(() => {
     if (!canUpdate) return;
@@ -1073,7 +1074,7 @@ export function ActivityDetailScreen(): React.ReactElement {
                       {t("activity.images")}
                     </Text>
                   </View>
-                  {canUpdate ? (
+                  {canAddActivityImage ? (
                     <TouchableOpacity
                       style={styles.activityImagesHeaderAddBtn}
                       onPress={handleAddActivityImageFromDetail}
@@ -1100,7 +1101,7 @@ export function ActivityDetailScreen(): React.ReactElement {
                     <Text style={[styles.activityDetailImagesEmptyTitle, { color: palette.text }]}>
                       {t("activity.noImages")}
                     </Text>
-                    {canUpdate ? (
+                    {canAddActivityImage ? (
                       <TouchableOpacity
                         style={[
                           styles.activityDetailImagesEmptyAddBtn,
