@@ -104,6 +104,8 @@ import {
   APPROVAL_REJECTED,
   APPROVAL_CLOSED,
   APPROVAL_CUSTOMER_CANCELLED,
+  APPROVAL_SALESPERSON_CLOSED_FOR_REVISION,
+  APPROVAL_SUPERSEDED_BY_APPROVED_REVISION,
 } from "../types";
 import type { StockRelationDto } from "../../stocks/types";
 import {
@@ -1016,7 +1018,9 @@ export function OrderDetailScreen(): React.ReactElement {
     header?.status === APPROVAL_APPROVED ||
     header?.status === APPROVAL_REJECTED ||
     header?.status === APPROVAL_CLOSED ||
-    header?.status === APPROVAL_CUSTOMER_CANCELLED;
+    header?.status === APPROVAL_CUSTOMER_CANCELLED ||
+    header?.status === APPROVAL_SALESPERSON_CLOSED_FOR_REVISION ||
+    header?.status === APPROVAL_SUPERSEDED_BY_APPROVED_REVISION;
   const showOnayaGonder = header?.status === APPROVAL_HAVENOT_STARTED;
   const showSaveUpdate = !isReadonly;
   const showApproveReject = header?.status === APPROVAL_WAITING;
@@ -1024,7 +1028,9 @@ export function OrderDetailScreen(): React.ReactElement {
     Boolean(header) &&
     !header?.isERPIntegrated &&
     header?.status !== APPROVAL_CLOSED &&
-    header?.status !== APPROVAL_CUSTOMER_CANCELLED;
+    header?.status !== APPROVAL_CUSTOMER_CANCELLED &&
+    header?.status !== APPROVAL_SALESPERSON_CLOSED_FOR_REVISION &&
+    header?.status !== APPROVAL_SUPERSEDED_BY_APPROVED_REVISION;
 
   const statusKind = useMemo(() => resolveStatusKind(header?.status), [header?.status]);
 
