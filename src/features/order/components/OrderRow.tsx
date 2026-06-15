@@ -32,6 +32,21 @@ function formatDate(dateString: string | null | undefined): string {
   return formatSystemDate(dateString);
 }
 
+function resolveErpCleanupInfo(document: {
+  erpCleanupStatus?: number | null;
+  originalDocumentNumber?: string | null;
+  erpCleanupReason?: string | null;
+}): string | null {
+  const status = Number(document.erpCleanupStatus ?? 0);
+  if (status === 0) return null;
+  const label = status === 2 ? "ERP kaydı temizlenemedi" : "Revizyon için ERP kaydı temizlendi";
+  const originalNo = document.originalDocumentNumber?.trim();
+  const reason = document.erpCleanupReason?.trim();
+  return [label, originalNo ? `Eski ERP No: ${originalNo}` : null, reason ? `Neden: ${reason}` : null]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 function OrderRowComponent({
   order,
   paymentTypeLabel,
@@ -68,6 +83,7 @@ function OrderRowComponent({
 
   const currencyLabel = useMemo(() => resolveSalesDocumentRowCurrencyLabel(order), [order]);
   const amountText = useMemo(() => resolveSalesDocumentRowAmountText(order), [order]);
+  const erpCleanupInfo = resolveErpCleanupInfo(order);
 
   const showToast = useToastStore((state) => state.showToast);
   const cancellationReason = order.cancellationReason?.trim();
@@ -180,6 +196,12 @@ function OrderRowComponent({
           {order.koliBaskiDefinitionName ? (
             <Text style={[styles.metaLine, { color: colors.muted }]} numberOfLines={1}>
               {t("order.koliBaski")}: {order.koliBaskiDefinitionName}
+            </Text>
+          ) : null}
+
+          {erpCleanupInfo ? (
+            <Text style={[styles.metaLine, { color: isDark ? "#FBBF24" : "#B45309" }]} numberOfLines={2}>
+              ERP: {erpCleanupInfo}
             </Text>
           ) : null}
         </View>

@@ -30,7 +30,9 @@ import type {
   OrderApprovalFlowReportDto,
   OrderApprovalFlowReportResponse,
   OrderBulkCreateDto,
+  CreateOrderDto,
   CreateOrderLineDto,
+  OrderExchangeRateCreateDto,
   OrderLineUpdateDto,
   PricingRuleLineGetDto,
   UserDiscountLimitDto,
@@ -153,6 +155,18 @@ export const orderApi = {
     return data;
   },
 
+  updateHeader: async (id: number, data: CreateOrderDto): Promise<OrderGetDto> => {
+    const response = await apiClient.put<OrderResponse>(`/api/order/${id}`, data);
+    if (!response.data.success) {
+      throw new Error(
+        response.data.message ||
+          response.data.exceptionMessage ||
+          "Sipariş başlığı güncellenemedi"
+      );
+    }
+    return response.data.data;
+  },
+
   getLinesByOrder: async (orderId: number): Promise<OrderLineDetailGetDto[]> => {
     const response = await apiClient.get<OrderLineDetailListResponse>(
       `/api/OrderLine/by-order/${orderId}`
@@ -202,6 +216,48 @@ export const orderApi = {
       );
     }
     return response.data.data ?? false;
+  },
+
+  createOrderExchangeRate: async (
+    body: OrderExchangeRateCreateDto
+  ): Promise<OrderExchangeRateDetailGetDto> => {
+    const response = await apiClient.post<ApiResponse<OrderExchangeRateDetailGetDto>>(
+      "/api/OrderExchangeRate",
+      body
+    );
+    if (!response.data.success || !response.data.data) {
+      throw new Error(
+        response.data.message ||
+          response.data.exceptionMessage ||
+          "Döviz kuru eklenemedi"
+      );
+    }
+    return response.data.data;
+  },
+
+  updateOrderExchangeRate: async (
+    id: number,
+    body: OrderExchangeRateCreateDto
+  ): Promise<OrderExchangeRateDetailGetDto> => {
+    const response = await apiClient.put<ApiResponse<OrderExchangeRateDetailGetDto>>(
+      `/api/OrderExchangeRate/${id}`,
+      body
+    );
+    if (!response.data.success || !response.data.data) {
+      throw new Error(
+        response.data.message ||
+          response.data.exceptionMessage ||
+          "Döviz kuru güncellenemedi"
+      );
+    }
+    return response.data.data;
+  },
+
+  deleteOrderExchangeRate: async (id: number): Promise<void> => {
+    const response = await apiClient.delete<ApiResponse<unknown>>(`/api/OrderExchangeRate/${id}`);
+    if (response.data?.success === false) {
+      throw new Error(response.data.message || "Döviz kuru silinemedi");
+    }
   },
 
   deleteOrderLine: async (lineId: number): Promise<void> => {

@@ -16,7 +16,6 @@ import { createClientId } from "@/lib/create-client-id";
 import { getValidRelatedProductGroup } from "@/lib/relatedProductGroup";
 import { resolveDocumentSerialCustomerTypeId } from "@/lib/resolve-document-serial-customer-type-id";
 import { resolveExchangeRateByCurrency as findExchangeRateByCurrency } from "@/lib/resolve-exchange-rate";
-import { flattenDocumentLinesForBulk } from "@/lib/flattenDocumentLinesForBulk";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
@@ -71,7 +70,6 @@ import {
   useDeleteDemandLine,
   useCreateDemandLines,
   useUpdateDemandLines,
-  useUpdateDemandBulk,
   useCancelDemandByCustomer,
 } from "../hooks";
 import {
@@ -141,6 +139,15 @@ function formatMoneyTr(n: number): string {
   const v = Number(n);
   if (!Number.isFinite(v)) return "0";
   return v.toLocaleString("tr-TR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
+function parsePersistedRateId(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) return value;
+  const text = String(value ?? "");
+  const prefixedMatch = text.match(/^rate-(\d+)$/);
+  if (prefixedMatch) return Number(prefixedMatch[1]);
+  if (/^\d+$/.test(text)) return Number(text);
+  return null;
 }
 
 function formatRateTr(n: number): string {
@@ -262,6 +269,7 @@ export function DemandDetailScreen(): React.ReactElement {
   const [lines, setLines] = useState<DemandLineFormState[]>([]);
   const [exchangeRates, setExchangeRates] = useState<DemandExchangeRateFormState[]>([]);
   const [erpRatesForDemand, setErpRatesForDemand] = useState<ExchangeRateDto[]>([]);
+  const [isSavingUpdate, setIsSavingUpdate] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerDto | undefined>();
   const [deliveryDateModalOpen, setDeliveryDateModalOpen] = useState(false);
   const [offerDateModalOpen, setOfferDateModalOpen] = useState(false);
@@ -406,7 +414,6 @@ export function DemandDetailScreen(): React.ReactElement {
   const deleteDemandLineMutation = useDeleteDemandLine();
   const createDemandLinesMutation = useCreateDemandLines();
   const updateDemandLinesMutation = useUpdateDemandLines();
-  const updateDemandBulk = useUpdateDemandBulk();
 
   useEffect(() => {
     if (exchangeRatesData?.length && !erpRatesFilledRef.current) {
@@ -895,17 +902,15 @@ export function DemandDetailScreen(): React.ReactElement {
         return;
       }
 
-      const flatLines = flattenDocumentLinesForBulk(lines);
-      const cleanedLines = flatLines.map((line) =>
-        mapDemandLineFormStateToCreateDto(line, demandId)
-      );
-
-      const cleanedExchangeRates = exchangeRates.map((rate) => {
+      const exchangeRateRows = exchangeRates.map((rate) => {
         const { id, dovizTipi, ...rest } = rate;
         return {
-          ...rest,
-          demandId,
-          isOfficial: rest.isOfficial ?? true,
+          id: parsePersistedRateId(id),
+          data: {
+            ...rest,
+            demandId,
+            isOfficial: rest.isOfficial ?? true,
+          },
         };
       });
 
@@ -919,18 +924,34 @@ export function DemandDetailScreen(): React.ReactElement {
         koliBaskiDefinitionId: formData.demand.koliBaskiDefinitionId ?? null,
       };
 
-      await updateDemandBulk.mutateAsync({
-        id: demandId,
-        data: {
-          demand: demandPayload,
-          lines: cleanedLines,
-          exchangeRates:
-            cleanedExchangeRates.length > 0 ? cleanedExchangeRates : undefined,
-        },
-      });
-      markSaved();
+      const persistedRateIds = new Set(ratesData.map((rate) => rate.id).filter((rateId) => rateId > 0));
+      const currentPersistedRateIds = new Set(
+        exchangeRateRows.map((rate) => rate.id).filter((rateId): rateId is number => rateId != null)
+      );
+      const deletedRateIds = Array.from(persistedRateIds).filter(
+        (rateId) => !currentPersistedRateIds.has(rateId)
+      );
+
+      try {
+        setIsSavingUpdate(true);
+        await demandApi.updateHeader(demandId, demandPayload);
+        await Promise.all(deletedRateIds.map((rateId) => demandApi.deleteDemandExchangeRate(rateId)));
+        await Promise.all(
+          exchangeRateRows
+            .filter((rate) => rate.id != null)
+            .map((rate) => demandApi.updateDemandExchangeRate(rate.id as number, rate.data))
+        );
+        await Promise.all(
+          exchangeRateRows
+            .filter((rate) => rate.id == null)
+            .map((rate) => demandApi.createDemandExchangeRate(rate.data))
+        );
+        markSaved();
+      } finally {
+        setIsSavingUpdate(false);
+      }
     },
-    [demandId, lines, exchangeRates, updateDemandBulk, setError, t, markSaved]
+    [demandId, lines, exchangeRates, ratesData, setError, t, markSaved]
   );
 
   const onInvalidSaveUpdate = useCallback(() => {
@@ -1727,7 +1748,7 @@ export function DemandDetailScreen(): React.ReactElement {
                       !hasUnsavedChanges && styles.submitButtonDisabled,
                     ]}
                     onPress={handleSaveUpdate}
-                    disabled={!hasUnsavedChanges || updateDemandBulk.isPending}
+                    disabled={!hasUnsavedChanges || isSavingUpdate}
                     activeOpacity={0.9}
                   >
                     <LinearGradient
@@ -1736,7 +1757,7 @@ export function DemandDetailScreen(): React.ReactElement {
                       end={{ x: 0, y: 1 }}
                       style={styles.actionFullButton}
                     >
-                      {updateDemandBulk.isPending ? (
+                      {isSavingUpdate ? (
                         <ActivityIndicator color="#FFFFFF" />
                       ) : (
                         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -1751,7 +1772,7 @@ export function DemandDetailScreen(): React.ReactElement {
                     <TouchableOpacity
                       style={styles.actionFullButtonWrap}
                       onPress={handleStartApproval}
-                      disabled={startApproval.isPending || updateDemandBulk.isPending}
+                      disabled={startApproval.isPending || isSavingUpdate}
                       activeOpacity={0.9}
                     >
                       <LinearGradient
@@ -1775,7 +1796,7 @@ export function DemandDetailScreen(): React.ReactElement {
                     <TouchableOpacity
                       style={styles.actionFullButtonWrap}
                       onPress={handleCustomerCancel}
-                      disabled={cancelByCustomer.isPending || updateDemandBulk.isPending}
+                      disabled={cancelByCustomer.isPending || isSavingUpdate}
                       activeOpacity={0.9}
                     >
                       <LinearGradient

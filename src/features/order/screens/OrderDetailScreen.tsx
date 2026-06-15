@@ -16,7 +16,6 @@ import { createClientId } from "@/lib/create-client-id";
 import { getValidRelatedProductGroup } from "@/lib/relatedProductGroup";
 import { resolveDocumentSerialCustomerTypeId } from "@/lib/resolve-document-serial-customer-type-id";
 import { resolveExchangeRateByCurrency as findExchangeRateByCurrency } from "@/lib/resolve-exchange-rate";
-import { flattenDocumentLinesForBulk } from "@/lib/flattenDocumentLinesForBulk";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
@@ -72,7 +71,6 @@ import {
   useDeleteOrderLine,
   useCreateOrderLines,
   useUpdateOrderLines,
-  useUpdateOrderBulk,
   useCancelOrderByCustomer,
 } from "../hooks";
 import {
@@ -146,6 +144,15 @@ function formatMoneyTr(n: number): string {
   const v = Number(n);
   if (!Number.isFinite(v)) return "0";
   return v.toLocaleString("tr-TR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
+function parsePersistedRateId(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) return value;
+  const text = String(value ?? "");
+  const prefixedMatch = text.match(/^rate-(\d+)$/);
+  if (prefixedMatch) return Number(prefixedMatch[1]);
+  if (/^\d+$/.test(text)) return Number(text);
+  return null;
 }
 
 function formatRateTr(n: number): string {
@@ -267,6 +274,7 @@ export function OrderDetailScreen(): React.ReactElement {
   const [lines, setLines] = useState<OrderLineFormState[]>([]);
   const [exchangeRates, setExchangeRates] = useState<OrderExchangeRateFormState[]>([]);
   const [erpRatesForOrder, setErpRatesForOrder] = useState<ExchangeRateDto[]>([]);
+  const [isSavingUpdate, setIsSavingUpdate] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerDto | undefined>();
   const [deliveryDateModalOpen, setDeliveryDateModalOpen] = useState(false);
   const [offerDateModalOpen, setOfferDateModalOpen] = useState(false);
@@ -412,7 +420,6 @@ export function OrderDetailScreen(): React.ReactElement {
   const deleteOrderLineMutation = useDeleteOrderLine();
   const createOrderLinesMutation = useCreateOrderLines();
   const updateOrderLinesMutation = useUpdateOrderLines();
-  const updateOrderBulk = useUpdateOrderBulk();
 
   useEffect(() => {
     if (exchangeRatesData?.length && !erpRatesFilledRef.current) {
@@ -901,17 +908,15 @@ export function OrderDetailScreen(): React.ReactElement {
         return;
       }
 
-      const flatLines = flattenDocumentLinesForBulk(lines);
-      const cleanedLines = flatLines.map((line) =>
-        mapOrderLineFormStateToCreateDto(line, orderId)
-      );
-
-      const cleanedExchangeRates = exchangeRates.map((rate) => {
+      const exchangeRateRows = exchangeRates.map((rate) => {
         const { id, dovizTipi, ...rest } = rate;
         return {
-          ...rest,
-          orderId,
-          isOfficial: rest.isOfficial ?? true,
+          id: parsePersistedRateId(id),
+          data: {
+            ...rest,
+            orderId,
+            isOfficial: rest.isOfficial ?? true,
+          },
         };
       });
 
@@ -925,18 +930,34 @@ export function OrderDetailScreen(): React.ReactElement {
         koliBaskiDefinitionId: formData.order.koliBaskiDefinitionId ?? null,
       };
 
-      await updateOrderBulk.mutateAsync({
-        id: orderId,
-        data: {
-          order: orderPayload,
-          lines: cleanedLines,
-          exchangeRates:
-            cleanedExchangeRates.length > 0 ? cleanedExchangeRates : undefined,
-        },
-      });
-      markSaved();
+      const persistedRateIds = new Set(ratesData.map((rate) => rate.id).filter((rateId) => rateId > 0));
+      const currentPersistedRateIds = new Set(
+        exchangeRateRows.map((rate) => rate.id).filter((rateId): rateId is number => rateId != null)
+      );
+      const deletedRateIds = Array.from(persistedRateIds).filter(
+        (rateId) => !currentPersistedRateIds.has(rateId)
+      );
+
+      try {
+        setIsSavingUpdate(true);
+        await orderApi.updateHeader(orderId, orderPayload);
+        await Promise.all(deletedRateIds.map((rateId) => orderApi.deleteOrderExchangeRate(rateId)));
+        await Promise.all(
+          exchangeRateRows
+            .filter((rate) => rate.id != null)
+            .map((rate) => orderApi.updateOrderExchangeRate(rate.id as number, rate.data))
+        );
+        await Promise.all(
+          exchangeRateRows
+            .filter((rate) => rate.id == null)
+            .map((rate) => orderApi.createOrderExchangeRate(rate.data))
+        );
+        markSaved();
+      } finally {
+        setIsSavingUpdate(false);
+      }
     },
-    [orderId, lines, exchangeRates, updateOrderBulk, setError, t, markSaved]
+    [orderId, lines, exchangeRates, ratesData, setError, t, markSaved]
   );
 
   const onInvalidSaveUpdate = useCallback(() => {
@@ -1819,7 +1840,7 @@ export function OrderDetailScreen(): React.ReactElement {
                       !hasUnsavedChanges && styles.submitButtonDisabled,
                     ]}
                     onPress={handleSaveUpdate}
-                    disabled={!hasUnsavedChanges || updateOrderBulk.isPending}
+                    disabled={!hasUnsavedChanges || isSavingUpdate}
                     activeOpacity={0.9}
                   >
                     <LinearGradient
@@ -1828,7 +1849,7 @@ export function OrderDetailScreen(): React.ReactElement {
                       end={{ x: 0, y: 1 }}
                       style={styles.actionFullButton}
                     >
-                      {updateOrderBulk.isPending ? (
+                      {isSavingUpdate ? (
                         <ActivityIndicator color="#FFFFFF" />
                       ) : (
                         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -1843,7 +1864,7 @@ export function OrderDetailScreen(): React.ReactElement {
                     <TouchableOpacity
                       style={styles.actionFullButtonWrap}
                       onPress={handleStartApproval}
-                      disabled={startApproval.isPending || updateOrderBulk.isPending}
+                      disabled={startApproval.isPending || isSavingUpdate}
                       activeOpacity={0.9}
                     >
                       <LinearGradient
@@ -1867,7 +1888,7 @@ export function OrderDetailScreen(): React.ReactElement {
                     <TouchableOpacity
                       style={styles.actionFullButtonWrap}
                       onPress={handleCustomerCancel}
-                      disabled={cancelByCustomer.isPending || updateOrderBulk.isPending}
+                      disabled={cancelByCustomer.isPending || isSavingUpdate}
                       activeOpacity={0.9}
                     >
                       <LinearGradient

@@ -19,7 +19,6 @@ import {
   resolveExchangeRateByCurrency as findExchangeRateByCurrency,
   buildEffectiveExchangeRates,
 } from "@/lib/resolve-exchange-rate";
-import { flattenDocumentLinesForBulk } from "@/lib/flattenDocumentLinesForBulk";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
@@ -81,7 +80,6 @@ import {
   useUpdateQuotationLines,
   useQuotationNotes,
   useUpdateQuotationNotes,
-  useUpdateQuotationBulk,
   useCancelQuotationByCustomer,
 } from "../hooks";
 import {
@@ -97,9 +95,17 @@ import {
   QuotationNotesModal,
   notesFromDto,
   notesToPutPayload,
-  notesToDto,
   validateNotesMaxLength,
 } from "../components";
+
+function parsePersistedRateId(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) return value;
+  const text = String(value ?? "");
+  const prefixedMatch = text.match(/^rate-(\d+)$/);
+  if (prefixedMatch) return Number(prefixedMatch[1]);
+  if (/^\d+$/.test(text)) return Number(text);
+  return null;
+}
 
 function addDaysToDateOnly(dateValue: string, days: number): string {
   const date = new Date(`${dateValue}T12:00:00`);
@@ -311,7 +317,6 @@ export function QuotationDetailScreen(): React.ReactElement {
 
   const { data: notesData } = useQuotationNotes(isFocused ? quotationId : undefined);
   const updateQuotationNotesMutation = useUpdateQuotationNotes();
-  const updateQuotationBulk = useUpdateQuotationBulk();
 
   const formInitRef = useRef(false);
   const linesInitRef = useRef(false);
@@ -323,6 +328,7 @@ export function QuotationDetailScreen(): React.ReactElement {
   const [lines, setLines] = useState<QuotationLineFormState[]>([]);
   const [exchangeRates, setExchangeRates] = useState<QuotationExchangeRateFormState[]>([]);
   const [erpRatesForQuotation, setErpRatesForQuotation] = useState<ExchangeRateDto[]>([]);
+  const [isSavingUpdate, setIsSavingUpdate] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerDto | undefined>();
   const [deliveryDateModalOpen, setDeliveryDateModalOpen] = useState(false);
   const [offerDateModalOpen, setOfferDateModalOpen] = useState(false);
@@ -1145,11 +1151,6 @@ export function QuotationDetailScreen(): React.ReactElement {
         return;
       }
 
-      const flatLines = flattenDocumentLinesForBulk(lines);
-      const cleanedLines = flatLines.map((line) =>
-        mapQuotationLineFormStateToCreateDto(line, quotationId)
-      );
-
       const effectiveExchangeRatePayload = buildEffectiveExchangeRates(
         exchangeRates,
         erpRatesForQuotation,
@@ -1157,12 +1158,15 @@ export function QuotationDetailScreen(): React.ReactElement {
         formData.quotation.offerDate || new Date().toISOString().split("T")[0]
       );
 
-      const cleanedExchangeRates = effectiveExchangeRatePayload.map((rate) => {
+      const exchangeRateRows = effectiveExchangeRatePayload.map((rate) => {
         const { id, dovizTipi, ...rest } = rate;
         return {
-          ...rest,
-          quotationId,
-          isOfficial: rest.isOfficial ?? true,
+          id: parsePersistedRateId(id),
+          data: {
+            ...rest,
+            quotationId,
+            isOfficial: rest.isOfficial ?? true,
+          },
         };
       });
 
@@ -1182,20 +1186,36 @@ export function QuotationDetailScreen(): React.ReactElement {
             : null,
       };
 
-      const quotationNotes = notesToDto(notes);
-      const hasNotes = Object.keys(quotationNotes).length > 0;
+      const persistedRateIds = new Set(ratesData.map((rate) => rate.id).filter((rateId) => rateId > 0));
+      const currentPersistedRateIds = new Set(
+        exchangeRateRows.map((rate) => rate.id).filter((rateId): rateId is number => rateId != null)
+      );
+      const deletedRateIds = Array.from(persistedRateIds).filter(
+        (rateId) => !currentPersistedRateIds.has(rateId)
+      );
 
-      await updateQuotationBulk.mutateAsync({
-        id: quotationId,
-        data: {
-          quotation: quotationPayload,
-          lines: cleanedLines,
-          exchangeRates:
-            cleanedExchangeRates.length > 0 ? cleanedExchangeRates : undefined,
-          quotationNotes: hasNotes ? quotationNotes : undefined,
-        },
-      });
-      markSaved();
+      try {
+        setIsSavingUpdate(true);
+        await quotationApi.updateHeader(quotationId, quotationPayload);
+        await Promise.all(deletedRateIds.map((rateId) => quotationApi.deleteQuotationExchangeRate(rateId)));
+        await Promise.all(
+          exchangeRateRows
+            .filter((rate) => rate.id != null)
+            .map((rate) => quotationApi.updateQuotationExchangeRate(rate.id as number, rate.data))
+        );
+        await Promise.all(
+          exchangeRateRows
+            .filter((rate) => rate.id == null)
+            .map((rate) => quotationApi.createQuotationExchangeRate(rate.data))
+        );
+        await updateQuotationNotesMutation.mutateAsync({
+          quotationId,
+          data: { notes: notesToPutPayload(notes) },
+        });
+        markSaved();
+      } finally {
+        setIsSavingUpdate(false);
+      }
     },
     [
       quotationId,
@@ -1204,7 +1224,8 @@ export function QuotationDetailScreen(): React.ReactElement {
       exchangeRates,
       erpRatesForQuotation,
       currencyOptions,
-      updateQuotationBulk,
+      ratesData,
+      updateQuotationNotesMutation,
       setError,
       t,
       markSaved,
@@ -2097,7 +2118,7 @@ export function QuotationDetailScreen(): React.ReactElement {
                       !hasUnsavedChanges && styles.submitButtonDisabled,
                     ]}
                     onPress={handleSaveUpdate}
-                    disabled={!hasUnsavedChanges || updateQuotationBulk.isPending}
+                    disabled={!hasUnsavedChanges || isSavingUpdate}
                     activeOpacity={0.9}
                   >
                     <LinearGradient
@@ -2106,7 +2127,7 @@ export function QuotationDetailScreen(): React.ReactElement {
                       end={{ x: 0, y: 1 }}
                       style={styles.actionFullButton}
                     >
-                      {updateQuotationBulk.isPending ? (
+                      {isSavingUpdate ? (
                         <ActivityIndicator color="#FFFFFF" />
                       ) : (
                         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -2121,7 +2142,7 @@ export function QuotationDetailScreen(): React.ReactElement {
                     <TouchableOpacity
                       style={styles.inlineActionButtonWrap}
                       onPress={handleStartApproval}
-                      disabled={startApproval.isPending || updateQuotationBulk.isPending}
+                      disabled={startApproval.isPending || isSavingUpdate}
                       activeOpacity={0.9}
                     >
                       <LinearGradient
@@ -2145,7 +2166,7 @@ export function QuotationDetailScreen(): React.ReactElement {
                     <TouchableOpacity
                       style={styles.inlineActionButtonWrap}
                       onPress={handleCustomerCancel}
-                      disabled={cancelByCustomer.isPending || updateQuotationBulk.isPending}
+                      disabled={cancelByCustomer.isPending || isSavingUpdate}
                       activeOpacity={0.9}
                     >
                       <LinearGradient

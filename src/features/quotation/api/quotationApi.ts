@@ -30,7 +30,9 @@ import type {
   QuotationApprovalFlowReportDto,
   QuotationApprovalFlowReportResponse,
   QuotationBulkCreateDto,
+  CreateQuotationDto,
   CreateQuotationLineDto,
+  QuotationExchangeRateCreateDto,
   QuotationLineUpdateDto,
   PricingRuleLineGetDto,
   UserDiscountLimitDto,
@@ -204,6 +206,18 @@ export const quotationApi = {
     return data;
   },
 
+  updateHeader: async (id: number, data: CreateQuotationDto): Promise<QuotationGetDto> => {
+    const response = await apiClient.put<QuotationResponse>(`/api/quotation/${id}`, data);
+    if (!response.data.success) {
+      throw new Error(
+        response.data.message ||
+          response.data.exceptionMessage ||
+          "Teklif başlığı güncellenemedi"
+      );
+    }
+    return response.data.data;
+  },
+
   getLinesByQuotation: async (quotationId: number): Promise<QuotationLineDetailGetDto[]> => {
     const response = await apiClient.get<QuotationLineDetailListResponse>(
       `/api/QuotationLine/by-quotation/${quotationId}`
@@ -253,6 +267,48 @@ export const quotationApi = {
       );
     }
     return response.data.data ?? false;
+  },
+
+  createQuotationExchangeRate: async (
+    body: QuotationExchangeRateCreateDto
+  ): Promise<QuotationExchangeRateDetailGetDto> => {
+    const response = await apiClient.post<ApiResponse<QuotationExchangeRateDetailGetDto>>(
+      "/api/QuotationExchangeRate",
+      body
+    );
+    if (!response.data.success || !response.data.data) {
+      throw new Error(
+        response.data.message ||
+          response.data.exceptionMessage ||
+          "Döviz kuru eklenemedi"
+      );
+    }
+    return response.data.data;
+  },
+
+  updateQuotationExchangeRate: async (
+    id: number,
+    body: QuotationExchangeRateCreateDto
+  ): Promise<QuotationExchangeRateDetailGetDto> => {
+    const response = await apiClient.put<ApiResponse<QuotationExchangeRateDetailGetDto>>(
+      `/api/QuotationExchangeRate/${id}`,
+      body
+    );
+    if (!response.data.success || !response.data.data) {
+      throw new Error(
+        response.data.message ||
+          response.data.exceptionMessage ||
+          "Döviz kuru güncellenemedi"
+      );
+    }
+    return response.data.data;
+  },
+
+  deleteQuotationExchangeRate: async (id: number): Promise<void> => {
+    const response = await apiClient.delete<ApiResponse<unknown>>(`/api/QuotationExchangeRate/${id}`);
+    if (response.data?.success === false) {
+      throw new Error(response.data.message || "Döviz kuru silinemedi");
+    }
   },
 
   deleteQuotationLine: async (lineId: number): Promise<void> => {

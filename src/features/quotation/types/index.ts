@@ -104,6 +104,12 @@ export interface QuotationGetDto {
   isERPIntegrated?: boolean | null;
   erpIntegrationNumber?: string | null;
   lastSyncDate?: string | null;
+  erpCleanupStatus?: number | null;
+  erpCleanupReason?: string | null;
+  originalDocumentNumber?: string | null;
+  isCreatedFromErpCleanup?: boolean;
+  erpCleanupSourceDocumentId?: number | null;
+  erpCleanupLogId?: number | null;
   createdAt: string;
   updatedAt?: string | null;
   createdBy?: string | null;

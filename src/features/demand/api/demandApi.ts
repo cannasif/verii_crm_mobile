@@ -30,7 +30,9 @@ import type {
   DemandApprovalFlowReportDto,
   DemandApprovalFlowReportResponse,
   DemandBulkCreateDto,
+  CreateDemandDto,
   CreateDemandLineDto,
+  DemandExchangeRateCreateDto,
   DemandLineUpdateDto,
   PricingRuleLineGetDto,
   UserDiscountLimitDto,
@@ -153,6 +155,18 @@ export const demandApi = {
     return data;
   },
 
+  updateHeader: async (id: number, data: CreateDemandDto): Promise<DemandGetDto> => {
+    const response = await apiClient.put<DemandResponse>(`/api/demand/${id}`, data);
+    if (!response.data.success) {
+      throw new Error(
+        response.data.message ||
+          response.data.exceptionMessage ||
+          "Talep başlığı güncellenemedi"
+      );
+    }
+    return response.data.data;
+  },
+
   getLinesByDemand: async (demandId: number): Promise<DemandLineDetailGetDto[]> => {
     const response = await apiClient.get<DemandLineDetailListResponse>(
       `/api/DemandLine/by-demand/${demandId}`
@@ -202,6 +216,48 @@ export const demandApi = {
       );
     }
     return response.data.data ?? false;
+  },
+
+  createDemandExchangeRate: async (
+    body: DemandExchangeRateCreateDto
+  ): Promise<DemandExchangeRateDetailGetDto> => {
+    const response = await apiClient.post<ApiResponse<DemandExchangeRateDetailGetDto>>(
+      "/api/DemandExchangeRate",
+      body
+    );
+    if (!response.data.success || !response.data.data) {
+      throw new Error(
+        response.data.message ||
+          response.data.exceptionMessage ||
+          "Döviz kuru eklenemedi"
+      );
+    }
+    return response.data.data;
+  },
+
+  updateDemandExchangeRate: async (
+    id: number,
+    body: DemandExchangeRateCreateDto
+  ): Promise<DemandExchangeRateDetailGetDto> => {
+    const response = await apiClient.put<ApiResponse<DemandExchangeRateDetailGetDto>>(
+      `/api/DemandExchangeRate/${id}`,
+      body
+    );
+    if (!response.data.success || !response.data.data) {
+      throw new Error(
+        response.data.message ||
+          response.data.exceptionMessage ||
+          "Döviz kuru güncellenemedi"
+      );
+    }
+    return response.data.data;
+  },
+
+  deleteDemandExchangeRate: async (id: number): Promise<void> => {
+    const response = await apiClient.delete<ApiResponse<unknown>>(`/api/DemandExchangeRate/${id}`);
+    if (response.data?.success === false) {
+      throw new Error(response.data.message || "Döviz kuru silinemedi");
+    }
   },
 
   deleteDemandLine: async (lineId: number): Promise<void> => {
