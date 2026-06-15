@@ -225,7 +225,7 @@ export const orderApi = {
       throw new Error(
         response.data.message ||
           response.data.exceptionMessage ||
-          "Talep satırları eklenemedi"
+          "Sipariş satırları eklenemedi"
       );
     }
     return response.data.data ?? [];
@@ -242,7 +242,7 @@ export const orderApi = {
       throw new Error(
         response.data.message ||
           response.data.exceptionMessage ||
-          "Talep satırları güncellenemedi"
+          "Sipariş satırları güncellenemedi"
       );
     }
     return response.data.data ?? [];
