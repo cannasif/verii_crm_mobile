@@ -416,7 +416,14 @@ export function QuotationCreateScreen(): React.ReactElement {
     setValue("quotation.shippingAddressId", null);
   }, [isCustomerInRepresentativeScope, setValue, watchedCustomerId]);
 
-  const totals = useMemo(() => calculateTotals(lines), [lines]);
+  const totals = useMemo(
+    () =>
+      calculateTotals(lines, {
+        generalDiscountRate: watchedGeneralDiscountRate ?? null,
+        generalDiscountAmount: watchedGeneralDiscountAmount ?? null,
+      }),
+    [lines, watchedGeneralDiscountAmount, watchedGeneralDiscountRate]
+  );
 
   const handleCustomerSelect = useCallback(
     (result: CustomerSelectionResult) => {
@@ -1928,9 +1935,19 @@ export function QuotationCreateScreen(): React.ReactElement {
                     Ara Toplam:
                   </Text>
                   <Text style={[styles.summaryValue, { color: colors.text }]}>
-                    {totals.subtotal.toFixed(2)}
+                    {totals.netTotal.toFixed(2)}
                   </Text>
                 </View>
+                {totals.generalDiscountAmount > 0 && (
+                  <View style={styles.summaryRow}>
+                    <Text style={[styles.summaryLabel, { color: colors.accent }]}>
+                      {t("quotation.generalDiscount")}
+                    </Text>
+                    <Text style={[styles.summaryValue, { color: colors.accent }]}>
+                      -{totals.generalDiscountAmount.toFixed(2)}
+                    </Text>
+                  </View>
+                )}
                 <View style={styles.summaryRow}>
                   <Text
                     style={[styles.summaryLabel, { color: mutedText }]}
@@ -1938,7 +1955,7 @@ export function QuotationCreateScreen(): React.ReactElement {
                     KDV Toplamı:
                   </Text>
                   <Text style={[styles.summaryValue, { color: colors.text }]}>
-                    {totals.totalVat.toFixed(2)}
+                    {totals.totalVatAfterDiscount.toFixed(2)}
                   </Text>
                 </View>
                 <View style={styles.summaryRow}>
@@ -1951,7 +1968,7 @@ export function QuotationCreateScreen(): React.ReactElement {
                       { color: colors.accent, fontWeight: "600" },
                     ]}
                   >
-                    {totals.grandTotal.toFixed(2)}
+                    {totals.grandTotalAfterDiscount.toFixed(2)}
                   </Text>
                 </View>
               </View>

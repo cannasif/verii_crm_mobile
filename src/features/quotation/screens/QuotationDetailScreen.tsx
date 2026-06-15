@@ -531,7 +531,14 @@ export function QuotationDetailScreen(): React.ReactElement {
   );
 
   const apiTotals = useMemo(() => totalsFromDetailLines(linesData), [linesData]);
-  const totals = useMemo(() => calculateTotals(lines), [lines]);
+  const totals = useMemo(
+    () =>
+      calculateTotals(lines, {
+        generalDiscountRate: watchedGeneralDiscountRate ?? null,
+        generalDiscountAmount: watchedGeneralDiscountAmount ?? null,
+      }),
+    [lines, watchedGeneralDiscountAmount, watchedGeneralDiscountRate]
+  );
   const visibleMainLines = useMemo(
     () => lines.filter((line) => !line.relatedProductKey || line.isMainRelatedProduct === true),
     [lines]
@@ -1084,7 +1091,7 @@ export function QuotationDetailScreen(): React.ReactElement {
 
   const handleStartApproval = useCallback(() => {
     if (!quotationId) return;
-    const totalAmount = apiTotals.grandTotal;
+    const totalAmount = totals.grandTotalAfterDiscount;
     Alert.alert(
       t("quotation.sendForApproval"),
       t("quotation.sendForApprovalConfirm"),
@@ -1101,7 +1108,7 @@ export function QuotationDetailScreen(): React.ReactElement {
         },
       ]
     );
-  }, [quotationId, apiTotals.grandTotal, startApproval, t]);
+  }, [quotationId, startApproval, t, totals.grandTotalAfterDiscount]);
 
   const handleCustomerCancel = useCallback(() => {
     setCustomerCancellationVisible(true);
@@ -2048,14 +2055,25 @@ export function QuotationDetailScreen(): React.ReactElement {
                   <View style={styles.summaryRow}>
                     <Text style={[styles.summaryLabel, { color: mutedText }]}>{t("quotation.subtotal")}</Text>
                     <Text style={[styles.summaryValue, { color: titleText }]}>
-                      {formatMoneyTr(totals.subtotal)}
+                      {formatMoneyTr(totals.netTotal)}
                       {lineListCurrencyLabel ? ` ${lineListCurrencyLabel}` : ""}
                     </Text>
                   </View>
+                  {totals.generalDiscountAmount > 0 && (
+                    <View style={styles.summaryRow}>
+                      <Text style={[styles.summaryLabel, { color: accent }]}>
+                        {t("quotation.generalDiscount")}
+                      </Text>
+                      <Text style={[styles.summaryValue, { color: accent }]}>
+                        -{formatMoneyTr(totals.generalDiscountAmount)}
+                        {lineListCurrencyLabel ? ` ${lineListCurrencyLabel}` : ""}
+                      </Text>
+                    </View>
+                  )}
                   <View style={styles.summaryRow}>
                     <Text style={[styles.summaryLabel, { color: mutedText }]}>{t("quotation.totalVat")}</Text>
                     <Text style={[styles.summaryValue, { color: titleText }]}>
-                      {formatMoneyTr(totals.totalVat)}
+                      {formatMoneyTr(totals.totalVatAfterDiscount)}
                       {lineListCurrencyLabel ? ` ${lineListCurrencyLabel}` : ""}
                     </Text>
                   </View>
@@ -2064,7 +2082,7 @@ export function QuotationDetailScreen(): React.ReactElement {
                       {t("quotation.grandTotal")}
                     </Text>
                     <Text style={[styles.summaryGrandValue, { color: accent }]}>
-                      {formatMoneyTr(totals.grandTotal)}
+                      {formatMoneyTr(totals.grandTotalAfterDiscount)}
                       {lineListCurrencyLabel ? ` ${lineListCurrencyLabel}` : ""}
                     </Text>
                   </View>

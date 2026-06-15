@@ -470,6 +470,11 @@ export interface CalculationTotals {
   subtotal: number;
   totalVat: number;
   grandTotal: number;
+  netTotal: number;
+  discountedNetTotal: number;
+  generalDiscountAmount: number;
+  totalVatAfterDiscount: number;
+  grandTotalAfterDiscount: number;
 }
 
 export type ApprovalStatus = 0 | 1;

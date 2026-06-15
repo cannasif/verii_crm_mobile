@@ -1339,6 +1339,7 @@
     "subtotal": "Subtotal",
     "totalVat": "VAT Total",
     "grandTotal": "Grand Total",
+    "generalDiscount": "General Discount",
     "summary": "Summary",
     "customerSection": "Customer Info",
     "notesSection": "Quotation Notes",

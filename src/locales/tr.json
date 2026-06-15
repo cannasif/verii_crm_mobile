@@ -1388,6 +1388,7 @@
     "subtotal": "Ara Toplam",
     "totalVat": "KDV Toplamı",
     "grandTotal": "Genel Toplam",
+    "generalDiscount": "Genel İskonto",
     "summary": "Özet",
     "customerSection": "Müşteri Bilgileri",
     "notesSection": "Teklif Notları",

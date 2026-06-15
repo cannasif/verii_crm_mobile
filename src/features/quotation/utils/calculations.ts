@@ -30,10 +30,40 @@ export function calculateLineTotals(line: QuotationLineFormState): QuotationLine
   };
 }
 
-export function calculateTotals(lines: QuotationLineFormState[]): CalculationTotals {
-  const subtotal = lines.reduce((sum, line) => sum + line.lineTotal, 0);
-  const totalVat = lines.reduce((sum, line) => sum + line.vatAmount, 0);
-  const grandTotal = lines.reduce((sum, line) => sum + line.lineGrandTotal, 0);
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
 
-  return { subtotal, totalVat, grandTotal };
+export function calculateTotals(
+  lines: QuotationLineFormState[],
+  options?: { generalDiscountRate?: number | null; generalDiscountAmount?: number | null }
+): CalculationTotals {
+  const subtotal = round2(lines.reduce((sum, line) => sum + line.lineTotal, 0));
+  const totalVat = round2(lines.reduce((sum, line) => sum + line.vatAmount, 0));
+  const grandTotal = round2(lines.reduce((sum, line) => sum + line.lineGrandTotal, 0));
+  const netTotal = subtotal;
+
+  let generalDiscountAmount = 0;
+  if (options?.generalDiscountAmount != null && !Number.isNaN(options.generalDiscountAmount)) {
+    generalDiscountAmount = round2(Math.min(Math.max(0, options.generalDiscountAmount), netTotal));
+  } else if (options?.generalDiscountRate != null && !Number.isNaN(options.generalDiscountRate)) {
+    const rate = Math.min(100, Math.max(0, options.generalDiscountRate));
+    generalDiscountAmount = round2(Math.min(netTotal * (rate / 100), netTotal));
+  }
+
+  const discountedNetTotal = round2(Math.max(netTotal - generalDiscountAmount, 0));
+  const totalVatAfterDiscount =
+    netTotal > 0 ? round2(totalVat * (discountedNetTotal / netTotal)) : 0;
+  const grandTotalAfterDiscount = round2(discountedNetTotal + totalVatAfterDiscount);
+
+  return {
+    subtotal,
+    totalVat,
+    grandTotal,
+    netTotal,
+    discountedNetTotal,
+    generalDiscountAmount,
+    totalVatAfterDiscount,
+    grandTotalAfterDiscount,
+  };
 }
