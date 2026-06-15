@@ -40,6 +40,10 @@ export function resolveDocumentApprovalStatusMeta(
       color: isDark ? "#f472b6" : "#be123c",
       backgroundColor: isDark ? "rgba(244,114,182,0.16)" : "rgba(244,63,94,0.10)",
     },
+    salespersonClosedForRevision: {
+      color: isDark ? "#fb923c" : "#c2410c",
+      backgroundColor: isDark ? "rgba(251,146,60,0.16)" : "rgba(249,115,22,0.10)",
+    },
     unknown: {
       color: isDark ? "#94A3B8" : "#64748B",
       backgroundColor: isDark ? "rgba(255,255,255,0.035)" : "#F8FAFC",
@@ -69,6 +73,11 @@ export function resolveDocumentApprovalStatusMeta(
       return pick(palettes.closed, t("common.statusClosed", "Kapatıldı"));
     case 5:
       return pick(palettes.customerCancelled, t("common.customerCancelled", "İptal edildi"));
+    case 6:
+      return pick(
+        palettes.salespersonClosedForRevision,
+        t("common.salespersonClosedForRevision", "Plasiyer revizyon için kapattı")
+      );
     default:
       return pick(palettes.unknown, "-");
   }

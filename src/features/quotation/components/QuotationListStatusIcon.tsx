@@ -66,6 +66,19 @@ function resolveStatusIconConfig(
           />
         ),
       };
+    case ApprovalStatus.SalespersonClosedForRevision:
+      return {
+        bg: isDark ? "rgba(251,146,60,0.16)" : "rgba(249,115,22,0.10)",
+        border: isDark ? "rgba(251,146,60,0.40)" : "rgba(249,115,22,0.32)",
+        icon: (
+          <Alert02Icon
+            size={14}
+            color={isDark ? "#fb923c" : "#c2410c"}
+            variant="stroke"
+            strokeWidth={2.2}
+          />
+        ),
+      };
     case ApprovalStatus.Waiting:
       return {
         bg: isDark ? "rgba(251,191,36,0.16)" : "rgba(245,158,11,0.12)",

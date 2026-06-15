@@ -66,6 +66,7 @@
     "saveUpdate": "Save Update",
     "statusClosed": "Closed",
     "customerCancelled": "Cancelled",
+    "salespersonClosedForRevision": "Closed by salesperson for revision",
     "rowsUpdated": "Rows updated.",
     "rowsAdded": "Rows added.",
     "exchangeRatesUpdated": "Exchange rates have been updated.",
