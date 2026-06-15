@@ -39,7 +39,7 @@ function resolveErpCleanupInfo(document: {
 }): string | null {
   const status = Number(document.erpCleanupStatus ?? 0);
   if (status === 0) return null;
-  const label = status === 2 ? "ERP kaydı temizlenemedi" : "Revizyon için ERP kaydı temizlendi";
+  const label = status === 2 ? "ERP kaydı temizlenemedi" : "ERP kaydı revizyon için plasiyer tarafından kapatıldı";
   const originalNo = document.originalDocumentNumber?.trim();
   const reason = document.erpCleanupReason?.trim();
   return [label, originalNo ? `Eski ERP No: ${originalNo}` : null, reason ? `Neden: ${reason}` : null]

@@ -76,7 +76,7 @@ export function resolveDocumentApprovalStatusMeta(
     case 6:
       return pick(
         palettes.salespersonClosedForRevision,
-        t("common.salespersonClosedForRevision", "Plasiyer revizyon için kapattı")
+        t("common.salespersonClosedForRevision", "ERP kaydı revizyon için plasiyer tarafından kapatıldı")
       );
     default:
       return pick(palettes.unknown, "-");
