@@ -44,6 +44,10 @@ export function resolveDocumentApprovalStatusMeta(
       color: isDark ? "#fb923c" : "#c2410c",
       backgroundColor: isDark ? "rgba(251,146,60,0.16)" : "rgba(249,115,22,0.10)",
     },
+    supersededByApprovedRevision: {
+      color: isDark ? "#818cf8" : "#4f46e5",
+      backgroundColor: isDark ? "rgba(129,140,248,0.16)" : "rgba(99,102,241,0.10)",
+    },
     unknown: {
       color: isDark ? "#94A3B8" : "#64748B",
       backgroundColor: isDark ? "rgba(255,255,255,0.035)" : "#F8FAFC",
@@ -77,6 +81,11 @@ export function resolveDocumentApprovalStatusMeta(
       return pick(
         palettes.salespersonClosedForRevision,
         t("common.salespersonClosedForRevision", "ERP kaydı revizyon için plasiyer tarafından kapatıldı")
+      );
+    case 7:
+      return pick(
+        palettes.supersededByApprovedRevision,
+        t("common.supersededByApprovedRevision", "Onaylanan revizyon nedeniyle kapatıldı")
       );
     default:
       return pick(palettes.unknown, "-");

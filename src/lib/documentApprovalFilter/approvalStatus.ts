@@ -6,6 +6,7 @@ export const ApprovalStatus = {
   Closed: 4,
   CustomerCancelled: 5,
   SalespersonClosedForRevision: 6,
+  SupersededByApprovedRevision: 7,
 } as const;
 
 export type ApprovalStatusValue = (typeof ApprovalStatus)[keyof typeof ApprovalStatus];
@@ -20,10 +21,11 @@ export type DocumentApprovalStatusFilterValue =
   | "3"
   | "4"
   | "5"
-  | "6";
+  | "6"
+  | "7";
 
 export const DOCUMENT_APPROVAL_STATUS_FILTER_OPTIONS: readonly DocumentApprovalStatusFilterValue[] =
-  ["all", "0", "1", "2", "3", "4", "5", "6"] as const;
+  ["all", "0", "1", "2", "3", "4", "5", "6", "7"] as const;
 
 export function isDocumentApprovalStatusFilterValue(
   value: string

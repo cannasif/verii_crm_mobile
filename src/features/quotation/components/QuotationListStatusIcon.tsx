@@ -79,6 +79,19 @@ function resolveStatusIconConfig(
           />
         ),
       };
+    case ApprovalStatus.SupersededByApprovedRevision:
+      return {
+        bg: isDark ? "rgba(129,140,248,0.16)" : "rgba(99,102,241,0.10)",
+        border: isDark ? "rgba(129,140,248,0.40)" : "rgba(99,102,241,0.32)",
+        icon: (
+          <Alert02Icon
+            size={14}
+            color={isDark ? "#818cf8" : "#4f46e5"}
+            variant="stroke"
+            strokeWidth={2.2}
+          />
+        ),
+      };
     case ApprovalStatus.Waiting:
       return {
         bg: isDark ? "rgba(251,191,36,0.16)" : "rgba(245,158,11,0.12)",

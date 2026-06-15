@@ -68,6 +68,7 @@
     "statusClosed": "Kapatıldı",
     "customerCancelled": "İptal edildi",
     "salespersonClosedForRevision": "ERP kaydı revizyon için plasiyer tarafından kapatıldı",
+    "supersededByApprovedRevision": "Onaylanan revizyon nedeniyle kapatıldı",
     "rowsUpdated": "Satırlar güncellendi.",
     "rowsAdded": "Satırlar eklendi.",
     "exchangeRatesUpdated": "Döviz kurları güncellendi.",
@@ -1343,7 +1344,8 @@
       "options": {
         "all": "Tümü",
         "1": "Onay Bekliyor",
-        "5": "Müşteri tarafından iptal edildi"
+        "5": "Müşteri tarafından iptal edildi",
+        "7": "Onaylanan revizyon nedeniyle kapatıldı"
       }
     },
     "currency": "Para Birimi",
@@ -1597,7 +1599,8 @@
       "options": {
         "all": "Tümü",
         "1": "Onay Bekliyor",
-        "5": "Müşteri tarafından iptal edildi"
+        "5": "Müşteri tarafından iptal edildi",
+        "7": "Onaylanan revizyon nedeniyle kapatıldı"
       }
     }
   },
@@ -1806,7 +1809,8 @@
       "options": {
         "all": "Tümü",
         "1": "Onay Bekliyor",
-        "5": "Müşteri tarafından iptal edildi"
+        "5": "Müşteri tarafından iptal edildi",
+        "7": "Onaylanan revizyon nedeniyle kapatıldı"
       }
     }
   },

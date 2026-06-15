@@ -485,7 +485,7 @@ export interface CalculationTotals {
 
 export type ApprovalStatus = 0 | 1;
 
-export type DetailApprovalStatus = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+export type DetailApprovalStatus = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 export const APPROVAL_HAVENOT_STARTED: DetailApprovalStatus = 0;
 export const APPROVAL_WAITING: DetailApprovalStatus = 1;
@@ -494,6 +494,7 @@ export const APPROVAL_REJECTED: DetailApprovalStatus = 3;
 export const APPROVAL_CLOSED: DetailApprovalStatus = 4;
 export const APPROVAL_CUSTOMER_CANCELLED: DetailApprovalStatus = 5;
 export const APPROVAL_SALESPERSON_CLOSED_FOR_REVISION: DetailApprovalStatus = 6;
+export const APPROVAL_SUPERSEDED_BY_APPROVED_REVISION: DetailApprovalStatus = 7;
 
 export interface QuotationDetailGetDto {
   id: number;

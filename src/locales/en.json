@@ -67,6 +67,7 @@
     "statusClosed": "Closed",
     "customerCancelled": "Cancelled",
     "salespersonClosedForRevision": "ERP record closed by salesperson for revision",
+    "supersededByApprovedRevision": "Closed because another revision was approved",
     "rowsUpdated": "Rows updated.",
     "rowsAdded": "Rows added.",
     "exchangeRatesUpdated": "Exchange rates have been updated.",
@@ -1293,7 +1294,8 @@
       "options": {
         "all": "All",
         "1": "Waiting for Approval",
-        "5": "Cancelled by Customer"
+        "5": "Cancelled by Customer",
+        "7": "Closed because another revision was approved"
       }
     },
     "currency": "Currency",
@@ -1548,7 +1550,8 @@
       "options": {
         "all": "All",
         "1": "Waiting for Approval",
-        "5": "Cancelled by Customer"
+        "5": "Cancelled by Customer",
+        "7": "Closed because another revision was approved"
       }
     }
   },
@@ -1757,7 +1760,8 @@
       "options": {
         "all": "All",
         "1": "Waiting for Approval",
-        "5": "Cancelled by Customer"
+        "5": "Cancelled by Customer",
+        "7": "Closed because another revision was approved"
       }
     }
   },

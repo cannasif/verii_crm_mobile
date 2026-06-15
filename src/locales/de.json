@@ -62,6 +62,7 @@
     "statusClosed": "Geschlossen",
     "customerCancelled": "Storniert",
     "salespersonClosedForRevision": "ERP-Datensatz vom Vertriebsmitarbeiter zur Revision geschlossen",
+    "supersededByApprovedRevision": "Geschlossen, weil eine andere Revision genehmigt wurde",
     "rowsUpdated": "Zeilen aktualisiert.",
     "rowsAdded": "Zeilen hinzugefügt.",
     "exchangeRatesUpdated": "Wechselkurse wurden aktualisiert.",
@@ -1231,7 +1232,8 @@
       "options": {
         "all": "Alle",
         "1": "Genehmigung ausstehend",
-        "5": "Vom Kunden storniert"
+        "5": "Vom Kunden storniert",
+        "7": "Geschlossen, weil eine andere Revision genehmigt wurde"
       }
     },
     "currency": "Währung",
@@ -1469,7 +1471,8 @@
       "options": {
         "all": "Alle",
         "1": "Genehmigung ausstehend",
-        "5": "Vom Kunden storniert"
+        "5": "Vom Kunden storniert",
+        "7": "Geschlossen, weil eine andere Revision genehmigt wurde"
       }
     }
   },
@@ -1670,7 +1673,8 @@
       "options": {
         "all": "Alle",
         "1": "Genehmigung ausstehend",
-        "5": "Vom Kunden storniert"
+        "5": "Vom Kunden storniert",
+        "7": "Geschlossen, weil eine andere Revision genehmigt wurde"
       }
     }
   },
