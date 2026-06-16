@@ -6,6 +6,7 @@ import {
   TouchableWithoutFeedback,
   Text,
 } from "react-native";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { StatusBar } from "expo-status-bar";
@@ -37,7 +38,7 @@ import {
 import { PermissionDeniedState } from "../../access-control/components/PermissionDeniedState";
 import { isForbiddenError } from "../../access-control/utils/isForbiddenError";
 import { resolveSalesDocumentPaymentTypeLabel } from "../../../lib/resolveSalesDocumentPaymentTypeLabel";
-import { useOrderList, useCreateRevisionOfOrder, usePaymentTypeNameMap, useOrderListRowActions } from "../hooks";
+import { useOrderList, useCreateRevisionOfOrder, usePaymentTypeNameMap, useOrderListRowActions, useOrderListGrandTotalSync } from "../hooks";
 import { OrderRow, OrderRowActionsSheet } from "../components";
 import { CustomerMailComposerModal } from "../../integration";
 import type { OrderGetDto } from "../types";
@@ -211,6 +212,17 @@ export function OrderListScreen(): React.ReactElement {
   }, [data]);
 
   const totalCount = data?.pages?.[0]?.totalCount ?? 0;
+
+  const orderIds = useMemo(() => orders.map((order) => order.id), [orders]);
+  useOrderListGrandTotalSync(orderIds);
+
+  const queryClient = useQueryClient();
+  const handleRefresh = useCallback(() => {
+    orderIds.forEach((id) => {
+      void queryClient.invalidateQueries({ queryKey: ["order", "listGrandTotal", id] });
+    });
+    void refetch();
+  }, [orderIds, queryClient, refetch]);
 
   const renderListSeparator = useCallback(
     () => <SalesListCompactSeparator color={listSeparatorColor} />,
@@ -430,7 +442,7 @@ export function OrderListScreen(): React.ReactElement {
           }
           isLoading={Boolean(isLoading && !data)}
           refreshing={isRefetching}
-          onRefresh={refetch}
+          onRefresh={handleRefresh}
           isFetchingNextPage={isFetchingNextPage}
           hasNextPage={hasNextPage}
           totalCount={totalCount}

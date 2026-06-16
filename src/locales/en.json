@@ -1701,6 +1701,7 @@
     "approvalRequired": "Approval Required",
     "subtotal": "Subtotal",
     "totalVat": "VAT Total",
+    "generalDiscount": "General Discount",
     "grandTotal": "Grand Total",
     "summary": "Summary",
     "customerSection": "Customer Info",

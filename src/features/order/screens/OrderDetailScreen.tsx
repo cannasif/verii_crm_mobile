@@ -142,11 +142,13 @@ import {
   mapOrderLineFormStateToUpdateDto,
   totalsFromDetailLines,
 } from "../utils";
+import { syncOrderListGrandTotal, applyOrderListGrandTotalPatch } from "../utils/syncOrderListGrandTotal";
 import { calculateLineTotals, calculateTotals } from "../utils";
 import { resolveLineListCurrencyLabel } from "../../../lib/currencyDisplay";
 import { getApiBaseUrl } from "../../../constants/config";
 import { useDocumentDetailDirtyState } from "../../../hooks/useDocumentDetailDirtyState";
-import { invalidateDocumentListAndDetailHeader } from "../../../lib/documentListQueryInvalidation";
+import { invalidateDocumentDetailHeaderQuery } from "../../../lib/documentListQueryInvalidation";
+import { readGeneralDiscountOptions } from "../../../lib/salesDocumentTotals";
 import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida/hooks/useWindoDefinitionOptions";
 
 function resolveMobileImageUri(path?: string | null): string | null {
@@ -422,7 +424,14 @@ export function OrderDetailScreen(): React.ReactElement {
   );
 
   const apiTotals = useMemo(() => totalsFromDetailLines(linesData), [linesData]);
-  const totals = useMemo(() => calculateTotals(lines), [lines]);
+  const headerDiscountOptions = useMemo(
+    () => readGeneralDiscountOptions(header as unknown as Record<string, unknown> | undefined),
+    [header]
+  );
+  const totals = useMemo(
+    () => calculateTotals(lines, headerDiscountOptions),
+    [headerDiscountOptions, lines]
+  );
   const visibleMainLines = useMemo(
     () => lines.filter((line) => !line.relatedProductKey || line.isMainRelatedProduct === true),
     [lines]
@@ -471,6 +480,11 @@ export function OrderDetailScreen(): React.ReactElement {
   const deleteOrderLineMutation = useDeleteOrderLine();
   const createOrderLinesMutation = useCreateOrderLines();
   const updateOrderLinesMutation = useUpdateOrderLines();
+
+  useEffect(() => {
+    if (!isFocused || orderId == null || linesData.length === 0) return;
+    applyOrderListGrandTotalPatch(queryClient, orderId, linesData, header);
+  }, [isFocused, orderId, linesData, header, queryClient]);
 
   useEffect(() => {
     if (exchangeRatesData?.length && !erpRatesFilledRef.current) {
@@ -970,7 +984,7 @@ export function OrderDetailScreen(): React.ReactElement {
 
   const handleStartApproval = useCallback(() => {
     if (!orderId) return;
-    const totalAmount = totals.grandTotal;
+    const totalAmount = totals.grandTotalAfterDiscount;
     Alert.alert(
       t("order.sendForApproval"),
       t("order.sendForApprovalConfirm"),
@@ -987,7 +1001,7 @@ export function OrderDetailScreen(): React.ReactElement {
         },
       ]
     );
-  }, [orderId, startApproval, t, totals.grandTotal]);
+  }, [orderId, startApproval, t, totals.grandTotalAfterDiscount]);
 
   const handleCustomerCancel = useCallback(() => {
     setCustomerCancellationVisible(true);
@@ -1062,13 +1076,14 @@ export function OrderDetailScreen(): React.ReactElement {
             .filter((rate) => rate.id == null)
             .map((rate) => orderApi.createOrderExchangeRate(rate.data))
         );
-        await invalidateDocumentListAndDetailHeader(queryClient, "order", orderId);
+        await invalidateDocumentDetailHeaderQuery(queryClient, "order", orderId);
         await queryClient.invalidateQueries({
           queryKey: ["order", "detail", "lines", orderId],
         });
         await queryClient.invalidateQueries({
           queryKey: ["order", "detail", "exchangeRates", orderId],
         });
+        await syncOrderListGrandTotal(queryClient, orderId);
         markSaved();
         showToast("success", t("order.updateSuccess"));
       } catch (error) {
@@ -1743,14 +1758,25 @@ export function OrderDetailScreen(): React.ReactElement {
                   <View style={styles.summaryRow}>
                     <Text style={[styles.summaryLabel, { color: mutedText }]}>{t("order.subtotal")}</Text>
                     <Text style={[styles.summaryValue, { color: titleText }]}>
-                      {formatMoneyTr(totals.subtotal)}
+                      {formatMoneyTr(totals.netTotal)}
                       {lineListCurrencyLabel ? ` ${lineListCurrencyLabel}` : ""}
                     </Text>
                   </View>
+                  {totals.generalDiscountAmount > 0 && (
+                    <View style={styles.summaryRow}>
+                      <Text style={[styles.summaryLabel, { color: accent }]}>
+                        {t("order.generalDiscount")}
+                      </Text>
+                      <Text style={[styles.summaryValue, { color: accent }]}>
+                        -{formatMoneyTr(totals.generalDiscountAmount)}
+                        {lineListCurrencyLabel ? ` ${lineListCurrencyLabel}` : ""}
+                      </Text>
+                    </View>
+                  )}
                   <View style={styles.summaryRow}>
                     <Text style={[styles.summaryLabel, { color: mutedText }]}>{t("order.totalVat")}</Text>
                     <Text style={[styles.summaryValue, { color: titleText }]}>
-                      {formatMoneyTr(totals.totalVat)}
+                      {formatMoneyTr(totals.totalVatAfterDiscount)}
                       {lineListCurrencyLabel ? ` ${lineListCurrencyLabel}` : ""}
                     </Text>
                   </View>
@@ -1759,7 +1785,7 @@ export function OrderDetailScreen(): React.ReactElement {
                       {t("order.grandTotal")}
                     </Text>
                     <Text style={[styles.summaryGrandValue, { color: accent }]}>
-                      {formatMoneyTr(totals.grandTotal)}
+                      {formatMoneyTr(totals.grandTotalAfterDiscount)}
                       {lineListCurrencyLabel ? ` ${lineListCurrencyLabel}` : ""}
                     </Text>
                   </View>

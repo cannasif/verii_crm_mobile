@@ -1,7 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { invalidateDocumentListAndDetailHeader } from "../../../lib/documentListQueryInvalidation";
+import { invalidateDocumentDetailHeaderQuery } from "../../../lib/documentListQueryInvalidation";
 import { orderApi } from "../api";
 import type { OrderLineUpdateDto, OrderLineDetailGetDto } from "../types";
+import { syncOrderListGrandTotal } from "../utils/syncOrderListGrandTotal";
 import { useToastStore } from "../../../store/toast";
 import { useTranslation } from "react-i18next";
 
@@ -17,8 +18,9 @@ export function useUpdateOrderLines() {
   >({
     mutationFn: ({ body }) => orderApi.updateOrderLines(body),
     onSuccess: async (_, { orderId }) => {
-      await invalidateDocumentListAndDetailHeader(queryClient, "order", orderId);
+      await invalidateDocumentDetailHeaderQuery(queryClient, "order", orderId);
       queryClient.invalidateQueries({ queryKey: ["order", "detail", "lines", orderId] });
+      await syncOrderListGrandTotal(queryClient, orderId);
       showToast("success", t("order.linesUpdated"));
     },
     onError: (error: Error) => {

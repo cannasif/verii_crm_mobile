@@ -10,7 +10,9 @@ import type {
   CreateOrderLineDto,
   OrderLineUpdateDto,
 } from "../types";
-import { calculateLineTotals } from "./calculations";
+import type { GeneralDiscountOptions } from "../../../lib/salesDocumentTotals";
+import { calculateLineTotals, calculateTotals } from "./calculations";
+import type { CalculationTotals } from "../types";
 
 export interface LineGroup {
   key: string;
@@ -50,6 +52,13 @@ export function totalsFromDetailLines(
   const totalVat = lines.reduce((s, l) => s + l.vatAmount, 0);
   const grandTotal = lines.reduce((s, l) => s + l.lineGrandTotal, 0);
   return { subtotal, totalVat, grandTotal };
+}
+
+export function computeOrderTotalsFromDetailLines(
+  lines: OrderLineDetailGetDto[],
+  options?: GeneralDiscountOptions
+): CalculationTotals {
+  return calculateTotals(mapDetailLinesToFormState(lines), options);
 }
 
 function toDateOnly(iso: string | null | undefined): string | null {

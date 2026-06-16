@@ -1,4 +1,9 @@
 import type { OrderLineFormState, CalculationTotals } from "../types";
+import {
+  computeGrandTotalAfterGeneralDiscount,
+  round2,
+  type GeneralDiscountOptions,
+} from "../../../lib/salesDocumentTotals";
 
 export function calculateLineTotals(line: OrderLineFormState): OrderLineFormState {
   const baseAmount = line.quantity * line.unitPrice;
@@ -30,10 +35,23 @@ export function calculateLineTotals(line: OrderLineFormState): OrderLineFormStat
   };
 }
 
-export function calculateTotals(lines: OrderLineFormState[]): CalculationTotals {
-  const subtotal = lines.reduce((sum, line) => sum + line.lineTotal, 0);
-  const totalVat = lines.reduce((sum, line) => sum + line.vatAmount, 0);
-  const grandTotal = lines.reduce((sum, line) => sum + line.lineGrandTotal, 0);
+export function calculateTotals(
+  lines: OrderLineFormState[],
+  options?: GeneralDiscountOptions
+): CalculationTotals {
+  const subtotal = round2(lines.reduce((sum, line) => sum + line.lineTotal, 0));
+  const totalVat = round2(lines.reduce((sum, line) => sum + line.vatAmount, 0));
+  const grandTotal = round2(lines.reduce((sum, line) => sum + line.lineGrandTotal, 0));
+  const discountTotals = computeGrandTotalAfterGeneralDiscount(subtotal, totalVat, options);
 
-  return { subtotal, totalVat, grandTotal };
+  return {
+    subtotal,
+    totalVat,
+    grandTotal,
+    netTotal: discountTotals.netTotal,
+    discountedNetTotal: discountTotals.discountedNetTotal,
+    generalDiscountAmount: discountTotals.generalDiscountAmount,
+    totalVatAfterDiscount: discountTotals.totalVatAfterDiscount,
+    grandTotalAfterDiscount: discountTotals.grandTotalAfterDiscount,
+  };
 }

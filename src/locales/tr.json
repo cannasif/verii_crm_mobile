@@ -1750,6 +1750,7 @@
     "approvalRequired": "Onay Gerekli",
     "subtotal": "Ara Toplam",
     "totalVat": "KDV Toplamı",
+    "generalDiscount": "Genel İskonto",
     "grandTotal": "Genel Toplam",
     "summary": "Özet",
     "customerSection": "Müşteri Bilgileri",

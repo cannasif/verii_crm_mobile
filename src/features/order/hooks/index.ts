@@ -2,6 +2,7 @@ export { useWaitingApprovals } from "./useWaitingApprovals";
 export { useApproveAction } from "./useApproveAction";
 export { useRejectAction } from "./useRejectAction";
 export { useOrderList } from "./useOrderList";
+export { useOrderListGrandTotalSync } from "./useOrderListGrandTotalSync";
 export { useOrderDetail } from "./useOrderDetail";
 export { useOrderApprovalFlowReport } from "./useOrderApprovalFlowReport";
 export { useCreateRevisionOfOrder } from "./useCreateRevisionOfOrder";
