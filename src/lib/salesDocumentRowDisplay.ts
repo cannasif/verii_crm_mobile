@@ -48,9 +48,13 @@ export function resolveSalesDocumentRowAmountText(
   source: SalesDocumentRowAmountSource
 ): string {
   const currencyLabel = resolveSalesDocumentRowCurrencyLabel(source);
+  const numericTotal = parseAmount(source.grandTotal);
+  if (numericTotal !== null) {
+    return formatAmountOnly(numericTotal);
+  }
   const display = source.grandTotalDisplay?.trim();
   if (display) {
     return stripCurrencySuffixFromDisplay(display, currencyLabel);
   }
-  return formatAmountOnly(source.grandTotal);
+  return "-";
 }

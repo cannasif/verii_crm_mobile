@@ -107,11 +107,15 @@ function QuotationRowComponent({
   );
 
   const amountText = useMemo(() => {
+    const numericTotal = parseAmount(quotation.grandTotal);
+    if (numericTotal !== null) {
+      return formatAmountOnly(numericTotal);
+    }
     const display = quotation.grandTotalDisplay?.trim();
     if (display) {
       return stripCurrencySuffixFromDisplay(display, currencyLabel);
     }
-    return formatAmountOnly(quotation.grandTotal);
+    return "-";
   }, [currencyLabel, quotation.grandTotal, quotation.grandTotalDisplay]);
 
   const paymentChipValue = paymentTypeLabel;
