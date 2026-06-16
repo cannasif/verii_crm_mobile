@@ -376,7 +376,7 @@ export interface UserDto {
 }
 
 export const PricingRuleType = {
-  Demand: 2,
+  Demand: 1,
 } as const;
 
 export const OfferType = {

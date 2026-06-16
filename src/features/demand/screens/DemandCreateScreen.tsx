@@ -14,6 +14,10 @@ import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { createClientId } from "@/lib/create-client-id";
 import { getValidRelatedProductGroup } from "@/lib/relatedProductGroup";
 import { resolveDocumentSerialCustomerTypeId } from "@/lib/resolve-document-serial-customer-type-id";
+import {
+  resolveDocumentCustomerSelectLabel,
+  resolvePricingRuleCustomerCode,
+} from "@/lib/customerIntegration";
 import { resolveExchangeRateByCurrency as findExchangeRateByCurrency } from "@/lib/resolve-exchange-rate";
 import { resolveLineListCurrencyLabel } from "../../../lib/currencyDisplay";
 import { useRouter } from "expo-router";
@@ -28,10 +32,11 @@ import {
   UserIcon,
   ArrowRight01Icon,
   MoneyExchange01Icon,
-  Edit02Icon,
-  Delete02Icon,
-  Alert02Icon,
 } from "hugeicons-react-native";
+import {
+  SalesDocumentFormLineGroup,
+  SalesDocumentLinesSectionHeader,
+} from "@/components/shared/sales-document-line";
 import { ScreenHeader } from "../../../components/navigation";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
@@ -44,6 +49,8 @@ import { buildShippingAddressLabel } from "../../shipping-address/utils/shipping
 import { useErpCustomers } from "../../erp-customer/hooks";
 import { useStock } from "../../stocks/hooks";
 import { stockApi } from "../../stocks/api";
+import { resolveDocumentLineProductName } from "../../stocks/utils";
+import { getLocalizedStockNameFromStock } from "../../../lib/localizedStockName";
 import { demandApi } from "../api";
 import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida/hooks/useWindoDefinitionOptions";
 import {
@@ -76,28 +83,8 @@ import type { ProductSelectionResult } from "../../stocks/types";
 import { calculateLineTotals, calculateTotals } from "../utils";
 import type { ExchangeRateDto } from "../types";
 
-function formatQtyTr(n: number): string {
-  const v = Number(n);
-  if (!Number.isFinite(v)) return "0";
-  if (Math.abs(v - Math.round(v)) < 1e-6) return Math.round(v).toLocaleString("tr-TR");
-  return v.toLocaleString("tr-TR", { minimumFractionDigits: 0, maximumFractionDigits: 3 });
-}
-
-function formatMoneyTr(n: number): string {
-  const v = Number(n);
-  if (!Number.isFinite(v)) return "0";
-  return v.toLocaleString("tr-TR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-}
-
-function formatRateTr(n: number): string {
-  const v = Number(n);
-  if (!Number.isFinite(v)) return "0";
-  if (Math.abs(v - Math.round(v)) < 1e-6) return Math.round(v).toLocaleString("tr-TR");
-  return v.toLocaleString("tr-TR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-}
-
 export function DemandCreateScreen(): React.ReactElement {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const { colors, themeMode } = useUIStore();
   const { user } = useAuthStore();
@@ -226,11 +213,20 @@ export function DemandCreateScreen(): React.ReactElement {
     });
   }, [erpRatesForDemand, exchangeRates]);
 
-  const customerCode = useMemo(() => {
-    if (customer?.customerCode) return customer.customerCode;
-    if (watchedErpCustomerCode) return watchedErpCustomerCode;
-    return undefined;
-  }, [customer, watchedErpCustomerCode]);
+  const customerCode = useMemo(
+    () => resolvePricingRuleCustomerCode(watchedErpCustomerCode),
+    [watchedErpCustomerCode]
+  );
+
+  const customerSelectLabel = useMemo(
+    () =>
+      resolveDocumentCustomerSelectLabel({
+        customer: selectedCustomer,
+        erpCustomerCode: watchedErpCustomerCode,
+        placeholder: t("demand.selectCustomerPlaceholder"),
+      }),
+    [selectedCustomer, watchedErpCustomerCode, t]
+  );
 
   const customerTypeId = useMemo(() => {
     return resolveDocumentSerialCustomerTypeId({
@@ -505,11 +501,15 @@ export function DemandCreateScreen(): React.ReactElement {
         ? applyCurrencyToPrice(mainPrice.listPrice, mainPrice.currency)
         : 0;
       const relatedProductKey = createClientId(`main-${stock.id}`);
+      const mainProductName = await resolveDocumentLineProductName(
+        { stockId: stock.id, code: stock.erpStockCode, name: stock.stockName },
+        i18n.language
+      );
       const mainLine: DemandLineFormState = calculateLineTotals({
         id: `temp-${Date.now()}`,
         productId: stock.id,
         productCode: stock.erpStockCode,
-        productName: stock.stockName,
+        productName: mainProductName,
         groupCode: stock.grupKodu || null,
         quantity: 1,
         unitPrice: mainUnitPrice,
@@ -541,7 +541,10 @@ export function DemandCreateScreen(): React.ReactElement {
             id: `temp-${Date.now()}-${relation.id}`,
             productId: relation.relatedStockId,
             productCode: relation.relatedStockCode!,
-            productName: relStock?.stockName ?? relation.relatedStockName ?? "",
+            productName:
+              relStock != null
+                ? getLocalizedStockNameFromStock(relStock, i18n.language)
+                : relation.relatedStockName ?? "",
             quantity: relation.quantity,
             unitPrice,
             discountRate1: price?.discount1 ?? 0,
@@ -567,7 +570,7 @@ export function DemandCreateScreen(): React.ReactElement {
         setLines((prev) => [...prev, mainLine]);
       }
     },
-    [watchedCurrency, exchangeRates, erpRatesForDemand]
+    [watchedCurrency, exchangeRates, erpRatesForDemand, i18n.language]
   );
 
   const handleDeleteLine = useCallback(
@@ -609,13 +612,22 @@ export function DemandCreateScreen(): React.ReactElement {
         }))
       ).catch(() => []);
 
-      const nextLines = products.map((product, index) => {
-        const price = priceData[index];
-        return calculateLineTotals({
-          id: `temp-${Date.now()}-m${index}`,
-          productId: product.id ?? null,
-          productCode: product.code,
-          productName: product.name,
+      const nextLines = await Promise.all(
+        products.map(async (product, index) => {
+          const price = priceData[index];
+          const productName = await resolveDocumentLineProductName(
+            {
+              stockId: product.id ?? null,
+              code: product.code,
+              name: product.name,
+            },
+            i18n.language
+          );
+          return calculateLineTotals({
+            id: `temp-${Date.now()}-m${index}`,
+            productId: product.id ?? null,
+            productCode: product.code,
+            productName,
           unit: product.unit ?? null,
           groupCode: product.groupCode ?? null,
           quantity: 1,
@@ -635,10 +647,11 @@ export function DemandCreateScreen(): React.ReactElement {
           relatedProductKey: null,
           isMainRelatedProduct: true,
         });
-      });
+        })
+      );
       return nextLines;
     },
-    []
+    [i18n.language]
   );
 
   const onSubmit = useCallback(
@@ -829,8 +842,7 @@ export function DemandCreateScreen(): React.ReactElement {
                     style={[styles.customerSelectValue, { color: titleText }]}
                     numberOfLines={1}
                   >
-                    {selectedCustomer?.name ||
-                      (watchedErpCustomerCode ? `ERP: ${watchedErpCustomerCode}` : "Müşteri seçiniz")}
+                      {customerSelectLabel}
                   </Text>
                 </View>
               </View>
@@ -1062,179 +1074,35 @@ export function DemandCreateScreen(): React.ReactElement {
 
           <View style={{ display: activeTab === "lines" ? "flex" : "none" }}>
           <View style={[styles.section, { backgroundColor: shellBg, borderColor: sectionOutline }]}>
-            <View style={[styles.sectionHeader, { borderBottomColor: sectionOutline }]}>
-              <Text style={[styles.sectionTitle, { color: titleText }]}>Satırlar</Text>
-              <TouchableOpacity
-                style={[
-                  styles.addButton,
-                  { backgroundColor: colors.accent + "CC" },
-                  !canAddLine && styles.submitButtonDisabled,
-                ]}
-                onPress={handleAddLine}
-                disabled={!canAddLine}
-              >
-                <Text style={styles.addButtonText}>+ Satır Ekle</Text>
-              </TouchableOpacity>
-            </View>
+            <SalesDocumentLinesSectionHeader
+              lineCount={lines.filter((line) => !line.relatedProductKey || line.isMainRelatedProduct === true).length}
+              canAddLine={canAddLine}
+              translationPrefix="demand"
+              onAddLine={handleAddLine}
+            />
             {errors.root?.message && (
               <Text style={[styles.fieldError, { color: colors.error }]}>{errors.root.message}</Text>
             )}
 
             {lines.length === 0 ? (
               <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-                Henüz satır eklenmedi
+                {t("demand.noLinesYet")}
               </Text>
             ) : (
               <FlatList
                 data={lines.filter((line) => !line.relatedProductKey || line.isMainRelatedProduct === true)}
                 keyExtractor={(item) => item.id}
                 scrollEnabled={false}
-                renderItem={({ item: line }) => {
-                  const discountRateSuffix = (l: typeof line) => {
-                    const rates = [l.discountRate1, l.discountRate2, l.discountRate3]
-                      .filter((r) => r > 0)
-                      .map((r) => `${formatRateTr(r)}%`);
-                    if (!rates.length) return null;
-                    return (
-                      <>
-                        <Text style={{ color: mutedText }}>{` · ${t("demand.discounts")} `}</Text>
-                        <Text style={{ color: titleText, fontWeight: "600" }}>{rates.join("/")}</Text>
-                      </>
-                    );
-                  };
-                  const descLine = (l: typeof line) =>
-                    [l.description1, l.description2, l.description3].filter(Boolean).join(" · ");
-                  const selectedDefinitions = (l: typeof line) =>
-                    [
-                      l.profilDefinitionId ? `Profil: ${profilMap[l.profilDefinitionId] || `#${l.profilDefinitionId}`}` : "",
-                      l.demirDefinitionId ? `Demir: ${demirMap[l.demirDefinitionId] || `#${l.demirDefinitionId}`}` : "",
-                      l.vidaDefinitionId ? `Vida: ${l.vidaDefinitionName || vidaMap[l.vidaDefinitionId] || `#${l.vidaDefinitionId}`}` : "",
-                      l.baskiDefinitionId ? `Baskı: ${l.baskiDefinitionName || baskiMap[l.baskiDefinitionId] || `#${l.baskiDefinitionId}`}` : "",
-                      l.baskiAciklama ? `Baskı açıklaması: ${l.baskiAciklama}` : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" · ");
-                  const renderLineRow = (l: typeof line, opts: { related?: boolean }) => (
-                    <View
-                      style={[
-                        styles.lineRow,
-                        opts.related && styles.lineRowRelated,
-                        { borderColor: innerBorder, backgroundColor: opts.related ? (isDark ? "rgba(255,255,255,0.03)" : "rgba(15,23,42,0.02)") : innerBg },
-                        !opts.related && l.approvalStatus === 1 && {
-                          borderColor: colors.warning,
-                          borderWidth: 1.5,
-                        },
-                      ]}
-                    >
-                      <View style={styles.lineRowMain}>
-                        <View style={[styles.lineRowTextBlock, opts.related && styles.lineRowTextBlockRelated]}>
-                          <Text style={[styles.lineRowCode, { color: softText }]} numberOfLines={1}>
-                            {l.productCode || "—"}
-                          </Text>
-                          <Text style={[styles.lineRowName, { color: titleText }]} numberOfLines={2}>
-                            {l.productName || t("demand.productNotSelected")}
-                          </Text>
-                          {descLine(l) ? (
-                            <Text style={[styles.lineRowDesc, { color: softText }]} numberOfLines={2}>
-                              {descLine(l)}
-                            </Text>
-                          ) : null}
-                          {selectedDefinitions(l) ? (
-                            <Text style={[styles.lineRowDesc, { color: mutedText }]} numberOfLines={2}>
-                              {selectedDefinitions(l)}
-                            </Text>
-                          ) : null}
-                          <Text style={[styles.lineRowMeta, styles.lineRowMetaFine, { color: mutedText }]} numberOfLines={2}>
-                            <Text style={{ color: titleText, fontWeight: "600" }}>{formatQtyTr(l.quantity)}</Text>
-                            <Text>{` ad. · `}</Text>
-                            <Text style={{ color: titleText, fontWeight: "600" }}>{formatMoneyTr(l.unitPrice)}</Text>
-                            {lineListCurrencyLabel ? (
-                              <Text style={{ color: titleText, fontWeight: "600" }}>{` ${lineListCurrencyLabel}`}</Text>
-                            ) : null}
-                            {discountRateSuffix(l)}
-                          </Text>
-                          <Text style={[styles.lineRowMeta, styles.lineRowMetaFine, { color: mutedText }]} numberOfLines={2}>
-                            <Text style={{ color: titleText, fontWeight: "600" }}>{formatMoneyTr(l.lineTotal)}</Text>
-                            {lineListCurrencyLabel ? <Text style={{ color: mutedText }}>{` ${lineListCurrencyLabel}`}</Text> : null}
-                            <Text>{` · KDV ${formatRateTr(l.vatRate)}% `}</Text>
-                            <Text style={{ color: titleText, fontWeight: "600" }}>{formatMoneyTr(l.vatAmount)}</Text>
-                            {lineListCurrencyLabel ? <Text>{` ${lineListCurrencyLabel}`}</Text> : null}
-                            <Text>{` · `}</Text>
-                            <Text style={{ color: accent, fontWeight: "700" }}>{formatMoneyTr(l.lineGrandTotal)}</Text>
-                            {lineListCurrencyLabel ? (
-                              <Text style={{ color: accent, fontWeight: "700" }}>{` ${lineListCurrencyLabel}`}</Text>
-                            ) : null}
-                          </Text>
-                          {!opts.related && l.approvalStatus === 1 ? (
-                            <View style={[styles.lineRowApproval, { backgroundColor: colors.warning + "18" }]}>
-                              <Alert02Icon size={12} color={colors.warning} variant="stroke" strokeWidth={1.8} />
-                              <Text style={[styles.lineRowApprovalText, { color: colors.warning }]}>{t("demand.approvalRequired")}</Text>
-                            </View>
-                          ) : null}
-                        </View>
-                      </View>
-                      <View style={styles.lineRowTopRight}>
-                        {!opts.related ? (
-                          <View style={[styles.lineRowMainBadge, { backgroundColor: colors.activeBackground }]}>
-                            <Text style={[styles.lineRowMainBadgeText, { color: accent }]}>{t("demand.main")}</Text>
-                          </View>
-                        ) : null}
-                        <TouchableOpacity
-                          style={[
-                            styles.lineIconButton,
-                            {
-                              borderColor: isDark ? "rgba(236,72,153,0.35)" : "rgba(219,39,119,0.22)",
-                              backgroundColor: isDark ? "rgba(236,72,153,0.1)" : "rgba(219,39,119,0.06)",
-                            },
-                          ]}
-                          onPress={() => handleEditLine(l)}
-                          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                        >
-                          <Edit02Icon size={16} color={colors.accent} variant="stroke" strokeWidth={1.8} />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={[
-                            styles.lineIconButton,
-                            {
-                              borderColor: isDark ? "rgba(239,68,68,0.35)" : "rgba(239,68,68,0.22)",
-                              backgroundColor: isDark ? "rgba(239,68,68,0.1)" : "rgba(239,68,68,0.06)",
-                            },
-                          ]}
-                          onPress={() => handleDeleteLine(l.id)}
-                          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                        >
-                          <Delete02Icon size={16} color={colors.error} variant="stroke" strokeWidth={1.8} />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  );
-                  return (
-                    <View style={styles.lineCardWrapper}>
-                      {renderLineRow(line, {})}
-                      {line.relatedLines && line.relatedLines.length > 0 ? (
-                        <View style={styles.relatedLinesBlock}>
-                          <Text style={[styles.relatedLinesTitle, { color: softText }]}>{t("demand.relatedStocks")}</Text>
-                          {line.relatedLines.map((relatedLine) => (
-                            <View
-                              key={relatedLine.id}
-                              style={[
-                                styles.relatedLineIndent,
-                                {
-                                  borderLeftColor: isDark
-                                    ? "rgba(236,72,153,0.45)"
-                                    : "rgba(219,39,119,0.28)",
-                                },
-                              ]}
-                            >
-                              {renderLineRow(relatedLine, { related: true })}
-                            </View>
-                          ))}
-                        </View>
-                      ) : null}
-                    </View>
-                  );
-                }}
-
+                contentContainerStyle={styles.linesList}
+                renderItem={({ item: line }) => (
+                  <SalesDocumentFormLineGroup
+                    line={line}
+                    currencyLabel={lineListCurrencyLabel}
+                    translationPrefix="demand"
+                    onEdit={handleEditLine}
+                    onDelete={handleDeleteLine}
+                  />
+                )}
               />
             )}
           </View>
@@ -1951,6 +1819,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
     paddingVertical: 20,
+  },
+  linesList: {
+    gap: 10,
   },
   lineCardWrapper: {
     marginBottom: 8,

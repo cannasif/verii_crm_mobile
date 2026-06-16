@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { invalidateDocumentListQueries } from "../../../lib/documentListQueryInvalidation";
 import { useTranslation } from "react-i18next";
 import { demandApi } from "../api";
 import { useToastStore } from "../../../store/toast";
@@ -10,8 +11,8 @@ export function useCancelDemandByCustomer() {
 
   return useMutation<boolean, Error, { id: number; reason?: string | null }>({
     mutationFn: ({ id, reason }) => demandApi.cancelByCustomer(id, reason),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["demand", "list"] });
+    onSuccess: async (_, variables) => {
+      await invalidateDocumentListQueries(queryClient, "demand");
       queryClient.invalidateQueries({ queryKey: ["demand", "detail", variables.id] });
       queryClient.invalidateQueries({ queryKey: ["demand", "approvalFlowReport", variables.id] });
       queryClient.invalidateQueries({ queryKey: ["demand", "waitingApprovals"] });

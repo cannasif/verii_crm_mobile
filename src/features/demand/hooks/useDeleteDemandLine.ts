@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { invalidateDocumentListAndDetailHeader } from "../../../lib/documentListQueryInvalidation";
 import { demandApi } from "../api";
 import { useToastStore } from "../../../store/toast";
 import { useTranslation } from "react-i18next";
@@ -10,7 +11,8 @@ export function useDeleteDemandLine() {
 
   return useMutation<void, Error, { demandId: number; lineId: number }>({
     mutationFn: ({ lineId }) => demandApi.deleteDemandLine(lineId),
-    onSuccess: (_, { demandId }) => {
+    onSuccess: async (_, { demandId }) => {
+      await invalidateDocumentListAndDetailHeader(queryClient, "demand", demandId);
       queryClient.invalidateQueries({ queryKey: ["demand", "detail", demandId] });
       queryClient.invalidateQueries({ queryKey: ["demand", "detail", "lines", demandId] });
       showToast("success", t("common.lineDeleted"));

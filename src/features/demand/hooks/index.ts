@@ -5,6 +5,7 @@ export { useDemandList } from "./useDemandList";
 export { useDemandDetail } from "./useDemandDetail";
 export { useDemandApprovalFlowReport } from "./useDemandApprovalFlowReport";
 export { useCreateRevisionOfDemand } from "./useCreateRevisionOfDemand";
+export { useCanEditDemand } from "./useCanEditDemand";
 export { useCreateDemandBulk } from "./useCreateDemandBulk";
 export { useUpdateDemandBulk } from "./useUpdateDemandBulk";
 export { useStartApprovalFlow } from "./useStartApprovalFlow";

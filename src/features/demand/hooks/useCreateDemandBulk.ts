@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { invalidateDocumentListQueries } from "../../../lib/documentListQueryInvalidation";
 import { useRouter } from "expo-router";
 import { demandApi } from "../api";
 import type { DemandBulkCreateDto, DemandGetDto } from "../types";
@@ -13,8 +14,8 @@ export function useCreateDemandBulk() {
 
   return useMutation<DemandGetDto, Error, DemandBulkCreateDto>({
     mutationFn: (data) => demandApi.createBulk(data),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["demand", "list"] });
+    onSuccess: async (data) => {
+      await invalidateDocumentListQueries(queryClient, "demand");
       showToast("success", t("common.demandCreatedAndSentForApproval"));
       router.push(`/(tabs)/sales/demands/${data.id}`);
     },
