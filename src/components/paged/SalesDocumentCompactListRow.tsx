@@ -92,7 +92,7 @@ function SalesDocumentCompactListRowComponent({
       <DocumentApprovalStatusIcon
         status={status}
         isDark={isDark}
-        accessibilityLabel={statusMeta.label}
+        statusMeta={statusMeta}
         onPress={canShowCancellationReason ? handleStatusPress : undefined}
       />
 

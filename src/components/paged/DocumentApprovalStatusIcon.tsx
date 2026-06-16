@@ -1,5 +1,5 @@
-import React from "react";
-import { View, StyleSheet, Pressable } from "react-native";
+import React, { memo, useCallback, useEffect, useState } from "react";
+import { Platform, Pressable, StyleSheet, View } from "react-native";
 import {
   Alert02Icon,
   Cancel01Icon,
@@ -7,12 +7,18 @@ import {
   Clock04Icon,
   FileEditIcon,
 } from "hugeicons-react-native";
+import { useTranslation } from "react-i18next";
+import { Text } from "../ui/text";
 import { ApprovalStatus } from "../../lib/documentApprovalFilter";
+import {
+  hasExpandableDocumentApprovalStatusLabel,
+  type DocumentApprovalStatusMeta,
+} from "../../lib/documentApprovalStatus";
 
 export interface DocumentApprovalStatusIconProps {
   status: number | null | undefined;
   isDark: boolean;
-  accessibilityLabel: string;
+  statusMeta: DocumentApprovalStatusMeta;
   onPress?: () => void;
 }
 
@@ -135,13 +141,32 @@ function resolveStatusIconConfig(
   }
 }
 
-export function DocumentApprovalStatusIcon({
+function DocumentApprovalStatusIconComponent({
   status,
   isDark,
-  accessibilityLabel,
+  statusMeta,
   onPress,
 }: DocumentApprovalStatusIconProps): React.ReactElement {
+  const { t } = useTranslation();
+  const [tooltipVisible, setTooltipVisible] = useState(false);
   const config = resolveStatusIconConfig(status, isDark);
+  const canExpand = hasExpandableDocumentApprovalStatusLabel(statusMeta);
+
+  const showTooltip = useCallback((): void => {
+    if (canExpand) {
+      setTooltipVisible(true);
+    }
+  }, [canExpand]);
+
+  const hideTooltip = useCallback((): void => {
+    setTooltipVisible(false);
+  }, []);
+
+  useEffect(() => {
+    if (!tooltipVisible) return;
+    const timer = setTimeout(hideTooltip, 2800);
+    return () => clearTimeout(timer);
+  }, [hideTooltip, tooltipVisible]);
 
   const badge = (
     <View
@@ -157,27 +182,84 @@ export function DocumentApprovalStatusIcon({
     </View>
   );
 
+  const tooltip = tooltipVisible ? (
+    <View
+      pointerEvents="none"
+      style={[
+        styles.tooltip,
+        {
+          backgroundColor: isDark ? "rgba(39, 39, 42, 0.97)" : "rgba(24, 24, 27, 0.94)",
+          borderColor: isDark ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.1)",
+        },
+      ]}
+    >
+      <Text unstyled disableThemeColor style={styles.tooltipText}>
+        {statusMeta.label}
+      </Text>
+    </View>
+  ) : null;
+
   if (onPress) {
     return (
-      <Pressable
-        onPress={onPress}
-        hitSlop={6}
-        accessibilityRole="button"
-        accessibilityLabel={accessibilityLabel}
-      >
+      <View style={[styles.wrap, tooltipVisible && styles.wrapActive]}>
+        {tooltip}
+        <Pressable
+          onPress={onPress}
+          onLongPress={showTooltip}
+          onPressOut={hideTooltip}
+          onHoverIn={Platform.OS === "web" && canExpand ? showTooltip : undefined}
+          onHoverOut={Platform.OS === "web" ? hideTooltip : undefined}
+          delayLongPress={320}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel={statusMeta.label}
+          accessibilityHint={canExpand ? t("common.statusBadgeHoldHint") : undefined}
+        >
+          {badge}
+        </Pressable>
+      </View>
+    );
+  }
+
+  if (!canExpand) {
+    return (
+      <View accessibilityLabel={statusMeta.label} accessibilityRole="image">
         {badge}
-      </Pressable>
+      </View>
     );
   }
 
   return (
-    <View accessibilityLabel={accessibilityLabel} accessibilityRole="image">
-      {badge}
+    <View style={[styles.wrap, tooltipVisible && styles.wrapActive]}>
+      {tooltip}
+      <Pressable
+        onLongPress={showTooltip}
+        onPressOut={hideTooltip}
+        onHoverIn={Platform.OS === "web" ? showTooltip : undefined}
+        onHoverOut={Platform.OS === "web" ? hideTooltip : undefined}
+        delayLongPress={320}
+        hitSlop={6}
+        accessibilityRole="image"
+        accessibilityLabel={statusMeta.label}
+        accessibilityHint={t("common.statusBadgeHoldHint")}
+      >
+        {badge}
+      </Pressable>
     </View>
   );
 }
 
+export const DocumentApprovalStatusIcon = memo(DocumentApprovalStatusIconComponent);
+
 const styles = StyleSheet.create({
+  wrap: {
+    position: "relative",
+    flexShrink: 0,
+    zIndex: 1,
+  },
+  wrapActive: {
+    zIndex: 20,
+  },
   badge: {
     width: 30,
     height: 30,
@@ -185,5 +267,29 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  tooltip: {
+    position: "absolute",
+    left: 0,
+    bottom: "100%",
+    marginBottom: 6,
+    minWidth: 180,
+    maxWidth: 260,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    borderWidth: 1,
+    zIndex: 30,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  tooltipText: {
+    color: "#F8FAFC",
+    fontSize: 11,
+    fontWeight: "600",
+    lineHeight: 15,
   },
 });

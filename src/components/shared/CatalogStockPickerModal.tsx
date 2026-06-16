@@ -19,6 +19,8 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
+import { getLocalizedStockNameFromStock } from "@/lib/localizedStockName";
+import { getCurrentLanguage } from "@/locales";
 import {
   STOCK_BROWSE_CARD_GAP,
   StockBrowseGridCard,
@@ -322,7 +324,7 @@ const StockMetaPill = memo(function StockMetaPill({
 function mapCatalogItemToBrowseItem(item: CatalogStockItemDto): StockBrowseItemFields {
   return {
     erpStockCode: item.erpStockCode,
-    stockName: item.stockName,
+    stockName: getLocalizedStockNameFromStock(item, getCurrentLanguage()),
     unit: item.unit ?? undefined,
     imageUrl: item.imageUrl ?? undefined,
     grupKodu: item.grupKodu ?? undefined,
