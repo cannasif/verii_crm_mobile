@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { windoDefinitionApi } from "../api/windoDefinitionApi";
+import { WINDO_DEFINITION_QUERY_ROOT } from "../hooks/useWindoDefinitionOptions";
 import type { WindoDefinitionDto } from "../types";
 
 interface BaskiQuickCreateModalProps {
@@ -49,7 +50,7 @@ export function BaskiQuickCreateModal({
         profilDefinitionId: null,
       }),
     onSuccess: async (item) => {
-      await queryClient.invalidateQueries({ queryKey: ["windo-definitions"] });
+      await queryClient.invalidateQueries({ queryKey: WINDO_DEFINITION_QUERY_ROOT });
       onCreated(item);
       setName("");
       onClose();

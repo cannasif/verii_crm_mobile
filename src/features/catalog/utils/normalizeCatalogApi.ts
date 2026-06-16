@@ -106,6 +106,11 @@ export function normalizeCatalogStockItem(raw: unknown): CatalogStockItemDto | n
   if (stockId == null || erpStockCode === "") return null;
 
   const stockName = toStringOrEmpty(item.stockName ?? item.StockName) || erpStockCode;
+  const englishStockNameRaw = item.englishStockName ?? item.EnglishStockName;
+  const englishStockName =
+    englishStockNameRaw != null && toStringOrEmpty(englishStockNameRaw) !== ""
+      ? toStringOrEmpty(englishStockNameRaw)
+      : null;
 
   return {
     id: toNumber(item.id ?? item.Id) ?? stockId,
@@ -113,6 +118,7 @@ export function normalizeCatalogStockItem(raw: unknown): CatalogStockItemDto | n
     stockId,
     erpStockCode,
     stockName,
+    englishStockName,
     imageUrl: (item.imageUrl ?? item.ImageUrl ?? null) as string | null,
     unit: (item.unit ?? item.Unit ?? null) as string | null,
     grupKodu: (item.grupKodu ?? item.GrupKodu ?? null) as string | null,

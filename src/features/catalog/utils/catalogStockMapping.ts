@@ -1,3 +1,4 @@
+import { getLocalizedStockNameFromStock } from "@/lib/localizedStockName";
 import type { ProductSelectionResult, StockGetDto } from "@/features/stocks/types";
 import type { CatalogStockItemDto } from "../types";
 
@@ -10,6 +11,7 @@ export function mapStockGetToCatalogItem(stock: StockGetDto): CatalogStockItemDt
     stockId: stock.id,
     erpStockCode: stock.erpStockCode,
     stockName: stock.stockName,
+    englishStockName: stock.englishStockName ?? null,
     unit: stock.unit ?? null,
     grupKodu: stock.grupKodu ?? null,
     grupAdi: stock.grupAdi ?? null,
@@ -26,12 +28,13 @@ export function mapStockGetToCatalogItem(stock: StockGetDto): CatalogStockItemDt
 
 export function catalogStockToSelectionResult(
   stock: CatalogStockItemDto,
-  relatedStockIds?: number[]
+  relatedStockIds?: number[],
+  uiLanguage?: string | null
 ): ProductSelectionResult {
   return {
     id: stock.stockId,
     code: stock.erpStockCode,
-    name: stock.stockName,
+    name: getLocalizedStockNameFromStock(stock, uiLanguage),
     unit: stock.unit ?? null,
     groupCode: stock.grupKodu ?? null,
     relatedStockIds,

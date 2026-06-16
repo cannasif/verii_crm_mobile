@@ -32,12 +32,18 @@ const normalizeStock = (raw: unknown): StockGetDto | null => {
   if (id == null) return null;
   const erpStockCode = String(item.erpStockCode ?? item.ErpStockCode ?? "");
   const stockName = String(item.stockName ?? item.StockName ?? erpStockCode ?? "").trim();
+  const englishStockNameRaw = item.englishStockName ?? item.EnglishStockName;
+  const englishStockName =
+    englishStockNameRaw != null && String(englishStockNameRaw).trim() !== ""
+      ? String(englishStockNameRaw).trim()
+      : null;
   const branchCode = toNumber(item.branchCode ?? item.BranchCode) ?? 0;
 
   return {
     id,
     erpStockCode,
     stockName,
+    englishStockName,
     unit: (item.unit ?? item.Unit ?? undefined) as string | undefined,
     balance: toNullableNumber(item.balance ?? item.Balance ?? item.bakiye ?? item.Bakiye ?? item.stockBalance ?? item.StockBalance),
     balanceText: (item.balanceText ?? item.BalanceText ?? item.bakiyeText ?? item.BakiyeText ?? undefined) as string | undefined,

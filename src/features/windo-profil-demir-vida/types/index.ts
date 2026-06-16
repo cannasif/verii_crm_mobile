@@ -13,4 +13,5 @@ export interface WindoDefinitionOption {
   name: string;
   code?: string;
   profilDefinitionId?: number | null;
+  profilDefinitionName?: string | null;
 }

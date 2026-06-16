@@ -17,6 +17,7 @@ export interface StockGetDto {
   id: number;
   erpStockCode: string;
   stockName: string;
+  englishStockName?: string | null;
   unit?: string;
   balance?: number | null;
   balanceText?: string | null;

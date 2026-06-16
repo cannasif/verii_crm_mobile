@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getProductSelectionKey, type ProductSelectionResult } from "@/features/stocks/types";
 import { stockApi } from "@/features/stocks/api/stockApi";
 import type { StockRelationDto } from "@/features/stocks/types";
+import { getCurrentLanguage } from "@/locales";
 import { buildCategoryBranchPath } from "../utils/fetchCatalogCategoryTreeFlat";
 import { catalogStockToSelectionResult } from "../utils/catalogStockMapping";
 import { stockMatchesDraftSnapshot } from "../utils/stockMatchesDraftSnapshot";
@@ -750,7 +751,7 @@ export function useCatalogStockPicker(params: CatalogStockPickerParams) {
   const incrementStockPick = useCallback(
     (stock: CatalogStockItemDto) => {
       const relations = relationMap[stock.stockId] ?? [];
-      const result = catalogStockToSelectionResult(stock);
+      const result = catalogStockToSelectionResult(stock, undefined, getCurrentLanguage());
       const key = getProductSelectionKey(result);
       const matchingPick = state.sessionPicks.find((pick) => getProductSelectionKey(pick.result) === key);
 
@@ -790,7 +791,7 @@ export function useCatalogStockPicker(params: CatalogStockPickerParams) {
       const stock = state.relatedDialogStock;
       if (!stock) return;
 
-      const result = catalogStockToSelectionResult(stock, selectedIds);
+      const result = catalogStockToSelectionResult(stock, selectedIds, getCurrentLanguage());
       if (multiSelect) {
         upsertSessionPickByStockKey(result);
         setState((prev) => ({
@@ -822,7 +823,7 @@ export function useCatalogStockPicker(params: CatalogStockPickerParams) {
         return;
       }
 
-      const result = catalogStockToSelectionResult(stock);
+      const result = catalogStockToSelectionResult(stock, undefined, getCurrentLanguage());
       if (!multiSelect) {
         void Promise.resolve(onSelect?.(result)).then(() => {
           onClose();

@@ -4,6 +4,7 @@ import type { StockGetDto } from "../types";
 function getStockSearchFields(stock: StockGetDto): string[] {
   return [
     stock.stockName,
+    stock.englishStockName ?? "",
     stock.erpStockCode,
     stock.grupKodu,
     stock.grupAdi,
@@ -39,6 +40,7 @@ function scoreStock(stock: StockGetDto, rawQuery: string): number {
   tokens.forEach((token) => {
     if (normalizeSearchText(stock.erpStockCode).startsWith(token)) score += 12;
     if (normalizeSearchText(stock.stockName).startsWith(token)) score += 10;
+    if (normalizeSearchText(stock.englishStockName ?? "").startsWith(token)) score += 9;
     if (normalizeSearchText(stock.grupKodu).startsWith(token)) score += 8;
     if (normalizeSearchText(stock.grupAdi).startsWith(token)) score += 7;
 
