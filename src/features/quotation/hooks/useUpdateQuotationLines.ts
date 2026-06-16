@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { invalidateDocumentListAndDetailHeader } from "../../../lib/documentListQueryInvalidation";
 import { quotationApi } from "../api";
 import type { QuotationLineUpdateDto, QuotationLineDetailGetDto } from "../types";
 import { useToastStore } from "../../../store/toast";
@@ -15,7 +16,8 @@ export function useUpdateQuotationLines() {
     { quotationId: number; body: QuotationLineUpdateDto[] }
   >({
     mutationFn: ({ body }) => quotationApi.updateQuotationLines(body),
-    onSuccess: (_, { quotationId }) => {
+    onSuccess: async (_, { quotationId }) => {
+      await invalidateDocumentListAndDetailHeader(queryClient, "quotation", quotationId);
       queryClient.invalidateQueries({ queryKey: ["quotation", "detail", "lines", quotationId] });
       showToast("success", t("common.rowsUpdated"));
     },

@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { invalidateDocumentListQueries } from "../../../lib/documentListQueryInvalidation";
 import { quotationApi } from "../api";
 import type { QuotationBulkCreateDto, QuotationGetDto } from "../types";
 import { useToastStore } from "../../../store/toast";
@@ -15,8 +16,8 @@ export function useUpdateQuotationBulk() {
     { id: number; data: QuotationBulkCreateDto }
   >({
     mutationFn: ({ id, data }) => quotationApi.updateBulk(id, data),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: ["quotation", "list"] });
+    onSuccess: async (_, { id }) => {
+      await invalidateDocumentListQueries(queryClient, "quotation");
       queryClient.invalidateQueries({ queryKey: ["quotation", "detail", id] });
       queryClient.invalidateQueries({ queryKey: ["quotation", "detail", "lines", id] });
       queryClient.invalidateQueries({ queryKey: ["quotation", "detail", "exchangeRates", id] });

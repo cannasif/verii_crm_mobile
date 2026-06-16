@@ -52,7 +52,7 @@ export function QuotationPreviewPdfDialog({
   const inAppPdfPreviewAvailable = useMemo(() => canPreviewPdfInApp(), []);
   const pdfViewerHeight = useMemo(() => Math.max(280, windowHeight * 0.38), [windowHeight]);
 
-  const shellBg = isDark ? colors.card : "#FFFFFF";
+  const shellBg = isDark ? "#12101F" : "#FFFFFF";
   const border = isDark ? "rgba(255,255,255,0.12)" : "rgba(148,163,184,0.26)";
   const muted = colors.textMuted;
 

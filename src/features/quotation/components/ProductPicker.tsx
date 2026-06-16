@@ -29,6 +29,7 @@ import { useTranslation } from "react-i18next";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { VoiceSearchButton } from "./VoiceSearchButton";
+import { getLocalizedStockNameFromStock } from "../../../lib/localizedStockName";
 import {
   useStocks,
 } from "../../stocks/hooks";
@@ -317,6 +318,7 @@ function scoreStock(stock: StockGetDto, query: string): number {
   if (!normalizedQuery) return 1;
 
   const name = stock.stockName || "";
+  const englishName = stock.englishStockName || "";
   const code = stock.erpStockCode || "";
   const groupCode = stock.grupKodu || "";
   const groupName = stock.grupAdi || "";
@@ -328,6 +330,7 @@ function scoreStock(stock: StockGetDto, query: string): number {
   const manufacturerCode = stock.ureticiKodu || "";
 
   const wholeName = scoreWholeQueryAgainstField(normalizedQuery, name) + 35;
+  const wholeEnglishName = scoreWholeQueryAgainstField(normalizedQuery, englishName) + 33;
   const wholeCode = scoreWholeQueryAgainstField(normalizedQuery, code) + 20;
   const wholeGroupCode = scoreWholeQueryAgainstField(normalizedQuery, groupCode) + 12;
   const wholeGroupName = scoreWholeQueryAgainstField(normalizedQuery, groupName) + 10;
@@ -340,6 +343,7 @@ function scoreStock(stock: StockGetDto, query: string): number {
     scoreWholeQueryAgainstField(normalizedQuery, manufacturerCode) + 8;
 
   const tokenName = scoreFieldWithTokens(name, normalizedQuery) + 25;
+  const tokenEnglishName = scoreFieldWithTokens(englishName, normalizedQuery) + 23;
   const tokenCode = scoreFieldWithTokens(code, normalizedQuery) + 15;
   const tokenGroupCode = scoreFieldWithTokens(groupCode, normalizedQuery) + 10;
   const tokenGroupName = scoreFieldWithTokens(groupName, normalizedQuery) + 8;
@@ -353,6 +357,7 @@ function scoreStock(stock: StockGetDto, query: string): number {
 
   let score = Math.max(
     wholeName,
+    wholeEnglishName,
     wholeCode,
     wholeGroupCode,
     wholeGroupName,
@@ -363,6 +368,7 @@ function scoreStock(stock: StockGetDto, query: string): number {
     wholeCode5,
     wholeManufacturerCode,
     tokenName,
+    tokenEnglishName,
     tokenCode,
     tokenGroupCode,
     tokenGroupName,
@@ -376,6 +382,7 @@ function scoreStock(stock: StockGetDto, query: string): number {
 
   const combinedField = [
     name,
+    englishName,
     code,
     groupCode,
     groupName,
@@ -404,12 +411,19 @@ function scoreStock(stock: StockGetDto, query: string): number {
   return score;
 }
 
-function filterAndRankStocksLocal(stocks: StockGetDto[], query: string): StockGetDto[] {
+function filterAndRankStocksLocal(
+  stocks: StockGetDto[],
+  query: string,
+  uiLanguage: string
+): StockGetDto[] {
   const normalizedQuery = normalizeSearchText(query);
 
   if (!normalizedQuery) {
     return [...stocks].sort((a, b) =>
-      (a.stockName || "").localeCompare(b.stockName || "", "tr")
+      getLocalizedStockNameFromStock(a, uiLanguage).localeCompare(
+        getLocalizedStockNameFromStock(b, uiLanguage),
+        "tr"
+      )
     );
   }
 
@@ -422,8 +436,8 @@ function filterAndRankStocksLocal(stocks: StockGetDto[], query: string): StockGe
     .sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
 
-      const aName = a.stock.stockName || "";
-      const bName = b.stock.stockName || "";
+      const aName = getLocalizedStockNameFromStock(a.stock, uiLanguage);
+      const bName = getLocalizedStockNameFromStock(b.stock, uiLanguage);
       return aName.localeCompare(bName, "tr");
     })
     .map((item) => item.stock);
@@ -462,7 +476,7 @@ function StockListItem({
   onSelect: () => void;
   onShowRelationDetail: (stock: StockGetDto, relations: StockRelationDto[]) => void;
 }): React.ReactElement {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { themeMode, showUnitInStockSelection } = useUIStore();
   const isDark = themeMode === "dark";
   const brandColor = isDark ? "#EC4899" : "#DB2777";
@@ -470,6 +484,7 @@ function StockListItem({
   const textColor = isDark ? "#F8FAFC" : "#0F172A";
   const mutedColor = isDark ? "#94A3B8" : "#64748B";
   const balance = formatStockBalance(item);
+  const displayStockName = getLocalizedStockNameFromStock(item, i18n.language);
   const unitGroupText = useMemo(() => {
     const unit = showUnitInStockSelection && item.unit ? `${t("stockPicker.unit")}: ${item.unit}` : null;
     const group = item.grupKodu || item.grupAdi
@@ -540,7 +555,7 @@ function StockListItem({
               allowFontScaling={false}
               unstyled
             >
-              {item.stockName}
+              {displayStockName}
             </Text>
 
             <Text style={[styles.stockCode, { color: mutedColor }]} numberOfLines={1} allowFontScaling={false} unstyled>
@@ -613,7 +628,7 @@ function ProductPickerInner(
   }: ProductPickerProps,
   ref: React.Ref<ProductPickerRef>
 ): React.ReactElement {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { themeMode } = useUIStore();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -855,8 +870,8 @@ function ProductPickerInner(
   const stocks = useMemo(() => {
     const items = data?.pages.flatMap((page) => page.items) || [];
     if (debouncedSearchText.trim().length < 2) return items;
-    return filterAndRankStocksLocal(items, debouncedSearchText);
-  }, [data, debouncedSearchText]);
+    return filterAndRankStocksLocal(items, debouncedSearchText, i18n.language);
+  }, [data, debouncedSearchText, i18n.language]);
 
   const handleOpen = useCallback(() => {
     if (!disabled) {
@@ -898,7 +913,7 @@ function ProductPickerInner(
         const nextSelection: ProductSelectionResult = {
           id: stock.id,
           code: stock.erpStockCode,
-          name: stock.stockName,
+          name: getLocalizedStockNameFromStock(stock, i18n.language),
           unit: stock.unit ?? null,
           groupCode: stock.grupKodu ?? null,
           relatedStockIds: stock.id != null ? [stock.id] : undefined,
@@ -912,7 +927,7 @@ function ProductPickerInner(
         handleClose();
       }
     },
-    [multiSelect, onChange, handleClose]
+    [multiSelect, onChange, handleClose, i18n.language]
   );
 
   const handleClear = useCallback(async () => {
@@ -1667,6 +1682,7 @@ function ProductPickerInner(
             id: result.id ?? 0,
             erpStockCode: result.code,
             stockName: result.name,
+            englishStockName: null,
             unit: result.unit ?? undefined,
             grupKodu: result.groupCode ?? undefined,
             branchCode: 0,

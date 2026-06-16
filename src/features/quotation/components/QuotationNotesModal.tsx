@@ -34,8 +34,9 @@ export function QuotationNotesModal({
   isSaving = false,
 }: QuotationNotesModalProps): React.ReactElement {
   const { t } = useTranslation();
-  const { colors } = useUIStore();
+  const { colors, themeMode } = useUIStore();
   const insets = useSafeAreaInsets();
+  const sheetBg = themeMode === "dark" ? "#12101F" : colors.card;
 
   const [internalNotes, setInternalNotes] = useState<string[]>(Array(MAX_NOTES).fill(""));
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -93,7 +94,7 @@ export function QuotationNotesModal({
         <View
           style={[
             styles.content,
-            { backgroundColor: colors.card, paddingBottom: insets.bottom + 16 },
+            { backgroundColor: sheetBg, paddingBottom: insets.bottom + 16 },
           ]}
         >
           <View style={[styles.header, { borderBottomColor: colors.border }]}>

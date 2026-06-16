@@ -6,6 +6,7 @@ export { useQuotationListFilters } from "./useQuotationListFilters";
 export { useQuotationDetail } from "./useQuotationDetail";
 export { useQuotationApprovalFlowReport } from "./useQuotationApprovalFlowReport";
 export { useCreateRevisionOfQuotation } from "./useCreateRevisionOfQuotation";
+export { useCanEditQuotation } from "./useCanEditQuotation";
 export { useCreateQuotationBulk } from "./useCreateQuotationBulk";
 export { useErpProjects } from "./useErpProjects";
 export { useSalesTypeList } from "./useSalesTypeList";

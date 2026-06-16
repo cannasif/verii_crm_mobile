@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { invalidateDocumentListQueries } from "../../../lib/documentListQueryInvalidation";
 import { quotationApi } from "../api";
 import type { QuotationBulkCreateDto, QuotationGetDto, QuotationNotesDto } from "../types";
 import { useToastStore } from "../../../store/toast";
@@ -31,7 +32,7 @@ export function useCreateQuotationBulk() {
           }
         }
       }
-      queryClient.invalidateQueries({ queryKey: ["quotation", "list"] });
+      await invalidateDocumentListQueries(queryClient, "quotation");
     },
     onError: (error) => {
       showToast(

@@ -106,6 +106,22 @@ function normalizeKurDto(item: unknown): ExchangeRateDto {
 }
 
 export const quotationApi = {
+  canEditWhileWaiting: async (quotationId: number): Promise<boolean> => {
+    const response = await apiClient.get<ApproveResponse>(
+      `/api/approval/quotation/${quotationId}/can-edit`
+    );
+
+    if (!response.data.success) {
+      throw new Error(
+        response.data.message ||
+          response.data.exceptionMessage ||
+          "Düzenleme yetkisi kontrol edilemedi"
+      );
+    }
+
+    return response.data.data === true;
+  },
+
   getWaitingApprovals: async (): Promise<ApprovalActionGetDto[]> => {
     const response = await apiClient.get<WaitingApprovalsResponse>(
       "/api/quotation/waiting-approvals"
@@ -157,7 +173,7 @@ export const quotationApi = {
     totalAmount: number;
   }): Promise<boolean> => {
     const response = await apiClient.post<ApproveResponse>(
-      "/api/Quotation/start-approval-flow",
+      "/api/quotation/start-approval-flow",
       data
     );
 

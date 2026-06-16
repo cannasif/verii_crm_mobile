@@ -10,11 +10,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   TextInput,
-  Image,
 } from "react-native";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { createClientId } from "@/lib/create-client-id";
 import { resolveDocumentSerialCustomerTypeId } from "@/lib/resolve-document-serial-customer-type-id";
+import {
+  resolveDocumentCustomerSelectLabel,
+  resolvePricingRuleCustomerCode,
+} from "@/lib/customerIntegration";
 import { getValidRelatedProductGroup } from "@/lib/relatedProductGroup";
 import { parseDecimalInput, sanitizeDecimalInput } from "@/lib/decimal-input";
 import {
@@ -41,6 +44,8 @@ import { useCustomer, useCustomerScopeAccess } from "../../customer/hooks";
 import { useCustomerShippingAddresses } from "../../shipping-address/hooks";
 import { buildShippingAddressLabel } from "../../shipping-address/utils/shippingAddressLabel";
 import { stockApi } from "../../stocks/api";
+import { resolveDocumentLineProductName } from "../../stocks/utils";
+import { getLocalizedStockNameFromStock } from "../../../lib/localizedStockName";
 import { quotationApi } from "../api";
 import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida/hooks/useWindoDefinitionOptions";
 import {
@@ -62,6 +67,8 @@ import {
   OfferTypePicker,
   QuotationNotesModal,
   QuotationPreviewPdfDialog,
+  QuotationFormLineGroup,
+  QuotationLinesSectionHeader,
   notesToDto,
   validateNotesMaxLength,
 } from "../components";
@@ -87,6 +94,7 @@ import type { ProductSelectionResult } from "../../stocks/types";
 import { calculateLineTotals, calculateTotals } from "../utils";
 import { resolveLineListCurrencyLabel, resolveCurrencyIsoCode } from "../../../lib/currencyDisplay";
 import { buildQuotationPreviewPdfInput } from "../utils/buildQuotationPreviewPdfInput";
+import { buildSalesDocumentPreviewPdfExtras } from "../../../lib/salesDocumentPreviewPdf";
 import { resolveQuotationCustomerLabelForPdf } from "../utils/resolveQuotationCustomerLabelForPdf";
 import type { ExchangeRateDto } from "../types";
 import {
@@ -94,9 +102,6 @@ import {
   ArrowRight01Icon,
   MoneyExchange01Icon,
   Note01Icon,
-  Edit02Icon,
-  Delete02Icon,
-  Alert02Icon,
   Pdf01Icon,
 } from "hugeicons-react-native";
 
@@ -132,41 +137,6 @@ async function finalizePendingQuotationImages(
   }
 }
 import { LinearGradient } from "expo-linear-gradient";
-import { getApiBaseUrl } from "../../../constants/config";
-
-/** Tam sayı miktar: 1,00 yerine 1 */
-function formatQtyTr(n: number): string {
-  const v = Number(n);
-  if (!Number.isFinite(v)) return "0";
-  if (Math.abs(v - Math.round(v)) < 1e-6) return Math.round(v).toLocaleString("tr-TR");
-  return v.toLocaleString("tr-TR", { minimumFractionDigits: 0, maximumFractionDigits: 3 });
-}
-
-/** Tutarlar: gereksiz sondaki ,00 yok */
-function formatMoneyTr(n: number): string {
-  const v = Number(n);
-  if (!Number.isFinite(v)) return "0";
-  return v.toLocaleString("tr-TR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-}
-
-/** Oran %: 20,00 yerine 20 */
-function formatRateTr(n: number): string {
-  const v = Number(n);
-  if (!Number.isFinite(v)) return "0";
-  if (Math.abs(v - Math.round(v)) < 1e-6) return Math.round(v).toLocaleString("tr-TR");
-  return v.toLocaleString("tr-TR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-}
-
-function resolveMobileImageUri(path?: string | null): string | null {
-  if (!path) return null;
-  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("file://")) {
-    return path;
-  }
-  if (path.startsWith("/")) {
-    return `${getApiBaseUrl()}${path}`;
-  }
-  return path;
-}
 
 function addDaysToDateOnly(dateValue: string, days: number): string {
   const date = new Date(`${dateValue}T12:00:00`);
@@ -176,7 +146,7 @@ function addDaysToDateOnly(dateValue: string, days: number): string {
 }
 
 export function QuotationCreateScreen(): React.ReactElement {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const { colors, themeMode } = useUIStore();
   const { user, branch } = useAuthStore();
@@ -273,6 +243,8 @@ export function QuotationCreateScreen(): React.ReactElement {
   const watchedOfferDate = watch("quotation.offerDate");
   const watchedDeliveryDate = watch("quotation.deliveryDate");
   const watchedOfferNo = watch("quotation.offerNo");
+  const watchedDescription = watch("quotation.description");
+  const watchedKoliBaskiDefinitionId = watch("quotation.koliBaskiDefinitionId");
   const watchedGeneralDiscountRate = watch("quotation.generalDiscountRate");
   const watchedGeneralDiscountAmount = watch("quotation.generalDiscountAmount");
   const offerDateSyncInitializedRef = useRef(false);
@@ -361,11 +333,20 @@ export function QuotationCreateScreen(): React.ReactElement {
     });
   }, [erpRatesForQuotation, exchangeRates]);
 
-  const customerCode = useMemo(() => {
-    if (customer?.customerCode) return customer.customerCode;
-    if (watchedErpCustomerCode) return watchedErpCustomerCode;
-    return undefined;
-  }, [customer, watchedErpCustomerCode]);
+  const customerCode = useMemo(
+    () => resolvePricingRuleCustomerCode(watchedErpCustomerCode),
+    [watchedErpCustomerCode]
+  );
+
+  const customerSelectLabel = useMemo(
+    () =>
+      resolveDocumentCustomerSelectLabel({
+        customer: selectedCustomer,
+        erpCustomerCode: watchedErpCustomerCode,
+        placeholder: t("quotation.selectCustomerPlaceholder"),
+      }),
+    [selectedCustomer, watchedErpCustomerCode, t]
+  );
 
   const customerTypeId = useMemo(() => {
     return resolveDocumentSerialCustomerTypeId({
@@ -565,7 +546,7 @@ export function QuotationCreateScreen(): React.ReactElement {
     () => resolveLineListCurrencyLabel(watchedCurrency, currencyOptions ?? null),
     [watchedCurrency, currencyOptions]
   );
-  const { profilMap, demirMap, vidaMap, baskiMap, koliBaskiOptions } = useWindoDefinitionOptions();
+  const { profilMap, demirMap, vidaMap, baskiMap, koliBaskiMap, koliBaskiOptions } = useWindoDefinitionOptions();
 
   const handleEditLine = useCallback((line: QuotationLineFormState) => {
     setEditingLine(line);
@@ -676,6 +657,7 @@ export function QuotationCreateScreen(): React.ReactElement {
           relatedStocks = fetched.map((s) => ({
             erpStockCode: s.erpStockCode,
             stockName: s.stockName,
+            englishStockName: s.englishStockName,
             grupKodu: s.grupKodu,
           }));
           relatedStocks.forEach((s) =>
@@ -723,11 +705,16 @@ export function QuotationCreateScreen(): React.ReactElement {
         : 0;
       const relatedProductKey = createClientId(`main-${stock.id}`);
 
+      const mainProductName = await resolveDocumentLineProductName(
+        { stockId: stock.id, code: stock.erpStockCode, name: stock.stockName },
+        i18n.language
+      );
+
       const mainLine: QuotationLineFormState = calculateLineTotals({
         id: `temp-${Date.now()}`,
         productId: stock.id,
         productCode: stock.erpStockCode,
-        productName: stock.stockName,
+        productName: mainProductName,
         groupCode: stock.grupKodu || null,
         quantity: 1,
         unitPrice: mainUnitPrice,
@@ -761,7 +748,10 @@ export function QuotationCreateScreen(): React.ReactElement {
               id: `temp-${Date.now()}-${relation.id}`,
               productId: relation.relatedStockId,
               productCode: relation.relatedStockCode!,
-              productName: relStock?.stockName ?? relation.relatedStockName ?? "",
+              productName:
+                relStock != null
+                  ? getLocalizedStockNameFromStock(relStock, i18n.language)
+                  : relation.relatedStockName ?? "",
               quantity: relation.quantity,
               unitPrice,
               discountRate1: price?.discount1 ?? 0,
@@ -832,13 +822,22 @@ export function QuotationCreateScreen(): React.ReactElement {
         }))
       ).catch(() => []);
 
-      const nextLines = products.map((product, index) => {
-        const price = priceData[index];
-        return calculateLineTotals({
-          id: `temp-${Date.now()}-m${index}`,
-          productId: product.id ?? null,
-          productCode: product.code,
-          productName: product.name,
+      const nextLines = await Promise.all(
+        products.map(async (product, index) => {
+          const price = priceData[index];
+          const productName = await resolveDocumentLineProductName(
+            {
+              stockId: product.id ?? null,
+              code: product.code,
+              name: product.name,
+            },
+            i18n.language
+          );
+          return calculateLineTotals({
+            id: `temp-${Date.now()}-m${index}`,
+            productId: product.id ?? null,
+            productCode: product.code,
+            productName,
           unit: product.unit ?? null,
           groupCode: product.groupCode ?? null,
           quantity: 1,
@@ -865,10 +864,11 @@ export function QuotationCreateScreen(): React.ReactElement {
           relatedProductKey: null,
           isMainRelatedProduct: true,
         });
-      });
+        })
+      );
       return nextLines;
     },
-    []
+    [i18n.language]
   );
 
   const onSubmit = useCallback(
@@ -966,6 +966,15 @@ export function QuotationCreateScreen(): React.ReactElement {
         selectedCustomerName: selectedCustomer?.name,
       });
 
+      const pdfExtras = buildSalesDocumentPreviewPdfExtras({
+        t,
+        koliBaskiDefinitionId: watchedKoliBaskiDefinitionId,
+        koliBaskiMap,
+        description: watchedDescription,
+        structuredNotes: notes.filter((note) => note.trim().length > 0),
+        lineDetailMaps: { profilMap, demirMap, vidaMap, baskiMap },
+      });
+
       return buildQuotationPreviewPdfInput({
         offerDate: watchedOfferDate ?? null,
         offerNo: watchedOfferNo ?? null,
@@ -977,17 +986,29 @@ export function QuotationCreateScreen(): React.ReactElement {
         generalDiscountAmount: watchedGeneralDiscountAmount ?? null,
         draft,
         lines,
+        footerDetails: pdfExtras.footerDetails,
+        lineDetailLabels: pdfExtras.lineDetailLabels,
+        lineDetailMaps: pdfExtras.lineDetailMaps,
       });
     },
     [
+      baskiMap,
       branch,
+      demirMap,
+      koliBaskiMap,
       lines,
+      notes,
+      profilMap,
       selectedCustomer?.name,
+      t,
+      vidaMap,
       watchedCurrency,
       watchedCustomerId,
+      watchedDescription,
       watchedErpCustomerCode,
       watchedGeneralDiscountAmount,
       watchedGeneralDiscountRate,
+      watchedKoliBaskiDefinitionId,
       watchedOfferDate,
       watchedOfferNo,
     ]
@@ -1206,10 +1227,7 @@ export function QuotationCreateScreen(): React.ReactElement {
                         { color: titleText },
                       ]}
                     >
-                      {selectedCustomer?.name ||
-                        (watchedErpCustomerCode
-                          ? `ERP: ${watchedErpCustomerCode}`
-                          : "Lütfen seçiniz...")}
+                      {customerSelectLabel}
                     </Text>
                   </View>
                 </View>
@@ -1721,22 +1739,13 @@ export function QuotationCreateScreen(): React.ReactElement {
                 { backgroundColor: shellBg, borderColor: sectionOutline },
               ]}
             >
-              <View style={[styles.sectionHeader, { borderBottomColor: sectionOutline }]}>
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                  Satırlar
-                </Text>
-                <TouchableOpacity
-                  style={[
-                    styles.addButton,
-                    { backgroundColor: colors.accent + "CC" },
-                    !canAddLine && styles.submitButtonDisabled,
-                  ]}
-                  onPress={handleAddLine}
-                  disabled={!canAddLine}
-                >
-                  <Text style={styles.addButtonText}>+ Satır Ekle</Text>
-                </TouchableOpacity>
-              </View>
+              <QuotationLinesSectionHeader
+                lineCount={lines.filter(
+                  (line) => !line.relatedProductKey || line.isMainRelatedProduct === true
+                ).length}
+                canAddLine={canAddLine}
+                onAddLine={handleAddLine}
+              />
 
               {errors.root?.message && (
                 <Text style={[styles.fieldError, { color: colors.error }]}>
@@ -1746,7 +1755,7 @@ export function QuotationCreateScreen(): React.ReactElement {
 
               {lines.length === 0 ? (
                 <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-                  Henüz satır eklenmedi
+                  {t("quotation.noLinesYet")}
                 </Text>
               ) : (
                 <FlatList
@@ -1756,164 +1765,15 @@ export function QuotationCreateScreen(): React.ReactElement {
                   )}
                   keyExtractor={(item) => item.id}
                   scrollEnabled={false}
-                  renderItem={({ item: line }) => {
-                    const discountRateSuffix = (l: typeof line) => {
-                      const rates = [l.discountRate1, l.discountRate2, l.discountRate3]
-                        .filter((r) => r > 0)
-                        .map((r) => `${formatRateTr(r)}%`);
-                      if (!rates.length) return null;
-                      return (
-                        <>
-                          <Text style={{ color: mutedText }}>{` · ${t("quotation.discounts")} `}</Text>
-                          <Text style={{ color: titleText, fontWeight: "600" }}>{rates.join("/")}</Text>
-                        </>
-                      );
-                    };
-                    const descLine = (l: typeof line) =>
-                      [l.description1, l.description2, l.description3]
-                        .filter(Boolean)
-                        .join(" · ");
-                    const selectedDefinitions = (l: typeof line) =>
-                      [
-                        l.profilDefinitionId ? `Profil: ${profilMap[l.profilDefinitionId] || `#${l.profilDefinitionId}`}` : "",
-                        l.demirDefinitionId ? `Demir: ${demirMap[l.demirDefinitionId] || `#${l.demirDefinitionId}`}` : "",
-                        l.vidaDefinitionId ? `Vida: ${l.vidaDefinitionName || vidaMap[l.vidaDefinitionId] || `#${l.vidaDefinitionId}`}` : "",
-                        l.baskiDefinitionId ? `Baskı: ${l.baskiDefinitionName || baskiMap[l.baskiDefinitionId] || `#${l.baskiDefinitionId}`}` : "",
-                        l.baskiAciklama ? `Baskı açıklaması: ${l.baskiAciklama}` : "",
-                      ]
-                        .filter(Boolean)
-                        .join(" · ");
-                    const renderLineRow = (l: typeof line, opts: { related?: boolean }) => {
-                      const hasImage = Boolean(l.imagePath?.trim());
-                      return (
-                      <View
-                        style={[
-                          styles.lineRow,
-                          opts.related && styles.lineRowRelated,
-                          { borderColor: innerBorder, backgroundColor: opts.related ? (isDark ? "rgba(255,255,255,0.03)" : "rgba(15,23,42,0.02)") : innerBg },
-                          !opts.related && l.approvalStatus === 1 && {
-                            borderColor: colors.warning,
-                            borderWidth: 1.5,
-                          },
-                        ]}
-                      >
-                        <View style={[styles.lineRowMain, hasImage ? styles.lineRowMainWithThumb : undefined]}>
-                          {hasImage ? (
-                            <Image
-                              source={{ uri: resolveMobileImageUri(l.imagePath) ?? l.imagePath ?? "" }}
-                              style={opts.related ? styles.lineRowThumbRelated : styles.lineRowThumb}
-                              resizeMode="cover"
-                            />
-                          ) : null}
-                          <View style={[styles.lineRowTextBlock, opts.related && styles.lineRowTextBlockRelated]}>
-                            <Text style={[styles.lineRowCode, { color: softText }]} numberOfLines={1}>
-                              {l.productCode || "—"}
-                            </Text>
-                            <Text style={[styles.lineRowName, { color: titleText }]} numberOfLines={2}>
-                              {l.productName || t("quotation.productNotSelected")}
-                            </Text>
-                            {(l.description1 || l.description2 || l.description3) ? (
-                              <Text style={[styles.lineRowDesc, { color: softText }]} numberOfLines={1}>
-                                {descLine(l)}
-                              </Text>
-                            ) : null}
-                            {selectedDefinitions(l) ? (
-                              <Text style={[styles.lineRowDesc, { color: mutedText }]} numberOfLines={2}>
-                                {selectedDefinitions(l)}
-                              </Text>
-                            ) : null}
-                            <Text style={[styles.lineRowMeta, styles.lineRowMetaFine, { color: mutedText }]} numberOfLines={2}>
-                              <Text style={{ color: titleText, fontWeight: "600" }}>{formatQtyTr(l.quantity)}</Text>
-                              <Text>{` ad. · `}</Text>
-                              <Text style={{ color: titleText, fontWeight: "600" }}>{formatMoneyTr(l.unitPrice)}</Text>
-                              {lineListCurrencyLabel ? (
-                                <Text style={{ color: titleText, fontWeight: "600" }}>{` ${lineListCurrencyLabel}`}</Text>
-                              ) : null}
-                              {discountRateSuffix(l)}
-                            </Text>
-                            <Text style={[styles.lineRowMeta, styles.lineRowMetaFine, { color: mutedText }]} numberOfLines={2}>
-                              <Text style={{ color: titleText, fontWeight: "600" }}>{formatMoneyTr(l.lineTotal)}</Text>
-                              {lineListCurrencyLabel ? <Text style={{ color: mutedText }}>{` ${lineListCurrencyLabel}`}</Text> : null}
-                              <Text>{` · KDV ${formatRateTr(l.vatRate)}% `}</Text>
-                              <Text style={{ color: titleText, fontWeight: "600" }}>{formatMoneyTr(l.vatAmount)}</Text>
-                              {lineListCurrencyLabel ? <Text>{` ${lineListCurrencyLabel}`}</Text> : null}
-                              <Text>{` · `}</Text>
-                              <Text style={{ color: accent, fontWeight: "700" }}>{formatMoneyTr(l.lineGrandTotal)}</Text>
-                              {lineListCurrencyLabel ? (
-                                <Text style={{ color: accent, fontWeight: "700" }}>{` ${lineListCurrencyLabel}`}</Text>
-                              ) : null}
-                            </Text>
-                            {!opts.related && l.approvalStatus === 1 ? (
-                              <View style={[styles.lineRowApproval, { backgroundColor: colors.warning + "18" }]}>
-                                <Alert02Icon size={12} color={colors.warning} variant="stroke" strokeWidth={1.8} />
-                                <Text style={[styles.lineRowApprovalText, { color: colors.warning }]}>{t("quotation.approvalRequired")}</Text>
-                              </View>
-                            ) : null}
-                          </View>
-                        </View>
-                        <View style={styles.lineRowTopRight}>
-                          {!opts.related ? (
-                            <View style={[styles.lineRowMainBadge, { backgroundColor: colors.activeBackground }]}>
-                              <Text style={[styles.lineRowMainBadgeText, { color: accent }]}>{t("quotation.main")}</Text>
-                            </View>
-                          ) : null}
-                          <TouchableOpacity
-                            style={[
-                              styles.lineIconButton,
-                              {
-                                borderColor: isDark ? "rgba(236,72,153,0.35)" : "rgba(219,39,119,0.22)",
-                                backgroundColor: isDark ? "rgba(236,72,153,0.1)" : "rgba(219,39,119,0.06)",
-                              },
-                            ]}
-                            onPress={() => handleEditLine(l)}
-                            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                          >
-                            <Edit02Icon size={16} color={colors.accent} variant="stroke" strokeWidth={1.8} />
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            style={[
-                              styles.lineIconButton,
-                              {
-                                borderColor: isDark ? "rgba(239,68,68,0.35)" : "rgba(239,68,68,0.22)",
-                                backgroundColor: isDark ? "rgba(239,68,68,0.1)" : "rgba(239,68,68,0.06)",
-                              },
-                            ]}
-                            onPress={() => handleDeleteLine(l.id)}
-                            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                          >
-                            <Delete02Icon size={16} color={colors.error} variant="stroke" strokeWidth={1.8} />
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    );
-                    };
-                    return (
-                      <View style={styles.lineCardWrapper}>
-                        {renderLineRow(line, {})}
-                        {line.relatedLines && line.relatedLines.length > 0 ? (
-                          <View style={styles.relatedLinesBlock}>
-                            <Text style={[styles.relatedLinesTitle, { color: softText }]}>{t("quotation.relatedStocks")}</Text>
-                            {line.relatedLines.map((relatedLine) => (
-                              <View
-                                key={relatedLine.id}
-                                style={[
-                                  styles.relatedLineIndent,
-                                  {
-                                    borderLeftColor: isDark
-                                      ? "rgba(236,72,153,0.45)"
-                                      : "rgba(219,39,119,0.28)",
-                                  },
-                                ]}
-                              >
-                                {renderLineRow(relatedLine, { related: true })}
-                              </View>
-                            ))}
-                          </View>
-                        ) : null}
-                      </View>
-                    );
-                  }}
-
+                  contentContainerStyle={styles.linesList}
+                  renderItem={({ item: line }) => (
+                    <QuotationFormLineGroup
+                      line={line}
+                      currencyLabel={lineListCurrencyLabel}
+                      onEdit={handleEditLine}
+                      onDelete={handleDeleteLine}
+                    />
+                  )}
                 />
               )}
             </View>
@@ -2561,147 +2421,6 @@ const styles = StyleSheet.create({
   dateButtonText: {
     fontSize: 15,
   },
-  addButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  addButtonText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  lineRow: {
-    position: "relative",
-    flexDirection: "row",
-    alignItems: "flex-start",
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 11,
-    paddingTop: 10,
-  },
-  lineRowRelated: {
-    paddingVertical: 8,
-    paddingHorizontal: 9,
-    borderRadius: 12,
-  },
-  lineRowMain: {
-    flex: 1,
-    minWidth: 0,
-  },
-  lineRowMainWithThumb: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
-  },
-  lineRowThumb: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-  },
-  lineRowThumbRelated: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-  },
-  lineRowTextBlock: {
-    flex: 1,
-    minWidth: 0,
-    gap: 2,
-    paddingRight: 112,
-  },
-  lineRowTextBlockRelated: {
-    paddingRight: 76,
-  },
-  lineRowTopRight: {
-    position: "absolute",
-    top: 6,
-    right: 6,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    zIndex: 2,
-  },
-  lineRowCode: {
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 0.2,
-    paddingRight: 4,
-  },
-  lineRowName: {
-    fontSize: 13,
-    fontWeight: "600",
-    lineHeight: 17,
-    marginTop: 1,
-  },
-  lineRowMainBadge: {
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderRadius: 5,
-    flexShrink: 0,
-  },
-  lineRowMainBadgeText: {
-    fontSize: 7,
-    fontWeight: "700",
-  },
-  lineRowDesc: {
-    fontSize: 9,
-    fontWeight: "500",
-    marginTop: 2,
-    opacity: 0.92,
-  },
-  lineRowMeta: {
-    marginTop: 4,
-    fontWeight: "400",
-    ...Platform.select({
-      ios: { fontVariant: ["tabular-nums"] as const },
-      default: {},
-    }),
-  },
-  lineRowMetaFine: {
-    fontSize: 9,
-    lineHeight: 12.5,
-  },
-  lineRowApproval: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    marginTop: 5,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 8,
-    alignSelf: "flex-start",
-  },
-  lineRowApprovalText: {
-    fontSize: 10,
-    fontWeight: "600",
-  },
-  lineIconButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 9,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  relatedLinesBlock: {
-    marginTop: 8,
-    gap: 6,
-  },
-  relatedLinesTitle: {
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 0.35,
-    textTransform: "uppercase",
-    opacity: 0.72,
-    marginBottom: 2,
-  },
-  relatedLineIndent: {
-    paddingLeft: 10,
-    marginLeft: 2,
-    borderLeftWidth: 2,
-  },
   currencyHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -2781,8 +2500,8 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingVertical: 20,
   },
-  lineCardWrapper: {
-    marginBottom: 8,
+  linesList: {
+    gap: 10,
   },
   submitRow: {
     flexDirection: "row",

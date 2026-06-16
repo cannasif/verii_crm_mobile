@@ -29,6 +29,7 @@ import { parseDecimalInput, sanitizeDecimalInput } from "../../../lib/decimal-in
 import { getApiBaseUrl } from "../../../constants/config";
 import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida/hooks/useWindoDefinitionOptions";
 import { BaskiQuickCreateModal } from "../../windo-profil-demir-vida/components/BaskiQuickCreateModal";
+import { LineFormDescriptionFieldsSection } from "@/components/shared/line-form";
 import type {
   QuotationLineFormState,
   PricingRuleLineGetDto,
@@ -37,6 +38,7 @@ import type {
 } from "../types";
 import { calculateLineTotals } from "../utils";
 import { getCurrencyDisplayLabel } from "../../../lib/currencyDisplay";
+import { resolveDocumentLineProductName } from "../../stocks/utils";
 
 interface QuotationLineFormProps {
   visible: boolean;
@@ -159,7 +161,7 @@ export function QuotationLineForm({
   imageUploadScope = "pdf-designer",
   imageUploadExtras,
 }: QuotationLineFormProps): React.ReactElement {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { themeMode, showUnitInStockSelection } = useUIStore();
   const insets = useSafeAreaInsets();
 
@@ -184,6 +186,7 @@ export function QuotationLineForm({
   const normalizedCurrency = useMemo(() => normalizeCurrencyCode(currency), [currency]);
 
   const [selectedStock, setSelectedStock] = useState<StockGetDto | undefined>();
+  const [lineProductName, setLineProductName] = useState("");
   const [quantity, setQuantity] = useState<string>("1");
   const [unitPrice, setUnitPrice] = useState<string>("0");
   const [discountRate1, setDiscountRate1] = useState<string>("0");
@@ -274,7 +277,7 @@ export function QuotationLineForm({
       id: line?.id || `temp-${Date.now()}`,
       productId: selectedStock?.id || null,
       productCode: selectedStock?.erpStockCode || "",
-      productName: selectedStock?.stockName || "",
+      productName: lineProductName || selectedStock?.stockName || "",
       unit: selectedStock?.unit ?? line?.unit ?? null,
       imagePath,
       groupCode: selectedStock?.grupKodu || null,
@@ -314,6 +317,7 @@ export function QuotationLineForm({
     line?.relatedStockId,
     line?.relatedProductKey,
     line?.isMainRelatedProduct,
+    lineProductName,
     selectedStock,
     quantity,
     unitPrice,
@@ -370,6 +374,7 @@ export function QuotationLineForm({
 
   const resetForm = useCallback(() => {
     setSelectedStock(undefined);
+    setLineProductName("");
     setQuantity("1");
     setUnitPrice("0");
     setDiscountRate1("0");
@@ -417,6 +422,7 @@ export function QuotationLineForm({
     setApprovalStatus(draft.approvalStatus || 0);
     setRelatedLinesDisplay(draft.relatedLines ?? []);
 
+    setLineProductName(draft.productName || "");
     setSelectedStock({
       id: draft.productId ?? 0,
       erpStockCode: draft.productCode || "",
@@ -452,6 +458,7 @@ export function QuotationLineForm({
     setRelatedLinesDisplay(editing.relatedLines ?? []);
 
     if (editing.productCode || editing.productName) {
+      setLineProductName(editing.productName || "");
       setSelectedStock({
         id: editing.productId ?? 0,
         erpStockCode: editing.productCode || "",
@@ -480,14 +487,14 @@ export function QuotationLineForm({
     if (justOpened || lineChanged) {
       if (line) {
         hydrateFromEditingLine(line);
-      } else if (!hasBulkDrafts) {
+      } else if (!hasBulkDrafts && !selectedStock?.erpStockCode?.trim()) {
         resetForm();
       }
       lastHydratedLineIdRef.current = nextLineId;
     }
 
     prevLineFormVisibleRef.current = true;
-  }, [visible, line, resetForm, hydrateFromEditingLine, hasBulkDrafts]);
+  }, [visible, line, resetForm, hydrateFromEditingLine, hasBulkDrafts, selectedStock?.erpStockCode]);
 
   useEffect(() => {
     if (profilDefinitionId == null) {
@@ -645,12 +652,28 @@ export function QuotationLineForm({
         setSelectedStock(stock);
       } else {
         setSelectedStock(undefined);
+        setLineProductName("");
       }
 
       if (!stockToUse) {
+        setLineProductName("");
         setUnitPrice("0");
         return true;
       }
+
+      const resolvedName = await resolveDocumentLineProductName(
+        {
+          stockId: stockToUse.id,
+          code: stockToUse.erpStockCode,
+          name: stockToUse.stockName,
+        },
+        i18n.language
+      );
+      setLineProductName(resolvedName);
+      setSelectedStock({
+        ...stockToUse,
+        stockName: stockToUse.stockName,
+      });
 
       setIsLoadingPrice(true);
 
@@ -736,8 +759,29 @@ export function QuotationLineForm({
       disableRelatedStocks,
       onAddWithRelatedStocks,
       onRequestRelatedStocksSelection,
+      i18n.language,
     ]
   );
+
+  useEffect(() => {
+    if (!selectedStock?.erpStockCode) return;
+
+    let cancelled = false;
+    void resolveDocumentLineProductName(
+      {
+        stockId: selectedStock.id,
+        code: selectedStock.erpStockCode,
+        name: selectedStock.stockName,
+      },
+      i18n.language
+    ).then((resolvedName) => {
+      if (!cancelled) setLineProductName(resolvedName);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [i18n.language, selectedStock?.id, selectedStock?.erpStockCode, selectedStock?.stockName]);
 
   useEffect(() => {
     if (selectedStock && pricingRules && selectedStock.erpStockCode) {
@@ -1060,7 +1104,7 @@ export function QuotationLineForm({
                 <ProductPicker
                   ref={productPickerRef}
                   value={selectedStock?.erpStockCode}
-                  productName={selectedStock?.stockName}
+                  productName={lineProductName || selectedStock?.stockName}
                   onChange={handleStockSelect}
                   label="Ürün"
                   required
@@ -1374,120 +1418,40 @@ export function QuotationLineForm({
                     />
                   </View>
 
-                  <View style={[styles.detailCard, { borderColor: softPinkBorder, backgroundColor: softPinkBg }]}>
-                    <Text style={[styles.sectionMiniTitle, { color: textColor }]}>
-                      Açıklama Alanları
-                    </Text>
-
-                    <View style={styles.rowThree}>
-                      <View style={styles.fieldThird}>
-                        <Text style={[styles.label, { color: mutedColor }]}>Açıklama 1</Text>
-                        <TextInput
-                          style={[
-                            styles.input,
-                            styles.compactInput,
-                            { backgroundColor: inputBg, borderColor: softPinkBorder, color: softInputText },
-                          ]}
-                          value={description1}
-                          onChangeText={setDescription1}
-                          placeholder="Açıklama 1"
-                          placeholderTextColor={mutedColor}
-                        />
-                      </View>
-
-                      <View style={styles.fieldThird}>
-                        <Text style={[styles.label, { color: mutedColor }]}>Açıklama 2</Text>
-                        <TextInput
-                          style={[
-                            styles.input,
-                            styles.compactInput,
-                            { backgroundColor: inputBg, borderColor: softPinkBorder, color: softInputText },
-                          ]}
-                          value={description2}
-                          onChangeText={setDescription2}
-                          placeholder="Açıklama 2"
-                          placeholderTextColor={mutedColor}
-                        />
-                      </View>
-
-                      <View style={styles.fieldThird}>
-                        <Text style={[styles.label, { color: mutedColor }]}>Açıklama 3</Text>
-                        <TextInput
-                          style={[
-                            styles.input,
-                            styles.compactInput,
-                            { backgroundColor: inputBg, borderColor: softPinkBorder, color: softInputText },
-                          ]}
-                          value={description3}
-                          onChangeText={setDescription3}
-                          placeholder="Açıklama 3"
-                          placeholderTextColor={mutedColor}
-                        />
-                      </View>
-                    </View>
-
-                    <View style={styles.rowThree}>
-                      <View style={styles.fieldThird}>
-                        <Text style={[styles.label, { color: mutedColor }]}>Profil</Text>
-                        <TouchableOpacity
-                          style={[styles.pickerButton, styles.compactInput, { backgroundColor: inputBg, borderColor: softPinkBorder }]}
-                          onPress={() => setProfilPickerVisible(true)}
-                        >
-                          <Text style={[styles.pickerText, { color: profilDefinitionId ? textColor : mutedColor }]}>
-                            {profilDefinitionId ? profilMap[profilDefinitionId] ?? `#${profilDefinitionId}` : "Profil seç"}
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-                      <View style={styles.fieldThird}>
-                        <Text style={[styles.label, { color: mutedColor }]}>Demir</Text>
-                        <TouchableOpacity
-                          style={[styles.pickerButton, styles.compactInput, { backgroundColor: inputBg, borderColor: softPinkBorder }]}
-                          onPress={() => setDemirPickerVisible(true)}
-                        >
-                          <Text style={[styles.pickerText, { color: demirDefinitionId ? textColor : mutedColor }]}>
-                            {demirDefinitionId ? demirMap[demirDefinitionId] ?? `#${demirDefinitionId}` : "Demir seç"}
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-                      <View style={styles.fieldThird}>
-                        <Text style={[styles.label, { color: mutedColor }]}>Vida</Text>
-                        <TouchableOpacity
-                          style={[styles.pickerButton, styles.compactInput, { backgroundColor: inputBg, borderColor: softPinkBorder }]}
-                          onPress={() => setVidaPickerVisible(true)}
-                        >
-                          <Text style={[styles.pickerText, { color: vidaDefinitionId ? textColor : mutedColor }]}>
-                            {vidaDefinitionId ? vidaMap[vidaDefinitionId] ?? `#${vidaDefinitionId}` : "Vida seç"}
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-                      <View style={styles.fieldThird}>
-                        <Text style={[styles.label, { color: mutedColor }]}>Baskı</Text>
-                        <TouchableOpacity
-                          style={[styles.pickerButton, styles.compactInput, { backgroundColor: inputBg, borderColor: softPinkBorder }]}
-                          onPress={() => setBaskiPickerVisible(true)}
-                        >
-                          <Text style={[styles.pickerText, { color: baskiDefinitionId ? textColor : mutedColor }]}>
-                            {baskiDefinitionId ? baskiMap[baskiDefinitionId] ?? `#${baskiDefinitionId}` : "Baskı seç"}
-                          </Text>
-                        </TouchableOpacity>
-                        <TextInput
-                          style={[styles.input, styles.compactInput, { backgroundColor: inputBg, borderColor: softPinkBorder, color: textColor }]}
-                          value={baskiAciklama}
-                          onChangeText={(value) => setBaskiAciklama(value.slice(0, 50))}
-                          maxLength={50}
-                          placeholder="Baskı açıklaması"
-                          placeholderTextColor={mutedColor}
-                        />
-                        <TouchableOpacity
-                          style={styles.quickCreateButton}
-                          onPress={() => setBaskiCreateVisible(true)}
-                          activeOpacity={0.82}
-                        >
-                          <Text style={[styles.quickCreateButtonText, { color: brandColor }]}>+ Yeni baskı ekle</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  </View>
+                  <LineFormDescriptionFieldsSection
+                    description1={description1}
+                    description2={description2}
+                    description3={description3}
+                    onDescription1Change={setDescription1}
+                    onDescription2Change={setDescription2}
+                    onDescription3Change={setDescription3}
+                    profilDefinitionId={profilDefinitionId}
+                    demirDefinitionId={demirDefinitionId}
+                    vidaDefinitionId={vidaDefinitionId}
+                    baskiDefinitionId={baskiDefinitionId}
+                    profilMap={profilMap}
+                    demirMap={demirMap}
+                    vidaMap={vidaMap}
+                    baskiMap={baskiMap}
+                    onProfilPress={() => setProfilPickerVisible(true)}
+                    onDemirPress={() => setDemirPickerVisible(true)}
+                    onVidaPress={() => setVidaPickerVisible(true)}
+                    onBaskiPress={() => setBaskiPickerVisible(true)}
+                    onBaskiCreatePress={() => setBaskiCreateVisible(true)}
+                    baskiAciklama={baskiAciklama}
+                    onBaskiAciklamaChange={setBaskiAciklama}
+                    colors={{
+                      text: textColor,
+                      textSecondary: mutedColor,
+                      accent: brandColor,
+                      inputBackground: inputBg,
+                      border: softPinkBorder,
+                      inputText: softInputText,
+                      cardBackground: softPinkBg,
+                      cardBorder: softPinkBorder,
+                    }}
+                    compact
+                  />
                 </View>
 
                 {approvalStatus === 1 && approvalMessage && (

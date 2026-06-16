@@ -527,6 +527,8 @@ export interface QuotationDetailGetDto {
   representativeName: string | null;
   status: DetailApprovalStatus | null;
   description: string | null;
+  koliBaskiDefinitionId?: number | null;
+  koliBaskiDefinitionName?: string | null;
   paymentTypeId: number | null;
   paymentTypeName: string | null;
   documentSerialTypeId: number;

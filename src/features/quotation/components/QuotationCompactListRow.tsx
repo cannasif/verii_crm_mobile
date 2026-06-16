@@ -18,7 +18,7 @@ import {
   resolveQuotationRowAmountText,
   resolveQuotationRowCurrencyLabel,
 } from "../utils/quotationRowDisplay";
-import { QuotationListStatusIcon } from "./QuotationListStatusIcon";
+import { DocumentApprovalStatusIcon } from "../../../components/paged/DocumentApprovalStatusIcon";
 
 interface QuotationCompactListRowProps {
   quotation: QuotationGetDto;
@@ -91,10 +91,10 @@ function QuotationCompactListRowComponent({
 
   return (
     <TouchableOpacity activeOpacity={0.72} onPress={handleRowPress} style={styles.row}>
-      <QuotationListStatusIcon
+      <DocumentApprovalStatusIcon
         status={quotation.status}
         isDark={isDark}
-        accessibilityLabel={statusMeta.label}
+        statusMeta={statusMeta}
         onPress={canShowCancellationReason ? handleStatusPress : undefined}
       />
 
