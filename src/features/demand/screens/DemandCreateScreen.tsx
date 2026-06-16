@@ -869,7 +869,9 @@ export function DemandCreateScreen(): React.ReactElement {
                       onPress={() => setShippingAddressModalVisible(true)}
                     >
                       <Text style={[styles.pickerText, { color: colors.text }]}>
-                        {shippingAddresses.find((addr) => addr.id === value)?.address || "Seçiniz"}
+                        {shippingAddresses.find((addr) => addr.id === value)
+                          ? buildShippingAddressLabel(shippingAddresses.find((addr) => addr.id === value)!)
+                          : "Seçiniz"}
                       </Text>
                     </TouchableOpacity>
                   </View>

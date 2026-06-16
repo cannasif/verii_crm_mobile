@@ -27,6 +27,8 @@ function ShippingAddressCardComponent({
   if (address.districtName) locationParts.push(address.districtName);
   if (address.cityName) locationParts.push(address.cityName);
   const locationTitle = locationParts.join(", ") || "Konum Belirtilmemiş";
+  const displayName = address.name || address.customerName || "BİLİNMEYEN FİRMA";
+  const erpCode = address.erpShippingCode || address.erpMainCustomerCode || "";
 
   const pinkBorder = isDark ? 'rgba(219, 39, 119, 0.4)' : 'rgba(219, 39, 119, 0.3)';
   const pinkBg = isDark ? 'rgba(219, 39, 119, 0.1)' : 'rgba(219, 39, 119, 0.05)';
@@ -47,7 +49,7 @@ function ShippingAddressCardComponent({
         <View style={styles.companyWrap}>
           <Building04Icon size={16} color={colors.text} variant="stroke" />
           <Text style={[styles.companyName, { color: colors.text }]} numberOfLines={1}>
-            {address.customerName || "BİLİNMEYEN FİRMA"}
+            {displayName}
           </Text>
         </View>
         {address.isActive && (
@@ -57,6 +59,12 @@ function ShippingAddressCardComponent({
           </View>
         )}
       </View>
+
+      {erpCode ? (
+        <Text style={[styles.erpCodeText, { color: colors.textMuted }]} numberOfLines={1}>
+          ERP: {erpCode}
+        </Text>
+      ) : null}
 
       <View style={[styles.solidDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }]} />
 
@@ -135,6 +143,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "900",
     letterSpacing: 0.3,
+  },
+  erpCodeText: {
+    marginTop: -2,
+    marginBottom: 8,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.25,
   },
   activeDotWrap: {
     flexDirection: "row",

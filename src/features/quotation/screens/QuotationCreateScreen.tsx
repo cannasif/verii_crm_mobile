@@ -1266,7 +1266,8 @@ export function QuotationCreateScreen(): React.ReactElement {
                         >
                           <Text style={[styles.pickerText, { color: colors.text }]}>
                             {shippingAddresses.find((addr) => addr.id === value)
-                              ?.address || "Seçiniz"}
+                              ? buildShippingAddressLabel(shippingAddresses.find((addr) => addr.id === value)!)
+                              : "Seçiniz"}
                           </Text>
                         </TouchableOpacity>
                       </View>

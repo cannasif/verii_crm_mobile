@@ -1725,7 +1725,9 @@ export function QuotationDetailScreen(): React.ReactElement {
                           activeOpacity={isReadonly ? 1 : 0.85}
                         >
                           <Text style={[styles.pickerText, styles.pickerTextCompact, { color: titleText }]} numberOfLines={1}>
-                            {shippingAddresses.find((a) => a.id === value)?.address ?? t("quotation.select")}
+                            {shippingAddresses.find((a) => a.id === value)
+                              ? buildShippingAddressLabel(shippingAddresses.find((a) => a.id === value)!)
+                              : t("quotation.select")}
                           </Text>
                         </TouchableOpacity>
                       </View>
