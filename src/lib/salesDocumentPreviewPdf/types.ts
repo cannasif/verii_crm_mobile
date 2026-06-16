@@ -22,7 +22,15 @@ export interface SalesDocumentPreviewPdfLabels {
   footerNote?: string;
 }
 
-export interface SalesDocumentPreviewPdfLineInput {
+import type { PreviewPdfFooterDetailBlock } from "./buildPreviewPdfFooterDetails";
+import type {
+  PreviewPdfLineDetailLabels,
+  PreviewPdfLineDetailMaps,
+  PreviewPdfLineDetailSource,
+} from "./previewPdfLineDetails";
+
+export interface SalesDocumentPreviewPdfLineInput
+  extends PreviewPdfLineDetailSource {
   productCode: string | null;
   productName: string;
   unit: string | null;
@@ -54,6 +62,9 @@ export interface SalesDocumentPreviewPdfInput {
   draft: boolean;
   lines: SalesDocumentPreviewPdfLineInput[];
   labels?: SalesDocumentPreviewPdfLabels;
+  footerDetails?: PreviewPdfFooterDetailBlock[];
+  lineDetailLabels?: PreviewPdfLineDetailLabels;
+  lineDetailMaps?: PreviewPdfLineDetailMaps;
 }
 
 export interface SalesDocumentPreviewDocumentTotals {

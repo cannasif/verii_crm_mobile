@@ -1,7 +1,12 @@
 import type { TFunction } from "i18next";
 import type { Branch } from "../../auth/types";
 import { resolveCurrencyIsoCode } from "../../../lib/currencyDisplay";
-import type { SalesDocumentPreviewPdfInput } from "../../../lib/salesDocumentPreviewPdf";
+import type {
+  PreviewPdfFooterDetailBlock,
+  PreviewPdfLineDetailLabels,
+  PreviewPdfLineDetailMaps,
+  SalesDocumentPreviewPdfInput,
+} from "../../../lib/salesDocumentPreviewPdf";
 import type { OrderLineFormState } from "../types";
 import { buildOrderPreviewPdfLabels } from "./buildOrderPreviewPdfLabels";
 import { flattenOrderLinesForPdf } from "./flattenOrderLinesForPdf";
@@ -19,6 +24,9 @@ export interface BuildOrderPreviewPdfInputParams {
   lines: OrderLineFormState[];
   locale?: string;
   t: TFunction;
+  footerDetails?: PreviewPdfFooterDetailBlock[];
+  lineDetailLabels?: PreviewPdfLineDetailLabels;
+  lineDetailMaps?: PreviewPdfLineDetailMaps;
 }
 
 export function buildOrderPreviewPdfInput(
@@ -44,5 +52,8 @@ export function buildOrderPreviewPdfInput(
     draft: params.draft ?? false,
     lines: flattenOrderLinesForPdf(params.lines),
     labels,
+    footerDetails: params.footerDetails,
+    lineDetailLabels: params.lineDetailLabels,
+    lineDetailMaps: params.lineDetailMaps,
   };
 }

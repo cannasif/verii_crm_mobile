@@ -5,6 +5,12 @@ import {
   getDiscountedUnitPrice,
   hasLineDiscount,
 } from "./calculations";
+import type { PreviewPdfFooterDetailBlock } from "./buildPreviewPdfFooterDetails";
+import {
+  buildPreviewPdfLineDetailRows,
+  groupPreviewPdfLineDetailRowGroups,
+  isShortPreviewPdfLineDetailRow,
+} from "./previewPdfLineDetails";
 import type {
   SalesDocumentPreviewPdfInput,
   SalesDocumentPreviewPdfLabels,
@@ -62,12 +68,54 @@ function buildTableHeader(labels: SalesDocumentPreviewPdfLabels, showImage: bool
   `;
 }
 
+function buildLineDetailGroupsHtml(input: SalesDocumentPreviewPdfInput, line: SalesDocumentPreviewPdfInput["lines"][number]): string {
+  if (!input.lineDetailLabels || !input.lineDetailMaps) return "";
+
+  const detailRows = buildPreviewPdfLineDetailRows(line, input.lineDetailLabels, input.lineDetailMaps);
+  if (detailRows.length === 0) return "";
+
+  const groups = groupPreviewPdfLineDetailRowGroups(detailRows);
+  return groups
+    .map((group) => {
+      if (group.length > 1 || (group.length === 1 && isShortPreviewPdfLineDetailRow(group[0]))) {
+        const items = group
+          .map(
+            (row) =>
+              `<span class="detail-inline-item"><span class="detail-label">${escapeHtml(row.label)}:</span> ${escapeHtml(row.value)}</span>`
+          )
+          .join("");
+        return `<div class="detail-group detail-group-inline">${items}</div>`;
+      }
+
+      const row = group[0];
+      return `<div class="detail-group"><div class="detail-block"><span class="detail-label">${escapeHtml(row.label)}:</span> <span class="detail-value">${escapeHtml(row.value)}</span></div></div>`;
+    })
+    .join("");
+}
+
+function buildFooterDetailsLeft(blocks: PreviewPdfFooterDetailBlock[] | undefined): string {
+  if (!blocks?.length) return "";
+
+  const content = blocks
+    .map(
+      (block) => `
+        <div class="footer-detail-block">
+          <div class="footer-detail-label">${escapeHtml(block.label)}</div>
+          <div class="footer-detail-value">${escapeHtml(block.value).replace(/\n/g, "<br/>")}</div>
+        </div>
+      `
+    )
+    .join("");
+
+  return `<div class="footer-details-left">${content}</div>`;
+}
+
 function buildTableRows(input: SalesDocumentPreviewPdfInput, showImage: boolean, showNetUnit: boolean): string {
   const labels = input.labels ?? { notSpecified: DEFAULT_NOT_SPECIFIED } as SalesDocumentPreviewPdfLabels;
   const notSpecified = labels.notSpecified || DEFAULT_NOT_SPECIFIED;
 
   return input.lines
-    .map((line, index) => {
+    .map((line) => {
       const quantityText = line.unit?.trim()
         ? `${line.quantity} ${line.unit.trim()}`
         : String(line.quantity ?? 0);
@@ -84,7 +132,7 @@ function buildTableRows(input: SalesDocumentPreviewPdfInput, showImage: boolean,
           ? "code-small"
           : (line.productCode?.length ?? 0) > 16
             ? "code-medium"
-            : "";
+            : "code-main";
       const imageCell = showImage
         ? `<td class="col-image">
             ${
@@ -94,12 +142,16 @@ function buildTableRows(input: SalesDocumentPreviewPdfInput, showImage: boolean,
             }
           </td>`
         : "";
+      const detailGroupsHtml = buildLineDetailGroupsHtml(input, line);
 
       return `
-        <tr class="${index % 2 === 1 ? "row-alt" : ""}">
+        <tr>
           ${imageCell}
-          <td class="${codeClass}">${escapeHtml(line.productCode ?? notSpecified)}</td>
-          <td>${escapeHtml(line.productName || notSpecified)}</td>
+          <td class="product-code-cell ${codeClass}">${escapeHtml(line.productCode ?? notSpecified)}</td>
+          <td class="product-name-cell">
+            <div class="product-name-main">${escapeHtml(line.productName || notSpecified)}</div>
+            ${detailGroupsHtml}
+          </td>
           <td class="center">${escapeHtml(quantityText)}</td>
           <td class="num">${escapeHtml(formatMoney(unitPriceValue, input.currencyCode, input.locale))}</td>
           <td class="num">${escapeHtml(formatMoney(line.lineTotal, input.currencyCode, input.locale))}</td>
@@ -167,6 +219,7 @@ function buildHtml(input: SalesDocumentPreviewPdfInput): string {
   const footerNoteBlock = labels.footerNote?.trim()
     ? `<div class="footer-note">${escapeHtml(labels.footerNote.trim())}</div>`
     : "";
+  const footerDetailsLeft = buildFooterDetailsLeft(input.footerDetails);
 
   const watermark = input.draft
     ? `<div class="watermark">${escapeHtml(labels.draftWatermark)}</div>`
@@ -301,17 +354,52 @@ function buildHtml(input: SalesDocumentPreviewPdfInput): string {
             text-align: left;
           }
           tbody td {
-            padding: 2.2mm 2mm;
+            padding: 2.5mm 2mm;
             vertical-align: top;
+            background: #ffffff;
           }
           tbody tr + tr td {
             border-top: 1px solid rgb(228, 214, 223);
           }
-          tbody tr.row-alt { background: rgb(252, 247, 250); }
           .center { text-align: center; }
           .num { text-align: right; white-space: nowrap; }
-          .code-medium { font-size: 7pt; }
-          .code-small { font-size: 6pt; }
+          .product-code-cell {
+            font-size: 8.8pt;
+            font-weight: 600;
+          }
+          .code-main { font-size: 8.8pt; }
+          .code-medium { font-size: 7.5pt; }
+          .code-small { font-size: 6.8pt; }
+          .product-name-cell {
+            min-width: 42mm;
+          }
+          .product-name-main {
+            font-size: 8.8pt;
+            font-weight: 600;
+            line-height: 1.25;
+            margin-bottom: 0.8mm;
+          }
+          .detail-group {
+            margin-top: 0.6mm;
+          }
+          .detail-group-inline {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2mm 3mm;
+          }
+          .detail-inline-item,
+          .detail-block {
+            font-size: 6pt;
+            line-height: 1.35;
+            color: rgb(42, 27, 42);
+          }
+          .detail-label {
+            font-weight: 700;
+            color: rgb(60, 22, 54);
+          }
+          .detail-value {
+            word-break: break-word;
+          }
           .col-image { width: 16mm; text-align: center; }
           .line-image {
             width: 12mm;
@@ -329,11 +417,35 @@ function buildHtml(input: SalesDocumentPreviewPdfInput): string {
           }
           .footer-wrap {
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 6mm;
             page-break-inside: avoid;
+          }
+          .footer-details-left {
+            flex: 1;
+            max-width: 100mm;
+            font-size: 7.5pt;
+            line-height: 1.4;
+            color: rgb(42, 27, 42);
+          }
+          .footer-detail-block + .footer-detail-block {
+            margin-top: 2.5mm;
+          }
+          .footer-detail-label {
+            font-size: 7pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: rgb(60, 22, 54);
+            margin-bottom: 0.8mm;
+          }
+          .footer-detail-value {
+            white-space: pre-wrap;
+            word-break: break-word;
           }
           .footer-card {
             width: 88mm;
+            flex-shrink: 0;
             border: 1px solid rgb(228, 214, 223);
             border-radius: 2.5mm;
             overflow: hidden;
@@ -432,6 +544,7 @@ function buildHtml(input: SalesDocumentPreviewPdfInput): string {
           </div>
 
           <div class="footer-wrap">
+            ${footerDetailsLeft}
             ${buildFooterRows(input, labels)}
           </div>
           ${footerNoteBlock}

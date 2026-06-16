@@ -61,7 +61,23 @@ export interface QuotationPreviewPdfLineInput {
   lineTotal: number;
   imagePath: string | null;
   imageDataUri?: string | null;
+  description1?: string | null;
+  description2?: string | null;
+  description3?: string | null;
+  profilDefinitionId?: number | null;
+  demirDefinitionId?: number | null;
+  vidaDefinitionId?: number | null;
+  vidaDefinitionName?: string | null;
+  baskiDefinitionId?: number | null;
+  baskiDefinitionName?: string | null;
+  baskiAciklama?: string | null;
 }
+
+import type {
+  PreviewPdfFooterDetailBlock,
+  PreviewPdfLineDetailLabels,
+  PreviewPdfLineDetailMaps,
+} from "../../../lib/salesDocumentPreviewPdf";
 
 export interface QuotationPreviewPdfInput {
   offerDate: string | null;
@@ -76,6 +92,9 @@ export interface QuotationPreviewPdfInput {
   draft: boolean;
   lines: QuotationPreviewPdfLineInput[];
   labels?: QuotationPreviewPdfLabels;
+  footerDetails?: PreviewPdfFooterDetailBlock[];
+  lineDetailLabels?: PreviewPdfLineDetailLabels;
+  lineDetailMaps?: PreviewPdfLineDetailMaps;
 }
 
 export interface QuotationPreviewDocumentTotals {

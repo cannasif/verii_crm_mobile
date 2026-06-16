@@ -1,5 +1,10 @@
 import type { Branch } from "../../auth/types";
 import { resolveCurrencyIsoCode } from "../../../lib/currencyDisplay";
+import type {
+  PreviewPdfFooterDetailBlock,
+  PreviewPdfLineDetailLabels,
+  PreviewPdfLineDetailMaps,
+} from "../../../lib/salesDocumentPreviewPdf";
 import type { QuotationLineFormState } from "../types";
 import { flattenQuotationLinesForPdf } from "./flattenQuotationLinesForPdf";
 import {
@@ -19,6 +24,9 @@ export interface BuildQuotationPreviewPdfInputParams {
   draft?: boolean;
   lines: QuotationLineFormState[];
   locale?: string;
+  footerDetails?: PreviewPdfFooterDetailBlock[];
+  lineDetailLabels?: PreviewPdfLineDetailLabels;
+  lineDetailMaps?: PreviewPdfLineDetailMaps;
 }
 
 export function buildQuotationPreviewPdfInput(
@@ -43,5 +51,8 @@ export function buildQuotationPreviewPdfInput(
     draft: params.draft ?? false,
     lines: flattenQuotationLinesForPdf(params.lines),
     labels: QUOTATION_PREVIEW_PDF_LABELS_TR,
+    footerDetails: params.footerDetails,
+    lineDetailLabels: params.lineDetailLabels,
+    lineDetailMaps: params.lineDetailMaps,
   };
 }

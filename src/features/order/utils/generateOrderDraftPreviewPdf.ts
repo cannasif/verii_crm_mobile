@@ -1,5 +1,7 @@
 import type { TFunction } from "i18next";
 import { resolveCurrencyIsoCode } from "../../../lib/currencyDisplay";
+import { buildSalesDocumentPreviewPdfExtras } from "../../../lib/salesDocumentPreviewPdf";
+import { fetchWindoLineDetailMapsForPdf } from "../../windo-profil-demir-vida";
 import { resolveOrderCustomerLabelForPdf } from "./resolveOrderCustomerLabelForPdf";
 import type { Branch } from "../../auth/types/index";
 import { orderApi } from "../api/orderApi";
@@ -8,6 +10,7 @@ import { buildOrderPreviewPdfInput } from "./buildOrderPreviewPdfInput";
 import { buildOrderPreviewPdfLabels } from "./buildOrderPreviewPdfLabels";
 import { createV3riiOrderPreviewPdf } from "./createV3riiOrderPreviewPdf";
 import { mapDetailLinesToFormState } from "./orderDetailMappers";
+import { mapApiLinesToLocalizedFormState } from "../../stocks/utils";
 
 function resolveLocale(language: string): string {
   if (language.startsWith("tr")) return "tr-TR";
@@ -26,7 +29,11 @@ export async function generateOrderDraftPreviewPdf(
     orderApi.getLinesByOrder(order.id),
   ]);
 
-  const formLines = mapDetailLinesToFormState(lineDetails);
+  const formLines = await mapApiLinesToLocalizedFormState(
+    lineDetails,
+    mapDetailLinesToFormState,
+    language
+  );
   if (formLines.length === 0) {
     throw new Error("ORDER_PDF_NO_LINES");
   }
@@ -46,6 +53,15 @@ export async function generateOrderDraftPreviewPdf(
   const generalDiscountAmount =
     (headerRecord.generalDiscountAmount as number | null | undefined) ?? null;
 
+  const lineDetailMaps = await fetchWindoLineDetailMapsForPdf();
+  const pdfExtras = buildSalesDocumentPreviewPdfExtras({
+    t,
+    koliBaskiDefinitionId: header.koliBaskiDefinitionId ?? order.koliBaskiDefinitionId,
+    koliBaskiDefinitionName: header.koliBaskiDefinitionName ?? order.koliBaskiDefinitionName,
+    description: header.description ?? order.description,
+    lineDetailMaps,
+  });
+
   const input = buildOrderPreviewPdfInput({
     offerDate: header.offerDate ?? order.offerDate,
     offerNo: header.offerNo ?? order.offerNo,
@@ -61,6 +77,9 @@ export async function generateOrderDraftPreviewPdf(
     lines: formLines,
     locale: resolveLocale(language),
     t,
+    footerDetails: pdfExtras.footerDetails,
+    lineDetailLabels: pdfExtras.lineDetailLabels,
+    lineDetailMaps: pdfExtras.lineDetailMaps,
   });
 
   return createV3riiOrderPreviewPdf(input);

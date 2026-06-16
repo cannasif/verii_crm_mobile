@@ -1,11 +1,15 @@
 import { resolveCurrencyIsoCode } from "../../../lib/currencyDisplay";
+import { buildSalesDocumentPreviewPdfExtras } from "../../../lib/salesDocumentPreviewPdf";
+import { fetchWindoLineDetailMapsForPdf } from "../../windo-profil-demir-vida";
 import type { Branch } from "../../auth/types/index";
 import { quotationApi } from "../api/quotationApi";
 import type { QuotationGetDto } from "../types";
 import { buildQuotationPreviewPdfInput } from "./buildQuotationPreviewPdfInput";
 import { createV3riiQuotationPreviewPdf } from "./createV3riiQuotationPreviewPdf";
 import { mapDetailLinesToFormState } from "./quotationDetailMappers";
+import { mapApiLinesToLocalizedFormState } from "../../stocks/utils";
 import { resolveQuotationCustomerLabelForPdf } from "./resolveQuotationCustomerLabelForPdf";
+import i18n from "../../../locales";
 
 function resolveLocale(language: string): string {
   if (language.startsWith("tr")) return "tr-TR";
@@ -23,7 +27,11 @@ export async function generateQuotationDraftPreviewPdf(
     quotationApi.getLinesByQuotation(quotation.id),
   ]);
 
-  const formLines = mapDetailLinesToFormState(lineDetails);
+  const formLines = await mapApiLinesToLocalizedFormState(
+    lineDetails,
+    mapDetailLinesToFormState,
+    language
+  );
   if (formLines.length === 0) {
     throw new Error("QUOTATION_PDF_NO_LINES");
   }
@@ -41,6 +49,15 @@ export async function generateQuotationDraftPreviewPdf(
   const generalDiscountAmount =
     (headerRecord.generalDiscountAmount as number | null | undefined) ?? null;
 
+  const lineDetailMaps = await fetchWindoLineDetailMapsForPdf();
+  const pdfExtras = buildSalesDocumentPreviewPdfExtras({
+    t: i18n.t.bind(i18n),
+    koliBaskiDefinitionId: header.koliBaskiDefinitionId ?? quotation.koliBaskiDefinitionId,
+    koliBaskiDefinitionName: header.koliBaskiDefinitionName ?? quotation.koliBaskiDefinitionName,
+    description: header.description ?? quotation.description,
+    lineDetailMaps,
+  });
+
   const input = buildQuotationPreviewPdfInput({
     offerDate: header.offerDate ?? quotation.offerDate,
     offerNo: header.offerNo ?? quotation.offerNo,
@@ -55,6 +72,9 @@ export async function generateQuotationDraftPreviewPdf(
     draft: true,
     lines: formLines,
     locale: resolveLocale(language),
+    footerDetails: pdfExtras.footerDetails,
+    lineDetailLabels: pdfExtras.lineDetailLabels,
+    lineDetailMaps: pdfExtras.lineDetailMaps,
   });
 
   return createV3riiQuotationPreviewPdf(input);

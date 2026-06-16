@@ -18,6 +18,16 @@ function mapLine(line: OrderLineFormState): SalesDocumentPreviewPdfLineInput {
     vatAmount: line.vatAmount ?? 0,
     lineTotal: line.lineTotal ?? 0,
     imagePath: line.imagePath ?? line.pendingImageUri ?? null,
+    description1: line.description1 ?? null,
+    description2: line.description2 ?? null,
+    description3: line.description3 ?? null,
+    profilDefinitionId: line.profilDefinitionId ?? null,
+    demirDefinitionId: line.demirDefinitionId ?? null,
+    vidaDefinitionId: line.vidaDefinitionId ?? null,
+    vidaDefinitionName: line.vidaDefinitionName ?? null,
+    baskiDefinitionId: line.baskiDefinitionId ?? null,
+    baskiDefinitionName: line.baskiDefinitionName ?? null,
+    baskiAciklama: line.baskiAciklama ?? null,
   };
 }
 
