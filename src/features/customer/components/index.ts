@@ -8,5 +8,6 @@ export { LocationPicker } from "./LocationPicker";
 export { CustomerPicker } from "./CustomerPicker";
 export { FormField } from "./FormField";
 export { CustomerDetailContent } from "./CustomerDetailContent";
+export { CustomerErpReadOnlyBanner } from "./CustomerErpReadOnlyBanner";
 export { BusinessCardReviewModal } from "./BusinessCardReviewModal";
 export { PremiumPicker } from "./PremiumPicker";

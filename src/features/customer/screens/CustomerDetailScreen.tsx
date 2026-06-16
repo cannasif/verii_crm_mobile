@@ -28,6 +28,10 @@ import {
 } from "../hooks";
 import { CustomerDetailContent } from "../components/CustomerDetailContent";
 import {
+  isErpIntegratedCustomer,
+  resolveErpCustomerCodeForSelection,
+} from "../../../lib/customerIntegration";
+import {
   Edit02Icon,
   Delete02Icon,
   AlertCircleIcon,
@@ -111,6 +115,11 @@ export function CustomerDetailScreen(): React.ReactElement {
   const isUploadingImage = uploadCustomerImage.isPending;
   const isUpdatingLocation = updateCustomer.isPending || isLocating;
 
+  const isErpReadOnly = useMemo(
+    () => (customer ? isErpIntegratedCustomer(customer) : false),
+    [customer]
+  );
+
   const handleEditPress = useCallback(() => {
     if (customer) {
       router.push(`/customers/edit/${customer.id}`);
@@ -130,7 +139,7 @@ export function CustomerDetailScreen(): React.ReactElement {
       params: {
         customerId: String(customer.id ?? ""),
         customerName: customer.name ?? "",
-        customerCode: customer.customerCode ?? "",
+        customerCode: resolveErpCustomerCodeForSelection(customer) ?? "",
       },
     });
   }, [router, customer]);
@@ -147,7 +156,7 @@ export function CustomerDetailScreen(): React.ReactElement {
       params: {
         customerId: String(customer.id ?? ""),
         customerName: customer.name ?? "",
-        customerCode: customer.customerCode ?? "",
+        customerCode: resolveErpCustomerCodeForSelection(customer) ?? "",
         initialStartDateTime: start.toISOString(),
         initialEndDateTime: end.toISOString(),
       },
@@ -315,7 +324,7 @@ export function CustomerDetailScreen(): React.ReactElement {
             title={t("customer.detail")}
             showBackButton
             rightElement={
-              customer ? (
+              customer && !isErpReadOnly ? (
                 <View style={styles.headerActions}>
                   <TouchableOpacity
                     onPress={handleEditPress}
@@ -414,6 +423,7 @@ export function CustomerDetailScreen(): React.ReactElement {
               customer={customer}
               images={customerImages}
               isUploadingImage={isUploadingImage || isImagesLoading}
+              isReadOnly={isErpReadOnly}
               insets={insets}
               t={t}
               on360Press={handleCustomer360Press}

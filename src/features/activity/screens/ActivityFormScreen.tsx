@@ -45,6 +45,7 @@ import {
   type ActivityImageDto,
 } from "../types";
 import type { CustomerDto } from "../../customer/types";
+import { resolveErpCustomerCodeForSelection } from "../../../lib/customerIntegration";
 import type { ContactDto } from "../../contact/types";
 import { activityImageApi } from "../api";
 import { getApiBaseUrl } from "../../../constants/config";
@@ -387,7 +388,7 @@ export function ActivityFormScreen(): React.ReactElement {
       activityType: "",
       activityTypeId: undefined,
       potentialCustomerId: initialCustomerId,
-      erpCustomerCode: customerCode || "",
+      erpCustomerCode: customerCode?.trim() ? customerCode : "",
       productCode: "",
       productName: "",
       status: "Scheduled",
@@ -412,7 +413,8 @@ export function ActivityFormScreen(): React.ReactElement {
         ? ({
             id: initialCustomerId,
             name: customerName || "",
-            customerCode: customerCode || undefined,
+            customerCode: customerCode?.trim() ? customerCode : undefined,
+            isERPIntegrated: Boolean(customerCode?.trim()),
           } as CustomerDto)
         : undefined
     );
@@ -578,6 +580,10 @@ export function ActivityFormScreen(): React.ReactElement {
     (customer: CustomerDto | undefined) => {
       setSelectedCustomer(customer);
       setValue("potentialCustomerId", customer?.id);
+      setValue(
+        "erpCustomerCode",
+        customer ? resolveErpCustomerCodeForSelection(customer) ?? "" : ""
+      );
       setSelectedContact(undefined);
       setValue("contactId", undefined);
     },

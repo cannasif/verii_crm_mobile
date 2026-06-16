@@ -28,6 +28,10 @@ import {
   CustomerDetailContent,
 } from "../../../../features/customer";
 import {
+  isErpIntegratedCustomer,
+  resolveErpCustomerCodeForSelection,
+} from "../../../../lib/customerIntegration";
+import {
   useCustomerContacts,
   ContactListCard,
   type ContactDto,
@@ -174,6 +178,16 @@ function CustomerDetailPage(): React.ReactElement {
     refetch,
   } = useCustomer(customerId);
 
+  const erpCustomerCode = useMemo(
+    () => (customer ? resolveErpCustomerCodeForSelection(customer) : undefined),
+    [customer]
+  );
+
+  const isErpReadOnly = useMemo(
+    () => (customer ? isErpIntegratedCustomer(customer) : false),
+    [customer]
+  );
+
   const {
     data: customerImages = [],
     refetch: refetchCustomerImages,
@@ -201,12 +215,12 @@ function CustomerDetailPage(): React.ReactElement {
     staleTime: 30 * 1000,
   });
 
-  const erpQuotationFilters: PagedFilter[] | undefined = customer?.customerCode
+  const erpQuotationFilters: PagedFilter[] | undefined = erpCustomerCode
     ? [
         {
           column: "ErpCustomerCode",
           operator: "eq",
-          value: String(customer.customerCode),
+          value: erpCustomerCode,
         },
       ]
     : undefined;
@@ -222,7 +236,7 @@ function CustomerDetailPage(): React.ReactElement {
   });
 
   const customerQuotations = useMemo<QuotationGetDto[]>(() => {
-    if (customer?.customerCode) {
+    if (erpCustomerCode) {
       const erpItems = erpQuotationPages?.pages?.[0]?.items ?? [];
       return [...erpItems]
         .sort((a, b) => b.id - a.id)
@@ -233,7 +247,7 @@ function CustomerDetailPage(): React.ReactElement {
     return [...crmItems]
       .sort((a, b) => b.id - a.id)
       .slice(0, 5);
-  }, [customer?.customerCode, crmQuotations, erpQuotationPages]);
+  }, [erpCustomerCode, crmQuotations, erpQuotationPages]);
 
   const isQuotationLoading = isCrmQuotationLoading || isErpQuotationLoading;
 
@@ -257,7 +271,7 @@ function CustomerDetailPage(): React.ReactElement {
       params: {
         customerId: String(customer.id ?? ""),
         customerName: customer.name ?? "",
-        customerCode: customer.customerCode ?? "",
+        customerCode: erpCustomerCode ?? "",
       },
     });
   }, [router, customer]);
@@ -275,7 +289,7 @@ function CustomerDetailPage(): React.ReactElement {
     params: {
       customerId: String(customer.id ?? ""),
       customerName: customer.name ?? "",
-      customerCode: customer.customerCode ?? "",
+      customerCode: erpCustomerCode ?? "",
       initialStartDateTime: start.toISOString(),
       initialEndDateTime: end.toISOString(),
       quickActivityMode: "true",
@@ -483,6 +497,7 @@ function CustomerDetailPage(): React.ReactElement {
             isQuotationLoading={isQuotationLoading}
             isUploadingImage={uploadCustomerImage.isPending}
             isUpdatingLocation={isUpdatingLocation}
+            isReadOnly={isErpReadOnly}
             insets={insets}
             t={t}
             on360Press={handleCustomer360Press}
@@ -521,7 +536,7 @@ function CustomerDetailPage(): React.ReactElement {
               title={t("customer.detail")}
               showBackButton
               rightElement={
-                customer ? (
+                customer && !isErpReadOnly ? (
                   <View
                     style={[
                       styles.actionPill,
@@ -752,7 +767,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderRadius: 20,
     height: 38,
-    marginRight: 50,
     overflow: "hidden",
   },
   pillButton: {

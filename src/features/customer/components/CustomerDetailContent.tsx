@@ -27,6 +27,8 @@ import {
   canOpenCustomerMap,
   hasValidCustomerCoordinates,
 } from "../utils/customerCoordinates";
+import { isErpIntegratedCustomer } from "../../../lib/customerIntegration";
+import { CustomerErpReadOnlyBanner } from "./CustomerErpReadOnlyBanner";
 import type { QuotationGetDto } from "../../../features/quotation/types";
 import { formatSystemCurrency, formatSystemDate, formatSystemNumber, getSystemLocale } from "../../../lib/systemSettings";
 import {
@@ -404,6 +406,7 @@ interface CustomerDetailContentProps {
   isQuotationLoading?: boolean;
   isUploadingImage: boolean;
   isUpdatingLocation?: boolean;
+  isReadOnly?: boolean;
   insets: { bottom: number };
   t: (key: string, options?: Record<string, string | number>) => string;
   on360Press: () => void;
@@ -422,6 +425,7 @@ export function CustomerDetailContent({
   isQuotationLoading = false,
   isUploadingImage,
   isUpdatingLocation = false,
+  isReadOnly = false,
   insets,
   t,
   on360Press,
@@ -439,6 +443,7 @@ export function CustomerDetailContent({
   const previewListRef = useRef<FlatList<CustomerImageDto>>(null);
 
   const safeCustomerName = customer?.name?.trim() || t("customer.unnamedCustomer");
+  const showErpBadge = isErpIntegratedCustomer(customer);
   const initials = getInitials(safeCustomerName);
   const avatarColor = getAvatarColor(safeCustomerName);
   const salesRepValue = formatSalesRep(customer?.salesRepCode) || t("customer.unspecified");
@@ -557,6 +562,10 @@ export function CustomerDetailContent({
         contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 100 }}
         showsVerticalScrollIndicator={false}
       >
+        {isReadOnly ? (
+          <CustomerErpReadOnlyBanner style={styles.erpBanner} />
+        ) : null}
+
         <View
           style={[
             styles.profileCard,
@@ -580,6 +589,12 @@ export function CustomerDetailContent({
                 #{customer?.customerCode || "---"}
               </Text>
             </View>
+
+            {showErpBadge ? (
+              <View style={[styles.erpStatusBadge, { backgroundColor: theme.primary + "14", borderColor: theme.primary + "30" }]}>
+                <Text style={[styles.erpStatusBadgeText, { color: theme.primary }]}>ERP</Text>
+              </View>
+            ) : null}
 
             <TouchableOpacity
               style={[
@@ -1269,6 +1284,24 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     letterSpacing: 0.4,
     opacity: 0.88,
+  },
+
+  erpBanner: {
+    marginBottom: 10,
+  },
+
+  erpStatusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+
+  erpStatusBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.6,
   },
 
   btn360: {

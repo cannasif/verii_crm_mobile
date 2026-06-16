@@ -22,6 +22,11 @@ import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useCustomers } from "../hooks";
 import type { CustomerGetDto } from "../types";
+import {
+  formatCustomerSelectLabel,
+  resolveCustomerSelectKind,
+  resolveErpCustomerCodeForSelection,
+} from "../../../lib/customerIntegration";
 // YENİ İKONLAR (Stroke Varyantı)
 import { 
   Search01Icon, 
@@ -45,10 +50,7 @@ interface CustomerWithType extends CustomerGetDto {
 }
 
 function getCustomerType(c: CustomerGetDto): CustomerType {
-  const isIntegrated = c.isERPIntegrated === true;
-  const hasCode =
-    c.customerCode != null && String(c.customerCode).trim() !== "";
-  return isIntegrated || hasCode ? "erp" : "potential";
+  return resolveCustomerSelectKind(c) === "erp" ? "erp" : "potential";
 }
 
 interface CustomerSelectDialogProps {
@@ -209,10 +211,7 @@ export function CustomerSelectDialog({
     (item: CustomerWithType) => {
       onSelect({
         customerId: item.id,
-        erpCustomerCode:
-          item.type === "erp" && item.customerCode
-            ? item.customerCode
-            : undefined,
+        erpCustomerCode: resolveErpCustomerCodeForSelection(item),
         customerName: item.name,
       });
       onOpenChange(false);
@@ -488,6 +487,7 @@ function CustomerSelectRow({
 }: CustomerSelectRowProps): React.ReactElement {
   const badgeColor = item.type === "erp" ? BADGE_ERP : BADGE_POTENTIAL;
   const badgeLabel = item.type === "erp" ? "ERP" : "CRM";
+  const displayLabel = formatCustomerSelectLabel(item);
   const location = [item.cityName, item.districtName]
     .filter(Boolean)
     .join(", ");
@@ -507,18 +507,9 @@ function CustomerSelectRow({
         <View style={[styles.badge, { backgroundColor: badgeColor + "16", borderColor: badgeColor + "48", borderWidth: 1 }]}>
           <Text style={[styles.badgeText, { color: badgeColor }]}>{badgeLabel}</Text>
         </View>
-        <Text style={[styles.rowName, { color: theme.text }]} numberOfLines={1}>
-          {item.name}
+        <Text style={[styles.rowName, { color: theme.text }]} numberOfLines={2}>
+          {displayLabel}
         </Text>
-      </View>
-      <View style={styles.rowCodeWrap}>
-        <Ionicons name="pricetag-outline" size={12} color={theme.textMute} />
-        {item.type === "potential" ? <Text style={[styles.rowCodeDash, { color: theme.textMute }]}>-</Text> : null}
-        {item.customerCode ? (
-          <Text style={[styles.rowCode, { color: theme.textMute }]} numberOfLines={1}>
-            {item.customerCode}
-          </Text>
-        ) : null}
       </View>
       
       <View style={styles.rowDetails}>

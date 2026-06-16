@@ -44,7 +44,8 @@ import {
   useQrCustomerScan
 } from "../hooks";
 import { useCustomerShippingAddresses } from "../../shipping-address/hooks/useShippingAddresses";
-import { BusinessCardReviewModal, FormField, LocationPicker, PremiumPicker } from "../components";
+import { BusinessCardReviewModal, CustomerErpReadOnlyBanner, FormField, LocationPicker, PremiumPicker } from "../components";
+import { isErpIntegratedCustomer } from "../../../lib/customerIntegration";
 import { createCustomerSchema, type CustomerFormData } from "../schemas";
 import type { CountryDto, CityDto, DistrictDto } from "../types";
 import type { BusinessCardOcrResult } from "../types/businessCard";
@@ -201,6 +202,10 @@ export function CustomerFormScreen(): React.ReactElement {
   const [isPotentialMatchSearchEnabled, setIsPotentialMatchSearchEnabled] = useState(false);
 
   const { data: existingCustomer, isLoading: customerLoading } = useCustomer(customerId);
+  const isErpReadOnly = useMemo(
+    () => Boolean(isEditMode && existingCustomer && isErpIntegratedCustomer(existingCustomer)),
+    [isEditMode, existingCustomer]
+  );
   const { data: customerTypes } = useCustomerTypes();
   const { data: customerShippingAddresses = [] } = useCustomerShippingAddresses(customerId);
   const createCustomer = useCreateCustomer();
@@ -493,6 +498,7 @@ export function CustomerFormScreen(): React.ReactElement {
   }, []);
 
   const onSubmit = useCallback(async (data: CustomerFormData) => {
+    if (isErpReadOnly) return;
     try {
       const splitContactName = (fullName: string | null): { firstName?: string; middleName?: string; lastName?: string } => {
         if (!fullName || !fullName.trim()) return {};
@@ -610,6 +616,7 @@ export function CustomerFormScreen(): React.ReactElement {
     }
   }, [
     isEditMode,
+    isErpReadOnly,
     customerId,
     existingCustomer?.completionDate,
     createCustomer,
@@ -623,6 +630,10 @@ export function CustomerFormScreen(): React.ReactElement {
     scannedContactName,
     scannedTitle
   ]);
+
+  const formInteractionProps = isErpReadOnly
+    ? { pointerEvents: "none" as const, style: { opacity: 0.72 } }
+    : {};
 
   const onError = useCallback((formErrors: any) => {
     showToast("error", "Lütfen kırmızı ile işaretlenmiş zorunlu alanları doldurun.");
@@ -927,6 +938,13 @@ export function CustomerFormScreen(): React.ReactElement {
             }}
             scrollEventThrottle={16}
           >
+            {isErpReadOnly ? (
+              <View style={styles.erpBannerWrap}>
+                <CustomerErpReadOnlyBanner />
+              </View>
+            ) : null}
+
+            <View {...formInteractionProps}>
             <View style={[
               styles.tabContainer, 
               { 
@@ -975,7 +993,7 @@ export function CustomerFormScreen(): React.ReactElement {
         
             {activeTab === "general" ? (
             <View style={{ gap: 10 }}>
-              {(!isEditMode && formConfig.showBusinessCardScan) && (
+              {(!isEditMode && formConfig.showBusinessCardScan && !isErpReadOnly) && (
                 <>
                 <View style={[styles.scannerContainer, { borderColor: THEME.primary, backgroundColor: `${THEME.primary}08` }]}>
                   <View style={styles.scannerContent}>
@@ -1079,6 +1097,7 @@ export function CustomerFormScreen(): React.ReactElement {
                                 onChangeText={onChange}
                                 maxLength={100}
                                 returnKeyType="next"
+                                description={t("customer.customerCodeHint")}
                               />
                             )}
                           />
@@ -1283,7 +1302,7 @@ export function CustomerFormScreen(): React.ReactElement {
                   {formConfig.showLocation && (
                     <View style={styles.locationSection}>
                       <Text style={[styles.subSectionTitle, { color: THEME.textMute }]}>{t("lookup.location")}</Text>
-                      <LocationPicker countryId={watchCountryId} cityId={watchCityId} districtId={watch("districtId")} onCountryChange={handleCountryChange} onCityChange={handleCityChange} onDistrictChange={handleDistrictChange} />
+                      <LocationPicker countryId={watchCountryId} cityId={watchCityId} districtId={watch("districtId")} onCountryChange={handleCountryChange} onCityChange={handleCityChange} onDistrictChange={handleDistrictChange} disabled={isErpReadOnly} />
                     </View>
                   )}
 
@@ -1389,6 +1408,7 @@ export function CustomerFormScreen(): React.ReactElement {
                 </TouchableOpacity>
               </View>
             ) : (
+              !isErpReadOnly ? (
               <TouchableOpacity 
                 activeOpacity={0.8}
                 onPress={handleSubmit(onSubmit, onError)}
@@ -1410,7 +1430,10 @@ export function CustomerFormScreen(): React.ReactElement {
                   )}
                 </LinearGradient>
               </TouchableOpacity>
+              ) : null
             )}
+
+            </View>
 
           </ScrollView>
         </KeyboardAvoidingView>
@@ -1470,6 +1493,9 @@ export function CustomerFormScreen(): React.ReactElement {
 }
 
 const styles = StyleSheet.create({
+  erpBannerWrap: {
+    marginBottom: 8,
+  },
   container: { flex: 1 },
   content: { flex: 1 },
   contentContainer: { padding: 10, gap: 5 }, 

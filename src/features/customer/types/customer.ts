@@ -27,6 +27,7 @@ export interface CustomerGetDto {
   defaultShippingAddressId?: number;
   branchCode?: number;
   businessUnitCode?: number;
+  isIntegrated?: boolean;
   isERPIntegrated?: boolean;
   erpIntegrationNumber?: string;
   lastSyncDate?: string;

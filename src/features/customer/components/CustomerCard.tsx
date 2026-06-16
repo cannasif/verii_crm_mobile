@@ -17,6 +17,7 @@ import {
 } from "hugeicons-react-native";
 import type { CustomerDto } from "../types"; 
 import { useUIStore } from "../../../store/ui";
+import { isErpIntegratedCustomer } from "../../../lib/customerIntegration";
 import i18n from "../../../locales";
 
 const { width } = Dimensions.get('window');
@@ -67,6 +68,8 @@ const CustomerCardComponent = ({ customer, viewMode, onPress, onQuickActivityPre
     const parts = [customer.cityName, customer.countryName].filter(Boolean);
     return parts.length > 0 ? parts.join(", ") : null;
   }, [customer]);
+
+  const showErpBadge = isErpIntegratedCustomer(customer);
 
   // --- TEMA RENKLERİ ---
   const THEME = {
@@ -131,7 +134,7 @@ const CustomerCardComponent = ({ customer, viewMode, onPress, onQuickActivityPre
               {/* SOL SÜTUN: Avatar ve ERP */}
               <View style={styles.avatarColumn}>
                 <AvatarBox size={44} /> 
-                {customer.isERPIntegrated ? (
+                {showErpBadge ? (
                   <View style={[styles.erpBadge, { backgroundColor: THEME.erpBg }]}>
                     <Text style={[styles.erpText, { color: THEME.erpText }]}>ERP</Text>
                   </View>
@@ -211,7 +214,7 @@ const CustomerCardComponent = ({ customer, viewMode, onPress, onQuickActivityPre
             
             <View style={styles.listLeft}>
               <AvatarBox size={44} />
-              {customer.isERPIntegrated ? (
+              {showErpBadge ? (
                 <View style={[styles.erpBadge, { backgroundColor: THEME.erpBg }]}>
                   <Text style={[styles.erpText, { color: THEME.erpText }]}>ERP</Text>
                 </View>

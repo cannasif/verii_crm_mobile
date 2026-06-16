@@ -2,6 +2,8 @@ export interface Customer360ProfileDto {
   id: number;
   name: string;
   customerCode?: string | null;
+  isIntegrated?: boolean;
+  isERPIntegrated?: boolean;
 }
 
 export interface Customer360KpiDto {

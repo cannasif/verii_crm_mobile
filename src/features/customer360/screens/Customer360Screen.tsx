@@ -16,6 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Text } from "../../../components/ui/text";
 import { ScreenHeader } from "../../../components/navigation";
 import { useUIStore } from "../../../store/ui";
+import { isErpIntegratedCustomer } from "../../../lib/customerIntegration";
 import {
   useCustomer360Overview,
   useCustomer360AnalyticsSummary,
@@ -140,6 +141,7 @@ export function Customer360Screen({
   const rawName = profile?.name?.trim() || t("customer360.title");
   const rawCode = profile?.customerCode?.trim() || "";
   const displayCode = rawCode && rawCode !== rawName ? rawCode : "";
+  const showErpBadge = profile ? isErpIntegratedCustomer(profile) : false;
 
   const titleText = isDark ? "#E2E8F0" : "#475569";
   const strongText = isDark ? "#F8FAFC" : "#334155";
@@ -343,6 +345,11 @@ export function Customer360Screen({
               <Text style={[styles.customerName, { color: strongText }]} numberOfLines={1}>
                 {rawName}
               </Text>
+              {showErpBadge ? (
+                <View style={[styles.erpBadge, { backgroundColor: `${accent}14`, borderColor: `${accent}30` }]}>
+                  <Text style={[styles.erpBadgeText, { color: accent }]}>ERP</Text>
+                </View>
+              ) : null}
               {displayCode ? (
                 <Text style={[styles.customerCode, { color: mutedText }]} numberOfLines={1}>
                   #{displayCode}
@@ -604,6 +611,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
     lineHeight: 17,
+  },
+
+  erpBadge: {
+    alignSelf: "flex-start",
+    marginTop: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+
+  erpBadgeText: {
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 0.4,
   },
 
   customerCode: {

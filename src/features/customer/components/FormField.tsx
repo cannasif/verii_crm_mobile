@@ -16,6 +16,7 @@ interface FormFieldProps {
   onChangeText: (text: string) => void;
   placeholder?: string;
   error?: string;
+  description?: string;
   required?: boolean;
   multiline?: boolean;
   numberOfLines?: number;
@@ -38,6 +39,7 @@ export function FormField({
   onChangeText,
   placeholder,
   error,
+  description,
   required = false,
   multiline = false,
   numberOfLines = 1,
@@ -118,6 +120,9 @@ export function FormField({
         onKeyPress={onKeyPress}
       />
       
+      {description ? (
+        <Text style={[styles.description, { color: THEME.label }]}>{description}</Text>
+      ) : null}
       {error && <Text style={[styles.error, { color: THEME.error }]}>{error}</Text>}
     </View>
   );
@@ -138,5 +143,6 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   inputDisabled: { opacity: 0.6, backgroundColor: "rgba(0,0,0,0.02)" },
+  description: { fontSize: 10, marginTop: 4, lineHeight: 14, fontWeight: "400" },
   error: { fontSize: 10, marginTop: 2, fontWeight: "500" },
 });
