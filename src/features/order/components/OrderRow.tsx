@@ -13,8 +13,11 @@ import { UserIcon, Calendar03Icon, Coins01Icon } from "hugeicons-react-native";
 import type { OrderGetDto } from "../types";
 import { formatSystemDate } from "../../../lib/systemSettings";
 import { resolveDocumentApprovalStatusMeta } from "../../../lib/documentApprovalStatus";
+import { DocumentApprovalStatusBadge } from "../../../components/paged/DocumentApprovalStatusBadge";
+import { ErpCleanupInfoLine } from "../../../components/paged/ErpCleanupInfoLine";
 import { useToastStore } from "../../../store/toast";
 import { ApprovalStatus } from "../../../lib/documentApprovalFilter";
+import { resolveErpCleanupInfo } from "../../../lib/erpCleanupInfo";
 import {
   resolveSalesDocumentRowAmountText,
   resolveSalesDocumentRowCurrencyLabel,
@@ -30,21 +33,6 @@ interface OrderRowProps {
 function formatDate(dateString: string | null | undefined): string {
   if (!dateString) return "-";
   return formatSystemDate(dateString);
-}
-
-function resolveErpCleanupInfo(document: {
-  erpCleanupStatus?: number | null;
-  originalDocumentNumber?: string | null;
-  erpCleanupReason?: string | null;
-}): string | null {
-  const status = Number(document.erpCleanupStatus ?? 0);
-  if (status === 0) return null;
-  const label = status === 2 ? "ERP kaydı temizlenemedi" : "ERP kaydı revizyon için plasiyer tarafından kapatıldı";
-  const originalNo = document.originalDocumentNumber?.trim();
-  const reason = document.erpCleanupReason?.trim();
-  return [label, originalNo ? `Eski ERP No: ${originalNo}` : null, reason ? `Neden: ${reason}` : null]
-    .filter(Boolean)
-    .join(" · ");
 }
 
 function OrderRowComponent({
@@ -83,7 +71,7 @@ function OrderRowComponent({
 
   const currencyLabel = useMemo(() => resolveSalesDocumentRowCurrencyLabel(order), [order]);
   const amountText = useMemo(() => resolveSalesDocumentRowAmountText(order), [order]);
-  const erpCleanupInfo = resolveErpCleanupInfo(order);
+  const erpCleanupInfo = resolveErpCleanupInfo(order, t);
 
   const showToast = useToastStore((state) => state.showToast);
   const cancellationReason = order.cancellationReason?.trim();
@@ -138,35 +126,11 @@ function OrderRowComponent({
           ) : null}
         </View>
 
-        {canShowCancellationReason ? (
-          <Pressable
-            onPress={handleStatusPress}
-            hitSlop={6}
-            style={[
-              styles.statusPill,
-              {
-                backgroundColor: statusMeta.backgroundColor,
-                borderColor: statusMeta.borderColor,
-              },
-            ]}
-          >
-            <View style={[styles.statusDot, { backgroundColor: statusMeta.color }]} />
-            <Text style={[styles.statusText, { color: statusMeta.color }]}>{statusMeta.label}</Text>
-          </Pressable>
-        ) : (
-          <View
-            style={[
-              styles.statusPill,
-              {
-                backgroundColor: statusMeta.backgroundColor,
-                borderColor: statusMeta.borderColor,
-              },
-            ]}
-          >
-            <View style={[styles.statusDot, { backgroundColor: statusMeta.color }]} />
-            <Text style={[styles.statusText, { color: statusMeta.color }]}>{statusMeta.label}</Text>
-          </View>
-        )}
+        <DocumentApprovalStatusBadge
+          meta={statusMeta}
+          isDark={isDark}
+          onPress={canShowCancellationReason ? handleStatusPress : undefined}
+        />
       </View>
 
       <View style={styles.customerRow}>
@@ -200,9 +164,7 @@ function OrderRowComponent({
           ) : null}
 
           {erpCleanupInfo ? (
-            <Text style={[styles.metaLine, { color: isDark ? "#FBBF24" : "#B45309" }]} numberOfLines={2}>
-              ERP: {erpCleanupInfo}
-            </Text>
+            <ErpCleanupInfoLine text={erpCleanupInfo} isDark={isDark} />
           ) : null}
         </View>
       </View>
@@ -316,26 +278,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "500",
     lineHeight: 13,
-  },
-  statusPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-    borderWidth: 1,
-    gap: 5,
-    flexShrink: 0,
-  },
-  statusDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-  },
-  statusText: {
-    fontWeight: "700",
-    fontSize: 9,
-    textTransform: "uppercase",
   },
   customerRow: {
     flexDirection: "row",

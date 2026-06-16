@@ -59,6 +59,22 @@ function normalizeKurDto(item: unknown): ExchangeRateDto {
 }
 
 export const orderApi = {
+  canEditWhileWaiting: async (orderId: number): Promise<boolean> => {
+    const response = await apiClient.get<ApproveResponse>(
+      `/api/approval/order/${orderId}/can-edit`
+    );
+
+    if (!response.data.success) {
+      throw new Error(
+        response.data.message ||
+          response.data.exceptionMessage ||
+          "Düzenleme yetkisi kontrol edilemedi"
+      );
+    }
+
+    return response.data.data === true;
+  },
+
   getWaitingApprovals: async (): Promise<ApprovalActionGetDto[]> => {
     const response = await apiClient.get<WaitingApprovalsResponse>(
       "/api/order/waiting-approvals"
@@ -104,10 +120,14 @@ export const orderApi = {
     return response.data.data ?? false;
   },
 
-  startApprovalFlow: async (orderId: number): Promise<boolean> => {
+  startApprovalFlow: async (data: {
+    entityId: number;
+    documentType: number;
+    totalAmount: number;
+  }): Promise<boolean> => {
     const response = await apiClient.post<ApproveResponse>(
-      `/api/Order/${orderId}/start-approval`,
-      {}
+      "/api/order/start-approval-flow",
+      data
     );
 
     if (!response.data.success) {

@@ -27,8 +27,11 @@ import { stockApi } from "../../stocks/api";
 import { useStock } from "../../stocks/hooks";
 import { parseDecimalInput, sanitizeDecimalInput } from "../../../lib/decimal-input";
 import { getApiBaseUrl } from "../../../constants/config";
+import { getCurrencyDisplayLabel } from "../../../lib/currencyDisplay";
+import { resolveDocumentLineProductName } from "../../stocks/utils";
 import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida/hooks/useWindoDefinitionOptions";
 import { BaskiQuickCreateModal } from "../../windo-profil-demir-vida/components/BaskiQuickCreateModal";
+import { LineFormDescriptionFieldsSection } from "@/components/shared/line-form";
 import type {
   OrderLineFormState,
   PricingRuleLineGetDto,
@@ -59,6 +62,12 @@ interface OrderLineFormProps {
   allowImageUpload?: boolean;
   imageUploadScope?: "order-line";
   imageUploadExtras?: Omit<UploadReportAssetOptions, "assetScope">;
+}
+
+function normalizeCurrencyCode(value?: string | null): string {
+  const normalized = String(value ?? "").trim().toUpperCase();
+  if (normalized === "TL" || normalized === "TRY") return "TRY";
+  return normalized;
 }
 
 function resolveMobileImageUri(path?: string | null): string | null {
@@ -96,11 +105,30 @@ export function OrderLineForm({
   imageUploadScope = "order-line",
   imageUploadExtras,
 }: OrderLineFormProps): React.ReactElement {
-  const { t } = useTranslation();
-  const { colors, showUnitInStockSelection } = useUIStore();
+  const { t, i18n } = useTranslation();
+  const { colors, themeMode, showUnitInStockSelection } = useUIStore();
   const insets = useSafeAreaInsets();
 
+  const isDark = themeMode === "dark";
+  const mainBg = isDark ? "#161224" : "#FFFFFF";
+  const inputBg = isDark ? "rgba(255,255,255,0.03)" : "#FFFFFF";
+  const cardBg = isDark ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.92)";
+  const borderColor = isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)";
+  const softPinkBorder = isDark ? "rgba(236,72,153,0.26)" : "rgba(219,39,119,0.18)";
+  const softPinkBg = isDark ? "rgba(236,72,153,0.06)" : "rgba(219,39,119,0.04)";
+  const textColor = isDark ? "#F8FAFC" : "#1E293B";
+  const mutedColor = isDark ? "#94A3B8" : "#64748B";
+  const brandColor = isDark ? "#EC4899" : "#DB2777";
+  const brandSoft = isDark ? "rgba(236,72,153,0.12)" : "rgba(219,39,119,0.08)";
+  const softInputText = isDark ? "#D9D1E8" : "#4B3F5F";
+  const primaryActionBg = isDark ? "rgba(236,72,153,0.24)" : "#F6C7E2";
+  const primaryActionText = isDark ? "#FCE7F3" : "#5B3150";
+  const secondaryActionBg = isDark ? "rgba(255,255,255,0.06)" : "#F8F3FA";
+  const secondaryActionText = isDark ? "#D9D1E8" : "#6D5A80";
+  const warningColor = "#F59E0B";
+
   const [selectedStock, setSelectedStock] = useState<StockGetDto | undefined>();
+  const [lineProductName, setLineProductName] = useState("");
   const [quantity, setQuantity] = useState<string>("1");
   const [unitPrice, setUnitPrice] = useState<string>("0");
   const [discountRate1, setDiscountRate1] = useState<string>("0");
@@ -162,7 +190,7 @@ export function OrderLineForm({
       id: line?.id || `temp-${Date.now()}`,
       productId: selectedStock?.id || null,
       productCode: selectedStock?.erpStockCode || "",
-      productName: selectedStock?.stockName || "",
+      productName: lineProductName || selectedStock?.stockName || "",
       unit: selectedStock?.unit ?? line?.unit ?? null,
       groupCode: selectedStock?.grupKodu || null,
       quantity: qty,
@@ -199,6 +227,7 @@ export function OrderLineForm({
     return calculateLineTotals(baseLine);
   }, [
     line?.id,
+    lineProductName,
     selectedStock,
     quantity,
     unitPrice,
@@ -242,6 +271,7 @@ export function OrderLineForm({
       setApprovalStatus(line.approvalStatus || 0);
       setRelatedLinesDisplay(line.relatedLines ?? []);
       if (line.productCode || line.productName) {
+        setLineProductName(line.productName || "");
         setSelectedStock({
           id: line.productId ?? 0,
           erpStockCode: line.productCode || "",
@@ -313,8 +343,24 @@ export function OrderLineForm({
     return currentLine;
   }, [currentLine, displayedRelatedLines]);
 
+  const normalizedCurrency = useMemo(() => normalizeCurrencyCode(currency), [currency]);
+
+  const lineCurrencyDisplay = useMemo(() => {
+    const opt = currencyOptions?.find((c) => normalizeCurrencyCode(c.code) === normalizedCurrency);
+    if (opt?.dovizIsmi?.trim()) return opt.dovizIsmi.trim();
+    return getCurrencyDisplayLabel(normalizedCurrency);
+  }, [currencyOptions, normalizedCurrency]);
+
+  const formattedVatRatePercent = useMemo(() => {
+    const v = Number(currentLine.vatRate);
+    if (!Number.isFinite(v)) return "0";
+    const rounded = Math.round(v * 100) / 100;
+    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2).replace(/\.?0+$/, "");
+  }, [currentLine.vatRate]);
+
   const resetForm = useCallback(() => {
     setSelectedStock(undefined);
+    setLineProductName("");
     setQuantity("1");
     setUnitPrice("0");
     setDiscountRate1("0");
@@ -354,7 +400,7 @@ export function OrderLineForm({
   const bulkDraftChipGap = 6;
   const bulkDraftChipCols = 4;
   const bulkDraftChipWidth = useMemo(() => {
-    const rowPad = 20 * 2;
+    const rowPad = 18 * 2;
     const inner = Math.max(0, windowWidth - rowPad);
     const gaps = bulkDraftChipGap * (bulkDraftChipCols - 1);
     return Math.max(64, Math.floor((inner - gaps) / bulkDraftChipCols));
@@ -380,6 +426,7 @@ export function OrderLineForm({
     setApprovalStatus(draft.approvalStatus || 0);
     setRelatedLinesDisplay(draft.relatedLines ?? []);
 
+    setLineProductName(draft.productName || "");
     setSelectedStock({
       id: draft.productId ?? 0,
       erpStockCode: draft.productCode || "",
@@ -547,12 +594,25 @@ export function OrderLineForm({
         setSelectedStock(stock);
       } else {
         setSelectedStock(undefined);
+        setLineProductName("");
       }
 
       if (!stockToUse) {
+        setLineProductName("");
         setUnitPrice("0");
         return true;
       }
+
+      const resolvedName = await resolveDocumentLineProductName(
+        {
+          stockId: stockToUse.id,
+          code: stockToUse.erpStockCode,
+          name: stockToUse.stockName,
+        },
+        i18n.language
+      );
+      setLineProductName(resolvedName);
+      setSelectedStock(stockToUse);
 
       setIsLoadingPrice(true);
       try {
@@ -620,8 +680,28 @@ export function OrderLineForm({
       }
       return true;
     },
-    [currency, exchangeRates, currencyOptions, pricingRules, quantity, disableRelatedStocks, onAddWithRelatedStocks, onRequestRelatedStocksSelection]
+    [currency, exchangeRates, currencyOptions, pricingRules, quantity, disableRelatedStocks, onAddWithRelatedStocks, onRequestRelatedStocksSelection, i18n.language]
   );
+
+  useEffect(() => {
+    if (!selectedStock?.erpStockCode) return;
+
+    let cancelled = false;
+    void resolveDocumentLineProductName(
+      {
+        stockId: selectedStock.id,
+        code: selectedStock.erpStockCode,
+        name: selectedStock.stockName,
+      },
+      i18n.language
+    ).then((resolvedName) => {
+      if (!cancelled) setLineProductName(resolvedName);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [i18n.language, selectedStock?.id, selectedStock?.erpStockCode, selectedStock?.stockName]);
 
   useEffect(() => {
     if (selectedStock && pricingRules && selectedStock.erpStockCode) {
@@ -827,16 +907,16 @@ export function OrderLineForm({
         <View
           style={[
             styles.modalContent,
-            { backgroundColor: colors.card, paddingBottom: insets.bottom + 16 },
+            { backgroundColor: mainBg, paddingBottom: insets.bottom + 14 },
           ]}
         >
-          <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-            <View style={[styles.handle, { backgroundColor: colors.border }]} />
-            <Text style={[styles.modalTitle, { color: colors.text }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: borderColor }]}>
+            <View style={[styles.handle, { backgroundColor: borderColor }]} />
+            <Text style={[styles.modalTitle, { color: textColor }]}>
               {line ? "Satır Düzenle" : "Yeni Satır"}
             </Text>
             <TouchableOpacity onPress={handleCancel} style={styles.closeButton}>
-              <Text style={[styles.closeButtonText, { color: colors.text }]}>✕</Text>
+              <Text style={[styles.closeButtonText, { color: textColor }]}>✕</Text>
             </TouchableOpacity>
           </View>
 
@@ -849,7 +929,7 @@ export function OrderLineForm({
             <ProductPicker
               ref={productPickerRef}
               value={selectedStock?.erpStockCode}
-              productName={selectedStock?.stockName}
+              productName={lineProductName || selectedStock?.stockName}
               onChange={handleStockSelect}
               label="Ürün"
               required
@@ -881,8 +961,8 @@ export function OrderLineForm({
                         {
                           width: bulkDraftChipWidth,
                           maxWidth: bulkDraftChipWidth,
-                          borderColor: index === activeBulkDraftIndex ? colors.accent : colors.border,
-                          backgroundColor: index === activeBulkDraftIndex ? `${colors.accent}20` : colors.backgroundSecondary,
+                          borderColor: index === activeBulkDraftIndex ? brandColor : borderColor,
+                          backgroundColor: index === activeBulkDraftIndex ? brandSoft : inputBg,
                         },
                       ]}
                       onPress={() => {
@@ -894,7 +974,7 @@ export function OrderLineForm({
                       <Text
                         style={[
                           styles.bulkDraftChipText,
-                          { color: draft.productCode ? colors.accent : colors.text },
+                          { color: draft.productCode ? brandColor : textColor },
                         ]}
                         numberOfLines={1}
                         ellipsizeMode="tail"
@@ -902,14 +982,14 @@ export function OrderLineForm({
                         {draft.productCode || draft.productName || `Kalem ${index + 1}`}
                       </Text>
                       <TouchableOpacity
-                        style={[styles.bulkDraftChipRemove, { borderColor: colors.border, backgroundColor: colors.background }]}
+                        style={[styles.bulkDraftChipRemove, { borderColor, backgroundColor: inputBg }]}
                         onPress={(e) => {
                           e.stopPropagation();
                           handleRemoveDraft(index);
                         }}
                         activeOpacity={0.7}
                       >
-                        <Text style={[styles.bulkDraftChipRemoveText, { color: colors.textMuted }]}>×</Text>
+                        <Text style={[styles.bulkDraftChipRemoveText, { color: mutedColor }]}>×</Text>
                       </TouchableOpacity>
                     </TouchableOpacity>
                   ))}
@@ -918,26 +998,19 @@ export function OrderLineForm({
             )}
 
             {showUnitInStockSelection && (selectedStock?.unit || line?.unit) ? (
-              <View
-                style={[
-                  styles.approvalWarning,
-                  {
-                    backgroundColor: `${colors.accent}12`,
-                    borderWidth: 1,
-                    borderColor: `${colors.accent}33`,
-                    marginBottom: 12,
-                  },
-                ]}
-              >
-                <Text style={[styles.approvalWarningText, { color: colors.text, fontWeight: "700" }]}>
-                  Olcu Birimi: {selectedStock?.unit || line?.unit}
-                </Text>
+              <View style={[styles.unitInfoRow, { borderColor: softPinkBorder }]}>
+                <Text style={[styles.sectionMiniTitle, { color: mutedColor }]}>Olcu Birimi</Text>
+                <View style={[styles.unitBadge, { borderColor: softPinkBorder, backgroundColor: softPinkBg }]}>
+                  <Text style={[styles.unitBadgeText, { color: primaryActionText }]}>
+                    {selectedStock?.unit || line?.unit}
+                  </Text>
+                </View>
               </View>
             ) : null}
 
             {allowImageUpload ? (
-              <View style={styles.fieldContainer}>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>Kalem Görseli</Text>
+              <View style={[styles.formCard, { borderColor, backgroundColor: cardBg }]}>
+                <Text style={[styles.sectionMiniTitle, { color: textColor }]}>Kalem Görseli</Text>
                 {imagePath ? (
                   <Image
                     source={{ uri: resolveMobileImageUri(imagePath) ?? imagePath }}
@@ -948,10 +1021,10 @@ export function OrderLineForm({
                   <View
                     style={[
                       styles.imagePlaceholder,
-                      { backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
+                      { borderColor: softPinkBorder, backgroundColor: softPinkBg },
                     ]}
                   >
-                    <Text style={[styles.imagePlaceholderText, { color: colors.textMuted }]}>
+                    <Text style={[styles.imagePlaceholderText, { color: mutedColor }]}>
                       Bu kalem için henüz görsel eklenmedi
                     </Text>
                   </View>
@@ -960,15 +1033,15 @@ export function OrderLineForm({
                   <TouchableOpacity
                     style={[
                       styles.imageActionButton,
-                      { backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
+                      { borderColor: softPinkBorder, backgroundColor: inputBg },
                     ]}
                     onPress={openImagePickerMenu}
                     disabled={isUploadingImage || !(selectedStock?.erpStockCode || lineToSave.productCode)}
                   >
                     {isUploadingImage ? (
-                      <ActivityIndicator size="small" color={colors.accent} />
+                      <ActivityIndicator size="small" color={brandColor} />
                     ) : (
-                      <Text style={[styles.imageActionButtonText, { color: colors.text }]}>
+                      <Text style={[styles.imageActionButtonText, { color: textColor }]}>
                         {imagePath ? "Görseli Değiştir" : "Görsel Ekle"}
                       </Text>
                     )}
@@ -977,11 +1050,11 @@ export function OrderLineForm({
                     <TouchableOpacity
                       style={[
                         styles.imageActionButton,
-                        { backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
+                        { borderColor: softPinkBorder, backgroundColor: inputBg },
                       ]}
                       onPress={() => setImagePath(null)}
                     >
-                      <Text style={[styles.imageActionButtonText, { color: colors.error }]}>
+                      <Text style={[styles.imageActionButtonText, { color: warningColor }]}>
                         Kaldır
                       </Text>
                     </TouchableOpacity>
@@ -992,293 +1065,250 @@ export function OrderLineForm({
 
             {isLoadingPrice && (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color={colors.accent} />
-                <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+                <ActivityIndicator size="small" color={brandColor} />
+                <Text style={[styles.loadingText, { color: mutedColor }]}>
                   Fiyat bilgisi yükleniyor...
                 </Text>
               </View>
             )}
 
-            <View style={styles.fieldContainer}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>
-                Miktar <Text style={{ color: colors.error }}>*</Text>
-              </Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  { backgroundColor: colors.backgroundSecondary, borderColor: colors.border, color: colors.text },
-                ]}
-                value={quantity}
-                onChangeText={(text) => setQuantity(sanitizeDecimalInput(text))}
-                placeholder="Miktar"
-                keyboardType="decimal-pad"
-              />
-            </View>
+            <View style={[styles.formCard, { borderColor, backgroundColor: cardBg }]}>
+              <View style={styles.rowTwo}>
+                <View style={styles.fieldHalf}>
+                  <Text style={[styles.label, { color: mutedColor }]}>
+                    Miktar <Text style={{ color: "#ef4444" }}>*</Text>
+                  </Text>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      { backgroundColor: inputBg, borderColor: softPinkBorder, color: softInputText },
+                    ]}
+                    value={quantity}
+                    onChangeText={(text) => setQuantity(sanitizeDecimalInput(text))}
+                    placeholder="Miktar"
+                    placeholderTextColor={mutedColor}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
 
-            <View style={styles.fieldContainer}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>
-                Birim Fiyat <Text style={{ color: colors.error }}>*</Text>
-              </Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  { backgroundColor: colors.backgroundSecondary, borderColor: colors.border, color: colors.text },
-                ]}
-                value={unitPrice}
-                onChangeText={(text) => setUnitPrice(sanitizeDecimalInput(text))}
-                placeholder="Birim fiyat"
-                keyboardType="decimal-pad"
-              />
-            </View>
+                <View style={styles.fieldHalf}>
+                  <Text style={[styles.label, { color: mutedColor }]}>
+                    Birim Fiyat <Text style={{ color: "#ef4444" }}>*</Text>
+                  </Text>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      { backgroundColor: inputBg, borderColor: softPinkBorder, color: softInputText },
+                    ]}
+                    value={unitPrice}
+                    onChangeText={(text) => setUnitPrice(sanitizeDecimalInput(text))}
+                    placeholder="Birim fiyat"
+                    placeholderTextColor={mutedColor}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+              </View>
 
-            <View style={styles.fieldContainer}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>İndirim 1 (%) (0-100)</Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  { backgroundColor: colors.backgroundSecondary, borderColor: colors.border, color: colors.text },
-                ]}
-                value={discountRate1}
-                onChangeText={handleDiscount1Change}
-                onBlur={() => setDiscountRate1(normalizeDiscountOnBlur(discountRate1))}
-                placeholder="0"
-                keyboardType="decimal-pad"
-              />
-            </View>
+              <View style={styles.rowThree}>
+                <View style={styles.fieldThird}>
+                  <Text style={[styles.label, { color: mutedColor }]}>İnd. 1 (%)</Text>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      styles.compactInput,
+                      { backgroundColor: inputBg, borderColor: softPinkBorder, color: softInputText },
+                    ]}
+                    value={discountRate1}
+                    onChangeText={handleDiscount1Change}
+                    onBlur={() => setDiscountRate1(normalizeDiscountOnBlur(discountRate1))}
+                    placeholder="0"
+                    placeholderTextColor={mutedColor}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
 
-            <View style={styles.fieldContainer}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>İndirim 2 (%) (0-100)</Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  { backgroundColor: colors.backgroundSecondary, borderColor: colors.border, color: colors.text },
-                ]}
-                value={discountRate2}
-                onChangeText={handleDiscount2Change}
-                onBlur={() => setDiscountRate2(normalizeDiscountOnBlur(discountRate2))}
-                placeholder="0"
-                keyboardType="decimal-pad"
-              />
-            </View>
+                <View style={styles.fieldThird}>
+                  <Text style={[styles.label, { color: mutedColor }]}>İnd. 2 (%)</Text>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      styles.compactInput,
+                      { backgroundColor: inputBg, borderColor: softPinkBorder, color: softInputText },
+                    ]}
+                    value={discountRate2}
+                    onChangeText={handleDiscount2Change}
+                    onBlur={() => setDiscountRate2(normalizeDiscountOnBlur(discountRate2))}
+                    placeholder="0"
+                    placeholderTextColor={mutedColor}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
 
-            <View style={styles.fieldContainer}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>İndirim 3 (%) (0-100)</Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  { backgroundColor: colors.backgroundSecondary, borderColor: colors.border, color: colors.text },
-                ]}
-                value={discountRate3}
-                onChangeText={handleDiscount3Change}
-                onBlur={() => setDiscountRate3(normalizeDiscountOnBlur(discountRate3))}
-                placeholder="0"
-                keyboardType="decimal-pad"
-              />
-            </View>
+                <View style={styles.fieldThird}>
+                  <Text style={[styles.label, { color: mutedColor }]}>İnd. 3 (%)</Text>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      styles.compactInput,
+                      { backgroundColor: inputBg, borderColor: softPinkBorder, color: softInputText },
+                    ]}
+                    value={discountRate3}
+                    onChangeText={handleDiscount3Change}
+                    onBlur={() => setDiscountRate3(normalizeDiscountOnBlur(discountRate3))}
+                    placeholder="0"
+                    placeholderTextColor={mutedColor}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+              </View>
 
-            <View style={styles.fieldContainer}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>KDV Oranı (%)</Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  { backgroundColor: colors.backgroundSecondary, borderColor: colors.border, color: colors.text },
-                ]}
-                value={vatRate}
-                onChangeText={(text) => setVatRate(sanitizeDecimalInput(text))}
-                placeholder="18"
-                keyboardType="decimal-pad"
-              />
-            </View>
+              <View style={styles.rowTwo}>
+                <View style={styles.fieldHalf}>
+                  <Text style={[styles.label, { color: mutedColor }]}>KDV Oranı (%)</Text>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      { backgroundColor: inputBg, borderColor: softPinkBorder, color: softInputText },
+                    ]}
+                    value={vatRate}
+                    onChangeText={(text) => setVatRate(sanitizeDecimalInput(text))}
+                    placeholder="18"
+                    placeholderTextColor={mutedColor}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+              </View>
 
-            <View style={styles.fieldContainer}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Açıklama</Text>
-              <TextInput
-                style={[
-                  styles.textArea,
-                  { backgroundColor: colors.backgroundSecondary, borderColor: colors.border, color: colors.text },
-                ]}
-                value={description}
-                onChangeText={setDescription}
-                placeholder="Satır açıklaması"
-                multiline
-                numberOfLines={3}
-              />
-            </View>
+              <View style={styles.fieldContainer}>
+                <Text style={[styles.label, { color: mutedColor }]}>Açıklama</Text>
+                <TextInput
+                  style={[
+                    styles.textArea,
+                    { backgroundColor: inputBg, borderColor: softPinkBorder, color: softInputText },
+                  ]}
+                  value={description}
+                  onChangeText={setDescription}
+                  placeholder="Satır açıklaması"
+                  placeholderTextColor={mutedColor}
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
 
-            <View style={styles.fieldContainer}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Açıklama Alanları</Text>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Açıklama 1</Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  { backgroundColor: colors.backgroundSecondary, borderColor: colors.border, color: colors.text },
-                ]}
-                value={description1}
-                onChangeText={setDescription1}
-                placeholder="Açıklama 1"
-              />
-              <Text style={[styles.label, { color: colors.textSecondary, marginTop: 8 }]}>Açıklama 2</Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  { backgroundColor: colors.backgroundSecondary, borderColor: colors.border, color: colors.text, marginTop: 8 },
-                ]}
-                value={description2}
-                onChangeText={setDescription2}
-                placeholder="Açıklama 2"
-              />
-              <Text style={[styles.label, { color: colors.textSecondary, marginTop: 8 }]}>Açıklama 3</Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  { backgroundColor: colors.backgroundSecondary, borderColor: colors.border, color: colors.text, marginTop: 8 },
-                ]}
-                value={description3}
-                onChangeText={setDescription3}
-                placeholder="Açıklama 3"
-              />
-            </View>
-
-            <View style={styles.fieldContainer}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Profil</Text>
-              <TouchableOpacity
-                style={[
-                  styles.pickerButton,
-                  { backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
-                ]}
-                onPress={() => setProfilPickerVisible(true)}
-              >
-                <Text style={[styles.pickerText, { color: colors.text }]}>
-                  {profilDefinitionId != null
-                    ? profilMap[profilDefinitionId] || `#${profilDefinitionId}`
-                    : isDefinitionOptionsLoading
-                      ? "Yükleniyor..."
-                      : "Profil seçin"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.fieldContainer}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Demir</Text>
-              <TouchableOpacity
-                style={[
-                  styles.pickerButton,
-                  { backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
-                ]}
-                onPress={() => setDemirPickerVisible(true)}
-              >
-                <Text style={[styles.pickerText, { color: colors.text }]}>
-                  {demirDefinitionId != null
-                    ? demirMap[demirDefinitionId] || `#${demirDefinitionId}`
-                    : isDefinitionOptionsLoading
-                      ? "Yükleniyor..."
-                      : "Demir seçin"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.fieldContainer}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Vida</Text>
-              <TouchableOpacity
-                style={[
-                  styles.pickerButton,
-                  { backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
-                ]}
-                onPress={() => setVidaPickerVisible(true)}
-              >
-                <Text style={[styles.pickerText, { color: colors.text }]}>
-                  {vidaDefinitionId != null
-                    ? vidaMap[vidaDefinitionId] || `#${vidaDefinitionId}`
-                    : isDefinitionOptionsLoading
-                      ? "Yükleniyor..."
-                      : "Vida seçin"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.fieldContainer}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Baskı</Text>
-              <TouchableOpacity
-                style={[
-                  styles.pickerButton,
-                  { backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
-                ]}
-                onPress={() => setBaskiPickerVisible(true)}
-              >
-                <Text style={[styles.pickerText, { color: colors.text }]}>
-                  {baskiDefinitionId != null
-                    ? baskiMap[baskiDefinitionId] || `#${baskiDefinitionId}`
-                    : isDefinitionOptionsLoading
-                      ? "Yükleniyor..."
-                    : "Baskı seçin"}
-                </Text>
-              </TouchableOpacity>
-              <TextInput
-                style={[styles.input, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border, color: colors.text }]}
-                value={baskiAciklama}
-                onChangeText={(value) => setBaskiAciklama(value.slice(0, 50))}
-                maxLength={50}
-                placeholder="Baskı açıklaması"
-                placeholderTextColor={colors.textSecondary}
-              />
-              <TouchableOpacity
-                style={styles.quickCreateButton}
-                onPress={() => setBaskiCreateVisible(true)}
-                activeOpacity={0.82}
-              >
-                <Text style={[styles.quickCreateButtonText, { color: colors.accent }]}>+ Yeni baskı ekle</Text>
-              </TouchableOpacity>
+              <LineFormDescriptionFieldsSection
+              description1={description1}
+              description2={description2}
+              description3={description3}
+              onDescription1Change={setDescription1}
+              onDescription2Change={setDescription2}
+              onDescription3Change={setDescription3}
+              profilDefinitionId={profilDefinitionId}
+              demirDefinitionId={demirDefinitionId}
+              vidaDefinitionId={vidaDefinitionId}
+              baskiDefinitionId={baskiDefinitionId}
+              profilMap={profilMap}
+              demirMap={demirMap}
+              vidaMap={vidaMap}
+              baskiMap={baskiMap}
+              onProfilPress={() => setProfilPickerVisible(true)}
+              onDemirPress={() => setDemirPickerVisible(true)}
+              onVidaPress={() => setVidaPickerVisible(true)}
+              onBaskiPress={() => setBaskiPickerVisible(true)}
+              onBaskiCreatePress={() => setBaskiCreateVisible(true)}
+              baskiAciklama={baskiAciklama}
+              onBaskiAciklamaChange={setBaskiAciklama}
+              isDefinitionOptionsLoading={isDefinitionOptionsLoading}
+              colors={{
+                text: textColor,
+                textSecondary: mutedColor,
+                accent: brandColor,
+                inputBackground: inputBg,
+                border: softPinkBorder,
+                inputText: softInputText,
+                cardBackground: softPinkBg,
+                cardBorder: softPinkBorder,
+              }}
+              compact
+            />
             </View>
 
             {approvalStatus === 1 && approvalMessage && (
-              <View style={[styles.approvalWarning, { backgroundColor: colors.warning + "20" }]}>
-                <Text style={[styles.approvalWarningText, { color: colors.warning }]}>
+              <View
+                style={[
+                  styles.approvalWarning,
+                  {
+                    backgroundColor: warningColor + "12",
+                    borderColor: warningColor + "26",
+                  },
+                ]}
+              >
+                <Text style={[styles.approvalWarningText, { color: warningColor }]}>
                   ⚠️ {approvalMessage}
                 </Text>
               </View>
             )}
 
-            <View style={[styles.summaryCard, { backgroundColor: colors.backgroundSecondary }]}>
-              <Text style={[styles.summaryTitle, { color: colors.text }]}>{t("order.calculationSummary")}</Text>
+            <View
+              style={[
+                styles.summaryCard,
+                {
+                  backgroundColor: isDark ? "rgba(236,72,153,0.07)" : "rgba(219,39,119,0.06)",
+                  borderColor: softPinkBorder,
+                },
+              ]}
+            >
+              <Text style={[styles.summaryTitle, { color: textColor }]}>{t("order.calculationSummary")}</Text>
               <View style={styles.summaryRow}>
-                <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Ara Toplam:</Text>
-                <Text style={[styles.summaryValue, { color: colors.text }]}>
-                  {currentLine.lineTotal.toFixed(2)}
-                </Text>
+                <Text style={[styles.summaryLabel, { color: mutedColor }]}>{t("order.subtotal")}</Text>
+                <View style={styles.summaryValueGroup}>
+                  <Text style={[styles.summaryValue, { color: textColor }]}>{currentLine.lineTotal.toFixed(2)}</Text>
+                  <Text style={[styles.summaryValueSuffix, { color: mutedColor }]}>{lineCurrencyDisplay}</Text>
+                </View>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>KDV:</Text>
-                <Text style={[styles.summaryValue, { color: colors.text }]}>
-                  {currentLine.vatAmount.toFixed(2)}
-                </Text>
+                <View style={styles.summaryLabelWithMeta}>
+                  <Text style={[styles.summaryLabel, { color: mutedColor }]}>{t("order.vat")}</Text>
+                  <Text style={[styles.summaryVatPercent, { color: brandColor }]}>%{formattedVatRatePercent}</Text>
+                </View>
+                <View style={styles.summaryValueGroup}>
+                  <Text style={[styles.summaryValue, { color: textColor }]}>{currentLine.vatAmount.toFixed(2)}</Text>
+                  <Text style={[styles.summaryValueSuffix, { color: mutedColor }]}>{lineCurrencyDisplay}</Text>
+                </View>
               </View>
-              <View style={[styles.summaryRow, styles.summaryRowTotal]}>
-                <Text style={[styles.summaryLabel, { color: colors.text }]}>Genel Toplam:</Text>
-                <Text style={[styles.summaryValue, { color: colors.accent, fontWeight: "600" }]}>
-                  {currentLine.lineGrandTotal.toFixed(2)}
+              <View style={[styles.summaryRow, styles.summaryRowTotal, { borderTopColor: borderColor }]}>
+                <Text style={[styles.summaryLabel, { color: textColor, fontWeight: "700" }]}>
+                  {t("order.grandTotal")}
                 </Text>
+                <View style={styles.summaryValueGroup}>
+                  <Text style={[styles.summaryValue, { color: brandColor, fontWeight: "800" }]}>
+                    {currentLine.lineGrandTotal.toFixed(2)}
+                  </Text>
+                  <Text style={[styles.summaryValueSuffix, { color: brandColor, opacity: 0.85 }]}>
+                    {lineCurrencyDisplay}
+                  </Text>
+                </View>
               </View>
             </View>
 
             {displayedRelatedLines.length > 0 && (
-              <View style={[styles.relatedSummaryCard, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
-                <Text style={[styles.relatedSummaryTitle, { color: colors.text }]}>{t("order.relatedStocksSummary")}</Text>
+              <View style={[styles.relatedSummaryCard, { backgroundColor: cardBg, borderColor }]}>
+                <Text style={[styles.relatedSummaryTitle, { color: textColor }]}>{t("order.relatedStocksSummary")}</Text>
                 {displayedRelatedLines.map((rel) => (
-                  <View key={rel.id} style={[styles.relatedSummaryRow, { borderBottomColor: colors.border }]}>
-                    <Text style={[styles.relatedSummaryCode, { color: colors.text }]} numberOfLines={1}>{rel.productCode}</Text>
+                  <View key={rel.id} style={[styles.relatedSummaryRow, { borderBottomColor: borderColor }]}>
+                    <Text style={[styles.relatedSummaryCode, { color: textColor }]} numberOfLines={1}>{rel.productCode}</Text>
                     <View style={styles.relatedSummaryGrid}>
-                      <Text style={[styles.relatedSummaryLabel, { color: colors.textSecondary }]}>{t("order.discount1")}:</Text>
-                      <Text style={[styles.relatedSummaryValue, { color: colors.text }]}>% {rel.discountRate1.toFixed(1)}</Text>
-                      <Text style={[styles.relatedSummaryLabel, { color: colors.textSecondary }]}>{t("order.discountAmount1")}:</Text>
-                      <Text style={[styles.relatedSummaryValue, { color: colors.text }]}>{rel.discountAmount1.toFixed(2)}</Text>
-                      <Text style={[styles.relatedSummaryLabel, { color: colors.textSecondary }]}>{t("order.discount2")}:</Text>
-                      <Text style={[styles.relatedSummaryValue, { color: colors.text }]}>% {rel.discountRate2.toFixed(1)}</Text>
-                      <Text style={[styles.relatedSummaryLabel, { color: colors.textSecondary }]}>{t("order.discountAmount2")}:</Text>
-                      <Text style={[styles.relatedSummaryValue, { color: colors.text }]}>{rel.discountAmount2.toFixed(2)}</Text>
-                      <Text style={[styles.relatedSummaryLabel, { color: colors.textSecondary }]}>{t("order.discount3")}:</Text>
-                      <Text style={[styles.relatedSummaryValue, { color: colors.text }]}>% {rel.discountRate3.toFixed(1)}</Text>
-                      <Text style={[styles.relatedSummaryLabel, { color: colors.textSecondary }]}>{t("order.discountAmount3")}:</Text>
-                      <Text style={[styles.relatedSummaryValue, { color: colors.text }]}>{rel.discountAmount3.toFixed(2)}</Text>
+                      <Text style={[styles.relatedSummaryLabel, { color: mutedColor }]}>{t("order.discount1")}:</Text>
+                      <Text style={[styles.relatedSummaryValue, { color: textColor }]}>% {rel.discountRate1.toFixed(1)}</Text>
+                      <Text style={[styles.relatedSummaryLabel, { color: mutedColor }]}>{t("order.discountAmount1")}:</Text>
+                      <Text style={[styles.relatedSummaryValue, { color: textColor }]}>{rel.discountAmount1.toFixed(2)}</Text>
+                      <Text style={[styles.relatedSummaryLabel, { color: mutedColor }]}>{t("order.discount2")}:</Text>
+                      <Text style={[styles.relatedSummaryValue, { color: textColor }]}>% {rel.discountRate2.toFixed(1)}</Text>
+                      <Text style={[styles.relatedSummaryLabel, { color: mutedColor }]}>{t("order.discountAmount2")}:</Text>
+                      <Text style={[styles.relatedSummaryValue, { color: textColor }]}>{rel.discountAmount2.toFixed(2)}</Text>
+                      <Text style={[styles.relatedSummaryLabel, { color: mutedColor }]}>{t("order.discount3")}:</Text>
+                      <Text style={[styles.relatedSummaryValue, { color: textColor }]}>% {rel.discountRate3.toFixed(1)}</Text>
+                      <Text style={[styles.relatedSummaryLabel, { color: mutedColor }]}>{t("order.discountAmount3")}:</Text>
+                      <Text style={[styles.relatedSummaryValue, { color: textColor }]}>{rel.discountAmount3.toFixed(2)}</Text>
                     </View>
                   </View>
                 ))}
@@ -1287,17 +1317,26 @@ export function OrderLineForm({
           </FlatListScrollView>
           </View>
 
-          <View style={[styles.modalFooter, { borderTopColor: colors.border }]}>
+          <View style={[styles.modalFooter, { borderTopColor: borderColor, backgroundColor: mainBg }]}>
             <TouchableOpacity
-              style={[styles.cancelButton, { borderColor: colors.border }]}
+              activeOpacity={0.82}
+              style={[
+                styles.cancelButton,
+                {
+                  borderColor: softPinkBorder,
+                  backgroundColor: secondaryActionBg,
+                },
+              ]}
               onPress={handleCancel}
             >
-              <Text style={[styles.cancelButtonText, { color: colors.text }]}>İptal</Text>
+              <Text style={[styles.cancelButtonText, { color: secondaryActionText }]}>İptal</Text>
             </TouchableOpacity>
             <TouchableOpacity
+              activeOpacity={0.86}
               style={[
                 styles.saveButton,
-                { backgroundColor: colors.accent },
+                !isDark && styles.saveButtonShadow,
+                { backgroundColor: primaryActionBg },
                 !hasBulkDrafts &&
                   !(selectedStock || (line?.productCode && lineToSave.productCode)) &&
                   styles.saveButtonDisabled,
@@ -1305,18 +1344,20 @@ export function OrderLineForm({
               onPress={handleSave}
               disabled={!hasBulkDrafts && !(selectedStock || (line?.productCode && lineToSave.productCode))}
             >
-              <Text style={styles.saveButtonText}>
+              <Text style={[styles.saveButtonText, { color: primaryActionText }]}>
                 {hasBulkDrafts ? "Taslağa Kaydet" : "Kaydet"}
               </Text>
             </TouchableOpacity>
           </View>
           {hasBulkDrafts && (
-            <View style={[styles.multiConfirmBar, { borderTopColor: colors.border }]}>
+            <View style={[styles.multiConfirmBar, { borderTopColor: borderColor, backgroundColor: mainBg }]}>
               <TouchableOpacity
-                style={[styles.multiConfirmButton, { backgroundColor: colors.accent }]}
+                style={[styles.multiConfirmButton, { backgroundColor: primaryActionBg }]}
                 onPress={handleBulkDraftConfirm}
               >
-                <Text style={styles.saveButtonText}>Seçilenleri Ekle ({bulkDraftLines.length})</Text>
+                <Text style={[styles.saveButtonText, { color: primaryActionText }]}>
+                  Seçilenleri Ekle ({bulkDraftLines.length})
+                </Text>
               </TouchableOpacity>
             </View>
           )}
@@ -1328,6 +1369,7 @@ export function OrderLineForm({
       title="Profil seç"
       options={profilOptions}
       selectedValue={profilDefinitionId ?? undefined}
+      isLoading={isDefinitionOptionsLoading}
       onClose={() => setProfilPickerVisible(false)}
       onSelect={(option) =>
         setProfilDefinitionId(typeof option.id === "number" ? option.id : Number(option.id) || null)
@@ -1338,6 +1380,7 @@ export function OrderLineForm({
       title="Demir seç"
       options={demirOptions}
       selectedValue={demirDefinitionId ?? undefined}
+      isLoading={isDefinitionOptionsLoading}
       onClose={() => setDemirPickerVisible(false)}
       onSelect={(option) =>
         setDemirDefinitionId(typeof option.id === "number" ? option.id : Number(option.id) || null)
@@ -1348,6 +1391,7 @@ export function OrderLineForm({
       title="Vida seç"
       options={vidaOptions}
       selectedValue={vidaDefinitionId ?? undefined}
+      isLoading={isDefinitionOptionsLoading}
       onClose={() => setVidaPickerVisible(false)}
       onSelect={(option) =>
         setVidaDefinitionId(typeof option.id === "number" ? option.id : Number(option.id) || null)
@@ -1358,6 +1402,7 @@ export function OrderLineForm({
       title="Baskı seç"
       options={baskiOptions}
       selectedValue={baskiDefinitionId ?? undefined}
+      isLoading={isDefinitionOptionsLoading}
       onClose={() => setBaskiPickerVisible(false)}
       onSelect={(option) =>
         setBaskiDefinitionId(typeof option.id === "number" ? option.id : Number(option.id) || null)
@@ -1379,12 +1424,13 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.58)",
   },
   modalContent: {
-    height: "90%",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    height: "92%",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    overflow: "hidden",
   },
   contentWrapper: {
     flex: 1,
@@ -1395,38 +1441,43 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 16,
+    paddingTop: 14,
+    paddingBottom: 14,
     borderBottomWidth: 1,
   },
   handle: {
     position: "absolute",
-    top: 8,
-    alignSelf: "center",
-    width: 40,
-    height: 4,
-    borderRadius: 2,
+    top: 10,
+    left: "50%",
+    transform: [{ translateX: -22 }],
+    width: 44,
+    height: 5,
+    borderRadius: 3,
+    opacity: 0.5,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: 17,
+    fontWeight: "800",
     flex: 1,
     textAlign: "center",
+    letterSpacing: 0.2,
   },
   closeButton: {
-    padding: 4,
+    padding: 6,
   },
   closeButtonText: {
     fontSize: 20,
     fontWeight: "300",
+    opacity: 0.75,
   },
   scrollContent: {
     flex: 1,
   },
   scrollContentContainer: {
     flexGrow: 1,
-    padding: 20,
-    paddingBottom: 24,
+    padding: 18,
+    paddingBottom: 22,
+    gap: 22,
   },
   loadingContainer: {
     flexDirection: "row",
@@ -1476,20 +1527,76 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
+  formCard: {
+    gap: 12,
+    padding: 14,
+    borderWidth: 1.3,
+    borderRadius: 18,
+  },
+  sectionMiniTitle: {
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.3,
+  },
+  unitInfoRow: {
+    borderWidth: 1.3,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    marginBottom: 8,
+  },
+  unitBadge: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  unitBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.2,
+  },
   fieldContainer: {
-    marginBottom: 16,
+    marginBottom: 2,
+  },
+  rowTwo: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  rowThree: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  fieldHalf: {
+    flex: 1,
+  },
+  fieldThird: {
+    flex: 1,
   },
   label: {
-    fontSize: 14,
-    fontWeight: "500",
+    fontSize: 10,
+    fontWeight: "700",
     marginBottom: 6,
+    textTransform: "uppercase",
+    letterSpacing: 0.35,
+    marginLeft: 3,
   },
   input: {
     borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 13,
+    fontWeight: "500",
+    minHeight: 42,
+  },
+  compactInput: {
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    minHeight: 40,
   },
   pickerButton: {
     borderWidth: 1,
@@ -1517,36 +1624,58 @@ const styles = StyleSheet.create({
   },
   textArea: {
     borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    minHeight: 80,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 13,
+    minHeight: 76,
     textAlignVertical: "top",
   },
   approvalWarning: {
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
+    borderWidth: 1,
   },
   approvalWarningText: {
     fontSize: 13,
     lineHeight: 18,
   },
   summaryCard: {
-    padding: 16,
-    borderRadius: 12,
-    marginTop: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 18,
+    borderWidth: 1.3,
+    marginTop: 6,
   },
   summaryTitle: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 14,
+    fontWeight: "800",
     marginBottom: 12,
   },
   summaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 8,
+  },
+  summaryLabelWithMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  summaryVatPercent: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  summaryValueGroup: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 4,
+  },
+  summaryValueSuffix: {
+    fontSize: 11,
+    fontWeight: "600",
   },
   summaryRowTotal: {
     marginTop: 8,
@@ -1670,16 +1799,22 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     flex: 1,
-    borderRadius: 10,
+    borderRadius: 14,
     paddingVertical: 14,
     alignItems: "center",
+  },
+  saveButtonShadow: {
+    shadowColor: "#db2777",
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
   saveButtonDisabled: {
     opacity: 0.5,
   },
   saveButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 14,
+    fontWeight: "800",
   },
 });

@@ -2,6 +2,8 @@ import React, { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../../store/auth";
 import { resolveCurrencyIsoCode } from "../../../lib/currencyDisplay";
+import { buildSalesDocumentPreviewPdfExtras } from "../../../lib/salesDocumentPreviewPdf";
+import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida";
 import { resolveOrderCustomerLabelForPdf } from "../utils/resolveOrderCustomerLabelForPdf";
 import { ReportTab } from "../../quotation/components/ReportTab";
 import { DocumentRuleType } from "../../quotation/types";
@@ -23,6 +25,9 @@ interface OrderReportTabProps {
   generalDiscountAmount?: number | null;
   lines: OrderLineFormState[];
   offerDate?: string | null;
+  description?: string | null;
+  koliBaskiDefinitionId?: number | null;
+  koliBaskiDefinitionName?: string | null;
 }
 
 export function OrderReportTab({
@@ -37,9 +42,13 @@ export function OrderReportTab({
   generalDiscountAmount,
   lines,
   offerDate,
+  description,
+  koliBaskiDefinitionId,
+  koliBaskiDefinitionName,
 }: OrderReportTabProps): React.ReactElement {
   const { t } = useTranslation();
   const branch = useAuthStore((state) => state.branch);
+  const { profilMap, demirMap, vidaMap, baskiMap, koliBaskiMap } = useWindoDefinitionOptions();
 
   const buildV3riiInput = useCallback(
     async (draft: boolean) => {
@@ -49,6 +58,15 @@ export function OrderReportTab({
         erpCustomerCode,
         selectedCustomerName: customerName,
         t,
+      });
+
+      const pdfExtras = buildSalesDocumentPreviewPdfExtras({
+        t,
+        koliBaskiDefinitionId,
+        koliBaskiDefinitionName,
+        koliBaskiMap,
+        description,
+        lineDetailMaps: { profilMap, demirMap, vidaMap, baskiMap },
       });
 
       return buildOrderPreviewPdfInput({
@@ -63,21 +81,32 @@ export function OrderReportTab({
         draft,
         lines,
         t,
+        footerDetails: pdfExtras.footerDetails,
+        lineDetailLabels: pdfExtras.lineDetailLabels,
+        lineDetailMaps: pdfExtras.lineDetailMaps,
       });
     },
     [
+      baskiMap,
       branch,
       currency,
       currencyCode,
       customerName,
+      demirMap,
+      description,
       erpCustomerCode,
       generalDiscountAmount,
       generalDiscountRate,
+      koliBaskiDefinitionId,
+      koliBaskiDefinitionName,
+      koliBaskiMap,
       lines,
       offerDate,
       offerNo,
       potentialCustomerId,
+      profilMap,
       t,
+      vidaMap,
     ]
   );
 

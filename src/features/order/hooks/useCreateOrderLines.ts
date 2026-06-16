@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { invalidateDocumentListAndDetailHeader } from "../../../lib/documentListQueryInvalidation";
 import { orderApi } from "../api";
 import type { CreateOrderLineDto, OrderLineDetailGetDto } from "../types";
 import { useToastStore } from "../../../store/toast";
@@ -15,7 +16,8 @@ export function useCreateOrderLines() {
     { orderId: number; body: CreateOrderLineDto[] }
   >({
     mutationFn: ({ body }) => orderApi.createOrderLines(body),
-    onSuccess: (_, { orderId }) => {
+    onSuccess: async (_, { orderId }) => {
+      await invalidateDocumentListAndDetailHeader(queryClient, "order", orderId);
       queryClient.invalidateQueries({ queryKey: ["order", "detail", "lines", orderId] });
       showToast("success", t("order.linesAdded"));
     },

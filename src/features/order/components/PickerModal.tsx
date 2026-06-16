@@ -40,8 +40,15 @@ export function PickerModal({
   searchPlaceholder = "Ara...",
   isLoading = false,
 }: PickerModalProps): React.ReactElement {
-  const { colors } = useUIStore();
+  const { colors, themeMode } = useUIStore();
   const insets = useSafeAreaInsets();
+
+  const isDark = themeMode === "dark";
+  const mainBg = isDark ? "#161224" : colors.card;
+  const inputBg = isDark ? "rgba(255,255,255,0.03)" : colors.backgroundSecondary;
+  const borderColor = isDark ? "rgba(255,255,255,0.08)" : colors.border;
+  const textColor = isDark ? "#F8FAFC" : colors.text;
+  const textMuted = isDark ? "#94A3B8" : colors.textSecondary;
 
   const [searchText, setSearchText] = useState("");
 
@@ -71,17 +78,18 @@ export function PickerModal({
         <TouchableOpacity
           style={[
             styles.optionItem,
-            { borderBottomColor: colors.border },
-            isSelected && { backgroundColor: colors.accent + "15" },
+            { borderBottomColor: borderColor },
+            isSelected && { backgroundColor: isDark ? "rgba(236, 72, 153, 0.1)" : colors.accent + "15" },
           ]}
           onPress={() => handleSelect(item)}
+          activeOpacity={0.7}
         >
           <View style={styles.optionContent}>
-            <Text style={[styles.optionName, { color: colors.text }]} numberOfLines={1}>
+            <Text style={[styles.optionName, { color: textColor }]} numberOfLines={1}>
               {item.name}
             </Text>
             {item.code && (
-              <Text style={[styles.optionCode, { color: colors.textSecondary }]} numberOfLines={1}>
+              <Text style={[styles.optionCode, { color: textMuted }]} numberOfLines={1}>
                 {item.code}
               </Text>
             )}
@@ -94,7 +102,7 @@ export function PickerModal({
         </TouchableOpacity>
       );
     },
-    [selectedValue, colors, handleSelect]
+    [selectedValue, borderColor, isDark, colors.accent, textColor, textMuted, handleSelect]
   );
 
   return (
@@ -104,22 +112,22 @@ export function PickerModal({
         <View
           style={[
             styles.modalContent,
-            { backgroundColor: colors.card, paddingBottom: insets.bottom + 16 },
+            { backgroundColor: mainBg, paddingBottom: insets.bottom + 16 },
           ]}
         >
-          <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-            <View style={[styles.handle, { backgroundColor: colors.border }]} />
-            <Text style={[styles.modalTitle, { color: colors.text }]}>{title}</Text>
+          <View style={[styles.modalHeader, { borderBottomColor: borderColor }]}>
+            <View style={[styles.handle, { backgroundColor: borderColor }]} />
+            <Text style={[styles.modalTitle, { color: textColor }]}>{title}</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Text style={[styles.closeButtonText, { color: colors.text }]}>✕</Text>
+              <Text style={[styles.closeButtonText, { color: textColor }]}>✕</Text>
             </TouchableOpacity>
           </View>
 
-          <View style={[styles.searchRow, { backgroundColor: colors.backgroundSecondary }]}>
+          <View style={[styles.searchRow, { backgroundColor: inputBg, borderBottomColor: borderColor }]}>
             <TextInput
-              style={[styles.searchInput, { color: colors.text }]}
+              style={[styles.searchInput, { color: textColor, borderColor: borderColor }]}
               placeholder={searchPlaceholder}
-              placeholderTextColor={colors.textMuted}
+              placeholderTextColor={textMuted}
               value={searchText}
               onChangeText={setSearchText}
               autoFocus
@@ -133,7 +141,7 @@ export function PickerModal({
             </View>
           ) : filteredOptions.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Text style={[styles.emptyText, { color: colors.textMuted }]}>Sonuç bulunamadı</Text>
+              <Text style={[styles.emptyText, { color: textMuted }]}>Sonuç bulunamadı</Text>
             </View>
           ) : (
             <FlatList
@@ -157,7 +165,7 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
   },
   modalContent: {
     borderTopLeftRadius: 20,
@@ -176,7 +184,8 @@ const styles = StyleSheet.create({
   handle: {
     position: "absolute",
     top: 8,
-    alignSelf: "center",
+    left: "50%",
+    transform: [{ translateX: -20 }],
     width: 40,
     height: 4,
     borderRadius: 2,
@@ -200,7 +209,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(0, 0, 0, 0.1)",
     gap: 8,
   },
   searchInput: {

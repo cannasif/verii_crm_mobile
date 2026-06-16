@@ -12,12 +12,22 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
+import {
+  SalesDocumentFormLineGroup,
+  SalesDocumentLinesSectionHeader,
+} from "@/components/shared/sales-document-line";
 import { createClientId } from "@/lib/create-client-id";
 import { getValidRelatedProductGroup } from "@/lib/relatedProductGroup";
 import { resolveDocumentSerialCustomerTypeId } from "@/lib/resolve-document-serial-customer-type-id";
+import {
+  resolveDocumentCustomerSelectLabel,
+  resolvePricingRuleCustomerCode,
+} from "@/lib/customerIntegration";
+import { resolveRepresentativeDisplayLabel } from "@/lib/resolveRepresentativeDisplayLabel";
 import { resolveExchangeRateByCurrency as findExchangeRateByCurrency } from "@/lib/resolve-exchange-rate";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -28,9 +38,6 @@ import {
   UserIcon,
   ArrowRight01Icon,
   MoneyExchange01Icon,
-  Edit02Icon,
-  Delete02Icon,
-  Alert02Icon,
   CheckmarkCircle02Icon,
   Cancel01Icon,
   Clock04Icon,
@@ -40,7 +47,9 @@ import {
   FloppyDiskIcon,
   Pdf01Icon,
 } from "hugeicons-react-native";
-import { stickyActionBarBottomPadding } from "../../../constants/layout";
+import { DocumentDetailActions } from "../../../components/paged/DocumentDetailActions";
+import { DocumentDetailStatusAlerts } from "../../../components/paged/DocumentDetailStatusAlerts";
+import { listContentBottomPadding } from "../../../constants/layout";
 import { ScreenHeader } from "../../../components/navigation";
 import { CustomerCancellationReasonModal } from "../../../components/CustomerCancellationReasonModal";
 import { Text } from "../../../components/ui/text";
@@ -54,6 +63,17 @@ import { useCustomer, useCustomerScopeAccess } from "../../customer/hooks";
 import { useCustomerShippingAddresses } from "../../shipping-address/hooks";
 import { buildShippingAddressLabel } from "../../shipping-address/utils/shippingAddressLabel";
 import { stockApi } from "../../stocks/api";
+import {
+  localizeDocumentLineFormStates,
+  mapApiLinesToLocalizedFormState,
+  resolveDocumentLineProductName,
+} from "../../stocks/utils";
+import { getLocalizedStockNameFromStock, mergeCreatedLineProductName } from "../../../lib/localizedStockName";
+import {
+  computeDocumentDetailReadOnly,
+  isDocumentDetailReadOnlyWhileLoading,
+} from "../../../lib/documentDetailReadOnly";
+import { resolveDocumentCancellationReason } from "../../../lib/resolveDocumentStatus";
 import { orderApi } from "../api";
 import {
   useOrderDetail,
@@ -72,6 +92,8 @@ import {
   useCreateOrderLines,
   useUpdateOrderLines,
   useCancelOrderByCustomer,
+  useCanEditOrder,
+  useCreateRevisionOfOrder,
 } from "../hooks";
 import {
   ExchangeRateDialog,
@@ -89,6 +111,7 @@ import type { CustomerDto } from "../../customer/types";
 import { resolveCurrencyIsoCode } from "../../../lib/currencyDisplay";
 import { resolveOrderCustomerLabelForPdf } from "../utils/resolveOrderCustomerLabelForPdf";
 import { buildOrderPreviewPdfInput } from "../utils/buildOrderPreviewPdfInput";
+import { buildSalesDocumentPreviewPdfExtras } from "../../../lib/salesDocumentPreviewPdf";
 import { createOrderSchema, type CreateOrderSchema } from "../schemas";
 import type {
   OrderLineFormState,
@@ -106,6 +129,7 @@ import {
   APPROVAL_CUSTOMER_CANCELLED,
   APPROVAL_SALESPERSON_CLOSED_FOR_REVISION,
   APPROVAL_SUPERSEDED_BY_APPROVED_REVISION,
+  PricingRuleType,
 } from "../types";
 import type { StockRelationDto } from "../../stocks/types";
 import {
@@ -122,6 +146,7 @@ import { calculateLineTotals, calculateTotals } from "../utils";
 import { resolveLineListCurrencyLabel } from "../../../lib/currencyDisplay";
 import { getApiBaseUrl } from "../../../constants/config";
 import { useDocumentDetailDirtyState } from "../../../hooks/useDocumentDetailDirtyState";
+import { invalidateDocumentListAndDetailHeader } from "../../../lib/documentListQueryInvalidation";
 import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida/hooks/useWindoDefinitionOptions";
 
 function resolveMobileImageUri(path?: string | null): string | null {
@@ -133,13 +158,6 @@ function resolveMobileImageUri(path?: string | null): string | null {
     return `${getApiBaseUrl()}${path}`;
   }
   return path;
-}
-
-function formatQtyTr(n: number): string {
-  const v = Number(n);
-  if (!Number.isFinite(v)) return "0";
-  if (Math.abs(v - Math.round(v)) < 1e-6) return Math.round(v).toLocaleString("tr-TR");
-  return v.toLocaleString("tr-TR", { minimumFractionDigits: 0, maximumFractionDigits: 3 });
 }
 
 function formatMoneyTr(n: number): string {
@@ -157,12 +175,6 @@ function parsePersistedRateId(value: unknown): number | null {
   return null;
 }
 
-function formatRateTr(n: number): string {
-  const v = Number(n);
-  if (!Number.isFinite(v)) return "0";
-  if (Math.abs(v - Math.round(v)) < 1e-6) return Math.round(v).toLocaleString("tr-TR");
-  return v.toLocaleString("tr-TR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-}
 
 type StatusKind = "draft" | "pending" | "approved" | "rejected" | "cancelled";
 
@@ -228,12 +240,13 @@ function StatusBadge({ kind, isDark }: StatusBadgeProps): React.ReactElement | n
 export function OrderDetailScreen(): React.ReactElement {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { colors, themeMode } = useUIStore();
   const isDark = themeMode === "dark";
   const { user, branch } = useAuthStore();
   const insets = useSafeAreaInsets();
   const showToast = useToastStore((s) => s.showToast);
+  const queryClient = useQueryClient();
 
   const mainBg = isDark ? "#0c0516" : "#FFFFFF";
   const gradientColors = (
@@ -266,7 +279,7 @@ export function OrderDetailScreen(): React.ReactElement {
     error: detailErrorObj,
     refetch,
   } = useOrderDetail(isFocused ? orderId : undefined);
-  const { profilMap, demirMap, vidaMap, baskiMap, koliBaskiOptions } = useWindoDefinitionOptions();
+  const { profilMap, demirMap, vidaMap, baskiMap, koliBaskiMap, koliBaskiOptions, isLoading: isDefinitionOptionsLoading } = useWindoDefinitionOptions();
 
   const formInitRef = useRef(false);
   const linesInitRef = useRef(false);
@@ -333,6 +346,8 @@ export function OrderDetailScreen(): React.ReactElement {
   const watchedRepresentativeId = watch("order.representativeId");
   const watchedOfferDate = watch("order.offerDate");
   const watchedDeliveryDate = watch("order.deliveryDate");
+  const watchedDescription = watch("order.description");
+  const watchedKoliBaskiDefinitionId = watch("order.koliBaskiDefinitionId");
   const formSnapshot = watch();
 
   const { data: customer } = useCustomer(watchedCustomerId ?? undefined);
@@ -350,6 +365,17 @@ export function OrderDetailScreen(): React.ReactElement {
   const { data: paymentTypes } = usePaymentTypes();
   const { data: relatedUsers = [] } = useRelatedUsers(user?.id);
 
+  const representativeDisplayLabel = useMemo(
+    () =>
+      resolveRepresentativeDisplayLabel({
+        representativeId: watchedRepresentativeId,
+        representativeName: header?.representativeName,
+        relatedUsers,
+        emptyLabel: t("order.select"),
+      }),
+    [watchedRepresentativeId, header?.representativeName, relatedUsers, t]
+  );
+
   const customerTypeId = useMemo(() => {
     return resolveDocumentSerialCustomerTypeId({
       erpCustomerCode: watchedErpCustomerCode,
@@ -358,11 +384,20 @@ export function OrderDetailScreen(): React.ReactElement {
     });
   }, [watchedErpCustomerCode, watchedCustomerId, customer?.customerTypeId]);
 
-  const customerCode = useMemo(() => {
-    if (customer?.customerCode) return customer.customerCode;
-    if (watchedErpCustomerCode) return watchedErpCustomerCode;
-    return undefined;
-  }, [customer, watchedErpCustomerCode]);
+  const customerCode = useMemo(
+    () => resolvePricingRuleCustomerCode(watchedErpCustomerCode),
+    [watchedErpCustomerCode]
+  );
+
+  const customerSelectLabel = useMemo(
+    () =>
+      resolveDocumentCustomerSelectLabel({
+        customer: selectedCustomer,
+        erpCustomerCode: watchedErpCustomerCode,
+        placeholder: t("order.selectCustomerPlaceholder"),
+      }),
+    [selectedCustomer, watchedErpCustomerCode, t]
+  );
 
   const effectiveRatesForLines = useMemo(() => {
     return erpRatesForOrder.map((erp) => {
@@ -418,6 +453,20 @@ export function OrderDetailScreen(): React.ReactElement {
   const { data: waitingApprovalsData } = useWaitingApprovals();
   const approveAction = useApproveAction();
   const rejectAction = useRejectAction();
+  const createRevision = useCreateRevisionOfOrder();
+  const documentStatus = header?.status ?? null;
+  const { data: canEditWhileWaiting, isLoading: canEditLoading } = useCanEditOrder(
+    orderId,
+    documentStatus
+  );
+  const readOnlyState = useMemo(
+    () => computeDocumentDetailReadOnly(documentStatus, canEditWhileWaiting),
+    [canEditWhileWaiting, documentStatus]
+  );
+  const cancellationReason = useMemo(
+    () => (header ? resolveDocumentCancellationReason(header) : null),
+    [header]
+  );
   const updateExchangeRateInOrder = useUpdateExchangeRateInOrder();
   const deleteOrderLineMutation = useDeleteOrderLine();
   const createOrderLinesMutation = useCreateOrderLines();
@@ -439,14 +488,46 @@ export function OrderDetailScreen(): React.ReactElement {
   useEffect(() => {
     if (linesInitRef.current) return;
     if (header == null) return;
-    setLines(linesData.length > 0 ? mapDetailLinesToFormState(linesData) : []);
-    linesInitRef.current = true;
-  }, [header, linesData]);
+    let cancelled = false;
+    void mapApiLinesToLocalizedFormState(linesData, mapDetailLinesToFormState, i18n.language).then(
+      (localized) => {
+        if (!cancelled) {
+          setLines(localized.length > 0 ? localized : []);
+          linesInitRef.current = true;
+        }
+      }
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [header, linesData, i18n.language]);
 
   useEffect(() => {
     if (!linesInitRef.current || header == null) return;
-    setLines(linesData.length > 0 ? mapDetailLinesToFormState(linesData) : []);
-  }, [linesData, header]);
+    let cancelled = false;
+    void mapApiLinesToLocalizedFormState(linesData, mapDetailLinesToFormState, i18n.language).then(
+      (localized) => {
+        if (!cancelled) setLines(localized.length > 0 ? localized : []);
+      }
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [linesData, header, i18n.language]);
+
+  const linesRef = useRef(lines);
+  linesRef.current = lines;
+
+  useEffect(() => {
+    if (!linesInitRef.current || linesRef.current.length === 0) return;
+    let cancelled = false;
+    void localizeDocumentLineFormStates(linesRef.current, i18n.language).then((localized) => {
+      if (!cancelled) setLines(localized);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [i18n.language]);
 
   useEffect(() => {
     if (ratesInitRef.current) return;
@@ -627,7 +708,12 @@ export function OrderDetailScreen(): React.ReactElement {
             {
               onSuccess: async () => {
                 const fetched = await orderApi.getLinesByOrder(orderId);
-                setLines(mapDetailLinesToFormState(fetched));
+                const localized = await mapApiLinesToLocalizedFormState(
+                  fetched,
+                  mapDetailLinesToFormState,
+                  i18n.language
+                );
+                setLines(localized);
                 setLineFormVisible(false);
                 setEditingLine(null);
                 queueMicrotask(() => syncBaseline());
@@ -677,8 +763,13 @@ export function OrderDetailScreen(): React.ReactElement {
         createOrderLinesMutation.mutate(
           { orderId, body },
           {
-            onSuccess: (data) => {
-              setLines((prev) => [...prev, ...mapDetailLinesToFormState(data)]);
+            onSuccess: async (data) => {
+              const mapped = mapDetailLinesToFormState(data);
+              const localized = await localizeDocumentLineFormStates(mapped, i18n.language);
+              const merged = localized.map((apiLine, index) =>
+                toAdd[index] ? mergeCreatedLineProductName(apiLine, toAdd[index]) : apiLine
+              );
+              setLines((prev) => [...prev, ...merged]);
               setLineFormVisible(false);
               setEditingLine(null);
               queueMicrotask(() => syncBaseline());
@@ -764,7 +855,7 @@ export function OrderDetailScreen(): React.ReactElement {
           .filter((r): r is NonNullable<typeof r> => r != null);
       }
       const products = [{ productCode: stock.erpStockCode, groupCode: stock.grupKodu || "" }];
-      let relatedStocks: Array<{ erpStockCode: string; stockName: string; grupKodu?: string }> = [];
+      let relatedStocks: Array<Pick<StockGetDto, "erpStockCode" | "stockName" | "englishStockName" | "grupKodu">> = [];
 
       if (filteredRelations.length > 0) {
         try {
@@ -774,6 +865,7 @@ export function OrderDetailScreen(): React.ReactElement {
           relatedStocks = fetched.map((s) => ({
             erpStockCode: s.erpStockCode,
             stockName: s.stockName,
+            englishStockName: s.englishStockName,
             grupKodu: s.grupKodu,
           }));
           relatedStocks.forEach((s) =>
@@ -804,11 +896,15 @@ export function OrderDetailScreen(): React.ReactElement {
         ? applyCurrencyToPrice(mainPrice.listPrice, mainPrice.currency)
         : 0;
       const relatedProductKey = createClientId(`main-${stock.id}`);
+      const mainProductName = await resolveDocumentLineProductName(
+        { stockId: stock.id, code: stock.erpStockCode, name: stock.stockName },
+        i18n.language
+      );
       const mainLine: OrderLineFormState = calculateLineTotals({
         id: `temp-${Date.now()}`,
         productId: stock.id,
         productCode: stock.erpStockCode,
-        productName: stock.stockName,
+        productName: mainProductName,
         groupCode: stock.grupKodu || null,
         quantity: 1,
         unitPrice: mainUnitPrice,
@@ -840,7 +936,10 @@ export function OrderDetailScreen(): React.ReactElement {
             id: `temp-${Date.now()}-${relation.id}`,
             productId: relation.relatedStockId,
             productCode: relation.relatedStockCode!,
-            productName: relStock?.stockName ?? relation.relatedStockName ?? "",
+            productName:
+              relStock != null
+                ? getLocalizedStockNameFromStock(relStock, i18n.language)
+                : relation.relatedStockName ?? "",
             quantity: relation.quantity,
             unitPrice,
             discountRate1: price?.discount1 ?? 0,
@@ -866,20 +965,29 @@ export function OrderDetailScreen(): React.ReactElement {
         setLines((prev) => [...prev, mainLine]);
       }
     },
-    [watchedCurrency, exchangeRates, erpRatesForOrder, currencyOptions]
+    [watchedCurrency, exchangeRates, erpRatesForOrder, currencyOptions, i18n.language]
   );
 
   const handleStartApproval = useCallback(() => {
     if (!orderId) return;
+    const totalAmount = totals.grandTotal;
     Alert.alert(
       t("order.sendForApproval"),
       t("order.sendForApprovalConfirm"),
       [
         { text: t("common.cancel"), style: "cancel" as const },
-        { text: t("common.confirm"), onPress: () => startApproval.mutate(orderId) },
+        {
+          text: t("common.confirm"),
+          onPress: () =>
+            startApproval.mutate({
+              entityId: orderId,
+              documentType: PricingRuleType.Order,
+              totalAmount,
+            }),
+        },
       ]
     );
-  }, [orderId, startApproval, t]);
+  }, [orderId, startApproval, t, totals.grandTotal]);
 
   const handleCustomerCancel = useCallback(() => {
     setCustomerCancellationVisible(true);
@@ -954,12 +1062,24 @@ export function OrderDetailScreen(): React.ReactElement {
             .filter((rate) => rate.id == null)
             .map((rate) => orderApi.createOrderExchangeRate(rate.data))
         );
+        await invalidateDocumentListAndDetailHeader(queryClient, "order", orderId);
+        await queryClient.invalidateQueries({
+          queryKey: ["order", "detail", "lines", orderId],
+        });
+        await queryClient.invalidateQueries({
+          queryKey: ["order", "detail", "exchangeRates", orderId],
+        });
         markSaved();
+        showToast("success", t("order.updateSuccess"));
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : t("order.updateError");
+        showToast("error", message, 10000);
       } finally {
         setIsSavingUpdate(false);
       }
     },
-    [orderId, lines, exchangeRates, ratesData, setError, t, markSaved]
+    [orderId, lines, exchangeRates, ratesData, setError, t, markSaved, queryClient, showToast]
   );
 
   const onInvalidSaveUpdate = useCallback(() => {
@@ -986,6 +1106,15 @@ export function OrderDetailScreen(): React.ReactElement {
       const generalDiscountAmount =
         (headerRecord?.generalDiscountAmount as number | null | undefined) ?? null;
 
+      const pdfExtras = buildSalesDocumentPreviewPdfExtras({
+        t,
+        koliBaskiDefinitionId: watchedKoliBaskiDefinitionId ?? header?.koliBaskiDefinitionId,
+        koliBaskiDefinitionName: header?.koliBaskiDefinitionName,
+        koliBaskiMap,
+        description: watchedDescription ?? header?.description,
+        lineDetailMaps: { profilMap, demirMap, vidaMap, baskiMap },
+      });
+
       return buildOrderPreviewPdfInput({
         offerDate: watchedOfferDate ?? header?.offerDate ?? null,
         offerNo: header?.offerNo ?? null,
@@ -998,35 +1127,41 @@ export function OrderDetailScreen(): React.ReactElement {
         draft,
         lines,
         t,
+        footerDetails: pdfExtras.footerDetails,
+        lineDetailLabels: pdfExtras.lineDetailLabels,
+        lineDetailMaps: pdfExtras.lineDetailMaps,
       });
     },
     [
+      baskiMap,
       branch,
+      demirMap,
       header,
+      koliBaskiMap,
       lines,
+      profilMap,
       selectedCustomer?.name,
       t,
+      vidaMap,
       watchedCurrency,
       watchedCustomerId,
+      watchedDescription,
       watchedErpCustomerCode,
+      watchedKoliBaskiDefinitionId,
       watchedOfferDate,
     ]
   );
 
   const pageTitle = header?.offerNo ?? (orderId != null ? `#${orderId}` : t("order.detail"));
-  const isReadonly =
-    header?.status === APPROVAL_APPROVED ||
-    header?.status === APPROVAL_REJECTED ||
-    header?.status === APPROVAL_CLOSED ||
-    header?.status === APPROVAL_CUSTOMER_CANCELLED ||
-    header?.status === APPROVAL_SALESPERSON_CLOSED_FOR_REVISION ||
-    header?.status === APPROVAL_SUPERSEDED_BY_APPROVED_REVISION;
-  const showOnayaGonder = header?.status === APPROVAL_HAVENOT_STARTED;
+  const isReadonly = isDocumentDetailReadOnlyWhileLoading(readOnlyState, canEditLoading);
+  const showOnayaGonder = header?.status === APPROVAL_HAVENOT_STARTED && !isReadonly;
   const showSaveUpdate = !isReadonly;
   const showApproveReject = header?.status === APPROVAL_WAITING;
+  const showRevise = header?.status === APPROVAL_REJECTED;
   const showCustomerCancel =
     Boolean(header) &&
     !header?.isERPIntegrated &&
+    !isReadonly &&
     header?.status !== APPROVAL_CLOSED &&
     header?.status !== APPROVAL_CUSTOMER_CANCELLED &&
     header?.status !== APPROVAL_SALESPERSON_CLOSED_FOR_REVISION &&
@@ -1078,6 +1213,11 @@ export function OrderDetailScreen(): React.ReactElement {
       setSelectedApprovalForReject(null);
     }
   }, [rejectAction.isPending]);
+
+  const handleRevise = useCallback(() => {
+    if (orderId == null) return;
+    createRevision.mutate(orderId);
+  }, [createRevision, orderId]);
 
   if (!orderId) {
     return (
@@ -1137,139 +1277,6 @@ export function OrderDetailScreen(): React.ReactElement {
       </>
     );
   }
-
-  const renderLineRow = (l: OrderLineFormState, opts: { related?: boolean }): React.ReactElement => {
-    const hasImage = Boolean(l.imagePath?.trim());
-    const descs = [l.description1, l.description2, l.description3].filter(Boolean).join(" · ");
-    const definitions = [
-      l.profilDefinitionId ? `Profil: ${profilMap[l.profilDefinitionId] ?? `#${l.profilDefinitionId}`}` : "",
-      l.demirDefinitionId ? `Demir: ${demirMap[l.demirDefinitionId] ?? `#${l.demirDefinitionId}`}` : "",
-      l.vidaDefinitionId ? `Vida: ${l.vidaDefinitionName ?? vidaMap[l.vidaDefinitionId] ?? `#${l.vidaDefinitionId}`}` : "",
-      l.baskiDefinitionId ? `Baskı: ${l.baskiDefinitionName ?? baskiMap[l.baskiDefinitionId] ?? `#${l.baskiDefinitionId}`}` : "",
-      l.baskiAciklama ? `Baskı açıklaması: ${l.baskiAciklama}` : "",
-    ].filter(Boolean).join(" · ");
-    const rates = [l.discountRate1, l.discountRate2, l.discountRate3]
-      .filter((r) => r > 0)
-      .map((r) => `${formatRateTr(r)}%`);
-
-    return (
-      <View
-        style={[
-          styles.lineRow,
-          opts.related && styles.lineRowRelated,
-          {
-            borderColor: innerBorder,
-            backgroundColor: opts.related
-              ? isDark
-                ? "rgba(255,255,255,0.03)"
-                : "rgba(15,23,42,0.02)"
-              : innerBg,
-          },
-          !opts.related && l.approvalStatus === 1 && {
-            borderColor: colors.warning,
-            borderWidth: 1.5,
-          },
-        ]}
-      >
-        <View style={[styles.lineRowMain, hasImage ? styles.lineRowMainWithThumb : undefined]}>
-          {hasImage ? (
-            <Image
-              source={{ uri: resolveMobileImageUri(l.imagePath) ?? l.imagePath ?? "" }}
-              style={opts.related ? styles.lineRowThumbRelated : styles.lineRowThumb}
-              resizeMode="cover"
-            />
-          ) : null}
-          <View style={[styles.lineRowTextBlock, opts.related && styles.lineRowTextBlockRelated]}>
-            <Text style={[styles.lineRowCode, { color: softText }]} numberOfLines={1}>
-              {l.productCode || "Ã¢â‚¬â€"}
-            </Text>
-            <Text style={[styles.lineRowName, { color: titleText }]} numberOfLines={2}>
-              {l.productName || t("order.productNotSelected")}
-            </Text>
-            {descs ? (
-              <Text style={[styles.lineRowDesc, { color: softText }]} numberOfLines={1}>
-                {descs}
-              </Text>
-            ) : null}
-            {definitions ? (
-              <Text style={[styles.lineRowDesc, { color: softText }]} numberOfLines={1}>
-                {definitions}
-              </Text>
-            ) : null}
-            <Text style={[styles.lineRowMeta, styles.lineRowMetaFine, { color: mutedText }]} numberOfLines={2}>
-              <Text style={{ color: titleText, fontWeight: "600" }}>{formatQtyTr(l.quantity)}</Text>
-              <Text>{` ad. Ã‚Â· `}</Text>
-              <Text style={{ color: titleText, fontWeight: "600" }}>{formatMoneyTr(l.unitPrice)}</Text>
-              {lineListCurrencyLabel ? (
-                <Text style={{ color: titleText, fontWeight: "600" }}>{` ${lineListCurrencyLabel}`}</Text>
-              ) : null}
-              {rates.length > 0 ? (
-                <>
-                  <Text>{` Ã‚Â· ${t("common.discount")} `}</Text>
-                  <Text style={{ color: titleText, fontWeight: "600" }}>{rates.join("/")}</Text>
-                </>
-              ) : null}
-            </Text>
-            <Text style={[styles.lineRowMeta, styles.lineRowMetaFine, { color: mutedText }]} numberOfLines={2}>
-              <Text style={{ color: titleText, fontWeight: "600" }}>{formatMoneyTr(l.lineTotal)}</Text>
-              {lineListCurrencyLabel ? <Text style={{ color: mutedText }}>{` ${lineListCurrencyLabel}`}</Text> : null}
-              <Text>{` Ã‚Â· KDV ${formatRateTr(l.vatRate)}% `}</Text>
-              <Text style={{ color: titleText, fontWeight: "600" }}>{formatMoneyTr(l.vatAmount)}</Text>
-              {lineListCurrencyLabel ? <Text>{` ${lineListCurrencyLabel}`}</Text> : null}
-              <Text>{` Ã‚Â· `}</Text>
-              <Text style={{ color: accent, fontWeight: "700" }}>{formatMoneyTr(l.lineGrandTotal)}</Text>
-              {lineListCurrencyLabel ? (
-                <Text style={{ color: accent, fontWeight: "700" }}>{` ${lineListCurrencyLabel}`}</Text>
-              ) : null}
-            </Text>
-            {!opts.related && l.approvalStatus === 1 ? (
-              <View style={[styles.lineRowApproval, { backgroundColor: colors.warning + "18" }]}>
-                <Alert02Icon size={12} color={colors.warning} variant="stroke" strokeWidth={1.8} />
-                <Text style={[styles.lineRowApprovalText, { color: colors.warning }]}>{t("order.approvalRequired")}</Text>
-              </View>
-            ) : null}
-          </View>
-        </View>
-        <View style={styles.lineRowTopRight}>
-          {!opts.related ? (
-            <View style={[styles.lineRowMainBadge, { backgroundColor: colors.activeBackground }]}>
-              <Text style={[styles.lineRowMainBadgeText, { color: accent }]}>{t("order.main")}</Text>
-            </View>
-          ) : null}
-          {!isReadonly ? (
-            <>
-              <TouchableOpacity
-                style={[
-                  styles.lineIconButton,
-                  {
-                    borderColor: isDark ? "rgba(236,72,153,0.35)" : "rgba(219,39,119,0.22)",
-                    backgroundColor: isDark ? "rgba(236,72,153,0.10)" : "rgba(219,39,119,0.06)",
-                  },
-                ]}
-                onPress={() => handleEditLine(l)}
-                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-              >
-                <Edit02Icon size={16} color={accent} variant="stroke" strokeWidth={1.8} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.lineIconButton,
-                  {
-                    borderColor: isDark ? "rgba(239,68,68,0.35)" : "rgba(239,68,68,0.22)",
-                    backgroundColor: isDark ? "rgba(239,68,68,0.10)" : "rgba(239,68,68,0.06)",
-                  },
-                ]}
-                onPress={() => handleDeleteLine(l.id)}
-                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-              >
-                <Delete02Icon size={16} color={colors.error} variant="stroke" strokeWidth={1.8} />
-              </TouchableOpacity>
-            </>
-          ) : null}
-        </View>
-      </View>
-    );
-  };
 
   return (
     <>
@@ -1372,16 +1379,26 @@ export function OrderDetailScreen(): React.ReactElement {
               }
               lines={lines}
               offerDate={watchedOfferDate ?? header?.offerDate}
+              description={watchedDescription ?? header?.description}
+              koliBaskiDefinitionId={watchedKoliBaskiDefinitionId ?? header?.koliBaskiDefinitionId}
+              koliBaskiDefinitionName={header?.koliBaskiDefinitionName}
             />
           ) : (
             <FlatListScrollView
               style={styles.content}
               contentContainerStyle={[
                 styles.contentContainer,
-                { paddingBottom: insets.bottom + (showApproveReject || showSaveUpdate ? 110 : 28) },
+                { paddingBottom: listContentBottomPadding(insets.bottom) },
               ]}
               showsVerticalScrollIndicator={false}
             >
+              <DocumentDetailStatusAlerts
+                module="order"
+                status={documentStatus}
+                showApprovalLockBanner={readOnlyState.showApprovalLockBanner}
+                cancellationReason={cancellationReason}
+                isDark={isDark}
+              />
               <View style={[styles.section, { backgroundColor: shellBg, borderColor: sectionOutline }]}>
                 <View style={[styles.sectionLeadHeader, { borderBottomColor: sectionOutline }]}>
                   <Text style={[styles.sectionTitle, { color: titleText }]}>{t("order.customerSection")}</Text>
@@ -1420,8 +1437,7 @@ export function OrderDetailScreen(): React.ReactElement {
                         {t("order.selectCustomer")}
                       </Text>
                       <Text style={[styles.customerSelectValue, { color: titleText }]} numberOfLines={1}>
-                        {selectedCustomer?.name ??
-                          (watchedErpCustomerCode ? `ERP: ${watchedErpCustomerCode}` : t("order.selectCustomerPlaceholder"))}
+                        {customerSelectLabel}
                       </Text>
                     </View>
                   </View>
@@ -1492,14 +1508,7 @@ export function OrderDetailScreen(): React.ReactElement {
                             activeOpacity={isReadonly ? 1 : 0.85}
                           >
                             <Text style={[styles.pickerText, styles.pickerTextCompact, { color: titleText }]} numberOfLines={1}>
-                              {watchedRepresentativeId
-                                ? (() => {
-                                    const u = relatedUsers.find((rel) => rel.userId === watchedRepresentativeId);
-                                    return u
-                                      ? `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim()
-                                      : String(watchedRepresentativeId);
-                                  })()
-                                : t("order.select")}
+                              {representativeDisplayLabel}
                             </Text>
                           </TouchableOpacity>
                         </View>
@@ -1646,6 +1655,8 @@ export function OrderDetailScreen(): React.ReactElement {
                   customerTypeId={customerTypeId}
                   representativeId={watchedRepresentativeId ?? undefined}
                   disabled={isReadonly || !watchedRepresentativeId}
+                  documentId={orderId}
+                  readOnly={isReadonly}
                 />
 
                 <Controller
@@ -1689,26 +1700,13 @@ export function OrderDetailScreen(): React.ReactElement {
               </View>
 
               <View style={[styles.section, { backgroundColor: shellBg, borderColor: sectionOutline }]}>
-                <View style={[styles.sectionHeader, { borderBottomColor: sectionOutline }]}>
-                  <Text style={[styles.sectionTitle, { color: titleText }]}>
-                    {t("order.lines")}
-                    {visibleMainLines.length > 0 ? ` (${visibleMainLines.length})` : ""}
-                  </Text>
-                  {!isReadonly && (
-                    <TouchableOpacity
-                      style={[
-                        styles.addButton,
-                        { backgroundColor: accent + "CC" },
-                        !canAddLine && styles.submitButtonDisabled,
-                      ]}
-                      onPress={handleAddLine}
-                      disabled={!canAddLine}
-                      activeOpacity={0.9}
-                    >
-                      <Text style={styles.addButtonText}>+ {t("order.addLine")}</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
+                <SalesDocumentLinesSectionHeader
+                  lineCount={visibleMainLines.length}
+                  canAddLine={canAddLine}
+                  isReadonly={isReadonly}
+                  translationPrefix="order"
+                  onAddLine={handleAddLine}
+                />
 
                 {errors.root?.message && (
                   <Text style={[styles.fieldError, { color: colors.error }]}>{errors.root.message}</Text>
@@ -1717,33 +1715,17 @@ export function OrderDetailScreen(): React.ReactElement {
                 {lines.length === 0 ? (
                   <Text style={[styles.emptyText, { color: softText }]}>{t("order.noLinesYet")}</Text>
                 ) : (
-                  <View style={{ gap: 8 }}>
+                  <View style={styles.linesList}>
                     {visibleMainLines.map((line) => (
-                      <View key={line.id} style={styles.lineCardWrapper}>
-                        {renderLineRow(line, {})}
-                        {line.relatedLines && line.relatedLines.length > 0 ? (
-                          <View style={styles.relatedLinesBlock}>
-                            <Text style={[styles.relatedLinesTitle, { color: softText }]}>
-                              {t("order.relatedStocks")}
-                            </Text>
-                            {line.relatedLines.map((relatedLine) => (
-                              <View
-                                key={relatedLine.id}
-                                style={[
-                                  styles.relatedLineIndent,
-                                  {
-                                    borderLeftColor: isDark
-                                      ? "rgba(236,72,153,0.45)"
-                                      : "rgba(219,39,119,0.28)",
-                                  },
-                                ]}
-                              >
-                                {renderLineRow(relatedLine, { related: true })}
-                              </View>
-                            ))}
-                          </View>
-                        ) : null}
-                      </View>
+                      <SalesDocumentFormLineGroup
+                        key={line.id}
+                        line={line}
+                        isReadonly={isReadonly}
+                        currencyLabel={lineListCurrencyLabel}
+                        translationPrefix="order"
+                        onEdit={handleEditLine}
+                        onDelete={handleDeleteLine}
+                      />
                     ))}
                   </View>
                 )}
@@ -1781,142 +1763,39 @@ export function OrderDetailScreen(): React.ReactElement {
                   </View>
                 </View>
               )}
+
+              <DocumentDetailActions
+                visible={showApproveReject || showSaveUpdate}
+                accent={accent}
+                accentSecondary={colors.accentSecondary || "#f97316"}
+                errorColor={colors.error}
+                showApproveReject={showApproveReject}
+                canApproveReject={canApproveReject}
+                rejectPending={rejectAction.isPending}
+                approvePending={approveAction.isPending}
+                onReject={handleRejectClick}
+                onApprove={handleApprove}
+                rejectLabel={t("order.rejectButton")}
+                approveLabel={t("order.approveButton")}
+                showSaveUpdate={showSaveUpdate && !showApproveReject}
+                hasUnsavedChanges={hasUnsavedChanges}
+                isSavingUpdate={isSavingUpdate}
+                onSaveUpdate={handleSaveUpdate}
+                saveLabel={t("common.saveUpdate")}
+                showOnayaGonder={showOnayaGonder}
+                startApprovalPending={startApproval.isPending}
+                onStartApproval={handleStartApproval}
+                sendForApprovalLabel={t("order.sendForApproval")}
+                showCustomerCancel={showCustomerCancel}
+                cancelByCustomerPending={cancelByCustomer.isPending}
+                onCustomerCancel={handleCustomerCancel}
+                customerCancelLabel={t("order.customerCancelButton", "Müşteri İptali")}
+                showRevise={showRevise}
+                revisePending={createRevision.isPending}
+                onRevise={handleRevise}
+                reviseLabel={t("order.rowActions.revise")}
+              />
             </FlatListScrollView>
-          )}
-
-          {activeTab === "detail" && (showApproveReject || showSaveUpdate) && (
-            <View
-              style={[
-                styles.actionBar,
-                {
-                  backgroundColor: shellBgAlt,
-                  borderTopColor: sectionOutline,
-                  paddingBottom: stickyActionBarBottomPadding(insets.bottom),
-                },
-              ]}
-            >
-              {showApproveReject && (
-                <>
-                  <TouchableOpacity
-                    style={[styles.actionRejectButton, { backgroundColor: colors.error }]}
-                    onPress={handleRejectClick}
-                    disabled={!canApproveReject || rejectAction.isPending}
-                    activeOpacity={0.9}
-                  >
-                    {rejectAction.isPending ? (
-                      <ActivityIndicator color="#FFFFFF" />
-                    ) : (
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                        <Cancel01Icon size={18} color="#FFFFFF" variant="stroke" strokeWidth={2} />
-                        <Text style={styles.actionButtonText}>{t("order.rejectButton")}</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.actionApproveButtonWrap]}
-                    onPress={handleApprove}
-                    disabled={!canApproveReject || approveAction.isPending}
-                    activeOpacity={0.9}
-                  >
-                    <LinearGradient
-                      colors={["#10b981", "#059669"]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.actionApproveButton}
-                    >
-                      {approveAction.isPending ? (
-                        <ActivityIndicator color="#FFFFFF" />
-                      ) : (
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                          <Tick02Icon size={18} color="#FFFFFF" variant="stroke" strokeWidth={2} />
-                          <Text style={styles.actionButtonText}>{t("order.approveButton")}</Text>
-                        </View>
-                      )}
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </>
-              )}
-
-              {!showApproveReject && showSaveUpdate && (
-                <>
-                  <TouchableOpacity
-                    style={[
-                      styles.actionFullButtonWrap,
-                      !hasUnsavedChanges && styles.submitButtonDisabled,
-                    ]}
-                    onPress={handleSaveUpdate}
-                    disabled={!hasUnsavedChanges || isSavingUpdate}
-                    activeOpacity={0.9}
-                  >
-                    <LinearGradient
-                      colors={[colors.accentSecondary || "#f97316", accent]}
-                      start={{ x: 1, y: 0 }}
-                      end={{ x: 0, y: 1 }}
-                      style={styles.actionFullButton}
-                    >
-                      {isSavingUpdate ? (
-                        <ActivityIndicator color="#FFFFFF" />
-                      ) : (
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                          <FloppyDiskIcon size={18} color="#FFFFFF" variant="stroke" strokeWidth={2} />
-                          <Text style={styles.actionButtonText}>{t("common.saveUpdate")}</Text>
-                        </View>
-                      )}
-                    </LinearGradient>
-                  </TouchableOpacity>
-
-                  {showOnayaGonder && (
-                    <TouchableOpacity
-                      style={styles.actionFullButtonWrap}
-                      onPress={handleStartApproval}
-                      disabled={startApproval.isPending || isSavingUpdate}
-                      activeOpacity={0.9}
-                    >
-                      <LinearGradient
-                        colors={[accent, colors.accentSecondary || "#f97316"]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.actionFullButton}
-                      >
-                        {startApproval.isPending ? (
-                          <ActivityIndicator color="#FFFFFF" />
-                        ) : (
-                          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                            <SentIcon size={18} color="#FFFFFF" variant="stroke" strokeWidth={2} />
-                            <Text style={styles.actionButtonText}>{t("order.sendForApproval")}</Text>
-                          </View>
-                        )}
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  )}
-                  {showCustomerCancel && (
-                    <TouchableOpacity
-                      style={styles.actionFullButtonWrap}
-                      onPress={handleCustomerCancel}
-                      disabled={cancelByCustomer.isPending || isSavingUpdate}
-                      activeOpacity={0.9}
-                    >
-                      <LinearGradient
-                        colors={["#be123c", "#e11d48"]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.actionFullButton}
-                      >
-                        {cancelByCustomer.isPending ? (
-                          <ActivityIndicator color="#FFFFFF" />
-                        ) : (
-                          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                            <Cancel01Icon size={18} color="#FFFFFF" variant="stroke" strokeWidth={2} />
-                            <Text style={styles.actionButtonText}>{t("order.customerCancelButton", "Müşteri İptali")}</Text>
-                          </View>
-                        )}
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  )}
-                </>
-              )}
-            </View>
           )}
 
           <OrderLineForm
@@ -2219,6 +2098,7 @@ export function OrderDetailScreen(): React.ReactElement {
             onClose={() => setKoliBaskiModalVisible(false)}
             title={t("order.koliBaski")}
             searchPlaceholder={t("order.koliBaskiSearch")}
+            isLoading={isDefinitionOptionsLoading}
           />
 
           {watchedCustomerId && shippingAddresses && shippingAddresses.length > 0 && (
@@ -2409,6 +2289,7 @@ const styles = StyleSheet.create({
   addButtonText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
 
   emptyText: { fontSize: 13, textAlign: "center", paddingVertical: 18, fontStyle: "italic" },
+  linesList: { gap: 10 },
 
   lineCardWrapper: {},
   lineRow: {

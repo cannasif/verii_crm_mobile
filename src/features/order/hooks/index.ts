@@ -5,6 +5,7 @@ export { useOrderList } from "./useOrderList";
 export { useOrderDetail } from "./useOrderDetail";
 export { useOrderApprovalFlowReport } from "./useOrderApprovalFlowReport";
 export { useCreateRevisionOfOrder } from "./useCreateRevisionOfOrder";
+export { useCanEditOrder } from "./useCanEditOrder";
 export { useCreateOrderBulk } from "./useCreateOrderBulk";
 export { useUpdateOrderBulk } from "./useUpdateOrderBulk";
 export { useStartApprovalFlow } from "./useStartApprovalFlow";

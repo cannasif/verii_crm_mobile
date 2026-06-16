@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { invalidateDocumentListQueries } from "../../../lib/documentListQueryInvalidation";
 import { orderApi } from "../api";
 import type { OrderBulkCreateDto, OrderGetDto } from "../types";
 import { useToastStore } from "../../../store/toast";
@@ -15,8 +16,8 @@ export function useUpdateOrderBulk() {
     { id: number; data: OrderBulkCreateDto }
   >({
     mutationFn: ({ id, data }) => orderApi.updateBulk(id, data),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: ["order", "list"] });
+    onSuccess: async (_, { id }) => {
+      await invalidateDocumentListQueries(queryClient, "order");
       queryClient.invalidateQueries({ queryKey: ["order", "detail", id] });
       queryClient.invalidateQueries({ queryKey: ["order", "detail", "lines", id] });
       queryClient.invalidateQueries({ queryKey: ["order", "detail", "exchangeRates", id] });
