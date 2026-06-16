@@ -68,7 +68,14 @@
     "statusClosed": "Kapatıldı",
     "customerCancelled": "İptal edildi",
     "salespersonClosedForRevision": "ERP kaydı revizyon için plasiyer tarafından kapatıldı",
+    "salespersonClosedForRevisionShort": "ERP REV. KAPAT.",
     "supersededByApprovedRevision": "Onaylanan revizyon nedeniyle kapatıldı",
+    "supersededByApprovedRevisionShort": "ON. REV. KAPAT.",
+    "statusBadgeHoldHint": "Tam durum metnini görmek için basılı tutun",
+    "erpCleanupPrefix": "ERP:",
+    "erpCleanupFailed": "ERP kaydı temizlenemedi",
+    "erpOriginalDocumentNo": "Eski ERP No: {{no}}",
+    "erpCleanupReason": "Neden: {{reason}}",
     "rowsUpdated": "Satırlar güncellendi.",
     "rowsAdded": "Satırlar eklendi.",
     "exchangeRatesUpdated": "Döviz kurları güncellendi.",
@@ -110,6 +117,47 @@
       "branch": "Şube {{branch}}",
       "holdHint": "Depo kırılımı için basılı tutun"
     }
+  },
+  "header": {
+    "serialNumber": "Seri No",
+    "selectSerialNumber": "Seri No Seçiniz",
+    "searchSerialNumber": "Seri no ara...",
+    "noAvailableSerialTypes": "Uygun seri yok",
+    "koliBaski": "Koli Baskı",
+    "notes": "Notlar"
+  },
+  "lines": {
+    "descriptionField1Label": "Açıklama 1",
+    "descriptionField2Label": "Açıklama 2",
+    "descriptionField3Label": "Açıklama 3",
+    "windoProfileLabel": "Profil",
+    "windoRebarLabel": "Demir",
+    "windoScrewLabel": "Vida",
+    "windoPrintLabel": "Baskı",
+    "windoPrintDescriptionLabel": "Baskı açıklaması"
+  },
+  "approval": {
+    "lockedForNonApprover": "Bu kayıt onay sürecinde. Yalnızca aktif onay kullanıcısı değişiklik yapabilir; sizin için düzenleme kapalı.",
+    "approvedReadOnlyReason": {
+      "quotation": "Bu teklif onaylandığı için değişiklik yapılamaz.",
+      "demand": "Bu talep onaylandığı için değişiklik yapılamaz.",
+      "order": "Bu sipariş onaylandığı için değişiklik yapılamaz."
+    },
+    "rejectedReadOnlyReason": {
+      "quotation": "Bu teklif reddedildiği için değişiklik yapılamaz. Güncellemek için aşağıdaki \"Revize et\" butonunu kullanın.",
+      "demand": "Bu talep reddedildiği için değişiklik yapılamaz. Güncellemek için aşağıdaki \"Revize et\" butonunu kullanın.",
+      "order": "Bu sipariş reddedildiği için değişiklik yapılamaz. Güncellemek için aşağıdaki \"Revize et\" butonunu kullanın."
+    },
+    "closedReason": "Bu kayıt aynı belge numarasında başka bir kayıt onaylandığı için kapatıldı; değişiklik yapılamaz.",
+    "readOnlySuffix": "Değişiklik yapılamaz."
+  },
+  "customerCancel": {
+    "readOnlyReason": {
+      "quotation": "Bu teklif müşteri tarafından iptal edildiği için değişiklik yapılamaz.",
+      "demand": "Bu talep müşteri tarafından iptal edildiği için değişiklik yapılamaz.",
+      "order": "Bu sipariş müşteri tarafından iptal edildiği için değişiklik yapılamaz."
+    },
+    "reasonLabel": "İptal nedeni: {{reason}}"
   },
   "permissions": {
     "title": "Yetki Kontrolü",
@@ -532,6 +580,7 @@
     "searchPlaceholder": "Müşteri adı veya kodu ile ara...",
     "name": "Firma Adı",
     "customerCode": "Müşteri Kodu",
+    "customerCodeHint": "ERP entegrasyonunda cari kodu olarak kullanılabilir. Entegrasyon tamamlanana kadar müşteri potansiyel olarak kalır. ERP'ye açmak için kayıt sonrası ERP Müşterisi Oluştur kullanın.",
     "taxNumber": "Vergi Numarası",
     "taxOffice": "Vergi Dairesi",
     "tcknNumber": "TC Kimlik No",
@@ -560,6 +609,7 @@
     "selectEmptyAll": "Müşteri bulunamadı",
     "selectBadgeErp": "ERP",
     "selectBadgePotential": "CRM",
+    "erpReadOnlyMessage": "ERP müşterisi. Müşteri bilgileri bu uygulamadan düzenlenemez; ERP uygulamanızı kullanın.",
     "contactInfo": "İletişim Bilgileri",
     "taxInfo": "Vergi Bilgileri",
     "approvalInfo": "Onay Bilgileri",

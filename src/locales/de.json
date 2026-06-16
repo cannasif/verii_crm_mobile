@@ -101,6 +101,47 @@
       "holdHint": "Gedrückt halten für Lageraufschlüsselung"
     }
   },
+  "header": {
+    "serialNumber": "Serien-Nr.",
+    "selectSerialNumber": "Serien-Nr. auswählen",
+    "searchSerialNumber": "Serien-Nr. suchen...",
+    "noAvailableSerialTypes": "Keine passende Serie",
+    "koliBaski": "Kartonaufdruck",
+    "notes": "Notizen"
+  },
+  "lines": {
+    "descriptionField1Label": "Beschreibung 1",
+    "descriptionField2Label": "Beschreibung 2",
+    "descriptionField3Label": "Beschreibung 3",
+    "windoProfileLabel": "Profil",
+    "windoRebarLabel": "Eisen",
+    "windoScrewLabel": "Schraube",
+    "windoPrintLabel": "Druck",
+    "windoPrintDescriptionLabel": "Druckbeschreibung"
+  },
+  "approval": {
+    "lockedForNonApprover": "Dieser Datensatz befindet sich im Genehmigungsprozess. Nur der aktive Genehmiger kann Änderungen vornehmen; die Bearbeitung ist für Sie gesperrt.",
+    "approvedReadOnlyReason": {
+      "quotation": "Dieses Angebot kann nicht bearbeitet werden, da es genehmigt wurde.",
+      "demand": "Diese Anfrage kann nicht bearbeitet werden, da sie genehmigt wurde.",
+      "order": "Diese Bestellung kann nicht bearbeitet werden, da sie genehmigt wurde."
+    },
+    "rejectedReadOnlyReason": {
+      "quotation": "Dieses Angebot kann nicht bearbeitet werden, da es abgelehnt wurde. Verwenden Sie die Schaltfläche \"Überarbeiten\" unten.",
+      "demand": "Diese Anfrage kann nicht bearbeitet werden, da sie abgelehnt wurde. Verwenden Sie die Schaltfläche \"Überarbeiten\" unten.",
+      "order": "Diese Bestellung kann nicht bearbeitet werden, da sie abgelehnt wurde. Verwenden Sie die Schaltfläche \"Überarbeiten\" unten."
+    },
+    "closedReason": "Dieser Datensatz wurde geschlossen, weil ein anderer Datensatz mit derselben Belegnummer genehmigt wurde; eine Bearbeitung ist nicht möglich.",
+    "readOnlySuffix": "Bearbeitung ist nicht möglich."
+  },
+  "customerCancel": {
+    "readOnlyReason": {
+      "quotation": "Dieses Angebot kann nicht bearbeitet werden, da es vom Kunden storniert wurde.",
+      "demand": "Diese Anfrage kann nicht bearbeitet werden, da sie vom Kunden storniert wurde.",
+      "order": "Diese Bestellung kann nicht bearbeitet werden, da sie vom Kunden storniert wurde."
+    },
+    "reasonLabel": "Stornierungsgrund: {{reason}}"
+  },
   "home": {
     "greeting": "Hallo",
     "welcome": "Willkommen",
@@ -465,6 +506,7 @@
     "searchPlaceholder": "Suche nach Name oder Code...",
     "name": "Firmenname",
     "customerCode": "Kundencode",
+    "customerCodeHint": "Kann als Kontocode in der ERP-Integration verwendet werden. Bis die Integration abgeschlossen ist, bleibt der Kunde ein potenzieller Kunde. Verwenden Sie nach dem Speichern „ERP-Kunde erstellen“, um den Konten in ERP anzulegen.",
     "taxNumber": "Steuernummer",
     "taxOffice": "Finanzamt",
     "tcknNumber": "Identifikationsnummer",
@@ -493,6 +535,7 @@
     "selectEmptyAll": "Kein Kunde gefunden",
     "selectBadgeErp": "ERP",
     "selectBadgePotential": "CRM",
+    "erpReadOnlyMessage": "ERP-Kunde. Kundendaten hier nicht bearbeitbar; bitte ERP-Anwendung verwenden.",
     "contactInfo": "Kontaktinformationen",
     "taxInfo": "Steuerinformationen",
     "approvalInfo": "Genehmigungsinformationen",

@@ -67,7 +67,14 @@
     "statusClosed": "Closed",
     "customerCancelled": "Cancelled",
     "salespersonClosedForRevision": "ERP record closed by salesperson for revision",
+    "salespersonClosedForRevisionShort": "ERP REV. CLOSED",
     "supersededByApprovedRevision": "Closed because another revision was approved",
+    "supersededByApprovedRevisionShort": "APPR. REV. CLOSED",
+    "statusBadgeHoldHint": "Press and hold to see the full status text",
+    "erpCleanupPrefix": "ERP:",
+    "erpCleanupFailed": "ERP record could not be cleaned up",
+    "erpOriginalDocumentNo": "Previous ERP No: {{no}}",
+    "erpCleanupReason": "Reason: {{reason}}",
     "rowsUpdated": "Rows updated.",
     "rowsAdded": "Rows added.",
     "exchangeRatesUpdated": "Exchange rates have been updated.",
@@ -109,6 +116,47 @@
       "branch": "Branch {{branch}}",
       "holdHint": "Press and hold for warehouse breakdown"
     }
+  },
+  "header": {
+    "serialNumber": "Serial No",
+    "selectSerialNumber": "Select Serial No",
+    "searchSerialNumber": "Search serial no...",
+    "noAvailableSerialTypes": "No available serial types",
+    "koliBaski": "Package Print",
+    "notes": "Notes"
+  },
+  "lines": {
+    "descriptionField1Label": "Description 1",
+    "descriptionField2Label": "Description 2",
+    "descriptionField3Label": "Description 3",
+    "windoProfileLabel": "Profile",
+    "windoRebarLabel": "Rebar",
+    "windoScrewLabel": "Screw",
+    "windoPrintLabel": "Print",
+    "windoPrintDescriptionLabel": "Print description"
+  },
+  "approval": {
+    "lockedForNonApprover": "This record is in the approval process. Only the active approver can make changes; editing is disabled for you.",
+    "approvedReadOnlyReason": {
+      "quotation": "This quotation cannot be edited because it has been approved.",
+      "demand": "This demand cannot be edited because it has been approved.",
+      "order": "This order cannot be edited because it has been approved."
+    },
+    "rejectedReadOnlyReason": {
+      "quotation": "This quotation cannot be edited because it was rejected. Use the \"Revise\" button below to update it.",
+      "demand": "This demand cannot be edited because it was rejected. Use the \"Revise\" button below to update it.",
+      "order": "This order cannot be edited because it was rejected. Use the \"Revise\" button below to update it."
+    },
+    "closedReason": "This record was closed because another record with the same document number was approved; it cannot be edited.",
+    "readOnlySuffix": "Editing is not allowed."
+  },
+  "customerCancel": {
+    "readOnlyReason": {
+      "quotation": "This quotation cannot be edited because it was cancelled by the customer.",
+      "demand": "This demand cannot be edited because it was cancelled by the customer.",
+      "order": "This order cannot be edited because it was cancelled by the customer."
+    },
+    "reasonLabel": "Cancellation reason: {{reason}}"
   },
   "permissions": {
     "title": "Permission Control",
@@ -512,6 +560,7 @@
     "searchPlaceholder": "Search by customer name or code...",
     "name": "Company Name",
     "customerCode": "Customer Code",
+    "customerCodeHint": "Can be used as the account code in ERP integration. Until integration is complete, the customer remains a potential customer. After saving, use Create ERP Customer to open the account in ERP.",
     "taxNumber": "Tax Number",
     "taxOffice": "Tax Office",
     "tcknNumber": "National ID",
@@ -540,6 +589,7 @@
     "selectEmptyAll": "No customer found",
     "selectBadgeErp": "ERP",
     "selectBadgePotential": "CRM",
+    "erpReadOnlyMessage": "ERP customer. Customer details cannot be edited here; use your ERP application.",
     "contactInfo": "Contact Information",
     "taxInfo": "Tax Information",
     "approvalInfo": "Approval Information",
