@@ -3,6 +3,7 @@ import { normalizeSearchText } from "./normalizeSearchText";
 type CatalogStockSearchFields = {
   erpStockCode: string;
   stockName: string;
+  englishStockName?: string | null;
   grupKodu?: string | null;
 };
 
@@ -14,6 +15,7 @@ export function catalogStockMatchesQuery(item: CatalogStockSearchFields, rawQuer
   const fields = [
     normalizeSearchText(item.erpStockCode),
     normalizeSearchText(item.stockName),
+    normalizeSearchText(String(item.englishStockName ?? "")),
     normalizeSearchText(String(item.grupKodu ?? "")),
   ];
 

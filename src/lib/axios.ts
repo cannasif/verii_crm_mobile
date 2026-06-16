@@ -182,6 +182,14 @@ apiClient.interceptors.response.use(
   async (error: AxiosError<ApiResponse<unknown>>) => {
     const requestUrl = error.config?.url || "";
 
+    if (__DEV__) {
+      console.log(`[API Error] ${error.config?.method?.toUpperCase()} ${requestUrl}`, {
+        status: error.response?.status,
+        message: error.message,
+        code: error.code,
+      });
+    }
+
     if (error.response?.status === 401 && !requestUrl.includes("/api/auth/login")) {
       await useAuthStore.getState().clearAuth();
       router.replace("/(auth)/login");

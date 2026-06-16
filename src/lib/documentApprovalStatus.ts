@@ -4,9 +4,14 @@ export type DocumentApprovalModule = "quotation" | "demand" | "order";
 
 export interface DocumentApprovalStatusMeta {
   label: string;
+  shortLabel: string;
   color: string;
   backgroundColor: string;
   borderColor: string;
+}
+
+export function hasExpandableDocumentApprovalStatusLabel(meta: DocumentApprovalStatusMeta): boolean {
+  return meta.label.trim().toLocaleUpperCase("tr-TR") !== meta.shortLabel.trim().toLocaleUpperCase("tr-TR");
 }
 
 export function resolveDocumentApprovalStatusMeta(
@@ -56,9 +61,11 @@ export function resolveDocumentApprovalStatusMeta(
 
   const pick = (
     palette: (typeof palettes)[keyof typeof palettes],
-    label: string
+    label: string,
+    shortLabel: string = label
   ): DocumentApprovalStatusMeta => ({
     label,
+    shortLabel,
     color: palette.color,
     backgroundColor: palette.backgroundColor,
     borderColor: `${palette.color}35`,
@@ -80,12 +87,14 @@ export function resolveDocumentApprovalStatusMeta(
     case 6:
       return pick(
         palettes.salespersonClosedForRevision,
-        t("common.salespersonClosedForRevision", "ERP kaydı revizyon için plasiyer tarafından kapatıldı")
+        t("common.salespersonClosedForRevision", "ERP kaydı revizyon için plasiyer tarafından kapatıldı"),
+        t("common.salespersonClosedForRevisionShort", "ERP REV. KAPAT.")
       );
     case 7:
       return pick(
         palettes.supersededByApprovedRevision,
-        t("common.supersededByApprovedRevision", "Onaylanan revizyon nedeniyle kapatıldı")
+        t("common.supersededByApprovedRevision", "Onaylanan revizyon nedeniyle kapatıldı"),
+        t("common.supersededByApprovedRevisionShort", "ON. REV. KAPAT.")
       );
     default:
       return pick(palettes.unknown, "-");
