@@ -23,6 +23,7 @@ interface UpdateAvailableModalProps {
   onClose: () => void;
   onOpenDetails: () => void;
   onInstall: () => void;
+  onOpenInBrowser: () => void;
 }
 
 export function UpdateAvailableModal({
@@ -35,6 +36,7 @@ export function UpdateAvailableModal({
   onClose,
   onOpenDetails,
   onInstall,
+  onOpenInBrowser,
 }: UpdateAvailableModalProps): React.ReactElement {
   const { t } = useTranslation();
   const isInstallingUpdate = updateFlowPhase !== "idle";
@@ -134,6 +136,20 @@ export function UpdateAvailableModal({
           >
             <Text bold style={styles.primaryButtonText}>
               {primaryLabel}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.browserButton,
+              { backgroundColor: secondaryBg, borderColor, opacity: pressed || isInstallingUpdate ? 0.78 : 1 },
+            ]}
+            hitSlop={12}
+            onPress={onOpenInBrowser}
+            disabled={isInstallingUpdate}
+          >
+            <Text bold style={{ color: accent }}>
+              {t("updates.openInBrowser")}
             </Text>
           </Pressable>
 
@@ -253,6 +269,14 @@ const styles = StyleSheet.create({
   },
   secondaryButton: {
     flex: 1,
+    minHeight: 46,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  browserButton: {
+    width: "100%",
     minHeight: 46,
     borderRadius: 14,
     borderWidth: 1,

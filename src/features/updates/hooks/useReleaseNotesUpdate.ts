@@ -6,6 +6,7 @@ import { getAppInfo } from "../../../lib/appInfo";
 import {
   downloadAndInstallAndroidApk,
   fetchLatestReleaseInfo,
+  openAndroidApkInBrowser,
   resolveApkUpdateErrorMessage,
 } from "../../../lib/versionCheck";
 import type { UpdateFlowPhase } from "../../../lib/versionCheckUi";
@@ -52,6 +53,20 @@ export function useReleaseNotesUpdate() {
     }
   }, [releaseQuery.data?.apkUrl, showError, t]);
 
+  const handleOpenInBrowser = useCallback(async (): Promise<void> => {
+    const apkUrl = releaseQuery.data?.apkUrl;
+    if (!apkUrl) {
+      showError(t("updates.emptyUrl"));
+      return;
+    }
+
+    try {
+      await openAndroidApkInBrowser(apkUrl);
+    } catch (error) {
+      showError(resolveApkUpdateErrorMessage(error, t));
+    }
+  }, [releaseQuery.data?.apkUrl, showError, t]);
+
   return {
     appInfo,
     releaseQuery,
@@ -59,5 +74,6 @@ export function useReleaseNotesUpdate() {
     downloadProgress,
     isInstallingUpdate: updateFlowPhase !== "idle",
     handleInstall,
+    handleOpenInBrowser,
   };
 }

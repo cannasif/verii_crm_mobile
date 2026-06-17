@@ -15,6 +15,7 @@ export default function ReleaseNotesScreen(): React.ReactElement {
     downloadProgress,
     isInstallingUpdate,
     handleInstall,
+    handleOpenInBrowser,
   } = useReleaseNotesUpdate();
 
   useEffect(() => {
@@ -36,6 +37,9 @@ export default function ReleaseNotesScreen(): React.ReactElement {
         onBack={() => router.back()}
         onInstall={() => {
           void handleInstall();
+        }}
+        onOpenInBrowser={() => {
+          void handleOpenInBrowser();
         }}
         onRefetch={() => {
           void releaseQuery.refetch();

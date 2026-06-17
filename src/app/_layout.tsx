@@ -29,6 +29,7 @@ import {
   cleanupCachedApkUpdates,
   downloadAndInstallAndroidApk,
   fetchVersionCheck,
+  openAndroidApkInBrowser,
   resolveApkUpdateErrorMessage,
   type VersionCheckResult,
 } from "../lib/versionCheck";
@@ -328,6 +329,19 @@ export default function RootLayout(): React.ReactElement {
     }
   }, [showToast, versionState]);
 
+  const handleOpenUpdateInBrowser = useCallback(async () => {
+    if (!versionState?.apkUrl) {
+      showToast("error", i18n.t("updates.emptyUrl"));
+      return;
+    }
+
+    try {
+      await openAndroidApkInBrowser(versionState.apkUrl);
+    } catch (error) {
+      showToast("error", resolveApkUpdateErrorMessage(error, i18n.t.bind(i18n)));
+    }
+  }, [showToast, versionState]);
+
   const isAuthScreen = pathname.includes("/(auth)") || pathname === "/login";
   const isDark = themeMode === "dark";
   const accent = isDark ? "#EC4899" : "#DB2777";
@@ -360,6 +374,9 @@ export default function RootLayout(): React.ReactElement {
                 onOpenDetails={handleOpenDetails}
                 onInstall={() => {
                   void handleInstallUpdate();
+                }}
+                onOpenInBrowser={() => {
+                  void handleOpenUpdateInBrowser();
                 }}
               />
             </I18nextProvider>

@@ -40,6 +40,7 @@ interface ReleaseNotesScreenContentProps {
   isInstallingUpdate: boolean;
   onBack: () => void;
   onInstall: () => void;
+  onOpenInBrowser: () => void;
   onRefetch: () => void;
 }
 
@@ -52,6 +53,7 @@ export function ReleaseNotesScreenContent({
   isInstallingUpdate,
   onBack,
   onInstall,
+  onOpenInBrowser,
   onRefetch,
 }: ReleaseNotesScreenContentProps): React.ReactElement {
   const { t } = useTranslation();
@@ -238,20 +240,37 @@ export function ReleaseNotesScreenContent({
             ) : null}
 
             {updateAvailable ? (
-              <Pressable
-                style={({ pressed }) => [
-                  styles.primaryCta,
-                  { backgroundColor: accent, opacity: pressed || isInstallingUpdate ? 0.88 : 1 },
-                ]}
-                hitSlop={12}
-                onPress={onInstall}
-                disabled={isInstallingUpdate}
-              >
-                <Download04Icon size={20} color="#FFFFFF" variant="stroke" />
-                <Text bold style={styles.primaryCtaText}>
-                  {primaryCtaLabel}
-                </Text>
-              </Pressable>
+              <View style={styles.updateActions}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.primaryCta,
+                    { backgroundColor: accent, opacity: pressed || isInstallingUpdate ? 0.88 : 1 },
+                  ]}
+                  hitSlop={12}
+                  onPress={onInstall}
+                  disabled={isInstallingUpdate}
+                >
+                  <Download04Icon size={20} color="#FFFFFF" variant="stroke" />
+                  <Text bold style={styles.primaryCtaText}>
+                    {primaryCtaLabel}
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.outlineButton,
+                    { borderColor: accent, backgroundColor: cardBg, opacity: pressed || isInstallingUpdate ? 0.78 : 1 },
+                  ]}
+                  hitSlop={12}
+                  onPress={onOpenInBrowser}
+                  disabled={isInstallingUpdate}
+                >
+                  <Link04Icon size={18} color={accent} variant="stroke" />
+                  <Text bold style={{ color: accent }}>
+                    {t("updates.openInBrowser")}
+                  </Text>
+                </Pressable>
+              </View>
             ) : (
               <View style={[styles.card, styles.upToDateCard, { backgroundColor: cardBg, borderColor }]}>
                 <CheckmarkCircle02Icon size={22} color="#10B981" variant="stroke" />
@@ -369,6 +388,9 @@ const styles = StyleSheet.create({
   primaryCtaText: {
     color: "#FFFFFF",
     fontSize: 16,
+  },
+  updateActions: {
+    gap: 10,
   },
   outlineButton: {
     flexDirection: "row",

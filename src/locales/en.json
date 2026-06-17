@@ -247,6 +247,7 @@
     "installingDescription": "Download complete. Confirm the Android install screen.",
     "noNotes": "No release notes provided.",
     "installNow": "Update",
+    "openInBrowser": "Download in browser",
     "installingNow": "Open installer",
     "downloadingAction": "Downloading…",
     "installingAction": "Opening installer…",

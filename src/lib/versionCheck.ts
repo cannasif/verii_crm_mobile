@@ -16,7 +16,8 @@ export type ApkUpdateErrorCode =
   | "unsupported_platform"
   | "download_failed"
   | "download_incomplete"
-  | "install_failed";
+  | "install_failed"
+  | "open_failed";
 
 export class ApkUpdateError extends Error {
   readonly code: ApkUpdateErrorCode;
@@ -168,6 +169,16 @@ export async function downloadAndInstallAndroidApk(
   await launchApkInstaller(contentUri, apkUrl);
 }
 
+export async function openAndroidApkInBrowser(apkUrl: string): Promise<void> {
+  if (!apkUrl) {
+    throw new ApkUpdateError("empty_url");
+  }
+
+  if (!(await openApkUrlFallback(apkUrl))) {
+    throw new ApkUpdateError("open_failed");
+  }
+}
+
 async function verifyDownloadedApk(fileUri: string, expectedBytes: number): Promise<string> {
   const normalizedUri = normalizeFileUri(fileUri);
   const fileInfo = await FileSystem.getInfoAsync(normalizedUri);
@@ -262,6 +273,8 @@ export function resolveApkUpdateErrorMessage(error: unknown, translate: (key: st
         return translate("updates.downloadIncomplete");
       case "install_failed":
         return translate("updates.installFailed");
+      case "open_failed":
+        return translate("updates.openFailed");
       default:
         return translate("updates.openFailed");
     }
