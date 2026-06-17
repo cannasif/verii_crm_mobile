@@ -8,7 +8,6 @@ const FLAG_GRANT_READ_URI_PERMISSION = 1;
 const FLAG_ACTIVITY_NEW_TASK = 268435456;
 const APK_MIME_TYPE = "application/vnd.android.package-archive";
 const MIN_APK_BYTES = 50 * 1024 * 1024;
-const INSTALL_INTENT_SETTLE_MS = 2000;
 
 export type ApkUpdatePhase = "downloading" | "installing";
 
@@ -200,10 +199,7 @@ async function launchApkInstaller(contentUri: string, apkUrl: string): Promise<v
 
   for (const action of actions) {
     try {
-      await Promise.race([
-        IntentLauncher.startActivityAsync(action, intentParams),
-        delay(INSTALL_INTENT_SETTLE_MS),
-      ]);
+      await IntentLauncher.startActivityAsync(action, intentParams);
       return;
     } catch (error) {
       lastError = error;
@@ -245,12 +241,6 @@ async function openApkUrlFallback(apkUrl: string): Promise<boolean> {
 
 function normalizeFileUri(fileUri: string): string {
   return fileUri.startsWith("file://") ? fileUri : `file://${fileUri}`;
-}
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
 }
 
 function extractApkFileName(apkUrl: string): string {
