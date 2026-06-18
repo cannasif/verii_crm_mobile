@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
+import { useSystemSettingsStore } from "../../../store/system-settings";
 import { ProductPicker, type ProductPickerRef } from "./ProductPicker";
 import { PickerModal } from "./PickerModal";
 import type { StockRelationDto } from "../../stocks/types";
@@ -107,6 +108,7 @@ export function OrderLineForm({
 }: OrderLineFormProps): React.ReactElement {
   const { t, i18n } = useTranslation();
   const { colors, themeMode, showUnitInStockSelection } = useUIStore();
+  const hideVatRate = useSystemSettingsStore((state) => state.settings.hideOrderVatRate);
   const insets = useSafeAreaInsets();
 
   const isDark = themeMode === "dark";
@@ -1162,22 +1164,24 @@ export function OrderLineForm({
                 </View>
               </View>
 
-              <View style={styles.rowTwo}>
-                <View style={styles.fieldHalf}>
-                  <Text style={[styles.label, { color: mutedColor }]}>KDV Oranı (%)</Text>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      { backgroundColor: inputBg, borderColor: softPinkBorder, color: softInputText },
-                    ]}
-                    value={vatRate}
-                    onChangeText={(text) => setVatRate(sanitizeDecimalInput(text))}
-                    placeholder="18"
-                    placeholderTextColor={mutedColor}
-                    keyboardType="decimal-pad"
-                  />
+              {!hideVatRate ? (
+                <View style={styles.rowTwo}>
+                  <View style={styles.fieldHalf}>
+                    <Text style={[styles.label, { color: mutedColor }]}>KDV Oranı (%)</Text>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        { backgroundColor: inputBg, borderColor: softPinkBorder, color: softInputText },
+                      ]}
+                      value={vatRate}
+                      onChangeText={(text) => setVatRate(sanitizeDecimalInput(text))}
+                      placeholder="18"
+                      placeholderTextColor={mutedColor}
+                      keyboardType="decimal-pad"
+                    />
+                  </View>
                 </View>
-              </View>
+              ) : null}
 
               <View style={styles.fieldContainer}>
                 <Text style={[styles.label, { color: mutedColor }]}>Açıklama</Text>

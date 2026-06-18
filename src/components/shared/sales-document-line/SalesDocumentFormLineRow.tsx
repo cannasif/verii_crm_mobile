@@ -35,6 +35,7 @@ export interface SalesDocumentFormLineRowProps<T extends SalesDocumentLineFormSt
   related?: boolean;
   isReadonly?: boolean;
   currencyLabel?: string | null;
+  hideVatRate?: boolean;
   translationPrefix: SalesDocumentLineTranslationPrefix;
   onEdit: (line: T) => void;
   onDelete: (lineId: string) => void;
@@ -45,6 +46,7 @@ function SalesDocumentFormLineRowComponent<T extends SalesDocumentLineFormState>
   related = false,
   isReadonly = false,
   currencyLabel,
+  hideVatRate = false,
   translationPrefix,
   onEdit,
   onDelete,
@@ -236,18 +238,24 @@ function SalesDocumentFormLineRowComponent<T extends SalesDocumentLineFormState>
           <View style={styles.pricingBottomRow}>
             <View style={styles.pricingBreakdown}>
               <Text style={[styles.pricingBreakdownText, { color: mutedText }]}>
+                <Text style={{ color: mutedText, fontWeight: "500" }}>KDV hariç </Text>
                 <Text style={{ color: titleText, fontWeight: "600" }}>
                   {formatSalesDocumentLineMoney(line.lineTotal)}
                 </Text>
                 {currencyLabel ? ` ${currencyLabel}` : ""}
-                {` · KDV ${formatSalesDocumentLineRate(line.vatRate)}% `}
-                <Text style={{ color: titleText, fontWeight: "600" }}>
-                  {formatSalesDocumentLineMoney(line.vatAmount)}
-                </Text>
-                {currencyLabel ? ` ${currencyLabel}` : ""}
+                {!hideVatRate ? (
+                  <>
+                    {` · KDV ${formatSalesDocumentLineRate(line.vatRate)}% `}
+                    <Text style={{ color: titleText, fontWeight: "600" }}>
+                      {formatSalesDocumentLineMoney(line.vatAmount)}
+                    </Text>
+                    {currencyLabel ? ` ${currencyLabel}` : ""}
+                  </>
+                ) : null}
               </Text>
             </View>
             <Text style={[styles.pricingGrandTotal, { color: accent }]}>
+              <Text style={[styles.pricingGrandLabel, { color: mutedText }]}>KDV dahil </Text>
               {formatSalesDocumentLineMoney(line.lineGrandTotal)}
               {currencyLabel ? (
                 <Text style={[styles.pricingGrandCurrency, { color: accent }]}> {currencyLabel}</Text>
@@ -456,6 +464,10 @@ const styles = StyleSheet.create({
       ios: { fontVariant: ["tabular-nums"] as const },
       default: {},
     }),
+  },
+  pricingGrandLabel: {
+    fontSize: 10.5,
+    fontWeight: "600",
   },
   pricingGrandCurrency: {
     fontSize: 11.5,

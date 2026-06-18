@@ -10,6 +10,7 @@ export interface SalesDocumentFormLineGroupProps<T extends SalesDocumentLineForm
   line: T;
   isReadonly?: boolean;
   currencyLabel?: string | null;
+  hideVatRate?: boolean;
   translationPrefix: SalesDocumentLineTranslationPrefix;
   onEdit: (line: T) => void;
   onDelete: (lineId: string) => void;
@@ -19,6 +20,7 @@ function SalesDocumentFormLineGroupComponent<T extends SalesDocumentLineFormStat
   line,
   isReadonly,
   currencyLabel,
+  hideVatRate,
   translationPrefix,
   onEdit,
   onDelete,
@@ -35,6 +37,7 @@ function SalesDocumentFormLineGroupComponent<T extends SalesDocumentLineFormStat
         line={line}
         isReadonly={isReadonly}
         currencyLabel={currencyLabel}
+        hideVatRate={hideVatRate}
         translationPrefix={translationPrefix}
         onEdit={onEdit}
         onDelete={onDelete}
@@ -52,6 +55,7 @@ function SalesDocumentFormLineGroupComponent<T extends SalesDocumentLineFormStat
                 related
                 isReadonly={isReadonly}
                 currencyLabel={currencyLabel}
+                hideVatRate={hideVatRate}
                 translationPrefix={translationPrefix}
                 onEdit={onEdit}
                 onDelete={onDelete}

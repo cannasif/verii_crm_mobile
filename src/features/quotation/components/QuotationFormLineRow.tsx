@@ -35,6 +35,7 @@ export interface QuotationFormLineRowProps {
   related?: boolean;
   isReadonly?: boolean;
   currencyLabel?: string | null;
+  hideVatRate?: boolean;
   onEdit: (line: QuotationLineFormState) => void;
   onDelete: (lineId: string) => void;
 }
@@ -44,6 +45,7 @@ function QuotationFormLineRowComponent({
   related = false,
   isReadonly = false,
   currencyLabel,
+  hideVatRate = false,
   onEdit,
   onDelete,
 }: QuotationFormLineRowProps): React.ReactElement {
@@ -232,18 +234,24 @@ function QuotationFormLineRowComponent({
           <View style={styles.pricingBottomRow}>
             <View style={styles.pricingBreakdown}>
               <Text style={[styles.pricingBreakdownText, { color: mutedText }]}>
+                <Text style={{ color: mutedText, fontWeight: "500" }}>KDV hariç </Text>
                 <Text style={{ color: titleText, fontWeight: "600" }}>
                   {formatQuotationLineMoney(line.lineTotal)}
                 </Text>
                 {currencyLabel ? ` ${currencyLabel}` : ""}
-                {` · KDV ${formatQuotationLineRate(line.vatRate)}% `}
-                <Text style={{ color: titleText, fontWeight: "600" }}>
-                  {formatQuotationLineMoney(line.vatAmount)}
-                </Text>
-                {currencyLabel ? ` ${currencyLabel}` : ""}
+                {!hideVatRate ? (
+                  <>
+                    {` · KDV ${formatQuotationLineRate(line.vatRate)}% `}
+                    <Text style={{ color: titleText, fontWeight: "600" }}>
+                      {formatQuotationLineMoney(line.vatAmount)}
+                    </Text>
+                    {currencyLabel ? ` ${currencyLabel}` : ""}
+                  </>
+                ) : null}
               </Text>
             </View>
             <Text style={[styles.pricingGrandTotal, { color: accent }]}>
+              <Text style={[styles.pricingGrandLabel, { color: mutedText }]}>KDV dahil </Text>
               {formatQuotationLineMoney(line.lineGrandTotal)}
               {currencyLabel ? (
                 <Text style={[styles.pricingGrandCurrency, { color: accent }]}> {currencyLabel}</Text>
@@ -450,6 +458,10 @@ const styles = StyleSheet.create({
       ios: { fontVariant: ["tabular-nums"] as const },
       default: {},
     }),
+  },
+  pricingGrandLabel: {
+    fontSize: 10.5,
+    fontWeight: "600",
   },
   pricingGrandCurrency: {
     fontSize: 11.5,

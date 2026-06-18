@@ -10,6 +10,7 @@ export interface QuotationFormLineGroupProps {
   line: QuotationLineFormState;
   isReadonly?: boolean;
   currencyLabel?: string | null;
+  hideVatRate?: boolean;
   onEdit: (line: QuotationLineFormState) => void;
   onDelete: (lineId: string) => void;
 }
@@ -18,6 +19,7 @@ function QuotationFormLineGroupComponent({
   line,
   isReadonly,
   currencyLabel,
+  hideVatRate,
   onEdit,
   onDelete,
 }: QuotationFormLineGroupProps): React.ReactElement {
@@ -33,6 +35,7 @@ function QuotationFormLineGroupComponent({
         line={line}
         isReadonly={isReadonly}
         currencyLabel={currencyLabel}
+        hideVatRate={hideVatRate}
         onEdit={onEdit}
         onDelete={onDelete}
       />
@@ -47,6 +50,7 @@ function QuotationFormLineGroupComponent({
                 related
                 isReadonly={isReadonly}
                 currencyLabel={currencyLabel}
+                hideVatRate={hideVatRate}
                 onEdit={onEdit}
                 onDelete={onDelete}
               />
