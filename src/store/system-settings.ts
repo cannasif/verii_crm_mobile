@@ -10,7 +10,32 @@ const DEFAULT_SYSTEM_SETTINGS: SystemSettingsDto = {
   demandApprovalCompletionAction: 1,
   quotationApprovalCompletionAction: 1,
   orderApprovalCompletionAction: 1,
+  hideDemandVatRate: false,
+  hideQuotationVatRate: false,
+  hideOrderVatRate: false,
+  catalogGroupCodeLabel: null,
+  catalogCode1Label: null,
+  catalogCode2Label: null,
+  catalogCode3Label: null,
+  catalogCode4Label: null,
+  catalogCode5Label: null,
 };
+
+function clampDecimalPlaces(value: number | null | undefined): number {
+  if (!Number.isFinite(value)) return DEFAULT_SYSTEM_SETTINGS.decimalPlaces;
+  return Math.min(6, Math.max(0, Math.trunc(Number(value))));
+}
+
+function normalizeSettings(settings: SystemSettingsDto): SystemSettingsDto {
+  return {
+    ...DEFAULT_SYSTEM_SETTINGS,
+    ...settings,
+    decimalPlaces: clampDecimalPlaces(settings.decimalPlaces),
+    hideDemandVatRate: Boolean(settings.hideDemandVatRate),
+    hideQuotationVatRate: Boolean(settings.hideQuotationVatRate),
+    hideOrderVatRate: Boolean(settings.hideOrderVatRate),
+  };
+}
 
 interface SystemSettingsState {
   settings: SystemSettingsDto;
@@ -23,7 +48,7 @@ export const useSystemSettingsStore = create<SystemSettingsState>()(
     (set) => ({
       settings: DEFAULT_SYSTEM_SETTINGS,
       hasLoadedFromApi: false,
-      setSettings: (settings) => set({ settings, hasLoadedFromApi: true }),
+      setSettings: (settings) => set({ settings: normalizeSettings(settings), hasLoadedFromApi: true }),
     }),
     {
       name: "system-settings-storage",

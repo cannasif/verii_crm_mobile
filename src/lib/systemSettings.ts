@@ -28,7 +28,8 @@ export function getSystemTimeZone(): string {
 
 export function getSystemDecimalPlaces(): number {
   const value = getSettings().decimalPlaces;
-  return Number.isFinite(value) ? value : 2;
+  if (!Number.isFinite(value)) return 2;
+  return Math.min(6, Math.max(0, Math.trunc(Number(value))));
 }
 
 export async function applySystemLanguageIfNeeded(): Promise<void> {

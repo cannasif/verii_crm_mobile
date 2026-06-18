@@ -8,6 +8,15 @@ export interface SystemSettingsDto {
   demandApprovalCompletionAction: number;
   quotationApprovalCompletionAction: number;
   orderApprovalCompletionAction: number;
+  hideDemandVatRate?: boolean;
+  hideQuotationVatRate?: boolean;
+  hideOrderVatRate?: boolean;
+  catalogGroupCodeLabel?: string | null;
+  catalogCode1Label?: string | null;
+  catalogCode2Label?: string | null;
+  catalogCode3Label?: string | null;
+  catalogCode4Label?: string | null;
+  catalogCode5Label?: string | null;
   updatedAt?: string;
 }
 
