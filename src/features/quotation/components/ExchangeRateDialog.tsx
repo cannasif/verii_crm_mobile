@@ -13,7 +13,6 @@ import { useTranslation } from "react-i18next";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { parseDecimalInput, sanitizeDecimalInput } from "../../../lib/decimal-input";
-import { useToastStore } from "../../../store/toast";
 import type { QuotationExchangeRateFormState, CurrencyOptionDto, ExchangeRateDto } from "../types";
 
 interface ExchangeRateDialogProps {
@@ -35,7 +34,6 @@ export function ExchangeRateDialog({
   currencyOptions,
   erpExchangeRates = [],
   isLoadingErpRates = false,
-  currencyInUse,
   onClose,
   onSave,
   offerDate,
@@ -44,7 +42,6 @@ export function ExchangeRateDialog({
   const { t } = useTranslation();
   const { colors, themeMode } = useUIStore();
   const insets = useSafeAreaInsets();
-  const showToast = useToastStore((s) => s.showToast);
 
   // KARANLIK MOD RENKLERİ (Sadece renkler eklendi)
   const isDark = themeMode === "dark";
@@ -90,11 +87,6 @@ export function ExchangeRateDialog({
 
   const handleRateChange = useCallback(
     (id: string, field: keyof QuotationExchangeRateFormState, value: string | number | boolean) => {
-      const rate = rates.find((r) => r.id === id);
-      if (rate && currencyInUse != null && rate.currency === currencyInUse) {
-        showToast("warning", t("quotation.exchangeRate.inUseCannotEdit"));
-        return;
-      }
       setRates((prev) =>
         prev.map((r) => {
           if (r.id !== id) return r;
@@ -106,30 +98,19 @@ export function ExchangeRateDialog({
         })
       );
     },
-    [rates, currencyInUse, showToast, t]
+    []
   );
 
   const handleApplyErpRate = useCallback(
     (id: string, erpRate: number) => {
-      const rate = rates.find((r) => r.id === id);
-      if (rate && currencyInUse != null && rate.currency === currencyInUse) {
-        showToast("warning", t("quotation.exchangeRate.inUseCannotEdit"));
-        return;
-      }
       setRates((prev) =>
         prev.map((r) =>
           r.id === id ? { ...r, exchangeRate: erpRate, isOfficial: true } : r
         )
       );
     },
-    [rates, currencyInUse, showToast, t]
+    []
   );
-
-  const handleFocusInUseField = useCallback(() => {
-    if (currencyInUse != null) {
-      showToast("warning", t("quotation.exchangeRate.inUseCannotEdit"));
-    }
-  }, [currencyInUse, showToast, t]);
 
   const handleSave = useCallback(() => {
     onSave(rates);
@@ -229,7 +210,6 @@ export function ExchangeRateDialog({
                 </View>
                 {rates.map((rate) => {
                   const erpRate = getErpRate(rate.currency);
-                  const isInUse = currencyInUse != null && rate.currency === currencyInUse;
                   const isCustom = !rate.isOfficial;
 
                   return (
@@ -250,7 +230,6 @@ export function ExchangeRateDialog({
                               backgroundColor: inputBg,
                               borderColor: borderColor,
                               color: textColor,
-                              opacity: isInUse ? 0.7 : 1,
                             },
                           ]}
                           value={
@@ -265,11 +244,9 @@ export function ExchangeRateDialog({
                               parseDecimalInput(sanitizeDecimalInput(text))
                             )
                           }
-                          onFocus={isInUse ? handleFocusInUseField : undefined}
                           placeholder="0.000001"
                           placeholderTextColor={textMuted}
                           keyboardType="decimal-pad"
-                          editable={!isInUse}
                         />
                       </View>
                       <View style={[styles.tableCell, styles.cellDurum]}>
@@ -290,17 +267,13 @@ export function ExchangeRateDialog({
                         </View>
                       </View>
                       <View style={[styles.tableCell, styles.cellIslem]}>
-                        {!isInUse && erpRate !== undefined ? (
+                        {erpRate !== undefined ? (
                           <TouchableOpacity
                             style={[styles.editButton, { borderColor: borderColor }]}
                             onPress={() => handleApplyErpRate(rate.id, erpRate)}
                           >
                             <Text style={[styles.editButtonText, { color: textColor }]}>✎</Text>
                           </TouchableOpacity>
-                        ) : isInUse ? (
-                          <View style={[styles.editButton, styles.editButtonDisabled, { borderColor: borderColor }]}>
-                            <Text style={[styles.editButtonText, { color: textMuted }]}>✎</Text>
-                          </View>
                         ) : null}
                       </View>
                     </View>

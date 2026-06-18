@@ -19,6 +19,7 @@ import {
   resolvePricingRuleCustomerCode,
 } from "@/lib/customerIntegration";
 import { resolveExchangeRateByCurrency as findExchangeRateByCurrency } from "@/lib/resolve-exchange-rate";
+import { buildDocumentExchangeRatesForLines } from "@/lib/document-exchange-rates";
 import { resolveLineListCurrencyLabel, resolveCurrencyIsoCode } from "../../../lib/currencyDisplay";
 import { resolveOrderCustomerLabelForPdf } from "../utils/resolveOrderCustomerLabelForPdf";
 import { buildOrderPreviewPdfInput } from "../utils/buildOrderPreviewPdfInput";
@@ -44,6 +45,7 @@ import {
 import { ScreenHeader } from "../../../components/navigation";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
+import { useSystemSettingsStore } from "../../../store/system-settings";
 import { useAuthStore } from "../../../store/auth";
 import { useToastStore } from "../../../store/toast";
 import { FormField } from "../../activity/components";
@@ -92,6 +94,7 @@ export function OrderCreateScreen(): React.ReactElement {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const { colors, themeMode } = useUIStore();
+  const hideVatRate = useSystemSettingsStore((state) => state.settings.hideOrderVatRate);
   const { user, branch } = useAuthStore();
   const insets = useSafeAreaInsets();
   const showToast = useToastStore((state) => state.showToast);
@@ -221,6 +224,10 @@ export function OrderCreateScreen(): React.ReactElement {
       };
     });
   }, [erpRatesForOrder, exchangeRates]);
+  const documentRatesForLines = useMemo(
+    () => buildDocumentExchangeRatesForLines(exchangeRates),
+    [exchangeRates]
+  );
 
   const customerCode = useMemo(
     () => resolvePricingRuleCustomerCode(watchedErpCustomerCode),
@@ -1188,6 +1195,7 @@ export function OrderCreateScreen(): React.ReactElement {
                   <SalesDocumentFormLineGroup
                     line={line}
                     currencyLabel={lineListCurrencyLabel}
+                    hideVatRate={hideVatRate}
                     translationPrefix="order"
                     onEdit={handleEditLine}
                     onDelete={handleDeleteLine}
@@ -1415,7 +1423,7 @@ export function OrderCreateScreen(): React.ReactElement {
           }))}
           pricingRules={pricingRules}
           userDiscountLimits={userDiscountLimits}
-          exchangeRates={effectiveRatesForLines}
+          exchangeRates={documentRatesForLines}
           allowImageUpload
           onMultiProductSelect={handleMultiProductSelect}
           onSaveMultiple={(newLines) => {

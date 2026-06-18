@@ -23,6 +23,7 @@ import {
   resolveExchangeRateByCurrency as findExchangeRateByCurrency,
   buildEffectiveExchangeRates,
 } from "@/lib/resolve-exchange-rate";
+import { buildDocumentExchangeRatesForLines } from "@/lib/document-exchange-rates";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
 import { useQueryClient } from "@tanstack/react-query";
@@ -53,6 +54,7 @@ import { ScreenHeader } from "../../../components/navigation";
 import { CustomerCancellationReasonModal } from "../../../components/CustomerCancellationReasonModal";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
+import { useSystemSettingsStore } from "../../../store/system-settings";
 import { PermissionDeniedState } from "../../access-control/components/PermissionDeniedState";
 import { isForbiddenError } from "../../access-control/utils/isForbiddenError";
 import { useAuthStore } from "../../../store/auth";
@@ -274,6 +276,7 @@ export function QuotationDetailScreen(): React.ReactElement {
   const router = useRouter();
   const { t, i18n } = useTranslation();
   const { colors, themeMode } = useUIStore();
+  const hideVatRate = useSystemSettingsStore((state) => state.settings.hideQuotationVatRate);
   const isDark = themeMode === "dark";
   const { user, branch } = useAuthStore();
   const insets = useSafeAreaInsets();
@@ -545,6 +548,10 @@ export function QuotationDetailScreen(): React.ReactElement {
       };
     });
   }, [erpRatesForQuotation, exchangeRates]);
+  const documentRatesForLines = useMemo(
+    () => buildDocumentExchangeRatesForLines(exchangeRates),
+    [exchangeRates]
+  );
 
   const { data: pricingRules } = usePriceRuleOfQuotation({
     customerCode,
@@ -2022,6 +2029,7 @@ export function QuotationDetailScreen(): React.ReactElement {
                         line={line}
                         isReadonly={isReadonly}
                         currencyLabel={lineListCurrencyLabel}
+                        hideVatRate={hideVatRate}
                         onEdit={handleEditLine}
                         onDelete={handleDeleteLine}
                       />
@@ -2141,7 +2149,7 @@ export function QuotationDetailScreen(): React.ReactElement {
             }))}
             pricingRules={pricingRules}
             userDiscountLimits={userDiscountLimits}
-            exchangeRates={effectiveRatesForLines}
+            exchangeRates={documentRatesForLines}
             allowImageUpload={Boolean(editingLine)}
             imageUploadScope="quotation-line"
             imageUploadExtras={

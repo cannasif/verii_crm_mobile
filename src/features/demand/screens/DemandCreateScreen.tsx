@@ -19,6 +19,7 @@ import {
   resolvePricingRuleCustomerCode,
 } from "@/lib/customerIntegration";
 import { resolveExchangeRateByCurrency as findExchangeRateByCurrency } from "@/lib/resolve-exchange-rate";
+import { buildDocumentExchangeRatesForLines } from "@/lib/document-exchange-rates";
 import { resolveLineListCurrencyLabel } from "../../../lib/currencyDisplay";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -40,6 +41,7 @@ import {
 import { ScreenHeader } from "../../../components/navigation";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
+import { useSystemSettingsStore } from "../../../store/system-settings";
 import { useAuthStore } from "../../../store/auth";
 import { useToastStore } from "../../../store/toast";
 import { FormField } from "../../activity/components";
@@ -87,6 +89,7 @@ export function DemandCreateScreen(): React.ReactElement {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const { colors, themeMode } = useUIStore();
+  const hideVatRate = useSystemSettingsStore((state) => state.settings.hideDemandVatRate);
   const { user } = useAuthStore();
   const insets = useSafeAreaInsets();
   const showToast = useToastStore((state) => state.showToast);
@@ -212,6 +215,10 @@ export function DemandCreateScreen(): React.ReactElement {
       };
     });
   }, [erpRatesForDemand, exchangeRates]);
+  const documentRatesForLines = useMemo(
+    () => buildDocumentExchangeRatesForLines(exchangeRates),
+    [exchangeRates]
+  );
 
   const customerCode = useMemo(
     () => resolvePricingRuleCustomerCode(watchedErpCustomerCode),
@@ -1100,6 +1107,7 @@ export function DemandCreateScreen(): React.ReactElement {
                   <SalesDocumentFormLineGroup
                     line={line}
                     currencyLabel={lineListCurrencyLabel}
+                    hideVatRate={hideVatRate}
                     translationPrefix="demand"
                     onEdit={handleEditLine}
                     onDelete={handleDeleteLine}
@@ -1310,7 +1318,7 @@ export function DemandCreateScreen(): React.ReactElement {
           }))}
           pricingRules={pricingRules}
           userDiscountLimits={userDiscountLimits}
-          exchangeRates={effectiveRatesForLines}
+          exchangeRates={documentRatesForLines}
           allowImageUpload
           onMultiProductSelect={handleMultiProductSelect}
           onSaveMultiple={(newLines) => {

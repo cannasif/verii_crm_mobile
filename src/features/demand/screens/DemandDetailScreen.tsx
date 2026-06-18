@@ -25,6 +25,7 @@ import {
 } from "@/lib/customerIntegration";
 import { resolveRepresentativeDisplayLabel } from "@/lib/resolveRepresentativeDisplayLabel";
 import { resolveExchangeRateByCurrency as findExchangeRateByCurrency } from "@/lib/resolve-exchange-rate";
+import { buildDocumentExchangeRatesForLines } from "@/lib/document-exchange-rates";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
 import { useQueryClient } from "@tanstack/react-query";
@@ -53,6 +54,7 @@ import { ScreenHeader } from "../../../components/navigation";
 import { CustomerCancellationReasonModal } from "../../../components/CustomerCancellationReasonModal";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
+import { useSystemSettingsStore } from "../../../store/system-settings";
 import { PermissionDeniedState } from "../../access-control/components/PermissionDeniedState";
 import { isForbiddenError } from "../../access-control/utils/isForbiddenError";
 import { useAuthStore } from "../../../store/auth";
@@ -235,6 +237,7 @@ export function DemandDetailScreen(): React.ReactElement {
   const router = useRouter();
   const { t, i18n } = useTranslation();
   const { colors, themeMode } = useUIStore();
+  const hideVatRate = useSystemSettingsStore((state) => state.settings.hideDemandVatRate);
   const isDark = themeMode === "dark";
   const { user } = useAuthStore();
   const insets = useSafeAreaInsets();
@@ -400,6 +403,10 @@ export function DemandDetailScreen(): React.ReactElement {
       };
     });
   }, [erpRatesForDemand, exchangeRates]);
+  const documentRatesForLines = useMemo(
+    () => buildDocumentExchangeRatesForLines(exchangeRates),
+    [exchangeRates]
+  );
 
   const { data: pricingRules } = usePriceRuleOfDemand({
     customerCode,
@@ -1608,6 +1615,7 @@ export function DemandDetailScreen(): React.ReactElement {
                         line={line}
                         isReadonly={isReadonly}
                         currencyLabel={lineListCurrencyLabel}
+                        hideVatRate={hideVatRate}
                         translationPrefix="demand"
                         onEdit={handleEditLine}
                         onDelete={handleDeleteLine}
@@ -1717,7 +1725,7 @@ export function DemandDetailScreen(): React.ReactElement {
             }))}
             pricingRules={pricingRules}
             userDiscountLimits={userDiscountLimits}
-            exchangeRates={effectiveRatesForLines}
+            exchangeRates={documentRatesForLines}
           />
 
           <RejectModal
