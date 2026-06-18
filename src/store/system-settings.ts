@@ -13,6 +13,9 @@ const DEFAULT_SYSTEM_SETTINGS: SystemSettingsDto = {
   hideDemandVatRate: false,
   hideQuotationVatRate: false,
   hideOrderVatRate: false,
+  readonlyDemandVatRate: false,
+  readonlyQuotationVatRate: false,
+  readonlyOrderVatRate: false,
   catalogGroupCodeLabel: null,
   catalogCode1Label: null,
   catalogCode2Label: null,
@@ -34,6 +37,9 @@ function normalizeSettings(settings: SystemSettingsDto): SystemSettingsDto {
     hideDemandVatRate: Boolean(settings.hideDemandVatRate),
     hideQuotationVatRate: Boolean(settings.hideQuotationVatRate),
     hideOrderVatRate: Boolean(settings.hideOrderVatRate),
+    readonlyDemandVatRate: Boolean(settings.readonlyDemandVatRate),
+    readonlyQuotationVatRate: Boolean(settings.readonlyQuotationVatRate),
+    readonlyOrderVatRate: Boolean(settings.readonlyOrderVatRate),
   };
 }
 

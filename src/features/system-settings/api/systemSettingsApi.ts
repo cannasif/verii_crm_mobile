@@ -11,6 +11,9 @@ export interface SystemSettingsDto {
   hideDemandVatRate?: boolean;
   hideQuotationVatRate?: boolean;
   hideOrderVatRate?: boolean;
+  readonlyDemandVatRate?: boolean;
+  readonlyQuotationVatRate?: boolean;
+  readonlyOrderVatRate?: boolean;
   catalogGroupCodeLabel?: string | null;
   catalogCode1Label?: string | null;
   catalogCode2Label?: string | null;

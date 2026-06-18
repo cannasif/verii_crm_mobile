@@ -84,6 +84,7 @@ import type { StockRelationDto } from "../../stocks/types";
 import type { ProductSelectionResult } from "../../stocks/types";
 import { calculateLineTotals, calculateTotals } from "../utils";
 import type { ExchangeRateDto } from "../types";
+import { enforceExportVatOnLine, isExportOfferType, resolveDocumentVatRate } from "../../../utils/documentVat";
 
 export function DemandCreateScreen(): React.ReactElement {
   const { t, i18n } = useTranslation();
@@ -167,6 +168,17 @@ export function DemandCreateScreen(): React.ReactElement {
   const watchedRepresentativeId = watch("demand.representativeId");
   const watchedOfferDate = watch("demand.offerDate");
   const watchedDeliveryDate = watch("demand.deliveryDate");
+  const watchedOfferType = watch("demand.offerType");
+
+  useEffect(() => {
+    if (!isExportOfferType(watchedOfferType)) return;
+    setLines((prev) => {
+      if (!prev.some((line) => (line.vatRate ?? 0) !== 0 || (line.vatAmount ?? 0) !== 0)) {
+        return prev;
+      }
+      return prev.map((line) => calculateLineTotals(enforceExportVatOnLine(line, watchedOfferType)));
+    });
+  }, [watchedOfferType]);
 
   useEffect(() => {
     if (deliveryDateModalOpen) {
@@ -404,16 +416,23 @@ export function DemandCreateScreen(): React.ReactElement {
 
   const handleSaveLine = useCallback(
     (savedLine: DemandLineFormState) => {
+      const normalizedSavedLine = enforceExportVatOnLine(savedLine, watchedOfferType);
+      const normalizedRelatedLines = normalizedSavedLine.relatedLines?.map((line) =>
+        enforceExportVatOnLine(line, watchedOfferType),
+      );
+      const lineToSave = normalizedRelatedLines
+        ? { ...normalizedSavedLine, relatedLines: normalizedRelatedLines }
+        : normalizedSavedLine;
       if (editingLine) {
         setLines((prev) => {
-          const mainNewQty = savedLine.quantity;
+          const mainNewQty = lineToSave.quantity;
           const mainOldQty = editingLine.quantity;
-          const hasRelated = (savedLine.relatedLines?.length ?? 0) > 0;
-          if (hasRelated && savedLine.relatedLines) {
+          const hasRelated = (lineToSave.relatedLines?.length ?? 0) > 0;
+          if (hasRelated && lineToSave.relatedLines) {
             const others = prev.filter(
               (l) => l.id !== editingLine.id && l.relatedProductKey !== editingLine.relatedProductKey
             );
-            return [savedLine, ...savedLine.relatedLines, ...others];
+            return [lineToSave, ...lineToSave.relatedLines, ...others];
           }
           if (
             editingLine.relatedProductKey &&
@@ -422,7 +441,7 @@ export function DemandCreateScreen(): React.ReactElement {
           ) {
             const ratio = mainNewQty / mainOldQty;
             return prev.map((line) => {
-              if (line.id === editingLine.id) return savedLine;
+              if (line.id === editingLine.id) return lineToSave;
               if (line.relatedProductKey === editingLine.relatedProductKey) {
                 const newQty = Math.max(0, Math.round(line.quantity * ratio * 10000) / 10000);
                 const updated = { ...line, quantity: newQty };
@@ -431,18 +450,18 @@ export function DemandCreateScreen(): React.ReactElement {
               return line;
             });
           }
-          return prev.map((line) => (line.id === editingLine.id ? savedLine : line));
+          return prev.map((line) => (line.id === editingLine.id ? lineToSave : line));
         });
       } else {
-        const toAdd = savedLine.relatedLines?.length
-          ? [savedLine, ...savedLine.relatedLines]
-          : [savedLine];
+        const toAdd = lineToSave.relatedLines?.length
+          ? [lineToSave, ...lineToSave.relatedLines]
+          : [lineToSave];
         setLines((prev) => [...prev, ...toAdd]);
       }
       setEditingLine(null);
       setLineFormVisible(false);
     },
-    [editingLine]
+    [editingLine, watchedOfferType]
   );
 
   const handleProductSelectWithRelatedStocks = useCallback(
@@ -526,7 +545,7 @@ export function DemandCreateScreen(): React.ReactElement {
         discountAmount2: 0,
         discountRate3: mainPrice?.discount3 ?? 0,
         discountAmount3: 0,
-        vatRate: 20,
+        vatRate: resolveDocumentVatRate(20, watchedOfferType),
         vatAmount: 0,
         lineTotal: 0,
         lineGrandTotal: 0,
@@ -560,7 +579,7 @@ export function DemandCreateScreen(): React.ReactElement {
             discountAmount2: 0,
             discountRate3: price?.discount3 ?? 0,
             discountAmount3: 0,
-            vatRate: 20,
+            vatRate: resolveDocumentVatRate(20, watchedOfferType),
             vatAmount: 0,
             lineTotal: 0,
             lineGrandTotal: 0,
@@ -577,7 +596,7 @@ export function DemandCreateScreen(): React.ReactElement {
         setLines((prev) => [...prev, mainLine]);
       }
     },
-    [watchedCurrency, exchangeRates, erpRatesForDemand, i18n.language]
+    [watchedCurrency, exchangeRates, erpRatesForDemand, i18n.language, watchedOfferType]
   );
 
   const handleDeleteLine = useCallback(
@@ -645,7 +664,7 @@ export function DemandCreateScreen(): React.ReactElement {
           discountAmount2: 0,
           discountRate3: price?.discount3 ?? 0,
           discountAmount3: 0,
-          vatRate: product.vatRate ?? 20,
+          vatRate: resolveDocumentVatRate(product.vatRate, watchedOfferType),
           vatAmount: 0,
           lineTotal: 0,
           lineGrandTotal: 0,
@@ -1279,6 +1298,7 @@ export function DemandCreateScreen(): React.ReactElement {
         <DemandLineForm
           visible={lineFormVisible}
           line={editingLine}
+          offerType={watchedOfferType}
           onClose={() => {
             setLineFormVisible(false);
             setEditingLine(null);

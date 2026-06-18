@@ -99,6 +99,7 @@ import { buildQuotationPreviewPdfInput } from "../utils/buildQuotationPreviewPdf
 import { buildSalesDocumentPreviewPdfExtras } from "../../../lib/salesDocumentPreviewPdf";
 import { resolveQuotationCustomerLabelForPdf } from "../utils/resolveQuotationCustomerLabelForPdf";
 import type { ExchangeRateDto } from "../types";
+import { enforceExportVatOnLine, isExportOfferType, resolveDocumentVatRate } from "../../../utils/documentVat";
 import {
   UserIcon,
   ArrowRight01Icon,
@@ -250,6 +251,7 @@ export function QuotationCreateScreen(): React.ReactElement {
   const watchedKoliBaskiDefinitionId = watch("quotation.koliBaskiDefinitionId");
   const watchedGeneralDiscountRate = watch("quotation.generalDiscountRate");
   const watchedGeneralDiscountAmount = watch("quotation.generalDiscountAmount");
+  const watchedOfferType = watch("quotation.offerType");
   const offerDateSyncInitializedRef = useRef(false);
 
   useEffect(() => {
@@ -299,10 +301,19 @@ export function QuotationCreateScreen(): React.ReactElement {
   const { data: paymentTypes } = usePaymentTypes();
   const { data: relatedUsers = [] } = useRelatedUsers(user?.id);
   const { data: projects = [] } = useErpProjects();
-  const watchedOfferType = watch("quotation.offerType");
   const { data: salesTypeList = [] } = useSalesTypeList({
     offerType: watchedOfferType || undefined,
   });
+
+  useEffect(() => {
+    if (!isExportOfferType(watchedOfferType)) return;
+    setLines((prev) => {
+      if (!prev.some((line) => (line.vatRate ?? 0) !== 0 || (line.vatAmount ?? 0) !== 0)) {
+        return prev;
+      }
+      return prev.map((line) => calculateLineTotals(enforceExportVatOnLine(line, watchedOfferType)));
+    });
+  }, [watchedOfferType]);
 
   useEffect(() => {
     if (
@@ -562,18 +573,25 @@ export function QuotationCreateScreen(): React.ReactElement {
 
   const handleSaveLine = useCallback(
     (savedLine: QuotationLineFormState) => {
+      const normalizedSavedLine = enforceExportVatOnLine(savedLine, watchedOfferType);
+      const normalizedRelatedLines = normalizedSavedLine.relatedLines?.map((line) =>
+        enforceExportVatOnLine(line, watchedOfferType),
+      );
+      const lineToSave = normalizedRelatedLines
+        ? { ...normalizedSavedLine, relatedLines: normalizedRelatedLines }
+        : normalizedSavedLine;
       if (editingLine) {
         setLines((prev) => {
-          const mainNewQty = savedLine.quantity;
+          const mainNewQty = lineToSave.quantity;
           const mainOldQty = editingLine.quantity;
-          const hasRelated = (savedLine.relatedLines?.length ?? 0) > 0;
-          if (hasRelated && savedLine.relatedLines) {
+          const hasRelated = (lineToSave.relatedLines?.length ?? 0) > 0;
+          if (hasRelated && lineToSave.relatedLines) {
             const others = prev.filter(
               (l) =>
                 l.id !== editingLine.id &&
                 l.relatedProductKey !== editingLine.relatedProductKey
             );
-            return [savedLine, ...savedLine.relatedLines, ...others];
+            return [lineToSave, ...lineToSave.relatedLines, ...others];
           }
           if (
             editingLine.relatedProductKey &&
@@ -582,7 +600,7 @@ export function QuotationCreateScreen(): React.ReactElement {
           ) {
             const ratio = mainNewQty / mainOldQty;
             return prev.map((line) => {
-              if (line.id === editingLine.id) return savedLine;
+              if (line.id === editingLine.id) return lineToSave;
               if (line.relatedProductKey === editingLine.relatedProductKey) {
                 const newQty =
                   Math.max(0, Math.round(line.quantity * ratio * 10000) / 10000);
@@ -592,20 +610,18 @@ export function QuotationCreateScreen(): React.ReactElement {
               return line;
             });
           }
-          return prev.map((line) =>
-            line.id === editingLine.id ? savedLine : line
-          );
+          return prev.map((line) => (line.id === editingLine.id ? lineToSave : line));
         });
       } else {
-        const toAdd = savedLine.relatedLines?.length
-          ? [savedLine, ...savedLine.relatedLines]
-          : [savedLine];
+        const toAdd = lineToSave.relatedLines?.length
+          ? [lineToSave, ...lineToSave.relatedLines]
+          : [lineToSave];
         setLines((prev) => [...prev, ...toAdd]);
       }
       setEditingLine(null);
       setLineFormVisible(false);
     },
-    [editingLine]
+    [editingLine, watchedOfferType]
   );
 
   const handleProductSelectWithRelatedStocks = useCallback(
@@ -731,7 +747,7 @@ export function QuotationCreateScreen(): React.ReactElement {
         discountAmount2: 0,
         discountRate3: mainPrice?.discount3 ?? 0,
         discountAmount3: 0,
-        vatRate: 20,
+        vatRate: resolveDocumentVatRate(20, watchedOfferType),
         vatAmount: 0,
         lineTotal: 0,
         lineGrandTotal: 0,
@@ -767,7 +783,7 @@ export function QuotationCreateScreen(): React.ReactElement {
               discountAmount2: 0,
               discountRate3: price?.discount3 ?? 0,
               discountAmount3: 0,
-              vatRate: 20,
+              vatRate: resolveDocumentVatRate(20, watchedOfferType),
               vatAmount: 0,
               lineTotal: 0,
               lineGrandTotal: 0,
@@ -785,7 +801,7 @@ export function QuotationCreateScreen(): React.ReactElement {
         setLines((prev) => [...prev, mainLine]);
       }
     },
-    [watchedCurrency, exchangeRates, erpRatesForQuotation]
+    [watchedCurrency, exchangeRates, erpRatesForQuotation, watchedOfferType]
   );
 
   const handleDeleteLine = useCallback(
@@ -855,7 +871,7 @@ export function QuotationCreateScreen(): React.ReactElement {
           discountAmount2: 0,
           discountRate3: price?.discount3 ?? 0,
           discountAmount3: 0,
-          vatRate: product.vatRate ?? 20,
+          vatRate: resolveDocumentVatRate(product.vatRate, watchedOfferType),
           vatAmount: 0,
           lineTotal: 0,
           lineGrandTotal: 0,
@@ -2014,6 +2030,7 @@ export function QuotationCreateScreen(): React.ReactElement {
           <QuotationLineForm
             visible={lineFormVisible}
             line={editingLine}
+            offerType={watchedOfferType}
             onClose={() => {
               setLineFormVisible(false);
               setEditingLine(null);

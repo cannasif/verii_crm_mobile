@@ -76,6 +76,7 @@ import {
   isDocumentDetailReadOnlyWhileLoading,
 } from "../../../lib/documentDetailReadOnly";
 import { resolveDocumentCancellationReason } from "../../../lib/resolveDocumentStatus";
+import { enforceExportVatOnLine, isExportOfferType, resolveDocumentVatRate } from "../../../utils/documentVat";
 import { orderApi } from "../api";
 import {
   useOrderDetail,
@@ -353,7 +354,18 @@ export function OrderDetailScreen(): React.ReactElement {
   const watchedDeliveryDate = watch("order.deliveryDate");
   const watchedDescription = watch("order.description");
   const watchedKoliBaskiDefinitionId = watch("order.koliBaskiDefinitionId");
+  const watchedOfferType = watch("order.offerType");
   const formSnapshot = watch();
+
+  useEffect(() => {
+    if (!isExportOfferType(watchedOfferType)) return;
+    setLines((prev) => {
+      if (!prev.some((line) => (line.vatRate ?? 0) !== 0 || (line.vatAmount ?? 0) !== 0)) {
+        return prev;
+      }
+      return prev.map((line) => calculateLineTotals(enforceExportVatOnLine(line, watchedOfferType)));
+    });
+  }, [watchedOfferType]);
 
   const { data: customer } = useCustomer(watchedCustomerId ?? undefined);
   const { data: isCustomerInRepresentativeScope } = useCustomerScopeAccess(
@@ -712,10 +724,19 @@ export function OrderDetailScreen(): React.ReactElement {
 
   const handleSaveLine = useCallback(
     (savedLine: OrderLineFormState) => {
+      const normalizedSavedLine = enforceExportVatOnLine(savedLine, watchedOfferType);
+      const normalizedRelatedLines = savedLine.relatedLines?.map((line) =>
+        enforceExportVatOnLine(line, watchedOfferType),
+      );
+      const lineToSave = {
+        ...normalizedSavedLine,
+        relatedLines: normalizedRelatedLines,
+      };
+
       if (editingLine) {
-        const toUpdate = savedLine.relatedLines?.length
-          ? [savedLine, ...savedLine.relatedLines]
-          : [savedLine];
+        const toUpdate = lineToSave.relatedLines?.length
+          ? [lineToSave, ...lineToSave.relatedLines]
+          : [lineToSave];
         const updateDtos =
           orderId != null
             ? toUpdate
@@ -744,14 +765,14 @@ export function OrderDetailScreen(): React.ReactElement {
           return;
         }
         setLines((prev) => {
-          const mainNewQty = savedLine.quantity;
+          const mainNewQty = lineToSave.quantity;
           const mainOldQty = editingLine.quantity;
-          const hasRelated = (savedLine.relatedLines?.length ?? 0) > 0;
-          if (hasRelated && savedLine.relatedLines) {
+          const hasRelated = (lineToSave.relatedLines?.length ?? 0) > 0;
+          if (hasRelated && lineToSave.relatedLines) {
             const others = prev.filter(
               (l) => l.id !== editingLine.id && l.relatedProductKey !== editingLine.relatedProductKey
             );
-            return [savedLine, ...savedLine.relatedLines, ...others];
+            return [lineToSave, ...lineToSave.relatedLines, ...others];
           }
           if (
             editingLine.relatedProductKey &&
@@ -760,7 +781,7 @@ export function OrderDetailScreen(): React.ReactElement {
           ) {
             const ratio = mainNewQty / mainOldQty;
             return prev.map((line) => {
-              if (line.id === editingLine.id) return savedLine;
+              if (line.id === editingLine.id) return lineToSave;
               if (line.relatedProductKey === editingLine.relatedProductKey) {
                 const newQty = Math.max(0, Math.round(line.quantity * ratio * 10000) / 10000);
                 const updated = { ...line, quantity: newQty };
@@ -769,16 +790,16 @@ export function OrderDetailScreen(): React.ReactElement {
               return line;
             });
           }
-          return prev.map((line) => (line.id === editingLine.id ? savedLine : line));
+          return prev.map((line) => (line.id === editingLine.id ? lineToSave : line));
         });
         setEditingLine(null);
         setLineFormVisible(false);
         return;
       }
       const isExistingOrder = orderId != null && orderId > 0;
-      const toAdd = savedLine.relatedLines?.length
-        ? [savedLine, ...savedLine.relatedLines]
-        : [savedLine];
+      const toAdd = lineToSave.relatedLines?.length
+        ? [lineToSave, ...lineToSave.relatedLines]
+        : [lineToSave];
       if (isExistingOrder && orderId != null) {
         const body = toAdd.map((line) => mapOrderLineFormStateToCreateDto(line, orderId));
         createOrderLinesMutation.mutate(
@@ -803,7 +824,7 @@ export function OrderDetailScreen(): React.ReactElement {
       setEditingLine(null);
       setLineFormVisible(false);
     },
-    [editingLine, orderId, createOrderLinesMutation, updateOrderLinesMutation, syncBaseline]
+    [editingLine, orderId, createOrderLinesMutation, updateOrderLinesMutation, syncBaseline, watchedOfferType]
   );
 
   const handleDeleteLine = useCallback((lineId: string) => {
@@ -935,7 +956,7 @@ export function OrderDetailScreen(): React.ReactElement {
         discountAmount2: 0,
         discountRate3: mainPrice?.discount3 ?? 0,
         discountAmount3: 0,
-        vatRate: 18,
+        vatRate: resolveDocumentVatRate(18, watchedOfferType),
         vatAmount: 0,
         lineTotal: 0,
         lineGrandTotal: 0,
@@ -969,7 +990,7 @@ export function OrderDetailScreen(): React.ReactElement {
             discountAmount2: 0,
             discountRate3: price?.discount3 ?? 0,
             discountAmount3: 0,
-            vatRate: 18,
+            vatRate: resolveDocumentVatRate(18, watchedOfferType),
             vatAmount: 0,
             lineTotal: 0,
             lineGrandTotal: 0,
@@ -986,7 +1007,7 @@ export function OrderDetailScreen(): React.ReactElement {
         setLines((prev) => [...prev, mainLine]);
       }
     },
-    [watchedCurrency, exchangeRates, erpRatesForOrder, currencyOptions, i18n.language]
+    [watchedCurrency, exchangeRates, erpRatesForOrder, currencyOptions, i18n.language, watchedOfferType]
   );
 
   const handleStartApproval = useCallback(() => {
@@ -1837,6 +1858,7 @@ export function OrderDetailScreen(): React.ReactElement {
           <OrderLineForm
             visible={lineFormVisible}
             line={editingLine}
+            offerType={watchedOfferType}
             onClose={() => {
               setLineFormVisible(false);
               setEditingLine(null);

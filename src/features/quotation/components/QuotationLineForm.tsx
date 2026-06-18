@@ -28,6 +28,7 @@ import { useErpProjects } from "../hooks";
 import { useStock } from "../../stocks/hooks";
 import { parseDecimalInput, sanitizeDecimalInput } from "../../../lib/decimal-input";
 import { getApiBaseUrl } from "../../../constants/config";
+import { isExportOfferType, resolveDocumentVatRate } from "../../../utils/documentVat";
 import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida/hooks/useWindoDefinitionOptions";
 import { BaskiQuickCreateModal } from "../../windo-profil-demir-vida/components/BaskiQuickCreateModal";
 import { LineFormDescriptionFieldsSection } from "@/components/shared/line-form";
@@ -64,6 +65,7 @@ interface QuotationLineFormProps {
   pricingRules?: PricingRuleLineGetDto[];
   userDiscountLimits?: UserDiscountLimitDto[];
   exchangeRates?: Array<{ dovizTipi: number; kurDegeri: number }>;
+  offerType?: string | null;
   allowImageUpload?: boolean;
   imageUploadScope?:
     | "quick-quotation"
@@ -158,6 +160,7 @@ export function QuotationLineForm({
   pricingRules,
   userDiscountLimits,
   exchangeRates,
+  offerType,
   allowImageUpload = false,
   imageUploadScope = "pdf-designer",
   imageUploadExtras,
@@ -165,6 +168,9 @@ export function QuotationLineForm({
   const { t, i18n } = useTranslation();
   const { themeMode, showUnitInStockSelection } = useUIStore();
   const hideVatRate = useSystemSettingsStore((state) => state.settings.hideQuotationVatRate);
+  const readonlyVatRate = useSystemSettingsStore((state) => state.settings.readonlyQuotationVatRate);
+  const isExportOffer = isExportOfferType(offerType);
+  const isVatRateInputLocked = readonlyVatRate || isExportOffer;
   const insets = useSafeAreaInsets();
 
   const isDark = themeMode === "dark";
@@ -194,7 +200,7 @@ export function QuotationLineForm({
   const [discountRate1, setDiscountRate1] = useState<string>("0");
   const [discountRate2, setDiscountRate2] = useState<string>("0");
   const [discountRate3, setDiscountRate3] = useState<string>("0");
-  const [vatRate, setVatRate] = useState<string>("20");
+  const [vatRate, setVatRate] = useState<string>(() => String(resolveDocumentVatRate(20, offerType)));
   const [description, setDescription] = useState<string>("");
   const [description1, setDescription1] = useState<string>("");
   const [description2, setDescription2] = useState<string>("");
@@ -273,7 +279,7 @@ export function QuotationLineForm({
     const disc1 = parseDecimalInput(discountRate1);
     const disc2 = parseDecimalInput(discountRate2);
     const disc3 = parseDecimalInput(discountRate3);
-    const vat = parseDecimalInput(vatRate);
+    const vat = resolveDocumentVatRate(parseDecimalInput(vatRate), offerType);
 
     const baseLine: QuotationLineFormState = {
       id: line?.id || `temp-${Date.now()}`,
@@ -327,6 +333,7 @@ export function QuotationLineForm({
     discountRate2,
     discountRate3,
     vatRate,
+    offerType,
     description,
     description1,
     description2,
@@ -382,7 +389,7 @@ export function QuotationLineForm({
     setDiscountRate1("0");
     setDiscountRate2("0");
     setDiscountRate3("0");
-    setVatRate("20");
+    setVatRate(String(resolveDocumentVatRate(20, offerType)));
     setDescription("");
     setDescription1("");
     setDescription2("");
@@ -400,7 +407,7 @@ export function QuotationLineForm({
     setRelatedLinesDisplay([]);
     setBulkDraftLines([]);
     setActiveBulkDraftIndex(0);
-  }, []);
+  }, [offerType]);
 
   const applyDraftLineToForm = useCallback((draft: QuotationLineFormState) => {
     setQuantity(sanitizeDecimalInput(String(draft.quantity)));
@@ -408,7 +415,7 @@ export function QuotationLineForm({
     setDiscountRate1(sanitizeDecimalInput(String(draft.discountRate1)));
     setDiscountRate2(sanitizeDecimalInput(String(draft.discountRate2)));
     setDiscountRate3(sanitizeDecimalInput(String(draft.discountRate3)));
-    setVatRate(sanitizeDecimalInput(String(draft.vatRate)));
+    setVatRate(sanitizeDecimalInput(String(resolveDocumentVatRate(draft.vatRate, offerType))));
     setDescription(draft.description || "");
     setDescription1(draft.description1 || "");
     setDescription2(draft.description2 || "");
@@ -433,7 +440,7 @@ export function QuotationLineForm({
       branchCode: 0,
       grupKodu: draft.groupCode ?? undefined,
     } as StockGetDto);
-  }, []);
+  }, [offerType]);
 
   const hydrateFromEditingLine = useCallback((editing: QuotationLineFormState) => {
     setBulkDraftLines([]);
@@ -443,7 +450,7 @@ export function QuotationLineForm({
     setDiscountRate1(sanitizeDecimalInput(String(editing.discountRate1)));
     setDiscountRate2(sanitizeDecimalInput(String(editing.discountRate2)));
     setDiscountRate3(sanitizeDecimalInput(String(editing.discountRate3)));
-    setVatRate(sanitizeDecimalInput(String(editing.vatRate)));
+    setVatRate(sanitizeDecimalInput(String(resolveDocumentVatRate(editing.vatRate, offerType))));
     setDescription(editing.description || "");
     setDescription1(editing.description1 || "");
     setDescription2(editing.description2 || "");
@@ -472,7 +479,12 @@ export function QuotationLineForm({
     } else {
       setSelectedStock(undefined);
     }
-  }, []);
+  }, [offerType]);
+
+  useEffect(() => {
+    if (!isExportOffer) return;
+    setVatRate("0");
+  }, [isExportOffer]);
 
   useEffect(() => {
     if (!visible) {
@@ -1364,7 +1376,14 @@ export function QuotationLineForm({
                             { backgroundColor: inputBg, borderColor: softPinkBorder, color: softInputText },
                           ]}
                           value={vatRate}
-                          onChangeText={(text) => setVatRate(sanitizeDecimalInput(text))}
+                          editable={!isVatRateInputLocked}
+                          onChangeText={(text) => {
+                            if (isVatRateInputLocked) {
+                              if (isExportOffer) setVatRate("0");
+                              return;
+                            }
+                            setVatRate(sanitizeDecimalInput(text));
+                          }}
                           placeholder="18"
                           placeholderTextColor={mutedColor}
                           keyboardType="decimal-pad"

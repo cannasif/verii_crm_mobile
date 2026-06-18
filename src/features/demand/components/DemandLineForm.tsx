@@ -28,6 +28,7 @@ import { stockApi } from "../../stocks/api";
 import { useStock } from "../../stocks/hooks";
 import { parseDecimalInput, sanitizeDecimalInput } from "../../../lib/decimal-input";
 import { getApiBaseUrl } from "../../../constants/config";
+import { isExportOfferType, resolveDocumentVatRate } from "../../../utils/documentVat";
 import { getCurrencyDisplayLabel } from "../../../lib/currencyDisplay";
 import { getLocalizedStockNameFromStock } from "../../../lib/localizedStockName";
 import { resolveDocumentLineProductName } from "../../stocks/utils";
@@ -61,6 +62,7 @@ interface DemandLineFormProps {
   pricingRules?: PricingRuleLineGetDto[];
   userDiscountLimits?: UserDiscountLimitDto[];
   exchangeRates?: Array<{ dovizTipi: number; kurDegeri: number }>;
+  offerType?: string | null;
   allowImageUpload?: boolean;
   imageUploadScope?: "demand-line";
   imageUploadExtras?: Omit<UploadReportAssetOptions, "assetScope">;
@@ -103,6 +105,7 @@ export function DemandLineForm({
   pricingRules,
   userDiscountLimits,
   exchangeRates,
+  offerType,
   allowImageUpload = false,
   imageUploadScope = "demand-line",
   imageUploadExtras,
@@ -110,6 +113,9 @@ export function DemandLineForm({
   const { t, i18n } = useTranslation();
   const { colors, themeMode, showUnitInStockSelection } = useUIStore();
   const hideVatRate = useSystemSettingsStore((state) => state.settings.hideDemandVatRate);
+  const readonlyVatRate = useSystemSettingsStore((state) => state.settings.readonlyDemandVatRate);
+  const isExportOffer = isExportOfferType(offerType);
+  const isVatRateInputLocked = readonlyVatRate || isExportOffer;
   const insets = useSafeAreaInsets();
 
   const isDark = themeMode === "dark";
@@ -137,7 +143,7 @@ export function DemandLineForm({
   const [discountRate1, setDiscountRate1] = useState<string>("0");
   const [discountRate2, setDiscountRate2] = useState<string>("0");
   const [discountRate3, setDiscountRate3] = useState<string>("0");
-  const [vatRate, setVatRate] = useState<string>("20");
+  const [vatRate, setVatRate] = useState<string>(() => String(resolveDocumentVatRate(20, offerType)));
   const [description, setDescription] = useState<string>("");
   const [description1, setDescription1] = useState<string>("");
   const [description2, setDescription2] = useState<string>("");
@@ -187,7 +193,7 @@ export function DemandLineForm({
     const disc1 = parseDecimalInput(discountRate1);
     const disc2 = parseDecimalInput(discountRate2);
     const disc3 = parseDecimalInput(discountRate3);
-    const vat = parseDecimalInput(vatRate);
+    const vat = resolveDocumentVatRate(parseDecimalInput(vatRate), offerType);
 
     const baseLine: DemandLineFormState = {
       id: line?.id || `temp-${Date.now()}`,
@@ -238,6 +244,7 @@ export function DemandLineForm({
     discountRate2,
     discountRate3,
     vatRate,
+    offerType,
     description,
     description1,
     description2,
@@ -260,7 +267,7 @@ export function DemandLineForm({
       setDiscountRate1(sanitizeDecimalInput(String(line.discountRate1)));
       setDiscountRate2(sanitizeDecimalInput(String(line.discountRate2)));
       setDiscountRate3(sanitizeDecimalInput(String(line.discountRate3)));
-      setVatRate(sanitizeDecimalInput(String(line.vatRate)));
+      setVatRate(sanitizeDecimalInput(String(resolveDocumentVatRate(line.vatRate, offerType))));
       setDescription(line.description || "");
       setDescription1(line.description1 || "");
       setDescription2(line.description2 || "");
@@ -369,7 +376,7 @@ export function DemandLineForm({
     setDiscountRate1("0");
     setDiscountRate2("0");
     setDiscountRate3("0");
-    setVatRate("20");
+    setVatRate(String(resolveDocumentVatRate(20, offerType)));
     setDescription("");
     setDescription1("");
     setDescription2("");
@@ -385,7 +392,7 @@ export function DemandLineForm({
     setRelatedLinesDisplay([]);
     setBulkDraftLines([]);
     setActiveBulkDraftIndex(0);
-  }, []);
+  }, [offerType]);
 
   const { data: stockData } = useStock(selectedStock?.id);
   const isMultiSelectMode = !line && Boolean(onMultiProductSelect);
@@ -415,7 +422,7 @@ export function DemandLineForm({
     setDiscountRate1(sanitizeDecimalInput(String(draft.discountRate1)));
     setDiscountRate2(sanitizeDecimalInput(String(draft.discountRate2)));
     setDiscountRate3(sanitizeDecimalInput(String(draft.discountRate3)));
-    setVatRate(sanitizeDecimalInput(String(draft.vatRate)));
+    setVatRate(sanitizeDecimalInput(String(resolveDocumentVatRate(draft.vatRate, offerType))));
     setDescription(draft.description || "");
     setDescription1(draft.description1 || "");
     setDescription2(draft.description2 || "");
@@ -438,7 +445,12 @@ export function DemandLineForm({
       branchCode: 0,
       grupKodu: draft.groupCode ?? undefined,
     } as StockGetDto);
-  }, []);
+  }, [offerType]);
+
+  useEffect(() => {
+    if (!isExportOffer) return;
+    setVatRate("0");
+  }, [isExportOffer]);
 
   const handlePickImage = useCallback(async (mode: "camera" | "gallery") => {
     const permission =
@@ -1175,7 +1187,14 @@ export function DemandLineForm({
                         { backgroundColor: inputBg, borderColor: softPinkBorder, color: softInputText },
                       ]}
                       value={vatRate}
-                      onChangeText={(text) => setVatRate(sanitizeDecimalInput(text))}
+                      editable={!isVatRateInputLocked}
+                      onChangeText={(text) => {
+                        if (isVatRateInputLocked) {
+                          if (isExportOffer) setVatRate("0");
+                          return;
+                        }
+                        setVatRate(sanitizeDecimalInput(text));
+                      }}
                       placeholder="18"
                       placeholderTextColor={mutedColor}
                       keyboardType="decimal-pad"

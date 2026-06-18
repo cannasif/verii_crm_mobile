@@ -75,6 +75,7 @@ import {
   isDocumentDetailReadOnlyWhileLoading,
 } from "../../../lib/documentDetailReadOnly";
 import { resolveDocumentCancellationReason } from "../../../lib/resolveDocumentStatus";
+import { enforceExportVatOnLine, isExportOfferType, resolveDocumentVatRate } from "../../../utils/documentVat";
 import { quotationApi } from "../api";
 import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida/hooks/useWindoDefinitionOptions";
 import {
@@ -393,7 +394,18 @@ export function QuotationDetailScreen(): React.ReactElement {
   const watchedGeneralDiscountAmount = watch("quotation.generalDiscountAmount");
   const watchedDescription = watch("quotation.description");
   const watchedKoliBaskiDefinitionId = watch("quotation.koliBaskiDefinitionId");
+  const watchedOfferType = watch("quotation.offerType");
   const formSnapshot = watch();
+
+  useEffect(() => {
+    if (!isExportOfferType(watchedOfferType)) return;
+    setLines((prev) => {
+      if (!prev.some((line) => (line.vatRate ?? 0) !== 0 || (line.vatAmount ?? 0) !== 0)) {
+        return prev;
+      }
+      return prev.map((line) => calculateLineTotals(enforceExportVatOnLine(line, watchedOfferType)));
+    });
+  }, [watchedOfferType]);
 
   useEffect(() => {
     if (activeQuotationIdRef.current === quotationId) return;
@@ -897,10 +909,19 @@ export function QuotationDetailScreen(): React.ReactElement {
 
   const handleSaveLine = useCallback(
     (savedLine: QuotationLineFormState) => {
+      const normalizedSavedLine = enforceExportVatOnLine(savedLine, watchedOfferType);
+      const normalizedRelatedLines = savedLine.relatedLines?.map((line) =>
+        enforceExportVatOnLine(line, watchedOfferType),
+      );
+      const lineToSave = {
+        ...normalizedSavedLine,
+        relatedLines: normalizedRelatedLines,
+      };
+
       if (editingLine) {
-        const toUpdate = savedLine.relatedLines?.length
-          ? [savedLine, ...savedLine.relatedLines]
-          : [savedLine];
+        const toUpdate = lineToSave.relatedLines?.length
+          ? [lineToSave, ...lineToSave.relatedLines]
+          : [lineToSave];
         const updateDtos =
           quotationId != null
             ? toUpdate
@@ -929,14 +950,14 @@ export function QuotationDetailScreen(): React.ReactElement {
           return;
         }
         setLines((prev) => {
-          const mainNewQty = savedLine.quantity;
+          const mainNewQty = lineToSave.quantity;
           const mainOldQty = editingLine.quantity;
-          const hasRelated = (savedLine.relatedLines?.length ?? 0) > 0;
-          if (hasRelated && savedLine.relatedLines) {
+          const hasRelated = (lineToSave.relatedLines?.length ?? 0) > 0;
+          if (hasRelated && lineToSave.relatedLines) {
             const others = prev.filter(
               (l) => l.id !== editingLine.id && l.relatedProductKey !== editingLine.relatedProductKey
             );
-            return [savedLine, ...savedLine.relatedLines, ...others];
+            return [lineToSave, ...lineToSave.relatedLines, ...others];
           }
           if (
             editingLine.relatedProductKey &&
@@ -945,7 +966,7 @@ export function QuotationDetailScreen(): React.ReactElement {
           ) {
             const ratio = mainNewQty / mainOldQty;
             return prev.map((line) => {
-              if (line.id === editingLine.id) return savedLine;
+              if (line.id === editingLine.id) return lineToSave;
               if (line.relatedProductKey === editingLine.relatedProductKey) {
                 const newQty = Math.max(0, Math.round(line.quantity * ratio * 10000) / 10000);
                 const updated = { ...line, quantity: newQty };
@@ -954,16 +975,16 @@ export function QuotationDetailScreen(): React.ReactElement {
               return line;
             });
           }
-          return prev.map((line) => (line.id === editingLine.id ? savedLine : line));
+          return prev.map((line) => (line.id === editingLine.id ? lineToSave : line));
         });
         setEditingLine(null);
         setLineFormVisible(false);
         return;
       }
       const isExistingQuotation = quotationId != null && quotationId > 0;
-      const toAdd = savedLine.relatedLines?.length
-        ? [savedLine, ...savedLine.relatedLines]
-        : [savedLine];
+      const toAdd = lineToSave.relatedLines?.length
+        ? [lineToSave, ...lineToSave.relatedLines]
+        : [lineToSave];
       if (isExistingQuotation && quotationId != null) {
         const body = toAdd.map((line) => mapQuotationLineFormStateToCreateDto(line, quotationId));
         createQuotationLinesMutation.mutate(
@@ -990,7 +1011,7 @@ export function QuotationDetailScreen(): React.ReactElement {
       setEditingLine(null);
       setLineFormVisible(false);
     },
-    [editingLine, quotationId, createQuotationLinesMutation, updateQuotationLinesMutation, syncBaseline]
+    [editingLine, quotationId, createQuotationLinesMutation, updateQuotationLinesMutation, syncBaseline, watchedOfferType]
   );
 
   const handleDeleteLine = useCallback((lineId: string) => {
@@ -1132,7 +1153,7 @@ export function QuotationDetailScreen(): React.ReactElement {
         discountAmount2: 0,
         discountRate3: mainPrice?.discount3 ?? 0,
         discountAmount3: 0,
-        vatRate: 18,
+        vatRate: resolveDocumentVatRate(18, watchedOfferType),
         vatAmount: 0,
         lineTotal: 0,
         lineGrandTotal: 0,
@@ -1166,7 +1187,7 @@ export function QuotationDetailScreen(): React.ReactElement {
             discountAmount2: 0,
             discountRate3: price?.discount3 ?? 0,
             discountAmount3: 0,
-            vatRate: 18,
+            vatRate: resolveDocumentVatRate(18, watchedOfferType),
             vatAmount: 0,
             lineTotal: 0,
             lineGrandTotal: 0,
@@ -1183,7 +1204,7 @@ export function QuotationDetailScreen(): React.ReactElement {
         setLines((prev) => [...prev, mainLine]);
       }
     },
-    [watchedCurrency, exchangeRates, erpRatesForQuotation, currencyOptions, i18n.language]
+    [watchedCurrency, exchangeRates, erpRatesForQuotation, currencyOptions, i18n.language, watchedOfferType]
   );
 
   const handleStartApproval = useCallback(() => {
@@ -2119,6 +2140,7 @@ export function QuotationDetailScreen(): React.ReactElement {
           <QuotationLineForm
             visible={lineFormVisible}
             line={editingLine}
+            offerType={watchedOfferType}
             onClose={() => {
               setLineFormVisible(false);
               setEditingLine(null);
