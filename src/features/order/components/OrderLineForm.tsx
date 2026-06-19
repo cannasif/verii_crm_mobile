@@ -17,6 +17,7 @@ import { useTranslation } from "react-i18next";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useSystemSettingsStore } from "../../../store/system-settings";
+import { useSystemSettingsQuery } from "../../system-settings/hooks/useSystemSettingsQuery";
 import { ProductPicker, type ProductPickerRef } from "./ProductPicker";
 import { PickerModal } from "./PickerModal";
 import type { StockRelationDto } from "../../stocks/types";
@@ -28,7 +29,7 @@ import { stockApi } from "../../stocks/api";
 import { useStock } from "../../stocks/hooks";
 import { parseDecimalInput, sanitizeDecimalInput } from "../../../lib/decimal-input";
 import { getApiBaseUrl } from "../../../constants/config";
-import { isExportOfferType, resolveDocumentVatRate } from "../../../utils/documentVat";
+import { resolveDocumentVatRate } from "../../../utils/documentVat";
 import { getCurrencyDisplayLabel } from "../../../lib/currencyDisplay";
 import { resolveDocumentLineProductName } from "../../stocks/utils";
 import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida/hooks/useWindoDefinitionOptions";
@@ -111,10 +112,12 @@ export function OrderLineForm({
 }: OrderLineFormProps): React.ReactElement {
   const { t, i18n } = useTranslation();
   const { colors, themeMode, showUnitInStockSelection } = useUIStore();
-  const hideVatRate = useSystemSettingsStore((state) => state.settings.hideOrderVatRate);
-  const readonlyVatRate = useSystemSettingsStore((state) => state.settings.readonlyOrderVatRate);
-  const isExportOffer = isExportOfferType(offerType);
-  const isVatRateInputLocked = readonlyVatRate || isExportOffer;
+  const storedSystemSettings = useSystemSettingsStore((state) => state.settings);
+  const { data: freshSystemSettings } = useSystemSettingsQuery();
+  const effectiveSystemSettings = freshSystemSettings ?? storedSystemSettings;
+  const hideVatRate = Boolean(effectiveSystemSettings.hideOrderVatRate);
+  const readonlyVatRate = Boolean(effectiveSystemSettings.readonlyOrderVatRate);
+  const isVatRateInputLocked = readonlyVatRate;
   const insets = useSafeAreaInsets();
 
   const isDark = themeMode === "dark";
@@ -446,10 +449,13 @@ export function OrderLineForm({
     } as StockGetDto);
   }, [offerType]);
 
+  const previousOfferTypeRef = useRef(offerType);
   useEffect(() => {
-    if (!isExportOffer) return;
-    setVatRate("0");
-  }, [isExportOffer]);
+    if (previousOfferTypeRef.current === offerType) return;
+
+    previousOfferTypeRef.current = offerType;
+    setVatRate(String(resolveDocumentVatRate(undefined, offerType)));
+  }, [offerType]);
 
   const handlePickImage = useCallback(async (mode: "camera" | "gallery") => {
     const permission =
@@ -1188,10 +1194,7 @@ export function OrderLineForm({
                       value={vatRate}
                       editable={!isVatRateInputLocked}
                       onChangeText={(text) => {
-                        if (isVatRateInputLocked) {
-                          if (isExportOffer) setVatRate("0");
-                          return;
-                        }
+                        if (isVatRateInputLocked) return;
                         setVatRate(sanitizeDecimalInput(text));
                       }}
                       placeholder="18"
