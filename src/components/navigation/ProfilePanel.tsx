@@ -38,7 +38,12 @@ import {
 } from "hugeicons-react-native";
 
 import { useUIStore } from "../../store/ui";
-import { setLanguage, getCurrentLanguage } from "../../locales";
+import {
+  setLanguage,
+  getCurrentLanguage,
+  SUPPORTED_LANGUAGES as LANGUAGE_OPTIONS,
+  type AppLanguage,
+} from "../../locales";
 
 const { width } = Dimensions.get("window");
 const PANEL_WIDTH = width * 0.85;
@@ -79,12 +84,6 @@ export default function ProfilePanel({
   const translateX = useRef(new Animated.Value(PANEL_WIDTH)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
 
-  const SUPPORTED_LANGUAGES = [
-    { id: 'tr', label: t("language.turkish"), flag: '🇹🇷' },
-    { id: 'en', label: t("language.english"), flag: '🇬🇧' },
-    { id: 'de', label: t("language.german"), flag: '🇩🇪' },
-  ];
-
   useEffect(() => {
     if (isOpen) {
       setIsVisible(true);
@@ -103,7 +102,7 @@ export default function ProfilePanel({
     }
   }, [isOpen, translateX, backdropOpacity]);
 
-  const handleLanguageChange = async (lang: "tr" | "en" | "de") => {
+  const handleLanguageChange = async (lang: AppLanguage) => {
     await setLanguage(lang);
     setCurrentLang(lang);
   };
@@ -300,12 +299,12 @@ export default function ProfilePanel({
                   showsHorizontalScrollIndicator={false} 
                   contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}
                 >
-                  {SUPPORTED_LANGUAGES.map((lang) => {
+                  {LANGUAGE_OPTIONS.map((lang) => {
                     const isActive = currentLang === lang.id;
                     return (
                       <TouchableOpacity
                         key={lang.id}
-                        onPress={() => handleLanguageChange(lang.id as "tr" | "en" | "de")}
+                        onPress={() => handleLanguageChange(lang.id)}
                         style={[
                           styles.langPill, 
                           { 
@@ -317,7 +316,7 @@ export default function ProfilePanel({
                       >
                         <Text style={{ fontSize: 16, marginRight: 6 }}>{lang.flag}</Text>
                         <Text style={{ color: isActive ? ACTIVE_COLOR : colors.textMuted, fontWeight: isActive ? "600" : "500", fontSize: 13 }}>
-                          {lang.label}
+                          {t(lang.labelKey, lang.fallbackLabel)}
                         </Text>
                       </TouchableOpacity>
                     );

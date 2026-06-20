@@ -37,7 +37,7 @@
     "search": "Ara",
     "noResults": "Sonuç bulunamadı",
     "settings": "Ayarlar",
-    "logout": "Çıkış Yap",
+    "logout": "تسجيل الخروج",
     "create": "Oluştur",
     "update": "Güncelle",
     "confirm": "Onayla",
@@ -112,9 +112,9 @@
     "oldest": "En Eskiler",
     "voiceSearchPermissionRequired": "Sesli arama için mikrofon ve konuşma tanıma izinleri gereklidir.",
     "warehouseBalanceTooltip": {
-      "totalLabel": "Toplam bakiye",
-      "warehouseCount": "{{count}} depo",
-      "branch": "Şube {{branch}}",
+      "totalLabel": "إجمالي الرصيد",
+      "warehouseCount": "{{count}} مستودعات",
+      "branch": "الفرع {{branch}}",
       "holdHint": "Depo kırılımı için basılı tutun"
     }
   },
@@ -148,7 +148,7 @@
       "demand": "Bu talep reddedildiği için değişiklik yapılamaz. Güncellemek için aşağıdaki \"Revize et\" butonunu kullanın.",
       "order": "Bu sipariş reddedildiği için değişiklik yapılamaz. Güncellemek için aşağıdaki \"Revize et\" butonunu kullanın."
     },
-    "closedReason": "Bu kayıt aynı belge numarasında başka bir kayıt onaylandığı için kapatıldı; değişiklik yapılamaz.",
+    "closedReason": "تم إغلاق هذا السجل لأن سجلاً آخر بنفس رقم العرض تمت الموافقة عليه.",
     "readOnlySuffix": "Değişiklik yapılamaz."
   },
   "customerCancel": {
@@ -408,11 +408,11 @@
     "maxLength": "Bu alan en fazla {{count}} karakter olabilir"
   },
   "language": {
-    "title": "Dil",
-    "turkish": "Türkçe",
-    "english": "English",
-    "german": "Deutsch",
-    "arabic": "Arapça"
+    "title": "اللغة",
+    "turkish": "التركية",
+    "english": "الإنجليزية",
+    "german": "الألمانية",
+    "arabic": "العربية"
   },
   "settings": {
     "title": "Profil Ayarları",
@@ -1354,8 +1354,8 @@
     "noRelatedStocks": "Bu ürünün bağlı stoğu bulunmuyor",
     "offerType": {
       "label": "Teklif Tipi",
-      "domestic": "Yurtiçi",
-      "export": "Yurtdışı",
+      "domestic": "محلي",
+      "export": "تصدير",
       "selectTitle": "Teklif Tipi Seçiniz",
       "searchPlaceholder": "Teklif tipi ara...",
       "required": "Teklif tipi seçilmelidir"
@@ -1431,9 +1431,9 @@
     "approveButton": "Onayla",
     "rejectButton": "Reddet",
     "fixErrors": "Lütfen hataları düzeltin:",
-    "select": "Seçiniz",
-    "saving": "Kaydediliyor...",
-    "save": "Kaydet",
+    "select": "تحديد",
+    "saving": "جاري الحفظ...",
+    "save": "حفظ",
     "addLine": "Satır Ekle",
     "noLinesYet": "Henüz satır eklenmedi",
     "productNotSelected": "Ürün seçilmedi",
@@ -1477,7 +1477,7 @@
     "optional": "Opsiyonel",
     "apply": "Uygula",
     "approvalFlow": {
-      "notStarted": "Henüz onay süreci başlatılmamış",
+      "notStarted": "Onay akışı henüz başlatılmadı",
       "flowDescription": "Akış Açıklaması",
       "overallStatus": "Genel Durum",
       "rejectedReason": "Red Nedeni"
@@ -1523,8 +1523,8 @@
     "rejectError": "Red işlemi gerçekleştirilemedi",
     "offerType": {
       "label": "Talep Tipi",
-      "domestic": "Yurtiçi",
-      "export": "Yurtdışı",
+      "domestic": "محلي",
+      "export": "تصدير",
       "selectTitle": "Talep Tipi Seçiniz",
       "searchPlaceholder": "Talep tipi ara...",
       "required": "Talep tipi seçilmelidir"
@@ -1579,9 +1579,9 @@
     "approveButton": "Onayla",
     "rejectButton": "Reddet",
     "fixErrors": "Lütfen hataları düzeltin:",
-    "select": "Seçiniz",
-    "saving": "Kaydediliyor...",
-    "save": "Kaydet",
+    "select": "تحديد",
+    "saving": "جار الحفظ...",
+    "save": "حفظ",
     "addLine": "Satır Ekle",
     "noLinesYet": "Henüz satır eklenmedi",
     "productNotSelected": "Ürün seçilmedi",
@@ -1622,7 +1622,7 @@
     "optional": "Opsiyonel",
     "apply": "Uygula",
     "approvalFlow": {
-      "notStarted": "Henüz onay süreci başlatılmamış",
+      "notStarted": "Not started",
       "flowDescription": "Akış Açıklaması",
       "overallStatus": "Genel Durum",
       "rejectedReason": "Red Nedeni"
@@ -1689,8 +1689,8 @@
     "rejectError": "Red işlemi gerçekleştirilemedi",
     "offerType": {
       "label": "Sipariş Tipi",
-      "domestic": "Yurtiçi",
-      "export": "Yurtdışı",
+      "domestic": "محلي",
+      "export": "تصدير",
       "selectTitle": "Sipariş Tipi Seçiniz",
       "searchPlaceholder": "Sipariş tipi ara...",
       "required": "Sipariş tipi seçilmelidir"
@@ -1745,9 +1745,9 @@
     "approveButton": "Onayla",
     "rejectButton": "Reddet",
     "fixErrors": "Lütfen hataları düzeltin:",
-    "select": "Seçiniz",
-    "saving": "Kaydediliyor...",
-    "save": "Kaydet",
+    "select": "تحديد",
+    "saving": "جاري الحفظ...",
+    "save": "حفظ",
     "addLine": "Satır Ekle",
     "noLinesYet": "Henüz satır eklenmedi",
     "productNotSelected": "Ürün seçilmedi",
@@ -1789,7 +1789,7 @@
     "optional": "Opsiyonel",
     "apply": "Uygula",
     "approvalFlow": {
-      "notStarted": "Henüz onay süreci başlatılmamış",
+      "notStarted": "Onay akışı henüz başlatılmadı",
       "flowDescription": "Akış Açıklaması",
       "overallStatus": "Genel Durum",
       "rejectedReason": "Red Nedeni"
@@ -1818,16 +1818,16 @@
       "downloadPdfTitle": "Sipariş PDF İndir"
     },
     "exportPreview": {
-      "trigger": "Önizle ve Paylaş",
-      "title": "Önizle ve paylaş",
-      "subtitle": "PDF'i inceleyin; indirin veya WhatsApp ve e-posta ile paylaşın.",
+      "trigger": "معاينة ومشاركة",
+      "title": "معاينة ومشاركة",
+      "subtitle": "راجع ملف PDF؛ قم بتنزيله أو مشاركته.",
       "draftPreview": "Taslak Önizle",
-      "close": "Kapat",
-      "loading": "PDF hazırlanıyor...",
-      "error": "PDF oluşturulamadı. Lütfen tekrar deneyin.",
-      "download": "Bilgisayara indir",
-      "errorDismiss": "Kapat",
-      "downloadFileName": "siparis.pdf"
+      "close": "إغلاق",
+      "loading": "جارٍ تحضير ملف PDF...",
+      "error": "تعذر إنشاء ملف PDF. يرجى المحاولة مرة أخرى.",
+      "download": "تنزيل",
+      "errorDismiss": "إغلاق",
+      "downloadFileName": "order.pdf"
     },
     "pdfExportTemplate": {
       "builtInTemplateTitle": "V3RII Hazır Şablon (Önizleme)",
@@ -1891,41 +1891,41 @@
     }
   },
   "customer360": {
-    "title": "Customer 360",
+    "title": "عميل 360",
     "subtitle": "Müşteri özeti ve aktiviteler",
-    "button": "Customer 360",
+    "button": "عميل 360",
     "tabs": {
-      "overview": "Genel Bakış",
-      "analytics": "Analitik",
-      "quickQuotations": "Hızlı Teklifler",
-      "erpMovements": "ERP Hareket",
-      "mailLogs": "Mail Geçmişi"
+      "overview": "نظرة عامة",
+      "analytics": "التحليلات",
+      "quickQuotations": "عروض الأسعار السريعة",
+      "erpMovements": "حركات ERP",
+      "mailLogs": "سجل البريد"
     },
     "erpMovements": {
-      "title": "ERP Hareket",
-      "error": "ERP hareket verileri yüklenemedi",
+      "title": "حركات ERP",
+      "error": "تعذر تحميل بيانات حركات ERP",
       "summary": {
-        "totalDebit": "Toplam Borç",
-        "totalCredit": "Toplam Alacak",
-        "balance": "Bakiye",
-        "closed": "Kapalı"
+        "totalDebit": "إجمالي المدين",
+        "totalCredit": "إجمالي الدائن",
+        "balance": "الرصيد",
+        "closed": "مغلق"
       }
     },
     "quickQuotations": {
-      "empty": "Bu cariye ait hızlı teklif bulunamadı",
-      "error": "Hızlı teklifler yüklenemedi",
-      "draft": "Taslak",
-      "converted": "Teklife Döndü",
-      "sentToApproval": "Onaya Gönderildi",
-      "notSentToApproval": "Onaya Gitmedi",
-      "currency": "Para Birimi",
-      "total": "Toplam",
-      "quotationStatus": "Teklif Durumu",
-      "approvalStep": "Onay Adımı",
-      "stepValue": "Adım {{step}}",
-      "convertedAt": "Dönüşüm: {{date}}",
-      "notConvertedYet": "Henüz teklife dönüşmedi",
-      "openQuotation": "Teklifi Aç"
+      "empty": "لم يتم العثور على عروض أسعار سريعة لهذا العميل",
+      "error": "تعذر تحميل عروض الأسعار السريعة",
+      "draft": "مسودة",
+      "converted": "تم التحويل",
+      "sentToApproval": "تم الإرسال للموافقة",
+      "notSentToApproval": "لم يتم الإرسال للموافقة",
+      "currency": "العملة",
+      "total": "المجموع",
+      "quotationStatus": "حالة عرض السعر",
+      "approvalStep": "خطوة الموافقة",
+      "stepValue": "الخطوة {{step}}",
+      "convertedAt": "تم التحويل: {{date}}",
+      "notConvertedYet": "لم يتم التحويل بعد",
+      "openQuotation": "فتح عرض السعر"
     },
     "mail": {
       "providers": {
@@ -1938,17 +1938,17 @@
       }
     },
     "kpi": {
-      "totalDemands": "Toplam Talep",
-      "totalQuotations": "Toplam Teklif",
-      "totalOrders": "Toplam Sipariş",
-      "openQuotations": "Açık Teklifler",
-      "openOrders": "Açık Siparişler",
+      "totalDemands": "إجمالي عروض الأسعار",
+      "totalQuotations": "إجمالي عروض الأسعار",
+      "totalOrders": "إجمالي الطلبات",
+      "openQuotations": "عروض الأسعار المفتوحة",
+      "openOrders": "الطلبات المعلقة",
       "closedOrders": "Kapanış Siparişleri",
       "lastActivityDate": "Son Aktivite Tarihi"
     },
     "currencyFilter": {
-      "label": "Para birimi",
-      "all": "Tümü"
+      "label": "العملة",
+      "all": "الكل"
     },
     "periodFilter": {
       "label": "Dönem",
@@ -1965,61 +1965,61 @@
     },
     "currencyTotals": {
       "title": "Para birimine göre toplamlar",
-      "currency": "Para birimi",
-      "demandAmount": "Talep tutarı",
-      "quotationAmount": "Teklif tutarı",
-      "orderAmount": "Sipariş tutarı"
+      "currency": "العملة",
+      "demandAmount": "مبلغ عرض السعر",
+      "quotationAmount": "مبلغ عرض السعر",
+      "orderAmount": "مبلغ الطلب"
     },
     "revenueQuality": {
-      "title": "Gelir kalitesi",
-      "churnRisk": "Kayıp riski",
-      "upsell": "Ek satış olasılığı",
-      "payment": "Ödeme davranışı",
-      "segment": "Segment"
+      "title": "جودة الإيرادات",
+      "churnRisk": "خطر الفقدان",
+      "upsell": "الميل للبيع الإضافي",
+      "payment": "سلوك الدفع",
+      "segment": "تجميع RFM"
     },
     "actions": {
-      "title": "Önerilen aksiyonlar",
-      "empty": "Önerilen aksiyon yok",
-      "execute": "Aktivite oluştur",
+      "title": "الإجراءات الموصى بها",
+      "empty": "لا توجد إجراءات موصى بها",
+      "execute": "تنفيذ",
       "executeSuccess": "Aksiyon aktiviteye çevrildi",
       "executeError": "Aksiyon oluşturulamadı"
     },
     "cohort": {
-      "title": "Cohort tutundurma",
-      "cohortKey": "Cohort",
-      "empty": "Cohort verisi yok"
+      "title": "الاحتفاظ بالمجموعة",
+      "cohortKey": "المجموعة",
+      "empty": "لا توجد بيانات مجموعة"
     },
     "analytics": {
-      "last12MonthsOrderAmount": "Seçili Dönem Sipariş Tutarı",
-      "openQuotationAmount": "Açık Teklif Tutarı",
-      "openOrderAmount": "Açık Sipariş Tutarı",
-      "activityCount": "Aktivite Sayısı",
-      "lastActivityDate": "Son Aktivite Tarihi",
-      "error": "Analitik verisi yüklenemedi"
+      "last12MonthsOrderAmount": "مبلغ الطلبات آخر 12 شهراً",
+      "openQuotationAmount": "مبلغ عرض السعر المفتوح",
+      "openOrderAmount": "مبلغ الطلب المفتوح",
+      "activityCount": "عدد الأنشطة",
+      "lastActivityDate": "تاريخ آخر نشاط",
+      "error": "تعذر تحميل بيانات التحليلات"
     },
     "analyticsCharts": {
-      "distributionTitle": "İşlem Dağılımı",
-      "monthlyTrendTitle": "Aylık Trend",
-      "amountComparisonTitle": "Tutar Karşılaştırması",
-      "demand": "Talep",
-      "quotation": "Teklif",
-      "order": "Sipariş",
-      "last12MonthsOrderAmount": "Seçili Dönem Sipariş Tutarı",
-      "openQuotationAmount": "Açık Teklif Tutarı",
-      "openOrderAmount": "Açık Sipariş Tutarı"
+      "distributionTitle": "التوزيع",
+      "monthlyTrendTitle": "الاتجاه الشهري",
+      "amountComparisonTitle": "مقارنة المبالغ",
+      "demand": "عرض السعر",
+      "quotation": "عرض السعر",
+      "order": "الطلب",
+      "last12MonthsOrderAmount": "طلبات آخر 12 شهراً",
+      "openQuotationAmount": "عرض السعر المفتوح",
+      "openOrderAmount": "الطلب المفتوح"
     },
     "sections": {
-      "contacts": "İletişimler",
-      "shippingAddresses": "Teslimat Adresleri",
-      "recentDemands": "Son Talepler",
-      "recentQuotations": "Son Teklifler",
-      "recentOrders": "Son Siparişler",
-      "recentActivities": "Son Aktiviteler",
-      "timeline": "Zaman Çizelgesi"
+      "contacts": "جهات الاتصال",
+      "shippingAddresses": "عناوين الشحن",
+      "recentDemands": "أحدث الطلبات الواردة",
+      "recentQuotations": "عروض الأسعار الأخيرة",
+      "recentOrders": "الطلبات الأخيرة",
+      "recentActivities": "الأنشطة الأخيرة",
+      "timeline": "الجدول الزمني"
     },
-    "notFound": "Müşteri bulunamadı",
-    "error": "Özet yüklenirken bir hata oluştu",
-    "retry": "Tekrar Dene",
+    "notFound": "العميل غير موجود",
+    "error": "حدث خطأ",
+    "retry": "إعادة المحاولة",
     "status": {
       "HavenotStarted": "Başlamadı",
       "Waiting": "Beklemede",

@@ -6,7 +6,7 @@ import { Stack, router, usePathname } from "expo-router";
 import { enableFreeze } from "react-native-screens";
 
 enableFreeze(true);
-import { I18nextProvider } from "react-i18next";
+import { I18nextProvider, useTranslation } from "react-i18next";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GluestackUIProvider } from "../components/ui/gluestack-ui-provider";
@@ -20,7 +20,7 @@ import { useUIStore } from "../store/ui";
 import { useSystemSettingsStore } from "../store/system-settings";
 import { Sidebar } from "../components/navigation/Sidebar";
 import { AppHeader } from "../components/navigation/AppHeader";
-import i18n, { initLanguage } from "../locales";
+import i18n, { initLanguage, isRtlLanguage } from "../locales";
 import { initializeApiClient } from "../lib/axios";
 import { getSystemSettings } from "../features/system-settings/api/systemSettingsApi";
 import { authAccessApi } from "../features/access-control/api/authAccessApi";
@@ -49,8 +49,10 @@ function RootStack({
   isAuthScreen: boolean;
 }): React.ReactElement {
   const { colors } = useUIStore();
+  const { i18n: activeI18n } = useTranslation();
+  const direction = isRtlLanguage(activeI18n.language) ? "rtl" : "ltr";
   return (
-    <View style={[rootStyles.container, { backgroundColor: colors.background }]}>
+    <View style={[rootStyles.container, { backgroundColor: colors.background, direction }]}>
       {!isAuthScreen && <AppHeader />}
       <Stack
         screenOptions={{

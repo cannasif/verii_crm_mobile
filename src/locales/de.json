@@ -337,7 +337,8 @@
     "title": "Sprache",
     "turkish": "Türkisch",
     "english": "Englisch",
-    "german": "Deutsch"
+    "german": "Deutsch",
+    "arabic": "Arabisch"
   },
   "settings": {
     "title": "Profileinstellungen",
@@ -1274,10 +1275,10 @@
       "subtitle": "Wählen Sie den anzuzeigenden Angebotsstatus",
       "noResults": "Keine Angebote für den ausgewählten Status gefunden",
       "options": {
-        "all": "Alle",
         "1": "Genehmigung ausstehend",
         "5": "Vom Kunden storniert",
-        "7": "Geschlossen, weil eine andere Revision genehmigt wurde"
+        "7": "Geschlossen, weil eine andere Revision genehmigt wurde",
+        "all": "Alle"
       }
     },
     "currency": "Währung",
@@ -1513,10 +1514,10 @@
       "subtitle": "Wählen Sie den anzuzeigenden Anfragestatus",
       "noResults": "Keine Anfragen entsprechen dem ausgewählten Status",
       "options": {
-        "all": "Alle",
         "1": "Genehmigung ausstehend",
         "5": "Vom Kunden storniert",
-        "7": "Geschlossen, weil eine andere Revision genehmigt wurde"
+        "7": "Geschlossen, weil eine andere Revision genehmigt wurde",
+        "all": "Alle"
       }
     }
   },
@@ -1715,10 +1716,10 @@
       "subtitle": "Wählen Sie den anzuzeigenden Bestellstatus",
       "noResults": "Keine Bestellungen entsprechen dem ausgewählten Status",
       "options": {
-        "all": "Alle",
         "1": "Genehmigung ausstehend",
         "5": "Vom Kunden storniert",
-        "7": "Geschlossen, weil eine andere Revision genehmigt wurde"
+        "7": "Geschlossen, weil eine andere Revision genehmigt wurde",
+        "all": "Alle"
       }
     }
   },

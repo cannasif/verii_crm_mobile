@@ -26,7 +26,12 @@ import {
 import { Text } from "../../components/ui/text";
 import { useUIStore } from "../../store/ui";
 import { useAuthStore } from "../../store/auth";
-import { setLanguage, getCurrentLanguage } from "../../locales";
+import {
+  setLanguage,
+  getCurrentLanguage,
+  SUPPORTED_LANGUAGES as LANGUAGE_OPTIONS,
+  type AppLanguage,
+} from "../../locales";
 import { hasPermission } from "../../features/access-control/utils/hasPermission";
 
 function MenuGroup({
@@ -73,18 +78,12 @@ export default function AppSettingsScreen(): React.ReactElement {
   const mutedColor = colors.textSecondary;
   const brandColor = colors.accent;
 
-  const SUPPORTED_LANGUAGES = [
-    { id: "tr", label: t("language.turkish", "Türkçe"), flag: "🇹🇷", hint: "Türkçe" },
-    { id: "en", label: t("language.english", "English"), flag: "🇬🇧", hint: "English" },
-    { id: "de", label: t("language.german", "Deutsch"), flag: "🇩🇪", hint: "Deutsch" },
-  ];
-
   const canOpenAccessControlSimulator = hasPermission(
     permissions,
     "access-control.permission-groups.view",
   );
 
-  const handleLanguageChange = async (lang: "tr" | "en" | "de"): Promise<void> => {
+  const handleLanguageChange = async (lang: AppLanguage): Promise<void> => {
     await setLanguage(lang);
     setCurrentLang(lang);
   };
@@ -184,12 +183,12 @@ export default function AppSettingsScreen(): React.ReactElement {
           <Text style={[styles.groupTitle, { color: mutedColor }]}>{t("language.title")}</Text>
           <MenuGroup cardBg={cardBg} borderColor={borderColor}>
             <View style={styles.languageList}>
-              {SUPPORTED_LANGUAGES.map((lang, index) => {
+              {LANGUAGE_OPTIONS.map((lang, index) => {
                 const isActive = currentLang === lang.id;
                 return (
                   <TouchableOpacity
                     key={lang.id}
-                    onPress={() => handleLanguageChange(lang.id as "tr" | "en" | "de")}
+                    onPress={() => handleLanguageChange(lang.id)}
                     activeOpacity={0.82}
                     style={[
                       styles.languageRow,
@@ -221,7 +220,9 @@ export default function AppSettingsScreen(): React.ReactElement {
                     </View>
 
                     <View style={styles.languageTextCol}>
-                      <Text style={[styles.languageTitle, { color: textColor }]}>{lang.label}</Text>
+                      <Text style={[styles.languageTitle, { color: textColor }]}>
+                        {t(lang.labelKey, lang.fallbackLabel)}
+                      </Text>
                       <Text style={[styles.languageHint, { color: mutedColor }]}>{lang.hint}</Text>
                     </View>
 

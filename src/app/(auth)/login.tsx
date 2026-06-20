@@ -19,7 +19,7 @@ import { useTranslation, Trans } from "react-i18next";
 import { Text } from "../../components/ui/text";
 
 import { LoginForm } from "../../features/auth";
-import { setLanguage, getCurrentLanguage } from "../../locales";
+import { setLanguage, getCurrentLanguage, SUPPORTED_LANGUAGE_CODES, type AppLanguage } from "../../locales";
 
 import {
   Call02Icon,
@@ -77,9 +77,9 @@ export default function LoginScreen(): React.ReactElement {
   }, []);
 
   const toggleLanguage = async (): Promise<void> => {
-    const languages: Array<"tr" | "en" | "de"> = ["tr", "en", "de"];
-    const currentIndex = languages.indexOf((currentLang as "tr" | "en" | "de") || "tr");
-    const newLang = languages[(currentIndex + 1) % languages.length];
+    const currentIndex = SUPPORTED_LANGUAGE_CODES.indexOf((currentLang as AppLanguage) || "tr");
+    const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+    const newLang = SUPPORTED_LANGUAGE_CODES[(safeIndex + 1) % SUPPORTED_LANGUAGE_CODES.length];
     await setLanguage(newLang);
     setCurrentLang(newLang);
   };

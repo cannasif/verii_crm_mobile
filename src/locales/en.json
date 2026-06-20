@@ -391,7 +391,8 @@
     "title": "Language",
     "turkish": "Turkish",
     "english": "English",
-    "german": "German"
+    "german": "German",
+    "arabic": "Arabic"
   },
   "settings": {
     "title": "Profile Settings",
@@ -1343,16 +1344,21 @@
       "subtitle": "Choose which quotation status to list",
       "noResults": "No quotations match the selected status",
       "options": {
-        "all": "All",
         "1": "Waiting for Approval",
         "5": "Cancelled by Customer",
-        "7": "Closed because another revision was approved"
+        "7": "Closed because another revision was approved",
+        "all": "All"
       }
     },
     "currency": "Currency",
     "description": "Description",
     "shippingAddress": "Shipping Address",
-    "status": "Status",
+    "status": {
+      "notStarted": "Draft",
+      "pending": "In Approval",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
     "statusHavenotStarted": "Not Started",
     "statusWaiting": "Waiting",
     "statusApproved": "Approved",
@@ -1435,12 +1441,6 @@
     "exchangeRate": {
       "inUseCannotEdit": "The exchange rate in use cannot be changed."
     },
-    "status": {
-      "notStarted": "Draft",
-      "pending": "In Approval",
-      "approved": "Approved",
-      "rejected": "Rejected"
-    },
     "generalSection": "General",
     "linesSection": "Lines",
     "projectCode": "Project Code",
@@ -1492,7 +1492,12 @@
     "currency": "Currency",
     "description": "Description",
     "shippingAddress": "Shipping Address",
-    "status": "Status",
+    "status": {
+      "notStarted": "Draft",
+      "pending": "In Approval",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
     "statusHavenotStarted": "Not Started",
     "statusWaiting": "Waiting",
     "statusApproved": "Approved",
@@ -1572,12 +1577,6 @@
       "overallStatus": "Overall Status",
       "rejectedReason": "Rejection Reason"
     },
-    "status": {
-      "notStarted": "Draft",
-      "pending": "In Approval",
-      "approved": "Approved",
-      "rejected": "Rejected"
-    },
     "generalSection": "General",
     "linesSection": "Lines",
     "deleteLineTitle": "Are you sure you want to delete this line?",
@@ -1599,10 +1598,10 @@
       "subtitle": "Choose which demand status to list",
       "noResults": "No demands match the selected status",
       "options": {
-        "all": "All",
         "1": "Waiting for Approval",
         "5": "Cancelled by Customer",
-        "7": "Closed because another revision was approved"
+        "7": "Closed because another revision was approved",
+        "all": "All"
       }
     }
   },
@@ -1659,7 +1658,12 @@
     "currency": "Currency",
     "description": "Description",
     "shippingAddress": "Shipping Address",
-    "status": "Status",
+    "status": {
+      "notStarted": "Draft",
+      "pending": "In Approval",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
     "statusHavenotStarted": "Not Started",
     "statusWaiting": "Waiting",
     "statusApproved": "Approved",
@@ -1740,12 +1744,6 @@
       "overallStatus": "Overall Status",
       "rejectedReason": "Rejection Reason"
     },
-    "status": {
-      "notStarted": "Draft",
-      "pending": "In Approval",
-      "approved": "Approved",
-      "rejected": "Rejected"
-    },
     "generalSection": "General",
     "linesSection": "Lines",
     "deleteLineTitle": "Are you sure you want to delete this line?",
@@ -1810,10 +1808,10 @@
       "subtitle": "Choose which order status to list",
       "noResults": "No orders match the selected status",
       "options": {
-        "all": "All",
         "1": "Waiting for Approval",
         "5": "Cancelled by Customer",
-        "7": "Closed because another revision was approved"
+        "7": "Closed because another revision was approved",
+        "all": "All"
       }
     }
   },
