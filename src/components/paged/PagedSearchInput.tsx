@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, TextInput, StyleSheet, Pressable } from "react-native";
 import { Search01Icon, Cancel01Icon } from "hugeicons-react-native";
+import { useTranslation } from "react-i18next";
 import { useUIStore } from "../../store/ui";
+import { rtlEndMargin, rtlRow, rtlTextAlign, rtlWritingDirection } from "../../lib/rtl";
 
 interface PagedSearchInputProps {
   value: string;
@@ -14,6 +16,8 @@ export function PagedSearchInput({
   onChangeText,
   placeholder = "Ara...",
 }: PagedSearchInputProps): React.ReactElement {
+  const { i18n } = useTranslation();
+  const language = i18n.language;
   const { themeMode } = useUIStore();
   const isDark = themeMode === "dark";
   const [isFocused, setIsFocused] = useState(false);
@@ -40,6 +44,7 @@ export function PagedSearchInput({
         {
           backgroundColor: theme.bg,
           borderColor: isFocused ? theme.focusBorder : theme.border,
+          flexDirection: rtlRow(language),
         },
       ]}
     >
@@ -47,12 +52,13 @@ export function PagedSearchInput({
         size={20}
         color={isFocused ? theme.focusBorder : theme.icon}
         variant="stroke"
-        style={styles.icon}
+        style={[styles.icon, rtlEndMargin(10, language)]}
       />
 
       <View style={styles.inputWrap}>
         <TextInput
           style={[styles.input, { color: theme.text }]}
+          textAlign={rtlTextAlign(language)}
           value={localValue}
           onChangeText={(nextValue) => {
             setLocalValue(nextValue);
@@ -69,7 +75,14 @@ export function PagedSearchInput({
         {localValue.length === 0 ? (
           <Text
             pointerEvents="none"
-            style={[styles.placeholderOverlay, { color: theme.placeholder }]}
+            style={[
+              styles.placeholderOverlay,
+              {
+                color: theme.placeholder,
+                textAlign: rtlTextAlign(language),
+                writingDirection: rtlWritingDirection(language),
+              },
+            ]}
             numberOfLines={1}
             ellipsizeMode="tail"
             adjustsFontSizeToFit
@@ -97,7 +110,6 @@ export function PagedSearchInput({
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "row",
     alignItems: "center",
     borderRadius: 12,
     borderWidth: 1,
@@ -110,7 +122,6 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   icon: {
-    marginRight: 10,
   },
   inputWrap: {
     flex: 1,

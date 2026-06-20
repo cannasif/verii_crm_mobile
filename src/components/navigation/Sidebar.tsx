@@ -21,6 +21,7 @@ import { useUIStore } from "../../store/ui";
 import { useAuthStore } from "../../store/auth";
 import { hasAnyPermission } from "../../features/access-control/utils/hasPermission";
 import { SHOW_ERP_CUSTOMERS_MENU } from "@/constants/config";
+import { isAppRtl, rtlEndMargin, rtlRow, rtlStartMargin, rtlTextAlign, rtlWritingDirection } from "../../lib/rtl";
 
 import { 
   Cancel01Icon,
@@ -50,7 +51,10 @@ const ACTIVE_COLOR = "#fb923c";
 const ACTIVE_BG_COLOR = "rgba(251, 146, 60, 0.12)"; 
 
 export function Sidebar(): React.ReactElement {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const language = i18n.language;
+  const isRtl = isAppRtl(language);
+  const hiddenTranslateX = isRtl ? SIDEBAR_WIDTH : -SIDEBAR_WIDTH;
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
@@ -60,7 +64,7 @@ export function Sidebar(): React.ReactElement {
 
   const isAuthScreen = pathname.includes("/(auth)") || pathname === "/login";
 
-  const translateX = React.useRef(new Animated.Value(-SIDEBAR_WIDTH)).current;
+  const translateX = React.useRef(new Animated.Value(hiddenTranslateX)).current;
   const backdropOpacity = React.useRef(new Animated.Value(0)).current;
 
   const TEXT_COLOR = themeMode === "dark" ? "#FFFFFF" : colors.text;
@@ -116,7 +120,7 @@ export function Sidebar(): React.ReactElement {
   useEffect(() => {
     Animated.parallel([
       Animated.timing(translateX, {
-        toValue: isSidebarOpen ? 0 : -SIDEBAR_WIDTH,
+        toValue: isSidebarOpen ? 0 : hiddenTranslateX,
         duration: 300,
         useNativeDriver: true,
       }),
@@ -126,7 +130,7 @@ export function Sidebar(): React.ReactElement {
         useNativeDriver: true,
       }),
     ]).start();
-  }, [backdropOpacity, isSidebarOpen, translateX]);
+  }, [backdropOpacity, hiddenTranslateX, isSidebarOpen, translateX]);
 
   const handleNavigation = (route: string) => {
     closeSidebar();
@@ -173,7 +177,16 @@ export function Sidebar(): React.ReactElement {
             {
               width: SIDEBAR_WIDTH,
               backgroundColor: colors.background,
-              borderRightColor: colors.border,
+              left: isRtl ? undefined : 0,
+              right: isRtl ? 0 : undefined,
+              borderRightWidth: isRtl ? 0 : 1,
+              borderLeftWidth: isRtl ? 1 : 0,
+              borderRightColor: isRtl ? undefined : colors.border,
+              borderLeftColor: isRtl ? colors.border : undefined,
+              borderTopRightRadius: isRtl ? 0 : 24,
+              borderBottomRightRadius: isRtl ? 0 : 24,
+              borderTopLeftRadius: isRtl ? 24 : 0,
+              borderBottomLeftRadius: isRtl ? 24 : 0,
               
               // --- DÜZELTME BURADA ---
               top: insets.top, // 1. Üstten bildirim çubuğu kadar boşluk bırak
@@ -186,8 +199,17 @@ export function Sidebar(): React.ReactElement {
           ]}
         >
           {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.logoWrapper}>
+          <View
+            style={[
+              styles.header,
+              {
+                flexDirection: rtlRow(language),
+                paddingLeft: isRtl ? 16 : 75,
+                paddingRight: isRtl ? 75 : 16,
+              },
+            ]}
+          >
+            <View style={[styles.logoWrapper, rtlEndMargin(40, language)]}>
               <Image 
                 source={LOCAL_LOGO} 
                 style={styles.logo}
@@ -221,7 +243,15 @@ export function Sidebar(): React.ReactElement {
                 return (
                   <Text
                     key={`header-${index}`}
-                    style={[styles.menuHeader, { color: HEADER_COLOR }]}
+                    style={[
+                      styles.menuHeader,
+                      rtlStartMargin(12, language),
+                      {
+                        color: HEADER_COLOR,
+                        textAlign: rtlTextAlign(language),
+                        writingDirection: rtlWritingDirection(language),
+                      },
+                    ]}
                   >
                     {item.title}
                   </Text>
@@ -240,10 +270,11 @@ export function Sidebar(): React.ReactElement {
                   ]}
                 >
                   {({ pressed }) => (
-                    <View style={styles.menuItemInner}>
+                    <View style={[styles.menuItemInner, { flexDirection: rtlRow(language) }]}>
                       <View
                         style={[
                           styles.iconBox,
+                          rtlEndMargin(14, language),
                           { backgroundColor: (pressed || isActive) ? "transparent" : colors.card }
                         ]}
                       >
@@ -259,7 +290,9 @@ export function Sidebar(): React.ReactElement {
                           styles.menuItemText,
                           { 
                             color: (pressed || isActive) ? ACTIVE_COLOR : TEXT_COLOR,
-                            fontWeight: (pressed || isActive) ? "700" : "500"
+                            fontWeight: (pressed || isActive) ? "700" : "500",
+                            textAlign: rtlTextAlign(language),
+                            writingDirection: rtlWritingDirection(language),
                           }
                         ]}
                       >
@@ -268,7 +301,10 @@ export function Sidebar(): React.ReactElement {
                       <ArrowRight01Icon
                         size={16}
                         color={(pressed || isActive) ? ACTIVE_COLOR : TEXT_SECONDARY_COLOR}
-                        style={{ opacity: (pressed || isActive) ? 1 : 0.8 }}
+                        style={{
+                          opacity: (pressed || isActive) ? 1 : 0.8,
+                          transform: [{ rotate: isRtl ? "180deg" : "0deg" }],
+                        }}
                       />
                     </View>
                   )}
@@ -302,12 +338,7 @@ const styles = StyleSheet.create({
   },
   sidebar: {
     position: 'absolute', // Mutlak pozisyon önemli
-    left: 0,
     // top ve bottom değerleri inline style ile dinamik veriliyor
-    
-    borderRightWidth: 1,
-    borderTopRightRadius: 24, 
-    borderBottomRightRadius: 24, // Altta da radius istiyorsan kalsın, yoksa 0 yapabilirsin
     
     shadowColor: "#000",
     shadowOffset: { width: 5, height: 0 },
@@ -318,11 +349,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   header: {
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingLeft: 75,  
-    paddingRight: 16, 
     paddingTop: 10,   
     paddingBottom: 4, 
     height: 80,       
@@ -332,7 +360,6 @@ const styles = StyleSheet.create({
     height: "100%",
     justifyContent: "center", 
     alignItems: "center",     
-    marginRight: 40, 
   },
   logo: {
     width: 225,  
@@ -361,7 +388,6 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     marginTop: 20, 
     marginBottom: 6,
-    marginLeft: 12,
     letterSpacing: 1,
   },
   menuItem: {
@@ -370,7 +396,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   menuItemInner: {
-    flexDirection: "row",
     alignItems: "center",
     paddingVertical: 12,
     paddingHorizontal: 12,
@@ -381,7 +406,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 14,
   },
   menuItemText: {
     flex: 1,

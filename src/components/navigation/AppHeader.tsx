@@ -11,9 +11,11 @@ import { useAuthStore } from "../../store/auth";
 import { GRADIENT } from "../../constants/theme";
 import ProfilePanel from "./ProfilePanel";
 import { profileApi } from "../../features/profile";
+import { isAppRtl, rtlRow } from "../../lib/rtl";
 
 export function AppHeader(): React.ReactElement {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRtl = isAppRtl(i18n.language);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   
@@ -61,10 +63,11 @@ export function AppHeader(): React.ReactElement {
             paddingTop: insets.top + 10,
             borderBottomColor: THEME.border,
             shadowColor: THEME.shadowColor,
+            flexDirection: rtlRow(i18n.language),
           }
         ]}
       >
-        <View style={styles.leftContainer}>
+        <View style={[styles.leftContainer, { alignItems: isRtl ? "flex-end" : "flex-start" }]}>
           <TouchableOpacity 
             onPress={openSidebar} 
             style={[styles.iconButton, { backgroundColor: THEME.buttonBg }]}
@@ -76,7 +79,15 @@ export function AppHeader(): React.ReactElement {
 
         <View style={styles.centerContainer} pointerEvents="none" />
 
-        <View style={styles.rightContainer}>
+        <View
+          style={[
+            styles.rightContainer,
+            {
+              flexDirection: rtlRow(i18n.language),
+              justifyContent: isRtl ? "flex-start" : "flex-end",
+            },
+          ]}
+        >
           <TouchableOpacity onPress={handleProfilePress} activeOpacity={0.8}>
             <LinearGradient
               colors={[...GRADIENT.primary]}
@@ -111,7 +122,6 @@ export function AppHeader(): React.ReactElement {
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
@@ -126,13 +136,10 @@ const styles = StyleSheet.create({
   },
   leftContainer: {
     flex: 1,
-    alignItems: "flex-start",
     zIndex: 20,
   },
   rightContainer: {
     flex: 1,
-    flexDirection: "row",
-    justifyContent: "flex-end",
     alignItems: "center",
     zIndex: 20,
   },

@@ -14,6 +14,7 @@ import { StockBrowseListSeparator, stockBrowseStyles } from "../shared/stock-bro
 import { useUIStore } from "../../store/ui";
 import { Text } from "../ui/text";
 import { PagedSearchInput } from "./PagedSearchInput";
+import { rtlEndMargin, rtlRow, rtlStartMargin } from "../../lib/rtl";
 
 interface BrowseListShellConfig {
   borderColor: string;
@@ -75,7 +76,8 @@ export function PagedFlatList<ItemT>({
   ItemSeparatorComponent,
   ...flatListProps
 }: PagedFlatListProps<ItemT>): React.ReactElement {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const language = i18n.language;
   const { themeMode } = useUIStore();
   const isDark = themeMode === "dark";
 
@@ -140,7 +142,7 @@ export function PagedFlatList<ItemT>({
   return (
     <View style={styles.container}>
       {/* 1. SATIR: SEARCH + GRID/LIST */}
-      <View style={styles.toolbarTopRow}>
+      <View style={[styles.toolbarTopRow, { flexDirection: rtlRow(language) }]}>
         <View style={styles.searchWrap}>
           <PagedSearchInput
             value={searchValue}
@@ -150,19 +152,21 @@ export function PagedFlatList<ItemT>({
         </View>
 
         {resolvedTopRightActions ? (
-          <View style={styles.topRightActions}>{resolvedTopRightActions}</View>
+          <View style={[styles.topRightActions, { flexDirection: rtlRow(language) }, rtlStartMargin(10, language)]}>
+            {resolvedTopRightActions}
+          </View>
         ) : null}
       </View>
 
       {/* 2. SATIR: META (sol) + FİLTRE + SORT */}
       {onOpenFilters || bottomRightActions || metaContent ? (
-        <View style={styles.toolbarBottomRow}>
-          <View style={styles.toolbarBottomMetaSlot}>{metaContent ?? null}</View>
+        <View style={[styles.toolbarBottomRow, { flexDirection: rtlRow(language) }]}>
+          <View style={[styles.toolbarBottomMetaSlot, rtlEndMargin(8, language)]}>{metaContent ?? null}</View>
           {onOpenFilters || bottomRightActions ? (
-            <View style={styles.bottomRowRight}>
+            <View style={[styles.bottomRowRight, { flexDirection: rtlRow(language) }]}>
               {onOpenFilters ? (
                 <TouchableOpacity
-                  style={styles.filterInlineBtn}
+                  style={[styles.filterInlineBtn, { flexDirection: rtlRow(language) }]}
                   onPress={onOpenFilters}
                   activeOpacity={0.72}
                 >
@@ -174,13 +178,14 @@ export function PagedFlatList<ItemT>({
                   <Text
                     style={[
                       styles.filterInlineText,
+                      rtlStartMargin(6, language),
                       { color: activeFilterCount > 0 ? theme.accent : theme.textMuted },
                     ]}
                   >
                     {t("common.filter", "Filtrele")}
                   </Text>
                   {activeFilterCount > 0 ? (
-                    <Text style={[styles.filterInlineCount, { color: theme.accent }]}>
+                    <Text style={[styles.filterInlineCount, rtlStartMargin(5, language), { color: theme.accent }]}>
                       {activeFilterCount}
                     </Text>
                   ) : null}
@@ -188,7 +193,9 @@ export function PagedFlatList<ItemT>({
               ) : null}
 
               {bottomRightActions ? (
-                <View style={styles.bottomRightActions}>{bottomRightActions}</View>
+                <View style={[styles.bottomRightActions, { flexDirection: rtlRow(language) }, rtlStartMargin(14, language)]}>
+                  {bottomRightActions}
+                </View>
               ) : null}
             </View>
           ) : null}
@@ -264,7 +271,6 @@ const styles = StyleSheet.create({
   },
 
   toolbarTopRow: {
-    flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
     paddingTop: 14,
@@ -272,7 +278,6 @@ const styles = StyleSheet.create({
   },
 
   toolbarBottomRow: {
-    flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
     paddingBottom: 10,
@@ -281,7 +286,6 @@ const styles = StyleSheet.create({
   toolbarBottomMetaSlot: {
     flex: 1,
     minWidth: 0,
-    marginRight: 8,
     justifyContent: "center",
   },
 
@@ -290,24 +294,19 @@ const styles = StyleSheet.create({
   },
 
   topRightActions: {
-    flexDirection: "row",
     alignItems: "center",
     alignSelf: "stretch",
-    marginLeft: 10,
     gap: 8,
   },
 
   bottomRowRight: {
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
     flexShrink: 0,
   },
 
 bottomRightActions: {
-  flexDirection: "row",
   alignItems: "center",
-  marginLeft: 14,
 },
 
   afterToolbar: {
@@ -356,7 +355,6 @@ bottomRightActions: {
     letterSpacing: 0.3,
   },
   filterInlineBtn: {
-  flexDirection: "row",
   alignItems: "center",
   paddingHorizontal: 2,
   paddingVertical: 2,
@@ -365,13 +363,11 @@ bottomRightActions: {
 filterInlineText: {
   fontSize: 12,
   fontWeight: "500",
-  marginLeft: 6,
   letterSpacing: 0.1,
 },
 
 filterInlineCount: {
   fontSize: 11,
   fontWeight: "600",
-  marginLeft: 5,
 },
 });

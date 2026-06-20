@@ -44,6 +44,7 @@ import {
   SUPPORTED_LANGUAGES as LANGUAGE_OPTIONS,
   type AppLanguage,
 } from "../../locales";
+import { isAppRtl, rtlEndMargin, rtlRow, rtlStartMargin, rtlTextAlign, rtlWritingDirection } from "../../lib/rtl";
 
 const { width } = Dimensions.get("window");
 const PANEL_WIDTH = width * 0.85;
@@ -72,7 +73,10 @@ export default function ProfilePanel({
 }: ProfilePanelProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const language = i18n.language;
+  const isRtl = isAppRtl(language);
+  const hiddenTranslateX = isRtl ? -PANEL_WIDTH : PANEL_WIDTH;
 
   const { colors, themeMode, toggleTheme, menuViewType, setMenuViewType } = useUIStore();
   const isDarkMode = themeMode === "dark";
@@ -81,7 +85,7 @@ export default function ProfilePanel({
   const [isVisible, setIsVisible] = useState(isOpen);
   const [contactMenuVisible, setContactMenuVisible] = useState(false);
   
-  const translateX = useRef(new Animated.Value(PANEL_WIDTH)).current;
+  const translateX = useRef(new Animated.Value(hiddenTranslateX)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -94,13 +98,13 @@ export default function ProfilePanel({
     } else {
       setContactMenuVisible(false);
       Animated.parallel([
-        Animated.timing(translateX, { toValue: PANEL_WIDTH, duration: 300, useNativeDriver: true }),
+        Animated.timing(translateX, { toValue: hiddenTranslateX, duration: 300, useNativeDriver: true }),
         Animated.timing(backdropOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
       ]).start(() => {
         setIsVisible(false);
       });
     }
-  }, [isOpen, translateX, backdropOpacity]);
+  }, [backdropOpacity, hiddenTranslateX, isOpen, translateX]);
 
   const handleLanguageChange = async (lang: AppLanguage) => {
     await setLanguage(lang);
@@ -156,7 +160,16 @@ export default function ProfilePanel({
             {
               width: PANEL_WIDTH,
               backgroundColor: isDarkMode ? "#0C0516" : "#F8FAFC", 
-              borderLeftColor: colors.border,
+              left: isRtl ? 0 : undefined,
+              right: isRtl ? undefined : 0,
+              borderLeftWidth: isRtl ? 0 : 1,
+              borderRightWidth: isRtl ? 1 : 0,
+              borderLeftColor: isRtl ? undefined : colors.border,
+              borderRightColor: isRtl ? colors.border : undefined,
+              borderTopLeftRadius: isRtl ? 0 : 32,
+              borderBottomLeftRadius: isRtl ? 0 : 32,
+              borderTopRightRadius: isRtl ? 32 : 0,
+              borderBottomRightRadius: isRtl ? 32 : 0,
               top: insets.top,
               bottom: 0,
               paddingBottom: insets.bottom,
@@ -164,7 +177,7 @@ export default function ProfilePanel({
             },
           ]}
         >
-          <View style={styles.header}>
+          <View style={[styles.header, { alignItems: isRtl ? "flex-start" : "flex-end" }]}>
             <TouchableOpacity onPress={onClose} style={[styles.closeButton, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.05)" : "#E2E8F0" }]}>
               <Cancel01Icon size={20} color={colors.text} variant="stroke" />
             </TouchableOpacity>
@@ -183,41 +196,65 @@ export default function ProfilePanel({
                 </View>
               </View>
 
-              <Text style={[styles.userName, { color: colors.text }]}>{userName || t("profile.guestUser")}</Text>
-              <Text style={[styles.userEmail, { color: colors.textMuted }]}>{email}</Text>
+              <Text style={[styles.userName, { color: colors.text, writingDirection: rtlWritingDirection(language) }]}>
+                {userName || t("profile.guestUser")}
+              </Text>
+              <Text style={[styles.userEmail, { color: colors.textMuted, writingDirection: rtlWritingDirection(language) }]}>
+                {email}
+              </Text>
 
-              <View style={[styles.branchBadge, { backgroundColor: ACTIVE_BG_COLOR }]}>
-                <Store01Icon size={14} color={ACTIVE_COLOR} variant="stroke" style={{ marginRight: 6 }} />
+              <View style={[styles.branchBadge, { backgroundColor: ACTIVE_BG_COLOR, flexDirection: rtlRow(language) }]}>
+                <Store01Icon size={14} color={ACTIVE_COLOR} variant="stroke" style={rtlEndMargin(6, language)} />
                 <Text style={[styles.branchText, { color: ACTIVE_COLOR }]}>{branch || t("profile.defaultBranch")}</Text>
               </View>
             </View>
 
-            <Text style={[styles.groupTitle, { color: colors.textMuted }]}>{t("profile.account")}</Text>
+            <Text
+              style={[
+                styles.groupTitle,
+                rtlStartMargin(4, language),
+                { color: colors.textMuted, textAlign: rtlTextAlign(language), writingDirection: rtlWritingDirection(language) },
+              ]}
+            >
+              {t("profile.account")}
+            </Text>
             <MenuGroup>
-              <TouchableOpacity style={styles.menuRow} onPress={() => handleMenuItemPress("/settings")}>
-                <View style={[styles.iconBox, { backgroundColor: "rgba(59, 130, 246, 0.1)" }]}>
+              <TouchableOpacity style={[styles.menuRow, { flexDirection: rtlRow(language) }]} onPress={() => handleMenuItemPress("/settings")}>
+                <View style={[styles.iconBox, rtlEndMargin(14, language), { backgroundColor: "rgba(59, 130, 246, 0.1)" }]}>
                   <Settings02Icon size={20} color="#3B82F6" variant="stroke" />
                 </View>
-                <Text style={[styles.menuText, { color: colors.text }]}>{t("profile.settings")}</Text>
-                <ArrowRight01Icon size={18} color={colors.textMuted} />
+                <Text style={[styles.menuText, { color: colors.text, textAlign: rtlTextAlign(language), writingDirection: rtlWritingDirection(language) }]}>
+                  {t("profile.settings")}
+                </Text>
+                <ArrowRight01Icon size={18} color={colors.textMuted} style={{ transform: [{ rotate: isRtl ? "180deg" : "0deg" }] }} />
               </TouchableOpacity>
-              <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
-              <TouchableOpacity style={styles.menuRow} onPress={() => handleMenuItemPress("/app-settings")}>
-                <View style={[styles.iconBox, { backgroundColor: "rgba(245, 158, 11, 0.1)" }]}>
+              <View style={[styles.rowDivider, rtlStartMargin(52, language), { backgroundColor: colors.border }]} />
+              <TouchableOpacity style={[styles.menuRow, { flexDirection: rtlRow(language) }]} onPress={() => handleMenuItemPress("/app-settings")}>
+                <View style={[styles.iconBox, rtlEndMargin(14, language), { backgroundColor: "rgba(245, 158, 11, 0.1)" }]}>
                   <Settings02Icon size={20} color="#F59E0B" variant="stroke" />
                 </View>
-                <Text style={[styles.menuText, { color: colors.text }]}>{t("profile.appSettings")}</Text>
-                <ArrowRight01Icon size={18} color={colors.textMuted} />
+                <Text style={[styles.menuText, { color: colors.text, textAlign: rtlTextAlign(language), writingDirection: rtlWritingDirection(language) }]}>
+                  {t("profile.appSettings")}
+                </Text>
+                <ArrowRight01Icon size={18} color={colors.textMuted} style={{ transform: [{ rotate: isRtl ? "180deg" : "0deg" }] }} />
               </TouchableOpacity>
             </MenuGroup>
 
-            <Text style={[styles.groupTitle, { color: colors.textMuted }]}>{t("profile.preferences")}</Text>
+            <Text
+              style={[
+                styles.groupTitle,
+                rtlStartMargin(4, language),
+                { color: colors.textMuted, textAlign: rtlTextAlign(language), writingDirection: rtlWritingDirection(language) },
+              ]}
+            >
+              {t("profile.preferences")}
+            </Text>
             <MenuGroup>
-              <View style={styles.menuRow}>
-                <View style={[styles.iconBox, { backgroundColor: "rgba(245, 158, 11, 0.1)" }]}>
+              <View style={[styles.menuRow, { flexDirection: rtlRow(language) }]}>
+                <View style={[styles.iconBox, rtlEndMargin(14, language), { backgroundColor: "rgba(245, 158, 11, 0.1)" }]}>
                   {isDarkMode ? <Sun01Icon size={20} color="#F59E0B" variant="stroke" /> : <Moon02Icon size={20} color="#3B82F6" variant="stroke" />}
                 </View>
-                <Text style={[styles.menuText, { color: colors.text }]}>
+                <Text style={[styles.menuText, { color: colors.text, textAlign: rtlTextAlign(language), writingDirection: rtlWritingDirection(language) }]}>
                   {isDarkMode ? t("settings.lightMode") : t("settings.darkMode")}
                 </Text>
                 <Switch
@@ -229,13 +266,15 @@ export default function ProfilePanel({
                 />
               </View>
 
-              <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+              <View style={[styles.rowDivider, rtlStartMargin(52, language), { backgroundColor: colors.border }]} />
 
-              <View style={styles.menuRow}>
-                <View style={[styles.iconBox, { backgroundColor: "rgba(236, 72, 153, 0.1)" }]}>
+              <View style={[styles.menuRow, { flexDirection: rtlRow(language) }]}>
+                <View style={[styles.iconBox, rtlEndMargin(14, language), { backgroundColor: "rgba(236, 72, 153, 0.1)" }]}>
                   <ListViewIcon size={20} color={ACTIVE_COLOR} variant="stroke" strokeWidth={1.8} />
                 </View>
-                <Text style={[styles.menuText, { color: colors.text }]}>{t("profile.menuView")}</Text>
+                <Text style={[styles.menuText, { color: colors.text, textAlign: rtlTextAlign(language), writingDirection: rtlWritingDirection(language) }]}>
+                  {t("profile.menuView")}
+                </Text>
                 <View
                   style={[
                     styles.segmentShell,
@@ -288,16 +327,27 @@ export default function ProfilePanel({
                 </View>
               </View>
 
-              <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+              <View style={[styles.rowDivider, rtlStartMargin(52, language), { backgroundColor: colors.border }]} />
 
               <View style={{ paddingVertical: 12 }}>
-                <Text style={[styles.menuText, { color: colors.text, paddingHorizontal: 16, marginBottom: 12 }]}>
+                <Text
+                  style={[
+                    styles.menuText,
+                    {
+                      color: colors.text,
+                      paddingHorizontal: 16,
+                      marginBottom: 12,
+                      textAlign: rtlTextAlign(language),
+                      writingDirection: rtlWritingDirection(language),
+                    },
+                  ]}
+                >
                   {t("language.title")}
                 </Text>
                 <ScrollView 
                   horizontal 
                   showsHorizontalScrollIndicator={false} 
-                  contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}
+                  contentContainerStyle={{ paddingHorizontal: 16, gap: 10, flexDirection: rtlRow(language) }}
                 >
                   {LANGUAGE_OPTIONS.map((lang) => {
                     const isActive = currentLang === lang.id;
@@ -314,7 +364,7 @@ export default function ProfilePanel({
                           }
                         ]}
                       >
-                        <Text style={{ fontSize: 16, marginRight: 6 }}>{lang.flag}</Text>
+                        <Text style={[{ fontSize: 16 }, rtlEndMargin(6, language)]}>{lang.flag}</Text>
                         <Text style={{ color: isActive ? ACTIVE_COLOR : colors.textMuted, fontWeight: isActive ? "600" : "500", fontSize: 13 }}>
                           {t(lang.labelKey, lang.fallbackLabel)}
                         </Text>
@@ -325,25 +375,38 @@ export default function ProfilePanel({
               </View>
             </MenuGroup>
 
-            <Text style={[styles.groupTitle, { color: colors.textMuted }]}>{t("profile.support")}</Text>
+            <Text
+              style={[
+                styles.groupTitle,
+                rtlStartMargin(4, language),
+                { color: colors.textMuted, textAlign: rtlTextAlign(language), writingDirection: rtlWritingDirection(language) },
+              ]}
+            >
+              {t("profile.support")}
+            </Text>
             <MenuGroup>
-              <TouchableOpacity style={styles.menuRow} onPress={() => setContactMenuVisible(true)}>
-                <View style={[styles.iconBox, { backgroundColor: "rgba(168, 85, 247, 0.1)" }]}>
+              <TouchableOpacity style={[styles.menuRow, { flexDirection: rtlRow(language) }]} onPress={() => setContactMenuVisible(true)}>
+                <View style={[styles.iconBox, rtlEndMargin(14, language), { backgroundColor: "rgba(168, 85, 247, 0.1)" }]}>
                   <CustomerSupportIcon size={20} color="#A855F7" variant="stroke" />
                 </View>
-                <Text style={[styles.menuText, { color: colors.text }]}>{t("profile.contactUs")}</Text>
-                <ArrowRight01Icon size={18} color={colors.textMuted} />
+                <Text style={[styles.menuText, { color: colors.text, textAlign: rtlTextAlign(language), writingDirection: rtlWritingDirection(language) }]}>
+                  {t("profile.contactUs")}
+                </Text>
+                <ArrowRight01Icon size={18} color={colors.textMuted} style={{ transform: [{ rotate: isRtl ? "180deg" : "0deg" }] }} />
               </TouchableOpacity>
             </MenuGroup>
 
             <TouchableOpacity 
-              style={[styles.logoutButton, { backgroundColor: isDarkMode ? "rgba(239, 68, 68, 0.05)" : "rgba(239, 68, 68, 0.05)" }]} 
+              style={[
+                styles.logoutButton,
+                { backgroundColor: isDarkMode ? "rgba(239, 68, 68, 0.05)" : "rgba(239, 68, 68, 0.05)", flexDirection: rtlRow(language) },
+              ]} 
               onPress={() => {
                 onClose();
                 setTimeout(() => onLogout?.(), 300);
               }}
             >
-              <Logout01Icon size={20} color="#EF4444" variant="stroke" style={{ marginRight: 10 }} />
+              <Logout01Icon size={20} color="#EF4444" variant="stroke" style={rtlEndMargin(10, language)} />
               <Text style={styles.logoutText}>{t("common.logout")}</Text>
             </TouchableOpacity>
 
@@ -361,27 +424,35 @@ export default function ProfilePanel({
               
               <View style={[styles.contactSheet, { backgroundColor: isDarkMode ? "#161224" : "#FFFFFF", borderColor: colors.border, paddingBottom: insets.bottom > 0 ? insets.bottom : 24 }]}>
                 <View style={styles.sheetHandle} />
-                <Text style={[styles.sheetTitle, { color: colors.text }]}>{t("profile.contactUs")}</Text>
+                <Text style={[styles.sheetTitle, { color: colors.text, textAlign: rtlTextAlign(language), writingDirection: rtlWritingDirection(language) }]}>
+                  {t("profile.contactUs")}
+                </Text>
                 
-                <TouchableOpacity style={[styles.contactRow, { borderBottomColor: colors.border }]} onPress={() => handleContactLink("mail")}>
-                  <View style={[styles.contactIconWrap, { backgroundColor: "rgba(59, 130, 246, 0.1)" }]}>
+                <TouchableOpacity style={[styles.contactRow, { borderBottomColor: colors.border, flexDirection: rtlRow(language) }]} onPress={() => handleContactLink("mail")}>
+                  <View style={[styles.contactIconWrap, rtlEndMargin(16, language), { backgroundColor: "rgba(59, 130, 246, 0.1)" }]}>
                     <Mail01Icon size={22} color="#3B82F6" variant="stroke" />
                   </View>
-                  <Text style={[styles.contactRowText, { color: colors.text }]}>{t("profile.contactMail")}</Text>
+                  <Text style={[styles.contactRowText, { color: colors.text, textAlign: rtlTextAlign(language), writingDirection: rtlWritingDirection(language) }]}>
+                    {t("profile.contactMail")}
+                  </Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={[styles.contactRow, { borderBottomColor: colors.border }]} onPress={() => handleContactLink("wa")}>
-                  <View style={[styles.contactIconWrap, { backgroundColor: "rgba(16, 185, 129, 0.1)" }]}>
+                <TouchableOpacity style={[styles.contactRow, { borderBottomColor: colors.border, flexDirection: rtlRow(language) }]} onPress={() => handleContactLink("wa")}>
+                  <View style={[styles.contactIconWrap, rtlEndMargin(16, language), { backgroundColor: "rgba(16, 185, 129, 0.1)" }]}>
                     <WhatsappIcon size={22} color="#10B981" variant="stroke" />
                   </View>
-                  <Text style={[styles.contactRowText, { color: colors.text }]}>{t("profile.contactWhatsapp")}</Text>
+                  <Text style={[styles.contactRowText, { color: colors.text, textAlign: rtlTextAlign(language), writingDirection: rtlWritingDirection(language) }]}>
+                    {t("profile.contactWhatsapp")}
+                  </Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.contactRow} onPress={() => handleContactLink("phone")}>
-                  <View style={[styles.contactIconWrap, { backgroundColor: "rgba(245, 158, 11, 0.1)" }]}>
+                <TouchableOpacity style={[styles.contactRow, { flexDirection: rtlRow(language) }]} onPress={() => handleContactLink("phone")}>
+                  <View style={[styles.contactIconWrap, rtlEndMargin(16, language), { backgroundColor: "rgba(245, 158, 11, 0.1)" }]}>
                     <Call02Icon size={22} color="#F59E0B" variant="stroke" />
                   </View>
-                  <Text style={[styles.contactRowText, { color: colors.text }]}>{t("profile.contactPhone")}</Text>
+                  <Text style={[styles.contactRowText, { color: colors.text, textAlign: rtlTextAlign(language), writingDirection: rtlWritingDirection(language) }]}>
+                    {t("profile.contactPhone")}
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={[styles.cancelButton, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.05)" : "#F1F5F9" }]} onPress={() => setContactMenuVisible(false)}>
@@ -401,10 +472,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   panel: {
     position: 'absolute',
-    right: 0,
-    borderLeftWidth: 1,
-    borderTopLeftRadius: 32,
-    borderBottomLeftRadius: 32,
     shadowColor: "#000",
     shadowOffset: { width: -10, height: 0 },
     shadowOpacity: 0.1,
@@ -412,7 +479,6 @@ const styles = StyleSheet.create({
     elevation: 20,
   },
   header: {
-    alignItems: "flex-end",
     paddingHorizontal: 20,
     paddingTop: 16,
     marginBottom: 8,
@@ -451,7 +517,6 @@ const styles = StyleSheet.create({
   userName: { fontSize: 22, fontWeight: "800", marginBottom: 4, letterSpacing: -0.5 },
   userEmail: { fontSize: 14, fontWeight: "500", marginBottom: 12 },
   branchBadge: {
-    flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -464,7 +529,6 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 1,
     marginBottom: 8,
-    marginLeft: 4,
     marginTop: 8,
   },
   menuGroup: {
@@ -474,14 +538,12 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   menuRow: {
-    flexDirection: "row",
     alignItems: "center",
     paddingVertical: 14,
     paddingHorizontal: 16,
   },
   rowDivider: {
     height: 1,
-    marginLeft: 52,
   },
   iconBox: {
     width: 36,
@@ -489,7 +551,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 14,
   },
   menuText: { flex: 1, fontSize: 15, fontWeight: "500" },
   segmentShell: {
@@ -512,14 +573,12 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   langPill: {
-    flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 16,
   },
   logoutButton: {
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 16,
@@ -563,7 +622,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   contactRow: {
-    flexDirection: "row",
     alignItems: "center",
     paddingVertical: 16,
     borderBottomWidth: 1,
@@ -574,7 +632,6 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 16,
   },
   contactRowText: {
     fontSize: 16,
