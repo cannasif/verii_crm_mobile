@@ -103,6 +103,10 @@ import { resolveLineListCurrencyLabel, resolveCurrencyIsoCode } from "../../../l
 import { buildQuotationPreviewPdfInput } from "../utils/buildQuotationPreviewPdfInput";
 import { buildSalesDocumentPreviewPdfExtras } from "../../../lib/salesDocumentPreviewPdf";
 import { resolveQuotationCustomerLabelForPdf } from "../utils/resolveQuotationCustomerLabelForPdf";
+import {
+  canApplySpecialCodeDefault,
+  getDefaultSpecialCodeForOfferType,
+} from "@/lib/salesDocumentSpecialCodeDefaults";
 import type { ExchangeRateDto } from "../types";
 import { enforceExportVatOnLine, isExportOfferType, resolveDocumentVatRate } from "../../../utils/documentVat";
 import {
@@ -229,6 +233,7 @@ export function QuotationCreateScreen(): React.ReactElement {
     control,
     handleSubmit,
     setValue,
+    getValues,
     watch,
     setError,
     clearErrors,
@@ -261,6 +266,7 @@ export function QuotationCreateScreen(): React.ReactElement {
   const watchedGeneralDiscountRate = watch("quotation.generalDiscountRate");
   const watchedGeneralDiscountAmount = watch("quotation.generalDiscountAmount");
   const watchedOfferType = watch("quotation.offerType");
+  const specialCodeManualChangeRef = useRef({ ozelKod1: false, ozelKod2: false });
   const offerDateSyncInitializedRef = useRef(false);
 
   useEffect(() => {
@@ -323,6 +329,22 @@ export function QuotationCreateScreen(): React.ReactElement {
       return prev.map((line) => calculateLineTotals(enforceExportVatOnLine(line, watchedOfferType)));
     });
   }, [watchedOfferType]);
+
+  useEffect(() => {
+    const nextSpecialCode = getDefaultSpecialCodeForOfferType(watchedOfferType);
+    if (!nextSpecialCode) return;
+
+    const currentOzelKod1 = getValues("quotation.ozelKod1");
+    const currentOzelKod2 = getValues("quotation.ozelKod2");
+
+    if (!specialCodeManualChangeRef.current.ozelKod1 && canApplySpecialCodeDefault(currentOzelKod1)) {
+      setValue("quotation.ozelKod1", nextSpecialCode, { shouldDirty: false, shouldValidate: true });
+    }
+
+    if (!specialCodeManualChangeRef.current.ozelKod2 && canApplySpecialCodeDefault(currentOzelKod2)) {
+      setValue("quotation.ozelKod2", nextSpecialCode, { shouldDirty: false, shouldValidate: true });
+    }
+  }, [watchedOfferType, getValues, setValue]);
 
   useEffect(() => {
     if (
@@ -2267,6 +2289,7 @@ export function QuotationCreateScreen(): React.ReactElement {
             }))}
             selectedValue={watch("quotation.ozelKod1") ?? undefined}
             onSelect={(option) => {
+              specialCodeManualChangeRef.current.ozelKod1 = true;
               setValue("quotation.ozelKod1", String(option.code ?? option.id), {
                 shouldDirty: true,
                 shouldValidate: true,
@@ -2288,6 +2311,7 @@ export function QuotationCreateScreen(): React.ReactElement {
             }))}
             selectedValue={watch("quotation.ozelKod2") ?? undefined}
             onSelect={(option) => {
+              specialCodeManualChangeRef.current.ozelKod2 = true;
               setValue("quotation.ozelKod2", String(option.code ?? option.id), {
                 shouldDirty: true,
                 shouldValidate: true,

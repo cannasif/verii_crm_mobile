@@ -90,6 +90,10 @@ import type { ProductSelectionResult } from "../../stocks/types";
 import { calculateLineTotals, calculateTotals } from "../utils";
 import type { ExchangeRateDto } from "../types";
 import { enforceExportVatOnLine, isExportOfferType, resolveDocumentVatRate } from "../../../utils/documentVat";
+import {
+  canApplySpecialCodeDefault,
+  getDefaultSpecialCodeForOfferType,
+} from "@/lib/salesDocumentSpecialCodeDefaults";
 
 export function DemandCreateScreen(): React.ReactElement {
   const { t, i18n } = useTranslation();
@@ -151,6 +155,7 @@ export function DemandCreateScreen(): React.ReactElement {
     control,
     handleSubmit,
     setValue,
+    getValues,
     watch,
     setError,
     clearErrors,
@@ -178,6 +183,7 @@ export function DemandCreateScreen(): React.ReactElement {
   const watchedOfferDate = watch("demand.offerDate");
   const watchedDeliveryDate = watch("demand.deliveryDate");
   const watchedOfferType = watch("demand.offerType");
+  const specialCodeManualChangeRef = useRef({ ozelKod1: false, ozelKod2: false });
 
   useEffect(() => {
     if (!isExportOfferType(watchedOfferType)) return;
@@ -188,6 +194,22 @@ export function DemandCreateScreen(): React.ReactElement {
       return prev.map((line) => calculateLineTotals(enforceExportVatOnLine(line, watchedOfferType)));
     });
   }, [watchedOfferType]);
+
+  useEffect(() => {
+    const nextSpecialCode = getDefaultSpecialCodeForOfferType(watchedOfferType);
+    if (!nextSpecialCode) return;
+
+    const currentOzelKod1 = getValues("demand.ozelKod1");
+    const currentOzelKod2 = getValues("demand.ozelKod2");
+
+    if (!specialCodeManualChangeRef.current.ozelKod1 && canApplySpecialCodeDefault(currentOzelKod1)) {
+      setValue("demand.ozelKod1", nextSpecialCode, { shouldDirty: false, shouldValidate: true });
+    }
+
+    if (!specialCodeManualChangeRef.current.ozelKod2 && canApplySpecialCodeDefault(currentOzelKod2)) {
+      setValue("demand.ozelKod2", nextSpecialCode, { shouldDirty: false, shouldValidate: true });
+    }
+  }, [watchedOfferType, getValues, setValue]);
 
   useEffect(() => {
     if (deliveryDateModalOpen) {
@@ -1507,6 +1529,7 @@ export function DemandCreateScreen(): React.ReactElement {
           }))}
           selectedValue={watch("demand.ozelKod1") ?? undefined}
           onSelect={(option) => {
+            specialCodeManualChangeRef.current.ozelKod1 = true;
             setValue("demand.ozelKod1", String(option.code ?? option.id), {
               shouldDirty: true,
               shouldValidate: true,
@@ -1528,6 +1551,7 @@ export function DemandCreateScreen(): React.ReactElement {
           }))}
           selectedValue={watch("demand.ozelKod2") ?? undefined}
           onSelect={(option) => {
+            specialCodeManualChangeRef.current.ozelKod2 = true;
             setValue("demand.ozelKod2", String(option.code ?? option.id), {
               shouldDirty: true,
               shouldValidate: true,
