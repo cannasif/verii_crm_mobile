@@ -83,6 +83,8 @@ export interface DemandGetDto {
   paymentTypeId?: number | null;
   paymentTypeName?: string | null;
   documentSerialTypeId?: number | null;
+  ozelKod1?: string | null;
+  ozelKod2?: string | null;
   koliBaskiDefinitionId?: number | null;
   koliBaskiDefinitionName?: string | null;
   offerType: string;
@@ -127,6 +129,8 @@ export interface CreateDemandDto {
   description?: string | null;
   paymentTypeId?: number | null;
   documentSerialTypeId?: number | null;
+  ozelKod1?: string | null;
+  ozelKod2?: string | null;
   koliBaskiDefinitionId?: number | null;
   offerType: string;
   offerDate?: string | null;
@@ -440,6 +444,8 @@ export interface DemandDetailGetDto {
   paymentTypeName: string | null;
   documentSerialTypeId: number;
   documentSerialTypeName: string | null;
+  ozelKod1: string | null;
+  ozelKod2: string | null;
   koliBaskiDefinitionId: number | null;
   koliBaskiDefinitionName: string | null;
   offerType: string;

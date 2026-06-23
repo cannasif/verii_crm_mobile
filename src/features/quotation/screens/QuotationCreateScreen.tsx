@@ -48,6 +48,11 @@ import { buildShippingAddressLabel } from "../../shipping-address/utils/shipping
 import { stockApi } from "../../stocks/api";
 import { resolveDocumentLineProductName } from "../../stocks/utils";
 import { getLocalizedStockNameFromStock } from "../../../lib/localizedStockName";
+import { useSpecialCodes } from "../../common/hooks/useSpecialCodes";
+import {
+  formatSpecialCodeOptionName,
+  resolveSpecialCodeLabel,
+} from "../../common/utils/specialCodeLabel";
 import { quotationApi } from "../api";
 import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida/hooks/useWindoDefinitionOptions";
 import {
@@ -208,6 +213,8 @@ export function QuotationCreateScreen(): React.ReactElement {
   const [activeTab, setActiveTab] = useState<"general" | "lines">("general");
   const [projectCodeModalVisible, setProjectCodeModalVisible] = useState(false);
   const [salesTypeModalVisible, setSalesTypeModalVisible] = useState(false);
+  const [specialCode1ModalVisible, setSpecialCode1ModalVisible] = useState(false);
+  const [specialCode2ModalVisible, setSpecialCode2ModalVisible] = useState(false);
   const [koliBaskiModalVisible, setKoliBaskiModalVisible] = useState(false);
   const [pendingStockForRelated, setPendingStockForRelated] = useState<
     (StockGetDto & { parentRelations: StockRelationDto[] }) | null
@@ -235,6 +242,8 @@ export function QuotationCreateScreen(): React.ReactElement {
         offerDate: new Date().toISOString().split("T")[0],
         deliveryDate: addDaysToDateOnly(new Date().toISOString().split("T")[0], 21),
         representativeId: user?.id || null,
+        ozelKod1: "",
+        ozelKod2: "",
         koliBaskiDefinitionId: null,
       },
     },
@@ -565,6 +574,7 @@ export function QuotationCreateScreen(): React.ReactElement {
     [watchedCurrency, currencyOptions]
   );
   const { profilMap, demirMap, vidaMap, baskiMap, koliBaskiMap, koliBaskiOptions } = useWindoDefinitionOptions();
+  const { specialCode1Options, specialCode2Options, isSpecialCodesLoading } = useSpecialCodes("quotation");
 
   const handleEditLine = useCallback((line: QuotationLineFormState) => {
     setEditingLine(line);
@@ -955,6 +965,8 @@ export function QuotationCreateScreen(): React.ReactElement {
         generalDiscountAmount: formData.quotation.generalDiscountAmount ?? null,
         erpProjectCode: formData.quotation.erpProjectCode ?? null,
         salesTypeDefinitionId: formData.quotation.salesTypeDefinitionId ?? null,
+        ozelKod1: formData.quotation.ozelKod1?.trim() || null,
+        ozelKod2: formData.quotation.ozelKod2?.trim() || null,
         koliBaskiDefinitionId: formData.quotation.koliBaskiDefinitionId ?? null,
       };
 
@@ -1599,6 +1611,75 @@ export function QuotationCreateScreen(): React.ReactElement {
                 />
               )}
 
+              <View style={styles.twoColumnRow}>
+                <View style={styles.twoColumnItem}>
+                  <Controller
+                    control={control}
+                    name="quotation.ozelKod1"
+                    render={({ field: { value } }) => (
+                      <View style={styles.fieldContainerTight}>
+                        <Text style={[styles.labelCompact, { color: mutedText }]}>
+                          {t("quotation.ozelKod1")}
+                        </Text>
+                        <TouchableOpacity
+                          style={[
+                            styles.pickerButton,
+                            styles.pickerShellCompact,
+                            {
+                              backgroundColor: innerBg,
+                              borderColor: errors.quotation?.ozelKod1 ? colors.error : innerBorder,
+                            },
+                          ]}
+                          onPress={() => setSpecialCode1ModalVisible(true)}
+                        >
+                          <Text style={[styles.pickerText, styles.pickerTextCompact, { color: colors.text }]} numberOfLines={1}>
+                            {resolveSpecialCodeLabel(value, specialCode1Options, t("common.select"))}
+                          </Text>
+                        </TouchableOpacity>
+                        {errors.quotation?.ozelKod1?.message && (
+                          <Text style={[styles.fieldError, { color: colors.error }]}>
+                            {errors.quotation.ozelKod1.message}
+                          </Text>
+                        )}
+                      </View>
+                    )}
+                  />
+                </View>
+                <View style={styles.twoColumnItem}>
+                  <Controller
+                    control={control}
+                    name="quotation.ozelKod2"
+                    render={({ field: { value } }) => (
+                      <View style={styles.fieldContainerTight}>
+                        <Text style={[styles.labelCompact, { color: mutedText }]}>
+                          {t("quotation.ozelKod2")}
+                        </Text>
+                        <TouchableOpacity
+                          style={[
+                            styles.pickerButton,
+                            styles.pickerShellCompact,
+                            {
+                              backgroundColor: innerBg,
+                              borderColor: errors.quotation?.ozelKod2 ? colors.error : innerBorder,
+                            },
+                          ]}
+                          onPress={() => setSpecialCode2ModalVisible(true)}
+                        >
+                          <Text style={[styles.pickerText, styles.pickerTextCompact, { color: colors.text }]} numberOfLines={1}>
+                            {resolveSpecialCodeLabel(value, specialCode2Options, t("common.select"))}
+                          </Text>
+                        </TouchableOpacity>
+                        {errors.quotation?.ozelKod2?.message && (
+                          <Text style={[styles.fieldError, { color: colors.error }]}>
+                            {errors.quotation.ozelKod2.message}
+                          </Text>
+                        )}
+                      </View>
+                    )}
+                  />
+                </View>
+              </View>
+
               <Controller
                 control={control}
                 name="quotation.koliBaskiDefinitionId"
@@ -2176,6 +2257,48 @@ export function QuotationCreateScreen(): React.ReactElement {
               searchPlaceholder={t("common.search")}
             />
           )}
+
+          <PickerModal
+            visible={specialCode1ModalVisible}
+            options={specialCode1Options.map((item) => ({
+              id: item.ozelKod,
+              name: formatSpecialCodeOptionName(item),
+              code: item.ozelKod,
+            }))}
+            selectedValue={watch("quotation.ozelKod1") ?? undefined}
+            onSelect={(option) => {
+              setValue("quotation.ozelKod1", String(option.code ?? option.id), {
+                shouldDirty: true,
+                shouldValidate: true,
+              });
+              setSpecialCode1ModalVisible(false);
+            }}
+            onClose={() => setSpecialCode1ModalVisible(false)}
+            title={t("quotation.ozelKod1")}
+            searchPlaceholder={t("quotation.specialCodeSearch")}
+            isLoading={isSpecialCodesLoading}
+          />
+
+          <PickerModal
+            visible={specialCode2ModalVisible}
+            options={specialCode2Options.map((item) => ({
+              id: item.ozelKod,
+              name: formatSpecialCodeOptionName(item),
+              code: item.ozelKod,
+            }))}
+            selectedValue={watch("quotation.ozelKod2") ?? undefined}
+            onSelect={(option) => {
+              setValue("quotation.ozelKod2", String(option.code ?? option.id), {
+                shouldDirty: true,
+                shouldValidate: true,
+              });
+              setSpecialCode2ModalVisible(false);
+            }}
+            onClose={() => setSpecialCode2ModalVisible(false)}
+            title={t("quotation.ozelKod2")}
+            searchPlaceholder={t("quotation.specialCodeSearch")}
+            isLoading={isSpecialCodesLoading}
+          />
 
           <PickerModal
             visible={koliBaskiModalVisible}

@@ -153,6 +153,11 @@ import { useDocumentDetailDirtyState } from "../../../hooks/useDocumentDetailDir
 import { invalidateDocumentDetailHeaderQuery } from "../../../lib/documentListQueryInvalidation";
 import { readGeneralDiscountOptions } from "../../../lib/salesDocumentTotals";
 import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida/hooks/useWindoDefinitionOptions";
+import { useSpecialCodes } from "../../common/hooks/useSpecialCodes";
+import {
+  formatSpecialCodeOptionName,
+  resolveSpecialCodeLabel,
+} from "../../common/utils/specialCodeLabel";
 
 function resolveMobileImageUri(path?: string | null): string | null {
   if (!path) return null;
@@ -286,6 +291,7 @@ export function OrderDetailScreen(): React.ReactElement {
     refetch,
   } = useOrderDetail(isFocused ? orderId : undefined);
   const { profilMap, demirMap, vidaMap, baskiMap, koliBaskiMap, koliBaskiOptions, isLoading: isDefinitionOptionsLoading } = useWindoDefinitionOptions();
+  const { specialCode1Options, specialCode2Options, isSpecialCodesLoading } = useSpecialCodes("order");
 
   const formInitRef = useRef(false);
   const linesInitRef = useRef(false);
@@ -305,6 +311,8 @@ export function OrderDetailScreen(): React.ReactElement {
   const [paymentTypeModalVisible, setPaymentTypeModalVisible] = useState(false);
   const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
   const [shippingAddressModalVisible, setShippingAddressModalVisible] = useState(false);
+  const [specialCode1ModalVisible, setSpecialCode1ModalVisible] = useState(false);
+  const [specialCode2ModalVisible, setSpecialCode2ModalVisible] = useState(false);
   const [koliBaskiModalVisible, setKoliBaskiModalVisible] = useState(false);
   const [customerSelectDialogOpen, setCustomerSelectDialogOpen] = useState(false);
   const [representativeModalVisible, setRepresentativeModalVisible] = useState(false);
@@ -341,6 +349,8 @@ export function OrderDetailScreen(): React.ReactElement {
         offerDate: new Date().toISOString().split("T")[0],
         deliveryDate: new Date().toISOString().split("T")[0],
         representativeId: user?.id ?? null,
+        ozelKod1: "",
+        ozelKod2: "",
         koliBaskiDefinitionId: null,
       },
     },
@@ -1079,6 +1089,8 @@ export function OrderDetailScreen(): React.ReactElement {
           formData.order.revisionId && formData.order.revisionId > 0
             ? formData.order.revisionId
             : null,
+        ozelKod1: formData.order.ozelKod1?.trim() || null,
+        ozelKod2: formData.order.ozelKod2?.trim() || null,
         koliBaskiDefinitionId: formData.order.koliBaskiDefinitionId ?? null,
       };
 
@@ -1706,6 +1718,74 @@ export function OrderDetailScreen(): React.ReactElement {
 
                 <Controller
                   control={control}
+                  name="order.ozelKod1"
+                  render={({ field: { value } }) => (
+                    <View style={styles.fieldContainerTight}>
+                      <Text style={[styles.labelCompact, { color: mutedText }]}>
+                        {t("order.ozelKod1")}
+                      </Text>
+                      <TouchableOpacity
+                        style={[
+                          styles.pickerButton,
+                          styles.pickerShellCompact,
+                          {
+                            backgroundColor: innerBg,
+                            borderColor: errors.order?.ozelKod1 ? colors.error : innerBorder,
+                          },
+                        ]}
+                        onPress={() => !isReadonly && setSpecialCode1ModalVisible(true)}
+                        disabled={isReadonly}
+                        activeOpacity={isReadonly ? 1 : 0.85}
+                      >
+                        <Text style={[styles.pickerText, styles.pickerTextCompact, { color: titleText }]} numberOfLines={1}>
+                          {resolveSpecialCodeLabel(value, specialCode1Options, t("order.select"))}
+                        </Text>
+                      </TouchableOpacity>
+                      {errors.order?.ozelKod1?.message && (
+                        <Text style={[styles.fieldError, { color: colors.error }]}>
+                          {errors.order.ozelKod1.message}
+                        </Text>
+                      )}
+                    </View>
+                  )}
+                />
+
+                <Controller
+                  control={control}
+                  name="order.ozelKod2"
+                  render={({ field: { value } }) => (
+                    <View style={styles.fieldContainerTight}>
+                      <Text style={[styles.labelCompact, { color: mutedText }]}>
+                        {t("order.ozelKod2")}
+                      </Text>
+                      <TouchableOpacity
+                        style={[
+                          styles.pickerButton,
+                          styles.pickerShellCompact,
+                          {
+                            backgroundColor: innerBg,
+                            borderColor: errors.order?.ozelKod2 ? colors.error : innerBorder,
+                          },
+                        ]}
+                        onPress={() => !isReadonly && setSpecialCode2ModalVisible(true)}
+                        disabled={isReadonly}
+                        activeOpacity={isReadonly ? 1 : 0.85}
+                      >
+                        <Text style={[styles.pickerText, styles.pickerTextCompact, { color: titleText }]} numberOfLines={1}>
+                          {resolveSpecialCodeLabel(value, specialCode2Options, t("order.select"))}
+                        </Text>
+                      </TouchableOpacity>
+                      {errors.order?.ozelKod2?.message && (
+                        <Text style={[styles.fieldError, { color: colors.error }]}>
+                          {errors.order.ozelKod2.message}
+                        </Text>
+                      )}
+                    </View>
+                  )}
+                />
+
+                <Controller
+                  control={control}
                   name="order.koliBaskiDefinitionId"
                   render={({ field: { value } }) => (
                     <View style={styles.fieldContainerTight}>
@@ -2157,6 +2237,48 @@ export function OrderDetailScreen(): React.ReactElement {
             title={t("order.koliBaski")}
             searchPlaceholder={t("order.koliBaskiSearch")}
             isLoading={isDefinitionOptionsLoading}
+          />
+
+          <PickerModal
+            visible={specialCode1ModalVisible}
+            options={specialCode1Options.map((item) => ({
+              id: item.ozelKod,
+              name: formatSpecialCodeOptionName(item),
+              code: item.ozelKod,
+            }))}
+            selectedValue={watch("order.ozelKod1") ?? undefined}
+            onSelect={(option) => {
+              setValue("order.ozelKod1", String(option.code ?? option.id), {
+                shouldDirty: true,
+                shouldValidate: true,
+              });
+              setSpecialCode1ModalVisible(false);
+            }}
+            onClose={() => setSpecialCode1ModalVisible(false)}
+            title={t("order.ozelKod1")}
+            searchPlaceholder={t("order.specialCodeSearch")}
+            isLoading={isSpecialCodesLoading}
+          />
+
+          <PickerModal
+            visible={specialCode2ModalVisible}
+            options={specialCode2Options.map((item) => ({
+              id: item.ozelKod,
+              name: formatSpecialCodeOptionName(item),
+              code: item.ozelKod,
+            }))}
+            selectedValue={watch("order.ozelKod2") ?? undefined}
+            onSelect={(option) => {
+              setValue("order.ozelKod2", String(option.code ?? option.id), {
+                shouldDirty: true,
+                shouldValidate: true,
+              });
+              setSpecialCode2ModalVisible(false);
+            }}
+            onClose={() => setSpecialCode2ModalVisible(false)}
+            title={t("order.ozelKod2")}
+            searchPlaceholder={t("order.specialCodeSearch")}
+            isLoading={isSpecialCodesLoading}
           />
 
           {watchedCustomerId && shippingAddresses && shippingAddresses.length > 0 && (

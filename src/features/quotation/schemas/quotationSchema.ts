@@ -24,6 +24,16 @@ export const createQuotationSchema = () =>
         generalDiscountRate: z.number().min(0).max(100).nullable().optional(),
         generalDiscountAmount: z.number().min(0).nullable().optional(),
         erpProjectCode: z.string().max(50).nullable().optional(),
+        ozelKod1: z
+          .string()
+          .trim()
+          .min(1, "Özel Kod 1 seçilmelidir")
+          .max(10, "Özel Kod 1 en fazla 10 karakter olabilir"),
+        ozelKod2: z
+          .string()
+          .trim()
+          .min(1, "Özel Kod 2 seçilmelidir")
+          .max(10, "Özel Kod 2 en fazla 10 karakter olabilir"),
         salesTypeDefinitionId: z.number().nullable().optional(),
         koliBaskiDefinitionId: z.number().nullable().optional(),
       }),

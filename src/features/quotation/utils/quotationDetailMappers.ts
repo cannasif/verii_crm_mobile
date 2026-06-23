@@ -81,6 +81,8 @@ export function mapDetailHeaderToForm(
     generalDiscountRate: (h as unknown as Record<string, unknown>).generalDiscountRate as number | null | undefined ?? null,
     generalDiscountAmount: (h as unknown as Record<string, unknown>).generalDiscountAmount as number | null | undefined ?? null,
     erpProjectCode: (h as unknown as Record<string, unknown>).erpProjectCode as string | null | undefined ?? null,
+    ozelKod1: (h as unknown as Record<string, unknown>).ozelKod1 as string | null | undefined ?? "",
+    ozelKod2: (h as unknown as Record<string, unknown>).ozelKod2 as string | null | undefined ?? "",
     salesTypeDefinitionId: (h as unknown as Record<string, unknown>).salesTypeDefinitionId as number | null | undefined ?? null,
     koliBaskiDefinitionId: (h as unknown as Record<string, unknown>).koliBaskiDefinitionId as number | null | undefined ?? null,
   };

@@ -84,6 +84,8 @@ export interface QuotationGetDto {
   paymentTypeId?: number | null;
   paymentTypeName?: string | null;
   documentSerialTypeId?: number | null;
+  ozelKod1?: string | null;
+  ozelKod2?: string | null;
   offerType: string;
   koliBaskiDefinitionId?: number | null;
   koliBaskiDefinitionName?: string | null;
@@ -154,6 +156,8 @@ export interface CreateQuotationDto {
   generalDiscountAmount?: number | null;
   demandId?: number | null;
   erpProjectCode?: string | null;
+  ozelKod1?: string | null;
+  ozelKod2?: string | null;
   salesTypeDefinitionId?: number | null;
   koliBaskiDefinitionId?: number | null;
 }

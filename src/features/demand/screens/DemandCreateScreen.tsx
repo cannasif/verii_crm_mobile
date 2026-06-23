@@ -54,6 +54,11 @@ import { stockApi } from "../../stocks/api";
 import { resolveDocumentLineProductName } from "../../stocks/utils";
 import { getLocalizedStockNameFromStock } from "../../../lib/localizedStockName";
 import { demandApi } from "../api";
+import { useSpecialCodes } from "../../common/hooks/useSpecialCodes";
+import {
+  formatSpecialCodeOptionName,
+  resolveSpecialCodeLabel,
+} from "../../common/utils/specialCodeLabel";
 import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida/hooks/useWindoDefinitionOptions";
 import {
   useCreateDemandBulk,
@@ -130,6 +135,8 @@ export function DemandCreateScreen(): React.ReactElement {
   const [paymentTypeModalVisible, setPaymentTypeModalVisible] = useState(false);
   const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
   const [shippingAddressModalVisible, setShippingAddressModalVisible] = useState(false);
+  const [specialCode1ModalVisible, setSpecialCode1ModalVisible] = useState(false);
+  const [specialCode2ModalVisible, setSpecialCode2ModalVisible] = useState(false);
   const [koliBaskiModalVisible, setKoliBaskiModalVisible] = useState(false);
   const [customerSelectDialogOpen, setCustomerSelectDialogOpen] = useState(false);
   const [representativeModalVisible, setRepresentativeModalVisible] = useState(false);
@@ -157,6 +164,8 @@ export function DemandCreateScreen(): React.ReactElement {
         offerDate: new Date().toISOString().split("T")[0],
         deliveryDate: new Date().toISOString().split("T")[0],
         representativeId: user?.id || null,
+        ozelKod1: "",
+        ozelKod2: "",
         koliBaskiDefinitionId: null,
       },
     },
@@ -208,6 +217,7 @@ export function DemandCreateScreen(): React.ReactElement {
   const { data: currencyOptions } = useCurrencyOptions(exchangeRateParamsOnce);
   const { data: paymentTypes } = usePaymentTypes();
   const { data: relatedUsers = [] } = useRelatedUsers(user?.id);
+  const { specialCode1Options, specialCode2Options, isSpecialCodesLoading } = useSpecialCodes("demand");
 
   useEffect(() => {
     if (exchangeRatesData && exchangeRatesData.length > 0 && !hasFilledErpRates.current) {
@@ -714,6 +724,8 @@ export function DemandCreateScreen(): React.ReactElement {
       createDemand.mutate({
         demand: {
           ...formData.demand,
+          ozelKod1: formData.demand.ozelKod1?.trim() || null,
+          ozelKod2: formData.demand.ozelKod2?.trim() || null,
           koliBaskiDefinitionId: formData.demand.koliBaskiDefinitionId ?? null,
         },
         lines: cleanedLines,
@@ -1061,6 +1073,75 @@ export function DemandCreateScreen(): React.ReactElement {
               representativeId={watchedRepresentativeId || undefined}
               disabled={!watchedRepresentativeId}
             />
+
+            <View style={styles.twoColumnRow}>
+              <View style={styles.twoColumnItem}>
+                <Controller
+                  control={control}
+                  name="demand.ozelKod1"
+                  render={({ field: { value } }) => (
+                    <View style={styles.fieldContainerTight}>
+                      <Text style={[styles.labelCompact, { color: colors.textSecondary }]}>
+                        {t("demand.ozelKod1")}
+                      </Text>
+                      <TouchableOpacity
+                        style={[
+                          styles.pickerButton,
+                          styles.pickerShellCompact,
+                          {
+                            backgroundColor: innerBg,
+                            borderColor: errors.demand?.ozelKod1 ? colors.error : innerBorder,
+                          },
+                        ]}
+                        onPress={() => setSpecialCode1ModalVisible(true)}
+                      >
+                        <Text style={[styles.pickerText, styles.pickerTextCompact, { color: colors.text }]} numberOfLines={1}>
+                          {resolveSpecialCodeLabel(value, specialCode1Options, t("common.select"))}
+                        </Text>
+                      </TouchableOpacity>
+                      {errors.demand?.ozelKod1?.message && (
+                        <Text style={[styles.fieldError, { color: colors.error }]}>
+                          {errors.demand.ozelKod1.message}
+                        </Text>
+                      )}
+                    </View>
+                  )}
+                />
+              </View>
+              <View style={styles.twoColumnItem}>
+                <Controller
+                  control={control}
+                  name="demand.ozelKod2"
+                  render={({ field: { value } }) => (
+                    <View style={styles.fieldContainerTight}>
+                      <Text style={[styles.labelCompact, { color: colors.textSecondary }]}>
+                        {t("demand.ozelKod2")}
+                      </Text>
+                      <TouchableOpacity
+                        style={[
+                          styles.pickerButton,
+                          styles.pickerShellCompact,
+                          {
+                            backgroundColor: innerBg,
+                            borderColor: errors.demand?.ozelKod2 ? colors.error : innerBorder,
+                          },
+                        ]}
+                        onPress={() => setSpecialCode2ModalVisible(true)}
+                      >
+                        <Text style={[styles.pickerText, styles.pickerTextCompact, { color: colors.text }]} numberOfLines={1}>
+                          {resolveSpecialCodeLabel(value, specialCode2Options, t("common.select"))}
+                        </Text>
+                      </TouchableOpacity>
+                      {errors.demand?.ozelKod2?.message && (
+                        <Text style={[styles.fieldError, { color: colors.error }]}>
+                          {errors.demand.ozelKod2.message}
+                        </Text>
+                      )}
+                    </View>
+                  )}
+                />
+              </View>
+            </View>
 
             <Controller
               control={control}
@@ -1415,6 +1496,48 @@ export function DemandCreateScreen(): React.ReactElement {
           onClose={() => setRepresentativeModalVisible(false)}
           title="Satış Temsilcisi Seçiniz"
           searchPlaceholder="Temsilci ara..."
+        />
+
+        <PickerModal
+          visible={specialCode1ModalVisible}
+          options={specialCode1Options.map((item) => ({
+            id: item.ozelKod,
+            name: formatSpecialCodeOptionName(item),
+            code: item.ozelKod,
+          }))}
+          selectedValue={watch("demand.ozelKod1") ?? undefined}
+          onSelect={(option) => {
+            setValue("demand.ozelKod1", String(option.code ?? option.id), {
+              shouldDirty: true,
+              shouldValidate: true,
+            });
+            setSpecialCode1ModalVisible(false);
+          }}
+          onClose={() => setSpecialCode1ModalVisible(false)}
+          title={t("demand.ozelKod1")}
+          searchPlaceholder={t("demand.specialCodeSearch")}
+          isLoading={isSpecialCodesLoading}
+        />
+
+        <PickerModal
+          visible={specialCode2ModalVisible}
+          options={specialCode2Options.map((item) => ({
+            id: item.ozelKod,
+            name: formatSpecialCodeOptionName(item),
+            code: item.ozelKod,
+          }))}
+          selectedValue={watch("demand.ozelKod2") ?? undefined}
+          onSelect={(option) => {
+            setValue("demand.ozelKod2", String(option.code ?? option.id), {
+              shouldDirty: true,
+              shouldValidate: true,
+            });
+            setSpecialCode2ModalVisible(false);
+          }}
+          onClose={() => setSpecialCode2ModalVisible(false)}
+          title={t("demand.ozelKod2")}
+          searchPlaceholder={t("demand.specialCodeSearch")}
+          isLoading={isSpecialCodesLoading}
         />
 
         <PickerModal
