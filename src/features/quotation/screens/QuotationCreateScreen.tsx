@@ -704,7 +704,7 @@ export function QuotationCreateScreen(): React.ReactElement {
     async (stock: StockGetDto, relatedStockIds?: number[]) => {
       if (!stock.id) return;
 
-      const applyCurrencyToPrice = (listPrice: number, priceCurrency: string): number => {
+      const applyCurrencyToPrice = (listPrice: number, priceCurrency: string): number | null => {
         if (!watchedCurrency || priceCurrency === watchedCurrency) return listPrice;
         const oldRate = findExchangeRateByCurrency(
           priceCurrency,
@@ -719,7 +719,8 @@ export function QuotationCreateScreen(): React.ReactElement {
           currencyOptions
         );
         if (oldRate == null || oldRate <= 0 || newRate == null || newRate <= 0) {
-          return listPrice;
+          showToast("error", "Kur değeri 0 olan para birimiyle stok eklenemez. Lütfen önce döviz kurunu girin.");
+          return null;
         }
         return (listPrice * oldRate) / newRate;
       };
@@ -802,6 +803,7 @@ export function QuotationCreateScreen(): React.ReactElement {
       const mainUnitPrice = mainPrice
         ? applyCurrencyToPrice(mainPrice.listPrice, mainPrice.currency)
         : 0;
+      if (mainUnitPrice == null) return;
       const relatedProductKey = createClientId(`main-${stock.id}`);
 
       const mainProductName = await resolveDocumentLineProductName(
@@ -834,16 +836,20 @@ export function QuotationCreateScreen(): React.ReactElement {
       });
 
       if (filteredRelations.length > 0 && relatedStocks.length > 0) {
-        const relatedLines: QuotationLineFormState[] = filteredRelations.map(
-          (relation, idx) => {
+        const relatedLines: QuotationLineFormState[] = [];
+        for (let idx = 0; idx < filteredRelations.length; idx += 1) {
+            const relation = filteredRelations[idx];
             const relStock = relatedStocks[idx];
             const price = priceData[idx + 1];
             const unitPrice =
               price && relStock
                 ? applyCurrencyToPrice(price.listPrice, price.currency)
                 : 0;
+            if (unitPrice == null) {
+              return;
+            }
 
-            return calculateLineTotals({
+            relatedLines.push(calculateLineTotals({
               id: `temp-${Date.now()}-${relation.id}`,
               productId: relation.relatedStockId,
               productCode: relation.relatedStockCode!,
@@ -868,16 +874,15 @@ export function QuotationCreateScreen(): React.ReactElement {
               isMainRelatedProduct: false,
               isEditing: false,
               relationQuantity: relation.quantity,
-            });
-          }
-        );
+            }));
+        }
         mainLine.relatedLines = relatedLines;
         setEditingLine(mainLine);
       } else {
         setLines((prev) => [...prev, mainLine]);
       }
     },
-    [watchedCurrency, exchangeRates, erpRatesForQuotation, watchedOfferType]
+    [watchedCurrency, exchangeRates, erpRatesForQuotation, currencyOptions, showToast, i18n.language, watchedOfferType]
   );
 
   const handleDeleteLine = useCallback(

@@ -544,11 +544,14 @@ export function DemandCreateScreen(): React.ReactElement {
     async (stock: StockGetDto, relatedStockIds?: number[]) => {
       if (!stock.id) return;
 
-      const applyCurrencyToPrice = (listPrice: number, priceCurrency: string): number => {
+      const applyCurrencyToPrice = (listPrice: number, priceCurrency: string): number | null => {
         if (!watchedCurrency || priceCurrency === watchedCurrency) return listPrice;
         const oldRate = findExchangeRateByCurrency(priceCurrency, exchangeRates, erpRatesForDemand, currencyOptions);
         const newRate = findExchangeRateByCurrency(watchedCurrency, exchangeRates, erpRatesForDemand, currencyOptions);
-        if (oldRate == null || oldRate <= 0 || newRate == null || newRate <= 0) return listPrice;
+        if (oldRate == null || oldRate <= 0 || newRate == null || newRate <= 0) {
+          showToast("error", "Kur değeri 0 olan para birimiyle stok eklenemez. Lütfen önce döviz kurunu girin.");
+          return null;
+        }
         return (listPrice * oldRate) / newRate;
       };
 
@@ -602,6 +605,7 @@ export function DemandCreateScreen(): React.ReactElement {
       const mainUnitPrice = mainPrice
         ? applyCurrencyToPrice(mainPrice.listPrice, mainPrice.currency)
         : 0;
+      if (mainUnitPrice == null) return;
       const relatedProductKey = createClientId(`main-${stock.id}`);
       const mainProductName = await resolveDocumentLineProductName(
         { stockId: stock.id, code: stock.erpStockCode, name: stock.stockName },
@@ -632,14 +636,19 @@ export function DemandCreateScreen(): React.ReactElement {
       });
 
       if (filteredRelations.length > 0 && relatedStocks.length > 0) {
-        const relatedLines: DemandLineFormState[] = filteredRelations.map((relation, idx) => {
+        const relatedLines: DemandLineFormState[] = [];
+        for (let idx = 0; idx < filteredRelations.length; idx += 1) {
+          const relation = filteredRelations[idx];
           const relStock = relatedStocks[idx];
           const price = priceData[idx + 1];
           const unitPrice =
             price && relStock
               ? applyCurrencyToPrice(price.listPrice, price.currency)
               : 0;
-          return calculateLineTotals({
+          if (unitPrice == null) {
+            return;
+          }
+          relatedLines.push(calculateLineTotals({
             id: `temp-${Date.now()}-${relation.id}`,
             productId: relation.relatedStockId,
             productCode: relation.relatedStockCode!,
@@ -664,15 +673,15 @@ export function DemandCreateScreen(): React.ReactElement {
             isMainRelatedProduct: false,
             isEditing: false,
             relationQuantity: relation.quantity,
-          });
-        });
+          }));
+        }
         mainLine.relatedLines = relatedLines;
         setEditingLine(mainLine);
       } else {
         setLines((prev) => [...prev, mainLine]);
       }
     },
-    [watchedCurrency, exchangeRates, erpRatesForDemand, i18n.language, watchedOfferType]
+    [watchedCurrency, exchangeRates, erpRatesForDemand, currencyOptions, showToast, i18n.language, watchedOfferType]
   );
 
   const handleDeleteLine = useCallback(
