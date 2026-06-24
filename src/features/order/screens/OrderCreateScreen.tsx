@@ -98,6 +98,7 @@ import { enforceExportVatOnLine, isExportOfferType, resolveDocumentVatRate } fro
 import {
   canApplySpecialCodeDefault,
   getDefaultSpecialCodeForOfferType,
+  hasSpecialCodeOption,
 } from "@/lib/salesDocumentSpecialCodeDefaults";
 
 export function OrderCreateScreen(): React.ReactElement {
@@ -193,6 +194,7 @@ export function OrderCreateScreen(): React.ReactElement {
   const watchedDeliveryDate = watch("order.deliveryDate");
   const watchedOfferType = watch("order.offerType");
   const specialCodeManualChangeRef = useRef({ ozelKod1: false, ozelKod2: false });
+  const { specialCode1Options, specialCode2Options, isSpecialCodesLoading } = useSpecialCodes("order");
 
   useEffect(() => {
     if (!isExportOfferType(watchedOfferType)) return;
@@ -206,19 +208,36 @@ export function OrderCreateScreen(): React.ReactElement {
 
   useEffect(() => {
     const nextSpecialCode = getDefaultSpecialCodeForOfferType(watchedOfferType);
-    if (!nextSpecialCode) return;
+    if (!nextSpecialCode || isSpecialCodesLoading) return;
 
     const currentOzelKod1 = getValues("order.ozelKod1");
     const currentOzelKod2 = getValues("order.ozelKod2");
+    const hasOzelKod1Default = hasSpecialCodeOption(specialCode1Options, nextSpecialCode);
+    const hasOzelKod2Default = hasSpecialCodeOption(specialCode2Options, nextSpecialCode);
 
-    if (!specialCodeManualChangeRef.current.ozelKod1 && canApplySpecialCodeDefault(currentOzelKod1)) {
+    if (
+      hasOzelKod1Default &&
+      !specialCodeManualChangeRef.current.ozelKod1 &&
+      canApplySpecialCodeDefault(currentOzelKod1)
+    ) {
       setValue("order.ozelKod1", nextSpecialCode, { shouldDirty: false, shouldValidate: true });
     }
 
-    if (!specialCodeManualChangeRef.current.ozelKod2 && canApplySpecialCodeDefault(currentOzelKod2)) {
+    if (
+      hasOzelKod2Default &&
+      !specialCodeManualChangeRef.current.ozelKod2 &&
+      canApplySpecialCodeDefault(currentOzelKod2)
+    ) {
       setValue("order.ozelKod2", nextSpecialCode, { shouldDirty: false, shouldValidate: true });
     }
-  }, [watchedOfferType, getValues, setValue]);
+  }, [
+    watchedOfferType,
+    isSpecialCodesLoading,
+    specialCode1Options,
+    specialCode2Options,
+    getValues,
+    setValue,
+  ]);
 
   useEffect(() => {
     if (deliveryDateModalOpen) {
@@ -248,7 +267,6 @@ export function OrderCreateScreen(): React.ReactElement {
   const { data: currencyOptions } = useCurrencyOptions(exchangeRateParamsOnce);
   const { data: paymentTypes } = usePaymentTypes();
   const { data: relatedUsers = [] } = useRelatedUsers(user?.id);
-  const { specialCode1Options, specialCode2Options, isSpecialCodesLoading } = useSpecialCodes("order");
 
   useEffect(() => {
     if (exchangeRatesData && exchangeRatesData.length > 0 && !hasFilledErpRates.current) {

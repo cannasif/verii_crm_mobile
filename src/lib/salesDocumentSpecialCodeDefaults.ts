@@ -14,3 +14,14 @@ export function canApplySpecialCodeDefault(value?: string | null): boolean {
 
   return normalizedValue.length === 0 || AUTO_SPECIAL_CODE_DEFAULTS.has(normalizedValue);
 }
+
+export function hasSpecialCodeOption(
+  options: Array<{ ozelKod?: string | null }>,
+  specialCode?: string | null
+): boolean {
+  const normalizedSpecialCode = String(specialCode ?? "").trim();
+
+  if (!normalizedSpecialCode) return false;
+
+  return options.some((option) => option.ozelKod?.trim() === normalizedSpecialCode);
+}
