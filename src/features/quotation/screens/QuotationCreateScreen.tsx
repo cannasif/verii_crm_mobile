@@ -344,6 +344,7 @@ export function QuotationCreateScreen(): React.ReactElement {
     if (
       hasOzelKod1Default &&
       !specialCodeManualChangeRef.current.ozelKod1 &&
+      currentOzelKod1 !== nextSpecialCode &&
       canApplySpecialCodeDefault(currentOzelKod1)
     ) {
       setValue("quotation.ozelKod1", nextSpecialCode, { shouldDirty: false, shouldValidate: true });
@@ -352,6 +353,7 @@ export function QuotationCreateScreen(): React.ReactElement {
     if (
       hasOzelKod2Default &&
       !specialCodeManualChangeRef.current.ozelKod2 &&
+      currentOzelKod2 !== nextSpecialCode &&
       canApplySpecialCodeDefault(currentOzelKod2)
     ) {
       setValue("quotation.ozelKod2", nextSpecialCode, { shouldDirty: false, shouldValidate: true });
