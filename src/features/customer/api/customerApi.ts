@@ -186,6 +186,7 @@ export const customerApi = {
     appendIfPresent("phone", data.phone);
     appendIfPresent("phone2", data.phone2);
     appendIfPresent("address", data.address);
+    appendIfPresent("postalCode", data.postalCode);
     appendIfPresent("website", data.website);
     appendIfPresent("notes", data.notes);
     appendIfPresent("countryId", data.countryId);
@@ -194,6 +195,7 @@ export const customerApi = {
     appendIfPresent("customerTypeId", data.customerTypeId);
     appendIfPresent("salesRepCode", data.salesRepCode);
     appendIfPresent("groupCode", data.groupCode);
+    appendIfPresent("accountingCode", data.accountingCode);
     appendIfPresent("creditLimit", data.creditLimit);
     appendIfPresent("branchCode", data.branchCode);
     appendIfPresent("businessUnitCode", data.businessUnitCode);

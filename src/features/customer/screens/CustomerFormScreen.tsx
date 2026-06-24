@@ -158,6 +158,7 @@ export function CustomerFormScreen(): React.ReactElement {
     showShippingAddress: false,
     showSalesRep: false,
     showGroupCode: true,
+    showAccountingCode: true,
     showCreditLimit: false,
     showBranchCode: false,
     showBusinessUnit: false,
@@ -166,6 +167,7 @@ export function CustomerFormScreen(): React.ReactElement {
     showEmail: true,
     showWebsite: true,
     showAddress: true,
+    showPostalCode: true,
     showLocation: true,
     showTaxNumber: false,
     showTaxOffice: false,
@@ -237,6 +239,7 @@ export function CustomerFormScreen(): React.ReactElement {
       taxOffice: "",
       tcknNumber: "",
       address: "",
+      postalCode: "",
       phone: "",
       phone2: "",
       email: "",
@@ -244,6 +247,7 @@ export function CustomerFormScreen(): React.ReactElement {
       notes: "",
       salesRepCode: "",
       groupCode: "",
+      accountingCode: "",
       creditLimit: 0,
       defaultShippingAddressId: null,
       branchCode: branch?.code ? Number(branch.code) : 1,
@@ -271,7 +275,9 @@ export function CustomerFormScreen(): React.ReactElement {
   const websiteInputRef = useRef<TextInput | null>(null);
   const salesRepInputRef = useRef<TextInput | null>(null);
   const groupCodeInputRef = useRef<TextInput | null>(null);
+  const accountingCodeInputRef = useRef<TextInput | null>(null);
   const addressInputRef = useRef<TextInput | null>(null);
+  const postalCodeInputRef = useRef<TextInput | null>(null);
   const notesInputRef = useRef<TextInput | null>(null);
 
   const scrollViewRef = useRef<ScrollView | null>(null);
@@ -338,9 +344,17 @@ export function CustomerFormScreen(): React.ReactElement {
       groupCodeInputRef.current?.focus();
       return groupCodeInputRef;
     }
+    if (formConfig.showAccountingCode) {
+      accountingCodeInputRef.current?.focus();
+      return accountingCodeInputRef;
+    }
     if (formConfig.showAddress) {
       addressInputRef.current?.focus();
       return addressInputRef;
+    }
+    if (formConfig.showPostalCode) {
+      postalCodeInputRef.current?.focus();
+      return postalCodeInputRef;
     }
     if (formConfig.showNotes) {
       notesInputRef.current?.focus();
@@ -393,16 +407,31 @@ export function CustomerFormScreen(): React.ReactElement {
 
   const focusAfterSalesRep = useCallback(() => {
     if (formConfig.showGroupCode) groupCodeInputRef.current?.focus();
+    else if (formConfig.showAccountingCode) accountingCodeInputRef.current?.focus();
     else if (formConfig.showAddress) addressInputRef.current?.focus();
+    else if (formConfig.showPostalCode) postalCodeInputRef.current?.focus();
     else if (formConfig.showNotes) notesInputRef.current?.focus();
   }, []);
 
   const focusAfterGroupCode = useCallback(() => {
+    if (formConfig.showAccountingCode) accountingCodeInputRef.current?.focus();
+    else if (formConfig.showAddress) addressInputRef.current?.focus();
+    else if (formConfig.showPostalCode) postalCodeInputRef.current?.focus();
+    else if (formConfig.showNotes) notesInputRef.current?.focus();
+  }, []);
+
+  const focusAfterAccountingCode = useCallback(() => {
     if (formConfig.showAddress) addressInputRef.current?.focus();
+    else if (formConfig.showPostalCode) postalCodeInputRef.current?.focus();
     else if (formConfig.showNotes) notesInputRef.current?.focus();
   }, []);
 
   const addressTabToNotes = useCallback(() => {
+    if (formConfig.showPostalCode) postalCodeInputRef.current?.focus();
+    else if (formConfig.showNotes) notesInputRef.current?.focus();
+  }, []);
+
+  const focusAfterPostalCode = useCallback(() => {
     if (formConfig.showNotes) notesInputRef.current?.focus();
   }, []);
 
@@ -423,6 +452,7 @@ export function CustomerFormScreen(): React.ReactElement {
         taxOffice: existingCustomer.taxOffice || "",
         tcknNumber: existingCustomer.tcknNumber || "",
         address: existingCustomer.address || "",
+        postalCode: existingCustomer.postalCode || "",
         phone: existingCustomer.phone || "",
         phone2: existingCustomer.phone2 || "",
         email: existingCustomer.email || "",
@@ -434,6 +464,7 @@ export function CustomerFormScreen(): React.ReactElement {
         customerTypeId: existingCustomer.customerTypeId ?? undefined,
         salesRepCode: existingCustomer.salesRepCode || "",
         groupCode: existingCustomer.groupCode || "",
+        accountingCode: existingCustomer.accountingCode || "",
         creditLimit: existingCustomer.creditLimit,
         defaultShippingAddressId: existingCustomer.defaultShippingAddressId ?? null,
         branchCode: existingCustomer.branchCode,
@@ -523,6 +554,7 @@ export function CustomerFormScreen(): React.ReactElement {
         defaultShippingAddressId: data.defaultShippingAddressId ?? undefined,
         salesRepCode: data.salesRepCode || undefined,
         groupCode: data.groupCode || undefined,
+        accountingCode: data.accountingCode || undefined,
         creditLimit: toNumberOptional(data.creditLimit),
         branchCode: toNumber(data.branchCode) || 1,
         businessUnitCode: toNumber(data.businessUnitCode) || 1,
@@ -531,6 +563,7 @@ export function CustomerFormScreen(): React.ReactElement {
         email: data.email?.trim() ? data.email : undefined,
         website: data.website || undefined,
         address: data.address || undefined,
+        postalCode: data.postalCode || undefined,
         taxNumber: data.taxNumber || undefined,
         taxOffice: data.taxOffice || undefined,
         tcknNumber: data.tcknNumber || undefined,
@@ -559,6 +592,7 @@ export function CustomerFormScreen(): React.ReactElement {
             phone: base.phone,
             phone2: base.phone2,
             address: base.address,
+            postalCode: base.postalCode,
             website: base.website,
             notes: base.notes,
             countryId: base.countryId,
@@ -567,6 +601,7 @@ export function CustomerFormScreen(): React.ReactElement {
             customerTypeId: base.customerTypeId,
             salesRepCode: base.salesRepCode,
             groupCode: base.groupCode,
+            accountingCode: base.accountingCode,
             creditLimit: base.creditLimit,
             branchCode: base.branchCode,
             businessUnitCode: base.businessUnitCode,
@@ -585,6 +620,7 @@ export function CustomerFormScreen(): React.ReactElement {
             taxOffice: base.taxOffice,
             tcknNumber: base.tcknNumber,
             address: base.address,
+            postalCode: base.postalCode,
             phone: base.phone,
             phone2: base.phone2,
             email: base.email,
@@ -596,6 +632,7 @@ export function CustomerFormScreen(): React.ReactElement {
             customerTypeId: base.customerTypeId,
             salesRepCode: base.salesRepCode,
             groupCode: base.groupCode,
+            accountingCode: base.accountingCode,
             creditLimit: base.creditLimit,
             defaultShippingAddressId: base.defaultShippingAddressId,
             branchCode: base.branchCode,
@@ -1226,7 +1263,7 @@ export function CustomerFormScreen(): React.ReactElement {
 
             {activeTab === "details" ? (
             <View style={{ gap: 10 }}>
-              {(formConfig.showSalesRep || formConfig.showGroupCode || formConfig.showCreditLimit || formConfig.showBranchCode || formConfig.showBusinessUnit) && (
+              {(formConfig.showSalesRep || formConfig.showGroupCode || formConfig.showAccountingCode || formConfig.showCreditLimit || formConfig.showBranchCode || formConfig.showBusinessUnit) && (
                 <FormSection title="Ticari Detaylar" icon={<Briefcase01Icon size={16} color={THEME.primary} variant="stroke" />} theme={THEME} isDark={isDark}>
                   
                   {(formConfig.showSalesRep || formConfig.showGroupCode) && (
@@ -1276,6 +1313,26 @@ export function CustomerFormScreen(): React.ReactElement {
                       </View>
                   )}
 
+                  {formConfig.showAccountingCode && (
+                    <Controller
+                      control={control}
+                      name="accountingCode"
+                      render={({ field: { onChange, value, ref } }) => (
+                        <FormField
+                          inputRef={assignRef(ref, accountingCodeInputRef)}
+                          label={t("customer.accountingCode")}
+                          value={value || ""}
+                          onChangeText={onChange}
+                          maxLength={50}
+                          returnKeyType="next"
+                          onSubmitEditing={focusAfterAccountingCode}
+                          onKeyPress={keyboardTabForward(focusAfterAccountingCode)}
+                          onInputFocus={() => scrollInputIntoView(accountingCodeInputRef)}
+                        />
+                      )}
+                    />
+                  )}
+
                   {(formConfig.showBranchCode || formConfig.showBusinessUnit) && (
                       <View style={styles.row}>
                           {formConfig.showBranchCode && (
@@ -1297,7 +1354,7 @@ export function CustomerFormScreen(): React.ReactElement {
                 </FormSection>
               )}
 
-              {(formConfig.showAddress || formConfig.showLocation || formConfig.showShippingAddress) && (
+              {(formConfig.showAddress || formConfig.showPostalCode || formConfig.showLocation || formConfig.showShippingAddress) && (
                 <FormSection title="Adres Bilgileri" icon={<Location01Icon size={16} color={THEME.primary} variant="stroke" />} theme={THEME} isDark={isDark}>
                   {formConfig.showLocation && (
                     <View style={styles.locationSection}>
@@ -1321,6 +1378,26 @@ export function CustomerFormScreen(): React.ReactElement {
                           maxLength={500}
                           onKeyPress={keyboardTabForward(addressTabToNotes)}
                           onInputFocus={() => scrollInputIntoView(addressInputRef)}
+                        />
+                      )}
+                    />
+                  )}
+
+                  {formConfig.showPostalCode && (
+                    <Controller
+                      control={control}
+                      name="postalCode"
+                      render={({ field: { onChange, value, ref } }) => (
+                        <FormField
+                          inputRef={assignRef(ref, postalCodeInputRef)}
+                          label={t("customer.postalCode")}
+                          value={value || ""}
+                          onChangeText={onChange}
+                          maxLength={20}
+                          returnKeyType="next"
+                          onSubmitEditing={focusAfterPostalCode}
+                          onKeyPress={keyboardTabForward(focusAfterPostalCode)}
+                          onInputFocus={() => scrollInputIntoView(postalCodeInputRef)}
                         />
                       )}
                     />

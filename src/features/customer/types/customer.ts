@@ -6,6 +6,7 @@ export interface CustomerGetDto {
   taxOffice?: string;
   tcknNumber?: string;
   address?: string;
+  postalCode?: string;
   latitude?: number;
   longitude?: number;
   phone?: string;
@@ -23,6 +24,7 @@ export interface CustomerGetDto {
   customerTypeName?: string;
   salesRepCode?: string;
   groupCode?: string;
+  accountingCode?: string;
   creditLimit?: number;
   defaultShippingAddressId?: number;
   branchCode?: number;
@@ -58,6 +60,7 @@ export interface CreateCustomerDto {
   taxOffice?: string;
   tcknNumber?: string;
   address?: string;
+  postalCode?: string;
   latitude?: number;
   longitude?: number;
   phone?: string;
@@ -71,6 +74,7 @@ export interface CreateCustomerDto {
   customerTypeId?: number;
   salesRepCode?: string;
   groupCode?: string;
+  accountingCode?: string;
   creditLimit?: number;
   defaultShippingAddressId?: number;
   branchCode: number;
@@ -89,6 +93,7 @@ export interface CreateCustomerFromMobileDto {
   phone?: string;
   phone2?: string;
   address?: string;
+  postalCode?: string;
   website?: string;
   notes?: string;
   countryId?: number;
@@ -97,6 +102,7 @@ export interface CreateCustomerFromMobileDto {
   customerTypeId?: number;
   salesRepCode?: string;
   groupCode?: string;
+  accountingCode?: string;
   creditLimit?: number;
   branchCode?: number;
   businessUnitCode?: number;
@@ -122,6 +128,7 @@ export interface UpdateCustomerDto {
   taxOffice?: string;
   tcknNumber?: string;
   address?: string;
+  postalCode?: string;
   latitude?: number;
   longitude?: number;
   phone?: string;
@@ -135,6 +142,7 @@ export interface UpdateCustomerDto {
   customerTypeId?: number;
   salesRepCode?: string;
   groupCode?: string;
+  accountingCode?: string;
   creditLimit?: number;
   defaultShippingAddressId?: number;
   branchCode: number;
