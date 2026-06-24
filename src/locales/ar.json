@@ -1923,6 +1923,16 @@
         "closed": "مغلق"
       }
     },
+    "erpBalanceDialog": {
+      "openButton": "ملخص رصيد ERP",
+      "title": "ملخص رصيد ERP",
+      "loading": "جارٍ تحميل رصيد ERP...",
+      "error": "تعذر تحميل ملخص رصيد ERP.",
+      "totalDebit": "إجمالي المدين",
+      "totalCredit": "إجمالي الدائن",
+      "balance": "الرصيد",
+      "closed": "مغلق"
+    },
     "quickQuotations": {
       "empty": "لم يتم العثور على عروض أسعار سريعة لهذا العميل",
       "error": "تعذر تحميل عروض الأسعار السريعة",

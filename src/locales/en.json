@@ -1864,6 +1864,16 @@
       "quickQuotations": "Quick Quotations",
       "mailLogs": "Mail History"
     },
+    "erpBalanceDialog": {
+      "openButton": "ERP balance summary",
+      "title": "ERP Balance Summary",
+      "loading": "Loading ERP balance...",
+      "error": "ERP balance summary could not be loaded.",
+      "totalDebit": "Total Debit",
+      "totalCredit": "Total Credit",
+      "balance": "Balance",
+      "closed": "Closed"
+    },
     "quickQuotations": {
       "empty": "No quick quotations found for this customer",
       "error": "Quick quotations could not be loaded",

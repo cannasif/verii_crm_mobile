@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
+import { CustomerErpBalanceAction } from "@/components/shared/CustomerErpBalanceAction";
 import { createClientId } from "@/lib/create-client-id";
 import { getValidRelatedProductGroup } from "@/lib/relatedProductGroup";
 import { resolveDocumentSerialCustomerTypeId } from "@/lib/resolve-document-serial-customer-type-id";
@@ -1699,45 +1700,54 @@ export function QuotationDetailScreen(): React.ReactElement {
                   <Text style={[styles.sectionTitle, { color: titleText }]}>{t("quotation.customerSection")}</Text>
                 </View>
 
-                <TouchableOpacity
-                  style={[
-                    styles.customerSelectButton,
-                    {
-                      backgroundColor: innerBg,
-                      borderColor: errors.quotation?.potentialCustomerId ? colors.error : innerBorder,
-                    },
-                  ]}
-                  onPress={() => !isReadonly && setCustomerSelectDialogOpen(true)}
-                  disabled={isReadonly}
-                  activeOpacity={isReadonly ? 1 : 0.85}
-                >
-                  <View style={styles.customerSelectContent}>
-                    <View
-                      style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: 9,
-                        borderWidth: 1,
-                        alignItems: "center",
-                        justifyContent: "center",
-                        marginRight: 8,
-                        backgroundColor: `${accent}10`,
-                        borderColor: `${accent}18`,
-                      }}
-                    >
-                      <UserIcon size={14} color={accent} variant="stroke" strokeWidth={1.8} />
-                    </View>
-                    <View style={styles.customerSelectTextContainer}>
-                      <Text style={[styles.customerSelectLabel, { color: softText }]}>
-                        {t("quotation.selectCustomer")}
-                      </Text>
-                      <Text style={[styles.customerSelectValue, { color: titleText }]} numberOfLines={1}>
+                <View style={styles.customerSelectRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.customerSelectButton,
+                      {
+                        backgroundColor: innerBg,
+                        borderColor: errors.quotation?.potentialCustomerId ? colors.error : innerBorder,
+                        flex: 1,
+                        marginBottom: 0,
+                      },
+                    ]}
+                    onPress={() => !isReadonly && setCustomerSelectDialogOpen(true)}
+                    disabled={isReadonly}
+                    activeOpacity={isReadonly ? 1 : 0.85}
+                  >
+                    <View style={styles.customerSelectContent}>
+                      <View
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 9,
+                          borderWidth: 1,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          marginRight: 8,
+                          backgroundColor: `${accent}10`,
+                          borderColor: `${accent}18`,
+                        }}
+                      >
+                        <UserIcon size={14} color={accent} variant="stroke" strokeWidth={1.8} />
+                      </View>
+                      <View style={styles.customerSelectTextContainer}>
+                        <Text style={[styles.customerSelectLabel, { color: softText }]}>
+                          {t("quotation.selectCustomer")}
+                        </Text>
+                        <Text style={[styles.customerSelectValue, { color: titleText }]} numberOfLines={1}>
                           {customerSelectLabel}
-                      </Text>
+                        </Text>
+                      </View>
                     </View>
-                  </View>
-                  <ArrowRight01Icon size={18} color={softText} variant="stroke" strokeWidth={1.8} />
-                </TouchableOpacity>
+                    <ArrowRight01Icon size={18} color={softText} variant="stroke" strokeWidth={1.8} />
+                  </TouchableOpacity>
+                  <CustomerErpBalanceAction
+                    customerId={watchedCustomerId}
+                    erpCustomerCode={watchedErpCustomerCode}
+                    customerLabel={customerSelectLabel}
+                  />
+                </View>
 
                 {errors.quotation?.potentialCustomerId?.message && (
                   <Text style={[styles.fieldError, { color: colors.error }]}>
@@ -2737,6 +2747,12 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     marginBottom: 10,
     minHeight: 50,
+  },
+  customerSelectRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: 8,
+    marginBottom: 10,
   },
   customerSelectContent: { flexDirection: "row", alignItems: "center", flex: 1 },
   customerSelectTextContainer: { flex: 1 },

@@ -12,6 +12,7 @@ import {
   TextInput,
 } from "react-native";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
+import { CustomerErpBalanceAction } from "@/components/shared/CustomerErpBalanceAction";
 import { createClientId } from "@/lib/create-client-id";
 import { resolveDocumentSerialCustomerTypeId } from "@/lib/resolve-document-serial-customer-type-id";
 import {
@@ -1258,59 +1259,69 @@ export function QuotationCreateScreen(): React.ReactElement {
                 </Text>
               </View>
 
-              <TouchableOpacity
-                style={[
-                  styles.customerSelectButton,
-                  {
-                    backgroundColor: innerBg,
-                    borderColor: errors.quotation?.potentialCustomerId
-                      ? colors.error
-                      : innerBorder,
-                    minHeight: 48,
-                    borderRadius: 16,
-                  },
-                ]}
-                onPress={() => setCustomerSelectDialogOpen(true)}
-              >
-                <View style={styles.customerSelectContent}>
-                  <View
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 9,
-                      borderWidth: 1,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginRight: 8,
-                      backgroundColor: `${accent}10`,
-                      borderColor: `${accent}18`,
-                    }}
-                  >
-                    <UserIcon size={14} color={accent} variant="stroke" strokeWidth={1.8} />
+              <View style={styles.customerSelectRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.customerSelectButton,
+                    {
+                      backgroundColor: innerBg,
+                      borderColor: errors.quotation?.potentialCustomerId
+                        ? colors.error
+                        : innerBorder,
+                      minHeight: 52,
+                      borderRadius: 16,
+                      flex: 1,
+                      marginBottom: 0,
+                    },
+                  ]}
+                  onPress={() => setCustomerSelectDialogOpen(true)}
+                >
+                  <View style={styles.customerSelectContent}>
+                    <View
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 9,
+                        borderWidth: 1,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        marginRight: 8,
+                        backgroundColor: `${accent}10`,
+                        borderColor: `${accent}18`,
+                      }}
+                    >
+                      <UserIcon size={14} color={accent} variant="stroke" strokeWidth={1.8} />
+                    </View>
+
+                    <View style={styles.customerSelectTextContainer}>
+                      <Text
+                        style={[
+                          styles.customerSelectLabel,
+                          { color: softText },
+                        ]}
+                      >
+                        MÜŞTERİ SEÇİMİ
+                      </Text>
+                      <Text
+                        style={[
+                          styles.customerSelectValue,
+                          { color: titleText },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {customerSelectLabel}
+                      </Text>
+                    </View>
                   </View>
 
-                  <View style={styles.customerSelectTextContainer}>
-                    <Text
-                      style={[
-                        styles.customerSelectLabel,
-                        { color: softText },
-                      ]}
-                    >
-                      MÜŞTERİ SEÇİMİ
-                    </Text>
-                    <Text
-                      style={[
-                        styles.customerSelectValue,
-                        { color: titleText },
-                      ]}
-                    >
-                      {customerSelectLabel}
-                    </Text>
-                  </View>
-                </View>
-
-                <ArrowRight01Icon size={18} color={softText} variant="stroke" strokeWidth={1.8} />
-              </TouchableOpacity>
+                  <ArrowRight01Icon size={18} color={softText} variant="stroke" strokeWidth={1.8} />
+                </TouchableOpacity>
+                <CustomerErpBalanceAction
+                  customerId={watchedCustomerId}
+                  erpCustomerCode={watchedErpCustomerCode}
+                  customerLabel={customerSelectLabel}
+                />
+              </View>
 
               {errors.quotation?.potentialCustomerId?.message && (
                 <Text style={[styles.fieldError, { color: colors.error }]}>
@@ -2648,6 +2659,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 12,
+    marginBottom: 16,
+  },
+  customerSelectRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: 8,
     marginBottom: 16,
   },
   customerSelectContent: {

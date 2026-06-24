@@ -1770,6 +1770,16 @@
       "quickQuotations": "Schnellangebote",
       "mailLogs": "Mail-Verlauf"
     },
+    "erpBalanceDialog": {
+      "openButton": "ERP-Saldoübersicht",
+      "title": "ERP-Saldoübersicht",
+      "loading": "ERP-Saldo wird geladen...",
+      "error": "ERP-Saldoübersicht konnte nicht geladen werden.",
+      "totalDebit": "Soll gesamt",
+      "totalCredit": "Haben gesamt",
+      "balance": "Saldo",
+      "closed": "Geschlossen"
+    },
     "quickQuotations": {
       "empty": "Für diesen Kunden wurden keine Schnellangebote gefunden",
       "error": "Schnellangebote konnten nicht geladen werden",

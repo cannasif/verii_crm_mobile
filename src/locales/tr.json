@@ -1925,6 +1925,16 @@
         "closed": "Kapalı"
       }
     },
+    "erpBalanceDialog": {
+      "openButton": "ERP bakiye özeti",
+      "title": "ERP Bakiye Özeti",
+      "loading": "ERP bakiye bilgisi yükleniyor...",
+      "error": "ERP bakiye özeti yüklenemedi.",
+      "totalDebit": "Toplam Borç",
+      "totalCredit": "Toplam Alacak",
+      "balance": "Bakiye",
+      "closed": "Kapalı"
+    },
     "quickQuotations": {
       "empty": "Bu cariye ait hızlı teklif bulunamadı",
       "error": "Hızlı teklifler yüklenemedi",
