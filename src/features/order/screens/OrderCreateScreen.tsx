@@ -21,6 +21,7 @@ import {
 } from "@/lib/customerIntegration";
 import { resolveExchangeRateByCurrency as findExchangeRateByCurrency } from "@/lib/resolve-exchange-rate";
 import { buildDocumentExchangeRatesForLines } from "@/lib/document-exchange-rates";
+import { applyExchangeRateChangeToLines } from "@/lib/salesDocumentExchangeRate";
 import { resolveLineListCurrencyLabel, resolveCurrencyIsoCode } from "../../../lib/currencyDisplay";
 import { resolveOrderCustomerLabelForPdf } from "../utils/resolveOrderCustomerLabelForPdf";
 import { buildOrderPreviewPdfInput } from "../utils/buildOrderPreviewPdfInput";
@@ -186,6 +187,28 @@ export function OrderCreateScreen(): React.ReactElement {
   });
 
   const watchedCurrency = watch("order.currency");
+
+  const handleExchangeRatesSave = useCallback(
+    (rates: OrderExchangeRateFormState[]) => {
+      const currency = watchedCurrency == null ? "" : String(watchedCurrency);
+      const oldRate = exchangeRates.find(
+        (rate) => rate.currency === currency || String(rate.dovizTipi) === currency
+      );
+      const newRate = rates.find(
+        (rate) => rate.currency === currency || String(rate.dovizTipi) === currency
+      );
+      const oldValue = Number(oldRate?.exchangeRate ?? 0);
+      const newValue = Number(newRate?.exchangeRate ?? 0);
+
+      if (oldValue > 0 && newValue > 0 && oldValue !== newValue) {
+        setLines((prev) => applyExchangeRateChangeToLines(prev, oldValue, newValue, calculateLineTotals));
+      }
+
+      setExchangeRates(rates);
+      setExchangeRateDialogVisible(false);
+    },
+    [exchangeRates, watchedCurrency]
+  );
   const watchedCustomerId = watch("order.potentialCustomerId");
   const watchedErpCustomerCode = watch("order.erpCustomerCode");
   const watchedRepresentativeId = watch("order.representativeId");
@@ -1600,10 +1623,7 @@ export function OrderCreateScreen(): React.ReactElement {
           isLoadingErpRates={isLoadingErpRates && erpRatesForOrder.length === 0}
           currencyInUse={lines.length > 0 ? (watchedCurrency || undefined) : undefined}
           onClose={() => setExchangeRateDialogVisible(false)}
-          onSave={(rates) => {
-            setExchangeRates(rates);
-            setExchangeRateDialogVisible(false);
-          }}
+          onSave={handleExchangeRatesSave}
           offerDate={watchedOfferDate || undefined}
         />
 

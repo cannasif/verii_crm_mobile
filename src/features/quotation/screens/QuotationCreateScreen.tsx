@@ -27,6 +27,7 @@ import {
   resolveExchangeRateByCurrency as findExchangeRateByCurrency,
 } from "@/lib/resolve-exchange-rate";
 import { buildDocumentExchangeRatesForLines } from "@/lib/document-exchange-rates";
+import { applyExchangeRateChangeToLines } from "@/lib/salesDocumentExchangeRate";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { StatusBar } from "expo-status-bar";
@@ -257,6 +258,28 @@ export function QuotationCreateScreen(): React.ReactElement {
   });
 
   const watchedCurrency = watch("quotation.currency");
+
+  const handleExchangeRatesSave = useCallback(
+    (rates: QuotationExchangeRateFormState[]) => {
+      const currency = watchedCurrency == null ? "" : String(watchedCurrency);
+      const oldRate = exchangeRates.find(
+        (rate) => rate.currency === currency || String(rate.dovizTipi) === currency
+      );
+      const newRate = rates.find(
+        (rate) => rate.currency === currency || String(rate.dovizTipi) === currency
+      );
+      const oldValue = Number(oldRate?.exchangeRate ?? 0);
+      const newValue = Number(newRate?.exchangeRate ?? 0);
+
+      if (oldValue > 0 && newValue > 0 && oldValue !== newValue) {
+        setLines((prev) => applyExchangeRateChangeToLines(prev, oldValue, newValue, calculateLineTotals));
+      }
+
+      setExchangeRates(rates);
+      setExchangeRateDialogVisible(false);
+    },
+    [exchangeRates, watchedCurrency]
+  );
   const watchedCustomerId = watch("quotation.potentialCustomerId");
   const watchedErpCustomerCode = watch("quotation.erpCustomerCode");
   const watchedRepresentativeId = watch("quotation.representativeId");
@@ -2228,10 +2251,7 @@ export function QuotationCreateScreen(): React.ReactElement {
             isLoadingErpRates={isLoadingErpRates && erpRatesForQuotation.length === 0}
             currencyInUse={lines.length > 0 ? watchedCurrency || undefined : undefined}
             onClose={() => setExchangeRateDialogVisible(false)}
-            onSave={(rates) => {
-              setExchangeRates(rates);
-              setExchangeRateDialogVisible(false);
-            }}
+            onSave={handleExchangeRatesSave}
             offerDate={watchedOfferDate || undefined}
           />
 

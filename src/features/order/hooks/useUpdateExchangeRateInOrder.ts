@@ -12,6 +12,8 @@ export function useUpdateExchangeRateInOrder() {
   return useMutation<boolean, Error, { orderId: number; body: OrderExchangeRateUpdateDto[] }>({
     mutationFn: ({ body }) => orderApi.updateExchangeRateInOrder(body),
     onSuccess: (_, { orderId }) => {
+      queryClient.invalidateQueries({ queryKey: ["order", "detail", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["order", "detail", "lines", orderId] });
       queryClient.invalidateQueries({ queryKey: ["order", "detail", "exchangeRates", orderId] });
       showToast("success", t("order.exchangeRatesUpdated"));
     },

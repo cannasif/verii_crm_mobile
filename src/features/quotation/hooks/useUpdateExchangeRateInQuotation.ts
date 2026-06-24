@@ -12,6 +12,8 @@ export function useUpdateExchangeRateInQuotation() {
   return useMutation<boolean, Error, { quotationId: number; body: QuotationExchangeRateUpdateDto[] }>({
     mutationFn: ({ body }) => quotationApi.updateExchangeRateInQuotation(body),
     onSuccess: (_, { quotationId }) => {
+      queryClient.invalidateQueries({ queryKey: ["quotation", "detail", quotationId] });
+      queryClient.invalidateQueries({ queryKey: ["quotation", "detail", "lines", quotationId] });
       queryClient.invalidateQueries({ queryKey: ["quotation", "detail", "exchangeRates", quotationId] });
       showToast("success", t("common.exchangeRatesUpdated"));
     },
