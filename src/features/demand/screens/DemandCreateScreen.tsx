@@ -19,7 +19,10 @@ import {
   resolveDocumentCustomerSelectLabel,
   resolvePricingRuleCustomerCode,
 } from "@/lib/customerIntegration";
-import { resolveExchangeRateByCurrency as findExchangeRateByCurrency } from "@/lib/resolve-exchange-rate";
+import {
+  hasDocumentExchangeRate,
+  resolveExchangeRateByCurrency as findExchangeRateByCurrency,
+} from "@/lib/resolve-exchange-rate";
 import { buildDocumentExchangeRatesForLines } from "@/lib/document-exchange-rates";
 import { applyExchangeRateChangeToLines } from "@/lib/salesDocumentExchangeRate";
 import { resolveLineListCurrencyLabel } from "../../../lib/currencyDisplay";
@@ -464,15 +467,41 @@ export function DemandCreateScreen(): React.ReactElement {
     [lines.length, setValue, applyCurrencyChange, t]
   );
 
+  const ensureDocumentExchangeRate = useCallback((): boolean => {
+    if (
+      hasDocumentExchangeRate(
+        watchedCurrency || "",
+        exchangeRates,
+        erpRatesForDemand,
+        currencyOptions,
+        { allowErpFallback: false }
+      )
+    ) {
+      return true;
+    }
+
+    showToast("error", "Kur değeri 0 olan para birimiyle stok eklenemez. Lütfen önce döviz kurunu girin.");
+    return false;
+  }, [watchedCurrency, exchangeRates, erpRatesForDemand, currencyOptions, showToast]);
+
   const handleAddLine = useCallback(() => {
     if ((!watchedCustomerId && !watchedErpCustomerCode) || !watchedRepresentativeId || !watchedCurrency) {
       showToast("error", t("common.selectCustomerRepresentativeCurrency"));
       return;
     }
 
+    if (!ensureDocumentExchangeRate()) return;
     setEditingLine(null);
     setLineFormVisible(true);
-  }, [watchedCustomerId, watchedErpCustomerCode, watchedRepresentativeId, watchedCurrency, showToast]);
+  }, [
+    watchedCustomerId,
+    watchedErpCustomerCode,
+    watchedRepresentativeId,
+    watchedCurrency,
+    ensureDocumentExchangeRate,
+    showToast,
+    t,
+  ]);
 
   const canAddLine = Boolean((watchedCustomerId || watchedErpCustomerCode) && watchedRepresentativeId && watchedCurrency);
 
@@ -543,6 +572,7 @@ export function DemandCreateScreen(): React.ReactElement {
   const handleProductSelectWithRelatedStocks = useCallback(
     async (stock: StockGetDto, relatedStockIds?: number[]) => {
       if (!stock.id) return;
+      if (!ensureDocumentExchangeRate()) return;
 
       const applyCurrencyToPrice = (listPrice: number, priceCurrency: string): number | null => {
         if (!watchedCurrency || priceCurrency === watchedCurrency) return listPrice;
@@ -681,7 +711,16 @@ export function DemandCreateScreen(): React.ReactElement {
         setLines((prev) => [...prev, mainLine]);
       }
     },
-    [watchedCurrency, exchangeRates, erpRatesForDemand, currencyOptions, showToast, i18n.language, watchedOfferType]
+    [
+      watchedCurrency,
+      exchangeRates,
+      erpRatesForDemand,
+      currencyOptions,
+      ensureDocumentExchangeRate,
+      showToast,
+      i18n.language,
+      watchedOfferType,
+    ]
   );
 
   const handleDeleteLine = useCallback(

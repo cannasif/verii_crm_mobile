@@ -25,7 +25,10 @@ import {
   resolvePricingRuleCustomerCode,
 } from "@/lib/customerIntegration";
 import { resolveRepresentativeDisplayLabel } from "@/lib/resolveRepresentativeDisplayLabel";
-import { resolveExchangeRateByCurrency as findExchangeRateByCurrency } from "@/lib/resolve-exchange-rate";
+import {
+  hasDocumentExchangeRate,
+  resolveExchangeRateByCurrency as findExchangeRateByCurrency,
+} from "@/lib/resolve-exchange-rate";
 import { buildDocumentExchangeRatesForLines } from "@/lib/document-exchange-rates";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
@@ -717,14 +720,40 @@ export function OrderDetailScreen(): React.ReactElement {
     [applyCurrencyChange, lines.length, setValue, t]
   );
 
+  const ensureDocumentExchangeRate = useCallback((): boolean => {
+    if (
+      hasDocumentExchangeRate(
+        watchedCurrency || "",
+        exchangeRates,
+        erpRatesForOrder,
+        currencyOptions,
+        { allowErpFallback: false }
+      )
+    ) {
+      return true;
+    }
+
+    showToast("error", "Kur değeri 0 olan para birimiyle stok eklenemez. Lütfen önce döviz kurunu girin.");
+    return false;
+  }, [watchedCurrency, exchangeRates, erpRatesForOrder, currencyOptions, showToast]);
+
   const handleAddLine = useCallback(() => {
     if ((!watchedCustomerId && !watchedErpCustomerCode) || !watchedRepresentativeId || !watchedCurrency) {
       showToast("error", t("common.selectCustomerRepresentativeCurrency"));
       return;
     }
+    if (!ensureDocumentExchangeRate()) return;
     setEditingLine(null);
     setLineFormVisible(true);
-  }, [watchedCustomerId, watchedErpCustomerCode, watchedRepresentativeId, watchedCurrency, showToast, t]);
+  }, [
+    watchedCustomerId,
+    watchedErpCustomerCode,
+    watchedRepresentativeId,
+    watchedCurrency,
+    ensureDocumentExchangeRate,
+    showToast,
+    t,
+  ]);
 
   const canAddLine = Boolean((watchedCustomerId || watchedErpCustomerCode) && watchedRepresentativeId && watchedCurrency);
 
@@ -887,6 +916,7 @@ export function OrderDetailScreen(): React.ReactElement {
   const handleProductSelectWithRelatedStocks = useCallback(
     async (stock: StockGetDto, relatedStockIds?: number[]) => {
       if (!stock.id) return;
+      if (!ensureDocumentExchangeRate()) return;
 
       const applyCurrencyToPrice = (listPrice: number, priceCurrency: string): number => {
         if (!watchedCurrency || priceCurrency === watchedCurrency) return listPrice;
@@ -1018,7 +1048,15 @@ export function OrderDetailScreen(): React.ReactElement {
         setLines((prev) => [...prev, mainLine]);
       }
     },
-    [watchedCurrency, exchangeRates, erpRatesForOrder, currencyOptions, i18n.language, watchedOfferType]
+    [
+      watchedCurrency,
+      exchangeRates,
+      erpRatesForOrder,
+      currencyOptions,
+      ensureDocumentExchangeRate,
+      i18n.language,
+      watchedOfferType,
+    ]
   );
 
   const handleStartApproval = useCallback(() => {

@@ -24,6 +24,7 @@ import { parseDecimalInput, sanitizeDecimalInput } from "@/lib/decimal-input";
 import {
   buildEffectiveExchangeRates,
   findCurrencyOptionByValue,
+  hasDocumentExchangeRate,
   resolveExchangeRateByCurrency as findExchangeRateByCurrency,
 } from "@/lib/resolve-exchange-rate";
 import { buildDocumentExchangeRatesForLines } from "@/lib/document-exchange-rates";
@@ -614,6 +615,23 @@ export function QuotationCreateScreen(): React.ReactElement {
     [lines.length, setValue, applyCurrencyChange, t]
   );
 
+  const ensureDocumentExchangeRate = useCallback((): boolean => {
+    if (
+      hasDocumentExchangeRate(
+        watchedCurrency || "",
+        exchangeRates,
+        erpRatesForQuotation,
+        currencyOptions,
+        { allowErpFallback: false }
+      )
+    ) {
+      return true;
+    }
+
+    showToast("error", "Kur değeri 0 olan para birimiyle stok eklenemez. Lütfen önce döviz kurunu girin.");
+    return false;
+  }, [watchedCurrency, exchangeRates, erpRatesForQuotation, currencyOptions, showToast]);
+
   const handleAddLine = useCallback(() => {
     if (
       (!watchedCustomerId && !watchedErpCustomerCode) ||
@@ -623,6 +641,7 @@ export function QuotationCreateScreen(): React.ReactElement {
       showToast("error", t("common.selectCustomerRepresentativeCurrency"));
       return;
     }
+    if (!ensureDocumentExchangeRate()) return;
     setEditingLine(null);
     setLineFormVisible(true);
   }, [
@@ -630,6 +649,7 @@ export function QuotationCreateScreen(): React.ReactElement {
     watchedErpCustomerCode,
     watchedRepresentativeId,
     watchedCurrency,
+    ensureDocumentExchangeRate,
     showToast,
     t,
   ]);
@@ -703,6 +723,7 @@ export function QuotationCreateScreen(): React.ReactElement {
   const handleProductSelectWithRelatedStocks = useCallback(
     async (stock: StockGetDto, relatedStockIds?: number[]) => {
       if (!stock.id) return;
+      if (!ensureDocumentExchangeRate()) return;
 
       const applyCurrencyToPrice = (listPrice: number, priceCurrency: string): number | null => {
         if (!watchedCurrency || priceCurrency === watchedCurrency) return listPrice;
@@ -882,7 +903,16 @@ export function QuotationCreateScreen(): React.ReactElement {
         setLines((prev) => [...prev, mainLine]);
       }
     },
-    [watchedCurrency, exchangeRates, erpRatesForQuotation, currencyOptions, showToast, i18n.language, watchedOfferType]
+    [
+      watchedCurrency,
+      exchangeRates,
+      erpRatesForQuotation,
+      currencyOptions,
+      ensureDocumentExchangeRate,
+      showToast,
+      i18n.language,
+      watchedOfferType,
+    ]
   );
 
   const handleDeleteLine = useCallback(

@@ -99,6 +99,18 @@ export function findCurrencyOptionByValue(
   });
 }
 
+export function isLocalCurrency(
+  currency: string,
+  currencyOptions?: CurrencyOptionLike[]
+): boolean {
+  const currencyOption = findCurrencyOptionByValue(currency, currencyOptions);
+  if (currencyOption?.dovizTipi === 0) return true;
+
+  const normalized = normalizeCurrencyValue(currency);
+  const aliases = resolveCurrencyAliases(currency);
+  return normalized === "0" || aliases.includes("TL") || aliases.includes("TRY");
+}
+
 function findFormRate(
   currency: string,
   formRates: ExchangeRateFormLike[],
@@ -261,4 +273,23 @@ export function resolveExchangeRateByCurrency(
   if (formRate != null && formRate > 0) return formRate;
 
   return findErpRate(currency, erpRates, currencyOption);
+}
+
+export function hasDocumentExchangeRate(
+  currency: string,
+  formRates: ExchangeRateFormLike[],
+  erpRates: ExchangeRateLike[] | undefined,
+  currencyOptions?: CurrencyOptionLike[],
+  options: { allowErpFallback?: boolean } = {}
+): boolean {
+  if (!currency || isLocalCurrency(currency, currencyOptions)) return true;
+
+  const currencyOption = findCurrencyOptionByValue(currency, currencyOptions);
+  const formRate = findFormRate(currency, formRates, currencyOption);
+  if (formRate != null && formRate > 0) return true;
+
+  if (options.allowErpFallback === false) return false;
+
+  const erpRate = findErpRate(currency, erpRates, currencyOption);
+  return erpRate != null && erpRate > 0;
 }
