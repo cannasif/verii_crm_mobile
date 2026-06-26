@@ -486,7 +486,10 @@ export function CustomerFormScreen(): React.ReactElement {
 
   const handleDistrictChange = useCallback((district: DistrictDto | undefined) => {
     setValue("districtId", district?.id);
-  }, [setValue]);
+    if (district?.postalCode && !String(watch("postalCode") || "").trim()) {
+      setValue("postalCode", district.postalCode, { shouldDirty: true, shouldValidate: true });
+    }
+  }, [setValue, watch]);
 
   const normalizeLookupName = useCallback((value?: string | null): string => {
     if (!value) return "";

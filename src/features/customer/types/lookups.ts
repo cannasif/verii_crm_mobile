@@ -32,6 +32,7 @@ export interface DistrictDto {
   id: number;
   name: string;
   erpCode?: string;
+  postalCode?: string;
   cityId: number;
   cityName?: string;
   createdDate: string;

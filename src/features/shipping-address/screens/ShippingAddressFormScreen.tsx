@@ -164,9 +164,12 @@ export function ShippingAddressFormScreen(): React.ReactElement {
   const handleDistrictChange = useCallback(
     (district: DistrictDto | undefined) => {
       setValue("districtId", district?.id);
+      if (district?.postalCode && !String(watch("postalCode") || "").trim()) {
+        setValue("postalCode", district.postalCode, { shouldDirty: true, shouldValidate: true });
+      }
       setPendingDistrictName(null);
     },
-    [setValue]
+    [setValue, watch]
   );
 
   useEffect(() => {
