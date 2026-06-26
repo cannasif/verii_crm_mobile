@@ -18,6 +18,7 @@ import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useSystemSettingsStore } from "../../../store/system-settings";
 import { useSystemSettingsQuery } from "../../system-settings/hooks/useSystemSettingsQuery";
+import { useDocumentFieldLabelMap } from "../../document-field-labels";
 import { ProductPicker, type ProductPickerRef } from "./ProductPicker";
 import { PickerModal } from "./PickerModal";
 import type { StockRelationDto } from "../../stocks/types";
@@ -118,6 +119,13 @@ export function DemandLineForm({
   const effectiveSystemSettings = freshSystemSettings ?? storedSystemSettings;
   const hideVatRate = Boolean(effectiveSystemSettings.hideDemandVatRate);
   const readonlyVatRate = Boolean(effectiveSystemSettings.readonlyDemandVatRate);
+  const lineDescriptionLabels = useDocumentFieldLabelMap("demand", "LineDescription");
+  const description1Label = lineDescriptionLabels.Description1?.effectiveLabel || "Açıklama 1";
+  const description2Label = lineDescriptionLabels.Description2?.effectiveLabel || "Açıklama 2";
+  const description3Label = lineDescriptionLabels.Description3?.effectiveLabel || "Açıklama 3";
+  const description1Placeholder = lineDescriptionLabels.Description1?.placeholder || description1Label;
+  const description2Placeholder = lineDescriptionLabels.Description2?.placeholder || description2Label;
+  const description3Placeholder = lineDescriptionLabels.Description3?.placeholder || description3Label;
   const isVatRateInputLocked = readonlyVatRate;
   const insets = useSafeAreaInsets();
 
@@ -1226,6 +1234,12 @@ export function DemandLineForm({
               description1={description1}
               description2={description2}
               description3={description3}
+              description1Label={description1Label}
+              description2Label={description2Label}
+              description3Label={description3Label}
+              description1Placeholder={description1Placeholder}
+              description2Placeholder={description2Placeholder}
+              description3Placeholder={description3Placeholder}
               onDescription1Change={setDescription1}
               onDescription2Change={setDescription2}
               onDescription3Change={setDescription3}

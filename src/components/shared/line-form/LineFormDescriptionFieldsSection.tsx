@@ -17,6 +17,12 @@ type LineFormDescriptionFieldsSectionProps = {
   description1: string;
   description2: string;
   description3: string;
+  description1Label?: string;
+  description2Label?: string;
+  description3Label?: string;
+  description1Placeholder?: string;
+  description2Placeholder?: string;
+  description3Placeholder?: string;
   onDescription1Change: (value: string) => void;
   onDescription2Change: (value: string) => void;
   onDescription3Change: (value: string) => void;
@@ -44,6 +50,12 @@ export function LineFormDescriptionFieldsSection({
   description1,
   description2,
   description3,
+  description1Label = "Açıklama 1",
+  description2Label = "Açıklama 2",
+  description3Label = "Açıklama 3",
+  description1Placeholder = description1Label,
+  description2Placeholder = description2Label,
+  description3Placeholder = description3Label,
   onDescription1Change,
   onDescription2Change,
   onDescription3Change,
@@ -122,32 +134,32 @@ export function LineFormDescriptionFieldsSection({
 
       <View style={styles.rowThree}>
         <View style={styles.fieldThird}>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>Açıklama 1</Text>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>{description1Label}</Text>
           <TextInput
             style={inputStyle}
             value={description1}
             onChangeText={onDescription1Change}
-            placeholder="Açıklama 1"
+            placeholder={description1Placeholder}
             placeholderTextColor={colors.textSecondary}
           />
         </View>
         <View style={styles.fieldThird}>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>Açıklama 2</Text>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>{description2Label}</Text>
           <TextInput
             style={inputStyle}
             value={description2}
             onChangeText={onDescription2Change}
-            placeholder="Açıklama 2"
+            placeholder={description2Placeholder}
             placeholderTextColor={colors.textSecondary}
           />
         </View>
         <View style={styles.fieldThird}>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>Açıklama 3</Text>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>{description3Label}</Text>
           <TextInput
             style={inputStyle}
             value={description3}
             onChangeText={onDescription3Change}
-            placeholder="Açıklama 3"
+            placeholder={description3Placeholder}
             placeholderTextColor={colors.textSecondary}
           />
         </View>
