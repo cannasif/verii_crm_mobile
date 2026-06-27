@@ -807,7 +807,7 @@ export function OrderLineForm({
   }, [selectedStock, userDiscountLimits, discountRate1, discountRate2, discountRate3]);
 
   const showDiscountRateError = useCallback(() => {
-    Alert.alert("İndirim", "İndirim oranı toplamı %100 değerini aşamaz.");
+    Alert.alert("İndirim", "Kademeli iskonto efektif %100 değerine ulaşamaz.");
   }, []);
 
   const normalizeDiscountInput = useCallback(
@@ -817,7 +817,7 @@ export function OrderLineForm({
         discountRate2: parseDecimalInput(discountRate2),
         discountRate3: parseDecimalInput(discountRate3),
       });
-      if (normalized.reason === "total") {
+      if (normalized.wasClamped) {
         showDiscountRateError();
       }
       return normalized.value;
