@@ -38,6 +38,7 @@ import {
 } from "hugeicons-react-native";
 
 import { useUIStore } from "../../store/ui";
+import { brandThemes, type BrandTheme } from "../../constants/theme";
 import {
   setLanguage,
   getCurrentLanguage,
@@ -48,9 +49,6 @@ import { isAppRtl, rtlEndMargin, rtlRow, rtlStartMargin, rtlTextAlign, rtlWritin
 
 const { width } = Dimensions.get("window");
 const PANEL_WIDTH = width * 0.85;
-
-const ACTIVE_COLOR = "#EC4899";
-const ACTIVE_BG_COLOR = "rgba(236, 72, 153, 0.1)";
 
 interface ProfilePanelProps {
   isOpen: boolean;
@@ -78,8 +76,10 @@ export default function ProfilePanel({
   const isRtl = isAppRtl(language);
   const hiddenTranslateX = isRtl ? -PANEL_WIDTH : PANEL_WIDTH;
 
-  const { colors, themeMode, toggleTheme, menuViewType, setMenuViewType } = useUIStore();
+  const { colors, themeMode, brandTheme, setBrandTheme, toggleTheme, menuViewType, setMenuViewType } = useUIStore();
   const isDarkMode = themeMode === "dark";
+  const activeColor = colors.accent;
+  const activeBgColor = colors.activeBackground;
   const [currentLang, setCurrentLang] = useState(getCurrentLanguage());
 
   const [isVisible, setIsVisible] = useState(isOpen);
@@ -186,12 +186,12 @@ export default function ProfilePanel({
           <FlatListScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
             
             <View style={styles.userInfoContainer}>
-              <View style={[styles.avatarBorder, { borderColor: isDarkMode ? "rgba(236, 72, 153, 0.3)" : "rgba(236, 72, 153, 0.15)" }]}>
+              <View style={[styles.avatarBorder, { borderColor: isDarkMode ? colors.cardBorder : colors.activeBackground }]}>
                 <View style={[styles.avatarInner, { backgroundColor: isDarkMode ? "#161224" : "#FFFFFF" }]}>
                   {profileImageUrl ? (
                     <Image source={{ uri: profileImageUrl }} style={styles.avatarImage} resizeMode="cover" />
                   ) : (
-                    <UserIcon size={36} color={ACTIVE_COLOR} variant="stroke" />
+                    <UserIcon size={36} color={activeColor} variant="stroke" />
                   )}
                 </View>
               </View>
@@ -203,9 +203,9 @@ export default function ProfilePanel({
                 {email}
               </Text>
 
-              <View style={[styles.branchBadge, { backgroundColor: ACTIVE_BG_COLOR, flexDirection: rtlRow(language) }]}>
-                <Store01Icon size={14} color={ACTIVE_COLOR} variant="stroke" style={rtlEndMargin(6, language)} />
-                <Text style={[styles.branchText, { color: ACTIVE_COLOR }]}>{branch || t("profile.defaultBranch")}</Text>
+              <View style={[styles.branchBadge, { backgroundColor: activeBgColor, flexDirection: rtlRow(language) }]}>
+                <Store01Icon size={14} color={activeColor} variant="stroke" style={rtlEndMargin(6, language)} />
+                <Text style={[styles.branchText, { color: activeColor }]}>{branch || t("profile.defaultBranch")}</Text>
               </View>
             </View>
 
@@ -269,8 +269,8 @@ export default function ProfilePanel({
               <View style={[styles.rowDivider, rtlStartMargin(52, language), { backgroundColor: colors.border }]} />
 
               <View style={[styles.menuRow, { flexDirection: rtlRow(language) }]}>
-                <View style={[styles.iconBox, rtlEndMargin(14, language), { backgroundColor: "rgba(236, 72, 153, 0.1)" }]}>
-                  <ListViewIcon size={20} color={ACTIVE_COLOR} variant="stroke" strokeWidth={1.8} />
+                <View style={[styles.iconBox, rtlEndMargin(14, language), { backgroundColor: activeBgColor }]}>
+                  <ListViewIcon size={20} color={activeColor} variant="stroke" strokeWidth={1.8} />
                 </View>
                 <Text style={[styles.menuText, { color: colors.text, textAlign: rtlTextAlign(language), writingDirection: rtlWritingDirection(language) }]}>
                   {t("profile.menuView")}
@@ -299,7 +299,7 @@ export default function ProfilePanel({
                   >
                     <ListViewIcon
                       size={18}
-                      color={menuViewType === "list" ? ACTIVE_COLOR : colors.textMuted}
+                      color={menuViewType === "list" ? activeColor : colors.textMuted}
                       variant="stroke"
                       strokeWidth={1.8}
                     />
@@ -319,12 +319,98 @@ export default function ProfilePanel({
                   >
                     <GridViewIcon
                       size={18}
-                      color={menuViewType === "grid" ? ACTIVE_COLOR : colors.textMuted}
+                      color={menuViewType === "grid" ? activeColor : colors.textMuted}
                       variant="stroke"
                       strokeWidth={1.8}
                     />
                   </TouchableOpacity>
                 </View>
+              </View>
+
+              <View style={[styles.rowDivider, rtlStartMargin(52, language), { backgroundColor: colors.border }]} />
+
+              <View style={styles.themePickerBlock}>
+                <Text
+                  style={[
+                    styles.menuText,
+                    {
+                      color: colors.text,
+                      paddingHorizontal: 16,
+                      marginBottom: 6,
+                      textAlign: rtlTextAlign(language),
+                      writingDirection: rtlWritingDirection(language),
+                    },
+                  ]}
+                >
+                  {t("profile.brandTheme")}
+                </Text>
+                <Text
+                  style={[
+                    styles.themeHint,
+                    {
+                      color: colors.textMuted,
+                      paddingHorizontal: 16,
+                      textAlign: rtlTextAlign(language),
+                      writingDirection: rtlWritingDirection(language),
+                    },
+                  ]}
+                >
+                  {t("profile.brandThemeHint")}
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ paddingHorizontal: 16, gap: 10, flexDirection: rtlRow(language) }}
+                >
+                  {brandThemes.map((item) => {
+                    const isActive = brandTheme === item.id;
+                    const handlePress = () => setBrandTheme(item.id as BrandTheme);
+
+                    return (
+                      <TouchableOpacity
+                        key={item.id}
+                        onPress={handlePress}
+                        activeOpacity={0.82}
+                        style={[
+                          styles.themeCard,
+                          {
+                            backgroundColor: isActive ? colors.activeBackground : isDarkMode ? "rgba(255,255,255,0.05)" : "#F8FAFC",
+                            borderColor: isActive ? activeColor : colors.border,
+                          },
+                        ]}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: isActive }}
+                      >
+                        <View style={styles.themeSwatches}>
+                          {item.swatches.map((swatch, index) => (
+                            <View
+                              key={`${item.id}-${swatch}-${index}`}
+                              style={[
+                                styles.themeSwatch,
+                                {
+                                  backgroundColor: swatch,
+                                  marginLeft: index === 0 ? 0 : -7,
+                                  borderColor: isDarkMode ? "rgba(255,255,255,0.35)" : "#FFFFFF",
+                                },
+                              ]}
+                            />
+                          ))}
+                        </View>
+                        <Text numberOfLines={1} style={[styles.themeName, { color: isActive ? activeColor : colors.text }]}>
+                          {item.label}
+                        </Text>
+                        <Text numberOfLines={2} style={[styles.themeDescription, { color: colors.textMuted }]}>
+                          {item.description}
+                        </Text>
+                        {isActive && (
+                          <View style={[styles.themeCheck, { backgroundColor: activeColor }]}>
+                            <Text style={styles.themeCheckText}>✓</Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
               </View>
 
               <View style={[styles.rowDivider, rtlStartMargin(52, language), { backgroundColor: colors.border }]} />
@@ -358,14 +444,14 @@ export default function ProfilePanel({
                         style={[
                           styles.langPill, 
                           { 
-                            backgroundColor: isActive ? ACTIVE_BG_COLOR : (isDarkMode ? "rgba(255,255,255,0.05)" : "#F1F5F9"),
-                            borderColor: isActive ? "rgba(236, 72, 153, 0.3)" : "transparent",
+                            backgroundColor: isActive ? activeBgColor : (isDarkMode ? "rgba(255,255,255,0.05)" : "#F1F5F9"),
+                            borderColor: isActive ? activeColor : "transparent",
                             borderWidth: 1
                           }
                         ]}
                       >
                         <Text style={[{ fontSize: 16 }, rtlEndMargin(6, language)]}>{lang.flag}</Text>
-                        <Text style={{ color: isActive ? ACTIVE_COLOR : colors.textMuted, fontWeight: isActive ? "600" : "500", fontSize: 13 }}>
+                        <Text style={{ color: isActive ? activeColor : colors.textMuted, fontWeight: isActive ? "600" : "500", fontSize: 13 }}>
                           {t(lang.labelKey, lang.fallbackLabel)}
                         </Text>
                       </TouchableOpacity>
@@ -577,6 +663,60 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 16,
+  },
+  themePickerBlock: {
+    paddingVertical: 12,
+  },
+  themeHint: {
+    fontSize: 12,
+    fontWeight: "500",
+    lineHeight: 17,
+    marginBottom: 12,
+  },
+  themeCard: {
+    width: 178,
+    minHeight: 118,
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 12,
+    overflow: "hidden",
+  },
+  themeSwatches: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  themeSwatch: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+  },
+  themeName: {
+    fontSize: 14,
+    fontWeight: "800",
+    marginBottom: 4,
+  },
+  themeDescription: {
+    fontSize: 11,
+    fontWeight: "500",
+    lineHeight: 15,
+    paddingRight: 18,
+  },
+  themeCheck: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  themeCheckText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "900",
   },
   logoutButton: {
     alignItems: "center",

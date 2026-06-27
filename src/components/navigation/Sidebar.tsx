@@ -47,9 +47,6 @@ const LOCAL_LOGO = require("../../../assets/veriicrmlogo.png");
 const { width } = Dimensions.get("window");
 const SIDEBAR_WIDTH = width * 0.8;
 
-const ACTIVE_COLOR = "#fb923c"; 
-const ACTIVE_BG_COLOR = "rgba(251, 146, 60, 0.12)"; 
-
 export function Sidebar(): React.ReactElement {
   const { t, i18n } = useTranslation();
   const language = i18n.language;
@@ -69,7 +66,7 @@ export function Sidebar(): React.ReactElement {
 
   const TEXT_COLOR = themeMode === "dark" ? "#FFFFFF" : colors.text;
   const TEXT_SECONDARY_COLOR = themeMode === "dark" ? "#E2E8F0" : colors.textSecondary;
-  const HEADER_COLOR = themeMode === "dark" ? "#f472b6" : "#be185d";
+  const HEADER_COLOR = themeMode === "dark" ? colors.accentTertiary : colors.accent;
 
   const MENU_ITEMS = [
     { key: "home", title: t("nav.home"), icon: DashboardSquare01Icon, route: "/(tabs)", permissionCodes: ["dashboard.view"] },
@@ -266,7 +263,7 @@ export function Sidebar(): React.ReactElement {
                   onPress={() => item.route && handleNavigation(item.route)}
                   style={({ pressed }) => [
                     styles.menuItem,
-                    (pressed || isActive) && { backgroundColor: ACTIVE_BG_COLOR },
+                    (pressed || isActive) && { backgroundColor: colors.activeBackground },
                   ]}
                 >
                   {({ pressed }) => (
@@ -281,7 +278,7 @@ export function Sidebar(): React.ReactElement {
                         {item.icon && (
                           <item.icon
                             size={20}
-                            color={(pressed || isActive) ? ACTIVE_COLOR : TEXT_COLOR}
+                            color={(pressed || isActive) ? colors.accent : TEXT_COLOR}
                           />
                         )}
                       </View>
@@ -289,7 +286,7 @@ export function Sidebar(): React.ReactElement {
                         style={[
                           styles.menuItemText,
                           { 
-                            color: (pressed || isActive) ? ACTIVE_COLOR : TEXT_COLOR,
+                            color: (pressed || isActive) ? colors.accent : TEXT_COLOR,
                             fontWeight: (pressed || isActive) ? "700" : "500",
                             textAlign: rtlTextAlign(language),
                             writingDirection: rtlWritingDirection(language),
@@ -300,7 +297,7 @@ export function Sidebar(): React.ReactElement {
                       </Text>
                       <ArrowRight01Icon
                         size={16}
-                        color={(pressed || isActive) ? ACTIVE_COLOR : TEXT_SECONDARY_COLOR}
+                        color={(pressed || isActive) ? colors.accent : TEXT_SECONDARY_COLOR}
                         style={{
                           opacity: (pressed || isActive) ? 1 : 0.8,
                           transform: [{ rotate: isRtl ? "180deg" : "0deg" }],

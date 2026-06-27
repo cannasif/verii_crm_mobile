@@ -60,16 +60,14 @@ export function BottomNavBar(): React.ReactElement {
   const THEME = {
     bg: colors.navBar,
     iconBg: isDark ? "#1E122D" : "#FFFFFF", 
-    iconBorder: isDark ? "rgba(219, 39, 119, 0.4)" : "rgba(219, 39, 119, 0.15)",
+    iconBorder: colors.cardBorder,
     navTopBorder: colors.navBarBorder,
     backdropBg: isDark ? "rgba(0, 0, 0, 0.6)" : "rgba(255, 255, 255, 0.3)",
 
     active: colors.accent,
-    fabGradient: isDark
-      ? (["#ea580c", "#e11d48", "#be185d"] as const)
-      : (["#fdba74", "#fb7185", "#f472b6"] as const),
-    fabShadow: isDark ? "#be185d" : "#fb7185",
-    fabRing: isDark ? "rgba(251, 146, 60, 0.35)" : "rgba(251, 113, 133, 0.4)",
+    fabGradient: [colors.gradientPrimaryStart, colors.gradientPrimaryMiddle, colors.gradientPrimaryEnd] as const,
+    fabShadow: colors.accent,
+    fabRing: colors.activeBackground,
 
     inactive: colors.textMuted,
     sheetBg: isDark ? "#160B24" : "#FFFFFF",
@@ -322,7 +320,7 @@ export function BottomNavBar(): React.ReactElement {
             <View style={styles.sheetOptions}>
               {hasAnyPermission(permissions, ["sales.quotations.create"]) ? (
               <TouchableOpacity style={[styles.sheetOptionBtn, { borderBottomColor: THEME.sheetBorder }]} onPress={() => handleSalesActionPress("/(tabs)/sales/quotations/create")} activeOpacity={0.7}>
-                <View style={[styles.sheetIconBox, { backgroundColor: isDark ? 'rgba(219,39,119,0.15)' : '#FFF1F2' }]}>
+                <View style={[styles.sheetIconBox, { backgroundColor: colors.activeBackground }]}>
                   <Invoice01Icon size={24} color={THEME.active} variant="stroke" strokeWidth={1.8} />
                 </View>
                 <View style={styles.sheetOptionTextWrap}>
@@ -335,7 +333,7 @@ export function BottomNavBar(): React.ReactElement {
 
               {hasAnyPermission(permissions, ["sales.orders.create"]) ? (
               <TouchableOpacity style={[styles.sheetOptionBtn, { borderBottomColor: THEME.sheetBorder }]} onPress={() => handleSalesActionPress("/(tabs)/sales/orders/create")} activeOpacity={0.7}>
-                <View style={[styles.sheetIconBox, { backgroundColor: isDark ? 'rgba(219,39,119,0.15)' : '#FFF1F2' }]}>
+                <View style={[styles.sheetIconBox, { backgroundColor: colors.activeBackground }]}>
                   <ShoppingBag01Icon size={24} color={THEME.active} variant="stroke" strokeWidth={1.8} />
                 </View>
                 <View style={styles.sheetOptionTextWrap}>
@@ -348,7 +346,7 @@ export function BottomNavBar(): React.ReactElement {
 
               {hasAnyPermission(permissions, ["sales.demands.create"]) ? (
               <TouchableOpacity style={[styles.sheetOptionBtn, { borderBottomColor: "transparent" }]} onPress={() => handleSalesActionPress("/(tabs)/sales/demands/create")} activeOpacity={0.7}>
-                <View style={[styles.sheetIconBox, { backgroundColor: isDark ? 'rgba(219,39,119,0.15)' : '#FFF1F2' }]}>
+                <View style={[styles.sheetIconBox, { backgroundColor: colors.activeBackground }]}>
                   <NoteIcon size={24} color={THEME.active} variant="stroke" strokeWidth={1.8} />
                 </View>
                 <View style={styles.sheetOptionTextWrap}>

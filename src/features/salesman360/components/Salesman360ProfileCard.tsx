@@ -10,7 +10,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import { Text } from "../../../components/ui/text";
-import { GRADIENT, type ThemeColors } from "../../../constants/theme";
+import { type ThemeColors } from "../../../constants/theme";
 import { ArrowDown01Icon, UserIcon } from "hugeicons-react-native";
 
 interface Salesman360ProfileCardProps {
@@ -26,8 +26,6 @@ interface Salesman360ProfileCardProps {
 
 const FRAME_RADIUS = 20;
 const INNER_RADIUS = FRAME_RADIUS - 1;
-
-const BORDER_GRADIENT = ["#ec4899", "#a855f7", "#f97316", "#ec4899"] as const;
 
 export function Salesman360ProfileCard({
   displayName,
@@ -65,13 +63,13 @@ export function Salesman360ProfileCard({
     <View style={styles.row}>
       <View style={styles.avatarCluster}>
         <LinearGradient
-          colors={[...GRADIENT.primary]}
+          colors={[colors.gradientPrimaryStart, colors.gradientPrimaryMiddle, colors.gradientPrimaryEnd]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.avatarGlow}
         />
         <LinearGradient
-          colors={[...GRADIENT.primary]}
+          colors={[colors.gradientPrimaryStart, colors.gradientPrimaryMiddle, colors.gradientPrimaryEnd]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[styles.avatarCircle, { borderColor: avatarRing }]}
@@ -119,7 +117,7 @@ export function Salesman360ProfileCard({
       style={[styles.touchWrap, outerShadow, style]}
     >
       <LinearGradient
-        colors={[...BORDER_GRADIENT]}
+        colors={[colors.gradientPrimaryStart, colors.gradientPrimaryMiddle, colors.gradientPrimaryEnd, colors.accent]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={styles.gradientFrame}

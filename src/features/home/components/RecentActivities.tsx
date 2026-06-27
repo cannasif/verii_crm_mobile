@@ -20,15 +20,15 @@ interface RecentActivitiesProps {
 export function RecentActivities({ activities = [] }: RecentActivitiesProps): React.ReactElement | null {
   const { t } = useTranslation();
   const router = useRouter();
-  const { themeMode } = useUIStore();
+  const { colors, themeMode } = useUIStore();
   const isDark = themeMode === "dark";
 
   const textColor = isDark ? "#F8FAFC" : "#1E293B";
   const mutedColor = isDark ? "#94A3B8" : "#64748B";
   const cardBg = isDark ? "rgba(255,255,255,0.02)" : "#FFFFFF";
-  const borderColor = isDark ? "rgba(236, 72, 153, 0.25)" : "rgba(219, 39, 119, 0.15)";
-  const dividerColor = isDark ? "rgba(236, 72, 153, 0.1)" : "rgba(219, 39, 119, 0.08)";
-  const brandColor = isDark ? "#EC4899" : "#DB2777";
+  const borderColor = colors.cardBorder;
+  const dividerColor = colors.border;
+  const brandColor = colors.accent;
 
   const safeActivities = Array.isArray(activities) ? activities : [];
 

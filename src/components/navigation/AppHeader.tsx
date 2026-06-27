@@ -8,7 +8,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Menu01Icon, UserIcon } from "hugeicons-react-native";
 import { useUIStore } from "../../store/ui";
 import { useAuthStore } from "../../store/auth";
-import { GRADIENT } from "../../constants/theme";
 import ProfilePanel from "./ProfilePanel";
 import { profileApi } from "../../features/profile";
 import { isAppRtl, rtlRow } from "../../lib/rtl";
@@ -19,7 +18,7 @@ export function AppHeader(): React.ReactElement {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   
-  const { openSidebar, themeMode } = useUIStore();
+  const { openSidebar, themeMode, colors } = useUIStore();
   const { user, branch, clearAuth } = useAuthStore(); 
 
   const isDark = themeMode === "dark";
@@ -90,7 +89,7 @@ export function AppHeader(): React.ReactElement {
         >
           <TouchableOpacity onPress={handleProfilePress} activeOpacity={0.8}>
             <LinearGradient
-              colors={[...GRADIENT.primary]}
+              colors={[colors.gradientPrimaryStart, colors.gradientPrimaryMiddle, colors.gradientPrimaryEnd]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.avatarBorder}

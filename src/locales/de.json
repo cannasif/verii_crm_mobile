@@ -180,7 +180,9 @@
     "cancel": "Abbrechen",
     "menuView": "Menüansicht",
     "menuViewList": "Liste",
-    "menuViewGrid": "Raster"
+    "menuViewGrid": "Raster",
+    "brandTheme": "Corporate Theme",
+    "brandThemeHint": "Wird auf diesem Gerät gespeichert und aktualisiert die App-Farben."
   },
   "updates": {
     "availableTitle": "Update verfügbar",

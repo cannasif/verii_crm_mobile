@@ -242,7 +242,9 @@
     "cancel": "İptal",
     "menuView": "Menü görünümü",
     "menuViewList": "Liste",
-    "menuViewGrid": "Izgara"
+    "menuViewGrid": "Izgara",
+    "brandTheme": "Kurumsal tema",
+    "brandThemeHint": "Seçim bu cihazda saklanır ve uygulama kabuğundaki renkleri günceller."
   },
   "updates": {
     "availableTitle": "Yeni sürüm hazır",

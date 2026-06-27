@@ -6,7 +6,6 @@ import { Menu01Icon, Settings01Icon } from "hugeicons-react-native";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useAuthStore } from "../../../store/auth";
-import { GRADIENT } from "../../../constants/theme";
 import type { User } from "../types";
 
 interface HeaderProps {
@@ -63,7 +62,7 @@ export function Header({ user, onSettingsPress }: HeaderProps): React.ReactEleme
           <Menu01Icon size={22} color="#FFFFFF" />
         </TouchableOpacity>
         <LinearGradient
-          colors={[...GRADIENT.primary]}
+          colors={[colors.gradientPrimaryStart, colors.gradientPrimaryMiddle, colors.gradientPrimaryEnd]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={{

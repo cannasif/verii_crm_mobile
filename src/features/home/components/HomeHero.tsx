@@ -18,17 +18,17 @@ const formatName = (name?: string, fallback: string = "") => {
 export function HomeHero(): React.ReactElement {
   const { t } = useTranslation();
   const { user } = useAuthStore();
-  const { themeMode } = useUIStore();
+  const { colors, themeMode } = useUIStore();
   const isDark = themeMode === "dark";
 
-  const gradientColors = isDark 
-    ? ['#431A2F', '#1C1117'] 
-    : ['#FFF1F2', '#FFEDD5'];
+  const gradientColors = isDark
+    ? [colors.header, colors.backgroundSecondary]
+    : [colors.activeBackground, colors.backgroundSecondary];
 
-  const borderColor = isDark ? "rgba(236, 72, 153, 0.25)" : "rgba(236, 72, 153, 0.3)";
+  const borderColor = colors.cardBorder;
 
-  const nameColor = isDark ? "#FDF2F8" : "#4A3041"; 
-  const greetingColor = isDark ? "#F472B6" : "#BE185D";
+  const nameColor = colors.text;
+  const greetingColor = colors.accent;
 
   return (
     <View style={styles.shadowWrapper}>
@@ -61,7 +61,7 @@ export function HomeHero(): React.ReactElement {
 const styles = StyleSheet.create({
   shadowWrapper: {
     marginBottom: 16, 
-    shadowColor: "#EC4899", 
+    shadowColor: "#64748B",
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.06,
     shadowRadius: 8,

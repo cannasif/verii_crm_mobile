@@ -1,13 +1,20 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { COLORS, type ThemeMode, type ThemeColors } from "../constants/theme";
+import {
+  isBrandTheme,
+  resolveThemeColors,
+  type BrandTheme,
+  type ThemeMode,
+  type ThemeColors,
+} from "../constants/theme";
 
 export type MenuViewType = "list" | "grid";
 
 interface UIState {
   isLoading: boolean;
   themeMode: ThemeMode;
+  brandTheme: BrandTheme;
   colors: ThemeColors;
   isSidebarOpen: boolean;
   menuViewType: MenuViewType;
@@ -17,6 +24,7 @@ interface UIState {
   showUnitInStockSelection: boolean;
   setIsLoading: (value: boolean) => void;
   setThemeMode: (mode: ThemeMode) => void;
+  setBrandTheme: (theme: BrandTheme) => void;
   toggleTheme: () => void;
   openSidebar: () => void;
   closeSidebar: () => void;
@@ -31,18 +39,27 @@ export const useUIStore = create<UIState>()(
     (set, get) => ({
       isLoading: false,
       themeMode: "light",
-      colors: COLORS.light,
+      brandTheme: "v3rii",
+      colors: resolveThemeColors("light", "v3rii"),
       isSidebarOpen: false,
       menuViewType: "list",
       uppercaseCompanyNameAfterScan: true,
       showUnitInStockSelection: true,
       setIsLoading: (value: boolean) => set({ isLoading: value }),
       setThemeMode: (mode: ThemeMode) =>
-        set({ themeMode: mode, colors: COLORS[mode] }),
+        set((state) => ({
+          themeMode: mode,
+          colors: resolveThemeColors(mode, state.brandTheme),
+        })),
+      setBrandTheme: (theme: BrandTheme) =>
+        set((state) => ({
+          brandTheme: theme,
+          colors: resolveThemeColors(state.themeMode, theme),
+        })),
       toggleTheme: () => {
         const currentMode = get().themeMode;
         const newMode = currentMode === "light" ? "dark" : "light";
-        set({ themeMode: newMode, colors: COLORS[newMode] });
+        set({ themeMode: newMode, colors: resolveThemeColors(newMode, get().brandTheme) });
       },
       openSidebar: () => set({ isSidebarOpen: true }),
       closeSidebar: () => set({ isSidebarOpen: false }),
@@ -56,6 +73,7 @@ export const useUIStore = create<UIState>()(
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         themeMode: state.themeMode,
+        brandTheme: state.brandTheme,
         menuViewType: state.menuViewType,
         uppercaseCompanyNameAfterScan: state.uppercaseCompanyNameAfterScan,
         showUnitInStockSelection: state.showUnitInStockSelection,
@@ -65,6 +83,8 @@ export const useUIStore = create<UIState>()(
         const state = (persistedState ?? {}) as Partial<UIState>;
         const savedMode = state.themeMode;
         const validMode = (savedMode === "light" || savedMode === "dark") ? savedMode : "light";
+        const savedBrandTheme = state.brandTheme;
+        const validBrandTheme = isBrandTheme(savedBrandTheme) ? savedBrandTheme : "v3rii";
 
         let menuViewType: MenuViewType =
           state.menuViewType === "grid" || state.menuViewType === "list"
@@ -87,7 +107,8 @@ export const useUIStore = create<UIState>()(
         return {
           ...state,
           themeMode: validMode,
-          colors: COLORS[validMode],
+          brandTheme: validBrandTheme,
+          colors: resolveThemeColors(validMode, validBrandTheme),
           menuViewType,
           uppercaseCompanyNameAfterScan,
           showUnitInStockSelection,
@@ -98,8 +119,11 @@ export const useUIStore = create<UIState>()(
           const modeToUse = (state.themeMode === "light" || state.themeMode === "dark") 
             ? state.themeMode 
             : "light";
-            
-          state.setThemeMode(modeToUse);
+          const brandThemeToUse = isBrandTheme(state.brandTheme) ? state.brandTheme : "v3rii";
+
+          state.themeMode = modeToUse;
+          state.brandTheme = brandThemeToUse;
+          state.colors = resolveThemeColors(modeToUse, brandThemeToUse);
 
           if (state.menuViewType !== "grid" && state.menuViewType !== "list") {
             state.setMenuViewType("list");

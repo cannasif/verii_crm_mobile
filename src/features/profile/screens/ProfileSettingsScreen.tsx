@@ -25,7 +25,6 @@ import {
 } from "hugeicons-react-native";
 
 import { Text } from "../../../components/ui/text";
-import { GRADIENT } from "../../../constants/theme";
 import { useKeyboardBottomInset } from "../../../hooks/useKeyboardBottomInset";
 import { useUIStore } from "../../../store/ui";
 import { GenderPickerField } from "../components/GenderPickerField";
@@ -75,6 +74,7 @@ export function ProfileSettingsScreen(): React.ReactElement {
   const insets = useSafeAreaInsets();
   const keyboardInset = useKeyboardBottomInset();
   const themeMode = useUIStore((s) => s.themeMode);
+  const colors = useUIStore((s) => s.colors);
   const isDarkMode = themeMode === "dark";
 
   const {
@@ -97,15 +97,15 @@ export function ProfileSettingsScreen(): React.ReactElement {
   const mainBg = isDarkMode ? "#0c0516" : "#FAFAFA";
   const gradientColors = (
     isDarkMode
-      ? ["rgba(236, 72, 153, 0.12)", "transparent", "rgba(249, 115, 22, 0.12)"]
-      : ["rgba(255, 235, 240, 0.6)", "#FFFFFF", "rgba(255, 240, 225, 0.6)"]
+      ? [`${colors.accent}1F`, "transparent", `${colors.accentSecondary}1F`]
+      : [`${colors.accent}18`, colors.background, `${colors.accentSecondary}18`]
   ) as [string, string, ...string[]];
   const cardBg = isDarkMode ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.85)";
   const inputBg = isDarkMode ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.6)";
-  const borderColor = isDarkMode ? "rgba(255,255,255,0.06)" : "rgba(236, 72, 153, 0.25)";
+  const borderColor = isDarkMode ? colors.border : colors.cardBorder;
   const textColor = isDarkMode ? "#F8FAFC" : "#1E293B";
   const mutedColor = isDarkMode ? "#94A3B8" : "#64748B";
-  const brandColor = isDarkMode ? "#EC4899" : "#DB2777";
+  const brandColor = colors.accent;
   const errorColor = "#EF4444";
 
   const inputStyle = useMemo(
@@ -396,7 +396,7 @@ export function ProfileSettingsScreen(): React.ReactElement {
                     style={{ opacity: isSaving || !isDirty ? 0.55 : 1 }}
                   >
                     <LinearGradient
-                      colors={[...GRADIENT.primary]}
+                      colors={[colors.gradientPrimaryStart, colors.gradientPrimaryMiddle, colors.gradientPrimaryEnd]}
                       start={{ x: 0, y: 0.5 }}
                       end={{ x: 1, y: 0.5 }}
                       style={styles.saveButton}

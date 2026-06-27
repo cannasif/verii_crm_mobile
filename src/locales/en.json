@@ -234,7 +234,9 @@
     "cancel": "Cancel",
     "menuView": "Menu view",
     "menuViewList": "List",
-    "menuViewGrid": "Grid"
+    "menuViewGrid": "Grid",
+    "brandTheme": "Corporate theme",
+    "brandThemeHint": "Saved on this device and updates the app shell colors."
   },
   "updates": {
     "availableTitle": "Update available",
