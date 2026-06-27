@@ -29,6 +29,11 @@ import { stockApi } from "../../stocks/api";
 import { useErpProjects } from "../hooks";
 import { useStock } from "../../stocks/hooks";
 import { parseDecimalInput, sanitizeDecimalInput } from "../../../lib/decimal-input";
+import {
+  areDiscountRatesValid,
+  normalizeDiscountRateForField,
+  type DiscountRateField,
+} from "../../../lib/discountRateValidation";
 import { getApiBaseUrl } from "../../../constants/config";
 import { resolveDocumentVatRate } from "../../../utils/documentVat";
 import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida/hooks/useWindoDefinitionOptions";
@@ -78,6 +83,8 @@ interface QuotationLineFormProps {
   /** Extra fields for /assets/upload (e.g. hızlı teklif temp header / line ids). `assetScope` comes from `imageUploadScope`. */
   imageUploadExtras?: Omit<UploadReportAssetOptions, "assetScope">;
 }
+
+type DiscountField = DiscountRateField;
 
 function normalizeCurrencyCode(value?: string | null): string {
   const normalized = String(value ?? "").trim().toUpperCase();
@@ -970,9 +977,45 @@ export function QuotationLineForm({
     resetForm,
   ]);
 
+  const showDiscountRateError = useCallback(() => {
+    Alert.alert("İndirim", "İndirim oranı toplamı %100 değerini aşamaz.");
+  }, []);
+
+  const normalizeDiscountInput = useCallback(
+    (field: DiscountField, value: number): number => {
+      const normalized = normalizeDiscountRateForField(field, value, {
+        discountRate1: parseDecimalInput(discountRate1),
+        discountRate2: parseDecimalInput(discountRate2),
+        discountRate3: parseDecimalInput(discountRate3),
+      });
+      if (normalized.reason === "total") {
+        showDiscountRateError();
+      }
+      return normalized.value;
+    },
+    [discountRate1, discountRate2, discountRate3, showDiscountRateError]
+  );
+
+  const validateDiscountRatesBeforeSave = useCallback(
+    (linesToValidate: Array<Pick<QuotationLineFormState, DiscountField>>): boolean => {
+      const isValid = linesToValidate.every((item) => areDiscountRatesValid(item));
+      if (!isValid) {
+        showDiscountRateError();
+      }
+      return isValid;
+    },
+    [showDiscountRateError]
+  );
+
   const handleSave = useCallback(() => {
     if (hasBulkDrafts) {
       const nextDrafts = mergeBulkDraftLinesAtIndex(bulkDraftLines, activeBulkDraftIndex, lineToSave);
+      const flattenedDrafts = nextDrafts.flatMap((draft) =>
+        draft.relatedLines && draft.relatedLines.length > 0 ? [draft, ...draft.relatedLines] : [draft]
+      );
+      if (!validateDiscountRatesBeforeSave(flattenedDrafts)) {
+        return;
+      }
       setBulkDraftLines(nextDrafts);
 
       if (activeBulkDraftIndex < nextDrafts.length - 1) {
@@ -988,6 +1031,10 @@ export function QuotationLineForm({
       return;
     }
 
+    if (!validateDiscountRatesBeforeSave([lineToSave, ...(lineToSave.relatedLines ?? [])])) {
+      return;
+    }
+
     onSave(lineToSave);
     resetForm();
     onClose();
@@ -1000,6 +1047,7 @@ export function QuotationLineForm({
     selectedStock,
     line?.productCode,
     lineToSave,
+    validateDiscountRatesBeforeSave,
     onSave,
     onClose,
     resetForm,
@@ -1013,6 +1061,9 @@ export function QuotationLineForm({
         ? [draft, ...draft.relatedLines]
         : [draft]
     );
+    if (!validateDiscountRatesBeforeSave(flattened)) {
+      return;
+    }
     if (onSaveMultiple) onSaveMultiple(flattened);
     else if (flattened[0]) onSave(flattened[0]);
     resetForm();
@@ -1023,6 +1074,7 @@ export function QuotationLineForm({
     activeBulkDraftIndex,
     mergeBulkDraftLinesAtIndex,
     lineToSave,
+    validateDiscountRatesBeforeSave,
     onSaveMultiple,
     onSave,
     resetForm,
@@ -1034,18 +1086,14 @@ export function QuotationLineForm({
     onClose();
   }, [resetForm, onClose]);
 
-  const clampDiscount = useCallback((value: number): number => {
-    return Math.max(0, Math.min(100, Number.isNaN(value) ? 0 : value));
-  }, []);
-
   const normalizeDiscountOnBlur = useCallback(
-    (value: string): string => {
+    (field: DiscountField, value: string): string => {
       const trimmed = value.trim();
       if (trimmed === "" || trimmed === ".") return "0";
       const num = parseDecimalInput(trimmed);
-      return String(clampDiscount(Number.isNaN(num) ? 0 : num));
+      return String(normalizeDiscountInput(field, Number.isNaN(num) ? 0 : num));
     },
-    [clampDiscount]
+    [normalizeDiscountInput]
   );
 
   const handleDiscount1Change = useCallback(
@@ -1058,12 +1106,12 @@ export function QuotationLineForm({
 
       const num = parseDecimalInput(sanitized);
       if (!Number.isNaN(num)) {
-        setDiscountRate1(sanitizeDecimalInput(String(clampDiscount(num))));
+        setDiscountRate1(sanitizeDecimalInput(String(normalizeDiscountInput("discountRate1", num))));
       } else {
         setDiscountRate1(sanitized);
       }
     },
-    [clampDiscount]
+    [normalizeDiscountInput]
   );
 
   const handleDiscount2Change = useCallback(
@@ -1076,12 +1124,12 @@ export function QuotationLineForm({
 
       const num = parseDecimalInput(sanitized);
       if (!Number.isNaN(num)) {
-        setDiscountRate2(sanitizeDecimalInput(String(clampDiscount(num))));
+        setDiscountRate2(sanitizeDecimalInput(String(normalizeDiscountInput("discountRate2", num))));
       } else {
         setDiscountRate2(sanitized);
       }
     },
-    [clampDiscount]
+    [normalizeDiscountInput]
   );
 
   const handleDiscount3Change = useCallback(
@@ -1094,12 +1142,12 @@ export function QuotationLineForm({
 
       const num = parseDecimalInput(sanitized);
       if (!Number.isNaN(num)) {
-        setDiscountRate3(sanitizeDecimalInput(String(clampDiscount(num))));
+        setDiscountRate3(sanitizeDecimalInput(String(normalizeDiscountInput("discountRate3", num))));
       } else {
         setDiscountRate3(sanitized);
       }
     },
-    [clampDiscount]
+    [normalizeDiscountInput]
   );
 
   return (
@@ -1338,7 +1386,7 @@ export function QuotationLineForm({
                         ]}
                         value={discountRate1}
                         onChangeText={handleDiscount1Change}
-                        onBlur={() => setDiscountRate1(normalizeDiscountOnBlur(discountRate1))}
+                        onBlur={() => setDiscountRate1(normalizeDiscountOnBlur("discountRate1", discountRate1))}
                         placeholder="0"
                         placeholderTextColor={mutedColor}
                         keyboardType="decimal-pad"
@@ -1355,7 +1403,7 @@ export function QuotationLineForm({
                         ]}
                         value={discountRate2}
                         onChangeText={handleDiscount2Change}
-                        onBlur={() => setDiscountRate2(normalizeDiscountOnBlur(discountRate2))}
+                        onBlur={() => setDiscountRate2(normalizeDiscountOnBlur("discountRate2", discountRate2))}
                         placeholder="0"
                         placeholderTextColor={mutedColor}
                         keyboardType="decimal-pad"
@@ -1372,7 +1420,7 @@ export function QuotationLineForm({
                         ]}
                         value={discountRate3}
                         onChangeText={handleDiscount3Change}
-                        onBlur={() => setDiscountRate3(normalizeDiscountOnBlur(discountRate3))}
+                        onBlur={() => setDiscountRate3(normalizeDiscountOnBlur("discountRate3", discountRate3))}
                         placeholder="0"
                         placeholderTextColor={mutedColor}
                         keyboardType="decimal-pad"

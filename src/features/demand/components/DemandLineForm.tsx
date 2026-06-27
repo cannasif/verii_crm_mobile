@@ -29,6 +29,11 @@ import type { UploadReportAssetOptions } from "../../quotation/api/quotationApi"
 import { stockApi } from "../../stocks/api";
 import { useStock } from "../../stocks/hooks";
 import { parseDecimalInput, sanitizeDecimalInput } from "../../../lib/decimal-input";
+import {
+  areDiscountRatesValid,
+  normalizeDiscountRateForField,
+  type DiscountRateField,
+} from "../../../lib/discountRateValidation";
 import { getApiBaseUrl } from "../../../constants/config";
 import { resolveDocumentVatRate } from "../../../utils/documentVat";
 import { getCurrencyDisplayLabel } from "../../../lib/currencyDisplay";
@@ -69,6 +74,8 @@ interface DemandLineFormProps {
   imageUploadScope?: "demand-line";
   imageUploadExtras?: Omit<UploadReportAssetOptions, "assetScope">;
 }
+
+type DiscountField = DiscountRateField;
 
 function normalizeCurrencyCode(value?: string | null): string {
   const normalized = String(value ?? "").trim().toUpperCase();
@@ -800,13 +807,57 @@ export function DemandLineForm({
     }
   }, [selectedStock, userDiscountLimits, discountRate1, discountRate2, discountRate3]);
 
+  const showDiscountRateError = useCallback(() => {
+    Alert.alert("İndirim", "İndirim oranı toplamı %100 değerini aşamaz.");
+  }, []);
+
+  const normalizeDiscountInput = useCallback(
+    (field: DiscountField, value: number): number => {
+      const normalized = normalizeDiscountRateForField(field, value, {
+        discountRate1: parseDecimalInput(discountRate1),
+        discountRate2: parseDecimalInput(discountRate2),
+        discountRate3: parseDecimalInput(discountRate3),
+      });
+      if (normalized.reason === "total") {
+        showDiscountRateError();
+      }
+      return normalized.value;
+    },
+    [discountRate1, discountRate2, discountRate3, showDiscountRateError]
+  );
+
+  const validateDiscountRatesBeforeSave = useCallback(
+    (linesToValidate: Array<Pick<DemandLineFormState, DiscountField>>): boolean => {
+      const isValid = linesToValidate.every((item) => areDiscountRatesValid(item));
+      if (!isValid) {
+        showDiscountRateError();
+      }
+      return isValid;
+    },
+    [showDiscountRateError]
+  );
+
   const handleSave = useCallback(() => {
     if (hasBulkDrafts) {
-      upsertActiveDraft();
+      const drafts = bulkDraftLines.map((draft, index) =>
+        index === activeBulkDraftIndex
+          ? {
+              ...lineToSave,
+              id: draft.id,
+            }
+          : draft
+      );
+      const flattenedDrafts = drafts.flatMap((draft) =>
+        draft.relatedLines && draft.relatedLines.length > 0 ? [draft, ...draft.relatedLines] : [draft]
+      );
+      if (!validateDiscountRatesBeforeSave(flattenedDrafts)) {
+        return;
+      }
+      setBulkDraftLines(drafts);
       if (activeBulkDraftIndex < bulkDraftLines.length - 1) {
         const nextIndex = activeBulkDraftIndex + 1;
         setActiveBulkDraftIndex(nextIndex);
-        applyDraftLineToForm(bulkDraftLines[nextIndex]);
+        applyDraftLineToForm(drafts[nextIndex]);
       }
       return;
     }
@@ -816,15 +867,19 @@ export function DemandLineForm({
       return;
     }
 
+    if (!validateDiscountRatesBeforeSave([lineToSave, ...(lineToSave.relatedLines ?? [])])) {
+      return;
+    }
+
     onSave(lineToSave);
     resetForm();
     onClose();
   }, [
     hasBulkDrafts,
-    upsertActiveDraft,
     activeBulkDraftIndex,
     bulkDraftLines,
     applyDraftLineToForm,
+    validateDiscountRatesBeforeSave,
     selectedStock,
     line?.productCode,
     lineToSave,
@@ -848,6 +903,9 @@ export function DemandLineForm({
         ? [draft, ...draft.relatedLines]
         : [draft]
     );
+    if (!validateDiscountRatesBeforeSave(flattened)) {
+      return;
+    }
 
     if (onSaveMultiple) {
       onSaveMultiple(flattened);
@@ -861,6 +919,7 @@ export function DemandLineForm({
     bulkDraftLines,
     activeBulkDraftIndex,
     lineToSave,
+    validateDiscountRatesBeforeSave,
     onSaveMultiple,
     onSave,
     resetForm,
@@ -872,16 +931,12 @@ export function DemandLineForm({
     onClose();
   }, [resetForm, onClose]);
 
-  const clampDiscount = useCallback((value: number): number => {
-    return Math.max(0, Math.min(100, Number.isNaN(value) ? 0 : value));
-  }, []);
-
-  const normalizeDiscountOnBlur = useCallback((value: string): string => {
+  const normalizeDiscountOnBlur = useCallback((field: DiscountField, value: string): string => {
     const trimmed = value.trim();
     if (trimmed === "" || trimmed === ".") return "0";
     const num = parseDecimalInput(trimmed);
-    return String(clampDiscount(Number.isNaN(num) ? 0 : num));
-  }, [clampDiscount]);
+    return String(normalizeDiscountInput(field, Number.isNaN(num) ? 0 : num));
+  }, [normalizeDiscountInput]);
 
   const handleDiscount1Change = useCallback(
     (text: string) => {
@@ -891,10 +946,10 @@ export function DemandLineForm({
         return;
       }
       const num = parseDecimalInput(sanitized);
-      if (!Number.isNaN(num)) setDiscountRate1(sanitizeDecimalInput(String(clampDiscount(num))));
+      if (!Number.isNaN(num)) setDiscountRate1(sanitizeDecimalInput(String(normalizeDiscountInput("discountRate1", num))));
       else setDiscountRate1(sanitized);
     },
-    [clampDiscount]
+    [normalizeDiscountInput]
   );
   const handleDiscount2Change = useCallback(
     (text: string) => {
@@ -904,10 +959,10 @@ export function DemandLineForm({
         return;
       }
       const num = parseDecimalInput(sanitized);
-      if (!Number.isNaN(num)) setDiscountRate2(sanitizeDecimalInput(String(clampDiscount(num))));
+      if (!Number.isNaN(num)) setDiscountRate2(sanitizeDecimalInput(String(normalizeDiscountInput("discountRate2", num))));
       else setDiscountRate2(sanitized);
     },
-    [clampDiscount]
+    [normalizeDiscountInput]
   );
   const handleDiscount3Change = useCallback(
     (text: string) => {
@@ -917,10 +972,10 @@ export function DemandLineForm({
         return;
       }
       const num = parseDecimalInput(sanitized);
-      if (!Number.isNaN(num)) setDiscountRate3(sanitizeDecimalInput(String(clampDiscount(num))));
+      if (!Number.isNaN(num)) setDiscountRate3(sanitizeDecimalInput(String(normalizeDiscountInput("discountRate3", num))));
       else setDiscountRate3(sanitized);
     },
-    [clampDiscount]
+    [normalizeDiscountInput]
   );
 
   return (
@@ -1149,7 +1204,7 @@ export function DemandLineForm({
                     ]}
                     value={discountRate1}
                     onChangeText={handleDiscount1Change}
-                    onBlur={() => setDiscountRate1(normalizeDiscountOnBlur(discountRate1))}
+                    onBlur={() => setDiscountRate1(normalizeDiscountOnBlur("discountRate1", discountRate1))}
                     placeholder="0"
                     placeholderTextColor={mutedColor}
                     keyboardType="decimal-pad"
@@ -1166,7 +1221,7 @@ export function DemandLineForm({
                     ]}
                     value={discountRate2}
                     onChangeText={handleDiscount2Change}
-                    onBlur={() => setDiscountRate2(normalizeDiscountOnBlur(discountRate2))}
+                    onBlur={() => setDiscountRate2(normalizeDiscountOnBlur("discountRate2", discountRate2))}
                     placeholder="0"
                     placeholderTextColor={mutedColor}
                     keyboardType="decimal-pad"
@@ -1183,7 +1238,7 @@ export function DemandLineForm({
                     ]}
                     value={discountRate3}
                     onChangeText={handleDiscount3Change}
-                    onBlur={() => setDiscountRate3(normalizeDiscountOnBlur(discountRate3))}
+                    onBlur={() => setDiscountRate3(normalizeDiscountOnBlur("discountRate3", discountRate3))}
                     placeholder="0"
                     placeholderTextColor={mutedColor}
                     keyboardType="decimal-pad"
