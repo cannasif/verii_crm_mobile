@@ -45,6 +45,7 @@ import { useSystemSettingsStore } from "../../../store/system-settings";
 import { useAuthStore } from "../../../store/auth";
 import { useToastStore } from "../../../store/toast";
 import { FormField } from "../../activity/components";
+import { useCustomerActivities } from "../../activity/hooks/useCustomerActivities";
 import { useCustomer, useCustomerScopeAccess } from "../../customer/hooks";
 import { useCustomerShippingAddresses } from "../../shipping-address/hooks";
 import { buildShippingAddressLabel } from "../../shipping-address/utils/shippingAddressLabel";
@@ -214,6 +215,7 @@ export function QuotationCreateScreen(): React.ReactElement {
   const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
   const [shippingAddressModalVisible, setShippingAddressModalVisible] =
     useState(false);
+  const [activityModalVisible, setActivityModalVisible] = useState(false);
   const [customerSelectDialogOpen, setCustomerSelectDialogOpen] =
     useState(false);
   const [representativeModalVisible, setRepresentativeModalVisible] =
@@ -251,6 +253,7 @@ export function QuotationCreateScreen(): React.ReactElement {
         offerDate: new Date().toISOString().split("T")[0],
         deliveryDate: addDaysToDateOnly(new Date().toISOString().split("T")[0], 21),
         representativeId: user?.id || null,
+        activityId: null,
         ozelKod1: "",
         ozelKod2: "",
         koliBaskiDefinitionId: null,
@@ -328,6 +331,7 @@ export function QuotationCreateScreen(): React.ReactElement {
   const { data: shippingAddresses } = useCustomerShippingAddresses(
     watchedCustomerId ?? undefined
   );
+  const { data: customerActivities = [], isLoading: isCustomerActivitiesLoading } = useCustomerActivities(watchedCustomerId);
 
   const exchangeRateParamsOnce = useMemo(
     () => ({
@@ -490,6 +494,7 @@ export function QuotationCreateScreen(): React.ReactElement {
     setValue("quotation.potentialCustomerId", null);
     setValue("quotation.erpCustomerCode", null);
     setValue("quotation.shippingAddressId", null);
+    setValue("quotation.activityId", null);
   }, [isCustomerInRepresentativeScope, setValue, watchedCustomerId]);
 
   const totals = useMemo(
@@ -506,6 +511,7 @@ export function QuotationCreateScreen(): React.ReactElement {
       setValue("quotation.potentialCustomerId", result.customerId);
       setValue("quotation.erpCustomerCode", result.erpCustomerCode ?? null);
       setValue("quotation.shippingAddressId", null);
+      setValue("quotation.activityId", null);
       setSelectedCustomer({
         id: result.customerId,
         name: result.customerName,
@@ -521,6 +527,7 @@ export function QuotationCreateScreen(): React.ReactElement {
       setValue("quotation.potentialCustomerId", customer?.id || null);
       setValue("quotation.erpCustomerCode", null);
       setValue("quotation.shippingAddressId", null);
+      setValue("quotation.activityId", null);
     },
     [setValue]
   );
@@ -1420,6 +1427,32 @@ export function QuotationCreateScreen(): React.ReactElement {
                     )}
                   />
                 )}
+
+              {watchedCustomerId ? (
+                <Controller
+                  control={control}
+                  name="quotation.activityId"
+                  render={({ field: { value } }) => (
+                    <View style={styles.fieldContainer}>
+                      <Text style={[styles.label, { color: mutedText }]}>Bağlı Aktivite</Text>
+                      <TouchableOpacity
+                        style={[
+                          styles.pickerButton,
+                          {
+                            backgroundColor: innerBg,
+                            borderColor: innerBorder,
+                          },
+                        ]}
+                        onPress={() => setActivityModalVisible(true)}
+                      >
+                        <Text style={[styles.pickerText, { color: colors.text }]} numberOfLines={1}>
+                          {customerActivities.find((activity) => activity.id === value)?.subject || "Aktivite seçin"}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                />
+              ) : null}
             </View>
 
             <View
@@ -2459,6 +2492,26 @@ export function QuotationCreateScreen(): React.ReactElement {
               searchPlaceholder="Adres ara..."
             />
           )}
+
+          {watchedCustomerId ? (
+            <PickerModal
+              visible={activityModalVisible}
+              options={customerActivities.map((activity) => ({
+                id: activity.id,
+                name: activity.subject || `#${activity.id}`,
+                code: activity.startDateTime ? new Date(activity.startDateTime).toLocaleDateString() : undefined,
+              }))}
+              selectedValue={watch("quotation.activityId") ?? undefined}
+              onSelect={(option) => {
+                setValue("quotation.activityId", option.id as number, { shouldDirty: true, shouldValidate: true });
+                setActivityModalVisible(false);
+              }}
+              onClose={() => setActivityModalVisible(false)}
+              title="Bağlı Aktivite Seçiniz"
+              searchPlaceholder="Aktivite ara..."
+              isLoading={isCustomerActivitiesLoading}
+            />
+          ) : null}
 
           <QuotationPreviewPdfDialog
             visible={previewPdfVisible}

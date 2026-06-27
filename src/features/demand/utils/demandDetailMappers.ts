@@ -63,6 +63,7 @@ export function mapDetailHeaderToForm(
 ): CreateDemandSchema["demand"] {
   return {
     potentialCustomerId: h.potentialCustomerId ?? null,
+    activityId: h.activityId ?? null,
     erpCustomerCode: h.erpCustomerCode ?? null,
     deliveryDate: toDateOnly(h.deliveryDate),
     shippingAddressId: h.shippingAddressId ?? null,

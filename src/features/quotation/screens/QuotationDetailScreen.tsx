@@ -62,6 +62,7 @@ import { isForbiddenError } from "../../access-control/utils/isForbiddenError";
 import { useAuthStore } from "../../../store/auth";
 import { useToastStore } from "../../../store/toast";
 import { FormField } from "../../activity/components";
+import { useCustomerActivities } from "../../activity/hooks/useCustomerActivities";
 import { useCustomer, useCustomerScopeAccess } from "../../customer/hooks";
 import { useCustomerShippingAddresses } from "../../shipping-address/hooks";
 import { buildShippingAddressLabel } from "../../shipping-address/utils/shippingAddressLabel";
@@ -348,6 +349,7 @@ export function QuotationDetailScreen(): React.ReactElement {
   const [paymentTypeModalVisible, setPaymentTypeModalVisible] = useState(false);
   const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
   const [shippingAddressModalVisible, setShippingAddressModalVisible] = useState(false);
+  const [activityModalVisible, setActivityModalVisible] = useState(false);
   const [customerSelectDialogOpen, setCustomerSelectDialogOpen] = useState(false);
   const [representativeModalVisible, setRepresentativeModalVisible] = useState(false);
   const [specialCode1ModalVisible, setSpecialCode1ModalVisible] = useState(false);
@@ -388,6 +390,7 @@ export function QuotationDetailScreen(): React.ReactElement {
         offerDate: new Date().toISOString().split("T")[0],
         deliveryDate: addDaysToDateOnly(new Date().toISOString().split("T")[0], 21),
         representativeId: user?.id ?? null,
+        activityId: null,
         ozelKod1: "",
         ozelKod2: "",
         koliBaskiDefinitionId: null,
@@ -469,6 +472,7 @@ export function QuotationDetailScreen(): React.ReactElement {
     watchedRepresentativeId ?? undefined
   );
   const { data: shippingAddresses } = useCustomerShippingAddresses(watchedCustomerId ?? undefined);
+  const { data: customerActivities = [], isLoading: isCustomerActivitiesLoading } = useCustomerActivities(watchedCustomerId);
   const exchangeRateParams = useMemo(
     () => ({ tarih: new Date().toISOString().split("T")[0], fiyatTipi: 1 as const }),
     []
@@ -753,6 +757,7 @@ export function QuotationDetailScreen(): React.ReactElement {
     setValue("quotation.potentialCustomerId", null);
     setValue("quotation.erpCustomerCode", null);
     setValue("quotation.shippingAddressId", null);
+    setValue("quotation.activityId", null);
   }, [isCustomerInRepresentativeScope, setValue, watchedCustomerId]);
 
   useEffect(() => {
@@ -872,6 +877,7 @@ export function QuotationDetailScreen(): React.ReactElement {
       setValue("quotation.potentialCustomerId", result.customerId);
       setValue("quotation.erpCustomerCode", result.erpCustomerCode ?? null);
       setValue("quotation.shippingAddressId", null);
+      setValue("quotation.activityId", null);
       setSelectedCustomer({
         id: result.customerId,
         name: result.customerName,
@@ -1820,6 +1826,32 @@ export function QuotationDetailScreen(): React.ReactElement {
                     )}
                   />
                 )}
+
+                {watchedCustomerId ? (
+                  <Controller
+                    control={control}
+                    name="quotation.activityId"
+                    render={({ field: { value } }) => (
+                      <View style={styles.fieldContainerTight}>
+                        <Text style={[styles.labelCompact, { color: mutedText }]}>Bağlı Aktivite</Text>
+                        <TouchableOpacity
+                          style={[
+                            styles.pickerButton,
+                            styles.pickerShellCompact,
+                            { backgroundColor: innerBg, borderColor: innerBorder },
+                          ]}
+                          onPress={() => !isReadonly && setActivityModalVisible(true)}
+                          disabled={isReadonly}
+                          activeOpacity={isReadonly ? 1 : 0.85}
+                        >
+                          <Text style={[styles.pickerText, styles.pickerTextCompact, { color: titleText }]} numberOfLines={1}>
+                            {customerActivities.find((activity) => activity.id === value)?.subject || "Aktivite seçin"}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  />
+                ) : null}
               </View>
 
               <View style={[styles.section, { backgroundColor: shellBg, borderColor: sectionOutline }]}>
@@ -2636,6 +2668,26 @@ export function QuotationDetailScreen(): React.ReactElement {
               searchPlaceholder={t("quotation.searchAddress")}
             />
           )}
+
+          {watchedCustomerId ? (
+            <PickerModal
+              visible={activityModalVisible}
+              options={customerActivities.map((activity) => ({
+                id: activity.id,
+                name: activity.subject || `#${activity.id}`,
+                code: activity.startDateTime ? new Date(activity.startDateTime).toLocaleDateString() : undefined,
+              }))}
+              selectedValue={watch("quotation.activityId") ?? undefined}
+              onSelect={(option) => {
+                setValue("quotation.activityId", option.id as number, { shouldDirty: true, shouldValidate: true });
+                setActivityModalVisible(false);
+              }}
+              onClose={() => setActivityModalVisible(false)}
+              title="Bağlı Aktivite Seçiniz"
+              searchPlaceholder="Aktivite ara..."
+              isLoading={isCustomerActivitiesLoading}
+            />
+          ) : null}
 
           <QuotationPreviewPdfDialog
             visible={previewPdfVisible}

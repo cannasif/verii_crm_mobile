@@ -138,6 +138,7 @@ export function normalizeOfferType(value: string | null | undefined): OfferTypeV
 
 export interface CreateQuotationDto {
   potentialCustomerId?: number | null;
+  activityId?: number | null;
   erpCustomerCode?: string | null;
   deliveryDate?: string | null;
   shippingAddressId?: number | null;
@@ -523,6 +524,8 @@ export interface QuotationDetailGetDto {
   deletedByFullUser: string | null;
   potentialCustomerId: number | null;
   potentialCustomerName: string | null;
+  activityId?: number | null;
+  activitySubject?: string | null;
   erpCustomerCode: string | null;
   deliveryDate: string | null;
   shippingAddressId: number | null;

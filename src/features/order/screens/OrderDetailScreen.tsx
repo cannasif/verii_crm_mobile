@@ -65,6 +65,7 @@ import { isForbiddenError } from "../../access-control/utils/isForbiddenError";
 import { useAuthStore } from "../../../store/auth";
 import { useToastStore } from "../../../store/toast";
 import { FormField } from "../../activity/components";
+import { useCustomerActivities } from "../../activity/hooks/useCustomerActivities";
 import { useCustomer, useCustomerScopeAccess } from "../../customer/hooks";
 import { useCustomerShippingAddresses } from "../../shipping-address/hooks";
 import { buildShippingAddressLabel } from "../../shipping-address/utils/shippingAddressLabel";
@@ -315,6 +316,7 @@ export function OrderDetailScreen(): React.ReactElement {
   const [paymentTypeModalVisible, setPaymentTypeModalVisible] = useState(false);
   const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
   const [shippingAddressModalVisible, setShippingAddressModalVisible] = useState(false);
+  const [activityModalVisible, setActivityModalVisible] = useState(false);
   const [specialCode1ModalVisible, setSpecialCode1ModalVisible] = useState(false);
   const [specialCode2ModalVisible, setSpecialCode2ModalVisible] = useState(false);
   const [koliBaskiModalVisible, setKoliBaskiModalVisible] = useState(false);
@@ -353,6 +355,7 @@ export function OrderDetailScreen(): React.ReactElement {
         offerDate: new Date().toISOString().split("T")[0],
         deliveryDate: new Date().toISOString().split("T")[0],
         representativeId: user?.id ?? null,
+        activityId: null,
         ozelKod1: "",
         ozelKod2: "",
         koliBaskiDefinitionId: null,
@@ -387,6 +390,7 @@ export function OrderDetailScreen(): React.ReactElement {
     watchedRepresentativeId ?? undefined
   );
   const { data: shippingAddresses } = useCustomerShippingAddresses(watchedCustomerId ?? undefined);
+  const { data: customerActivities = [], isLoading: isCustomerActivitiesLoading } = useCustomerActivities(watchedCustomerId);
   const exchangeRateParams = useMemo(
     () => ({ tarih: new Date().toISOString().split("T")[0], fiyatTipi: 1 as const }),
     []
@@ -596,6 +600,7 @@ export function OrderDetailScreen(): React.ReactElement {
     setValue("order.potentialCustomerId", null);
     setValue("order.erpCustomerCode", null);
     setValue("order.shippingAddressId", null);
+    setValue("order.activityId", null);
   }, [isCustomerInRepresentativeScope, setValue, watchedCustomerId]);
 
   useEffect(() => {
@@ -619,6 +624,7 @@ export function OrderDetailScreen(): React.ReactElement {
       setValue("order.potentialCustomerId", result.customerId);
       setValue("order.erpCustomerCode", result.erpCustomerCode ?? null);
       setValue("order.shippingAddressId", null);
+      setValue("order.activityId", null);
       setSelectedCustomer({
         id: result.customerId,
         name: result.customerName,
@@ -1582,6 +1588,32 @@ export function OrderDetailScreen(): React.ReactElement {
                     )}
                   />
                 )}
+
+                {watchedCustomerId ? (
+                  <Controller
+                    control={control}
+                    name="order.activityId"
+                    render={({ field: { value } }) => (
+                      <View style={styles.fieldContainerTight}>
+                        <Text style={[styles.labelCompact, { color: mutedText }]}>Bağlı Aktivite</Text>
+                        <TouchableOpacity
+                          style={[
+                            styles.pickerButton,
+                            styles.pickerShellCompact,
+                            { backgroundColor: innerBg, borderColor: innerBorder },
+                          ]}
+                          onPress={() => !isReadonly && setActivityModalVisible(true)}
+                          disabled={isReadonly}
+                          activeOpacity={isReadonly ? 1 : 0.85}
+                        >
+                          <Text style={[styles.pickerText, styles.pickerTextCompact, { color: titleText }]} numberOfLines={1}>
+                            {customerActivities.find((activity) => activity.id === value)?.subject || "Aktivite seçin"}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  />
+                ) : null}
               </View>
 
               <View style={[styles.section, { backgroundColor: shellBg, borderColor: sectionOutline }]}>
@@ -2343,6 +2375,26 @@ export function OrderDetailScreen(): React.ReactElement {
               searchPlaceholder={t("order.searchAddress")}
             />
           )}
+
+          {watchedCustomerId ? (
+            <PickerModal
+              visible={activityModalVisible}
+              options={customerActivities.map((activity) => ({
+                id: activity.id,
+                name: activity.subject || `#${activity.id}`,
+                code: activity.startDateTime ? new Date(activity.startDateTime).toLocaleDateString() : undefined,
+              }))}
+              selectedValue={watch("order.activityId") ?? undefined}
+              onSelect={(option) => {
+                setValue("order.activityId", option.id as number, { shouldDirty: true, shouldValidate: true });
+                setActivityModalVisible(false);
+              }}
+              onClose={() => setActivityModalVisible(false)}
+              title="Bağlı Aktivite Seçiniz"
+              searchPlaceholder="Aktivite ara..."
+              isLoading={isCustomerActivitiesLoading}
+            />
+          ) : null}
 
           <OrderPreviewPdfDialog
             visible={previewPdfVisible}

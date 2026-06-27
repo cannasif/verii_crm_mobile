@@ -72,6 +72,7 @@ export function mapDetailHeaderToForm(
 ): CreateOrderSchema["order"] {
   return {
     potentialCustomerId: h.potentialCustomerId ?? null,
+    activityId: h.activityId ?? null,
     erpCustomerCode: h.erpCustomerCode ?? null,
     deliveryDate: toDateOnly(h.deliveryDate),
     shippingAddressId: h.shippingAddressId ?? null,

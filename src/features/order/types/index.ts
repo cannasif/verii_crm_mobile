@@ -121,6 +121,7 @@ export interface OrderGetDto {
 
 export interface CreateOrderDto {
   potentialCustomerId?: number | null;
+  activityId?: number | null;
   erpCustomerCode?: string | null;
   deliveryDate?: string | null;
   shippingAddressId?: number | null;
@@ -438,6 +439,8 @@ export interface OrderDetailGetDto {
   deletedByFullUser: string | null;
   potentialCustomerId: number | null;
   potentialCustomerName: string | null;
+  activityId?: number | null;
+  activitySubject?: string | null;
   erpCustomerCode: string | null;
   deliveryDate: string | null;
   shippingAddressId: number | null;

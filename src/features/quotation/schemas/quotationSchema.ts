@@ -5,6 +5,7 @@ export const createQuotationSchema = () =>
     .object({
       quotation: z.object({
         potentialCustomerId: z.number().nullable().optional(),
+        activityId: z.number().nullable().optional(),
         erpCustomerCode: z.string().max(50).nullable().optional(),
         deliveryDate: z.string().nullable().optional(),
         shippingAddressId: z.number().nullable().optional(),
