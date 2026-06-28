@@ -12,6 +12,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GluestackUIProvider } from "../components/ui/gluestack-ui-provider";
 import { ToastContainer } from "../components/Toast";
 import { ErrorBoundary } from "../components/ErrorBoundary";
+import { GlobalNetworkIndicator } from "../components/GlobalNetworkIndicator";
 import { Text } from "../components/ui/text";
 import { queryClient } from "../lib/queryClient";
 import { useAuthStore } from "../store/auth";
@@ -363,6 +364,7 @@ export default function RootLayout(): React.ReactElement {
           <GluestackUIProvider>
             <I18nextProvider i18n={i18n}>
               <RootStack isAuthScreen={isAuthScreen} />
+              <GlobalNetworkIndicator />
               <Sidebar />
               <ToastContainer />
               <UpdateAvailableModal

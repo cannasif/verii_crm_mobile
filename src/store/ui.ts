@@ -13,6 +13,7 @@ export type MenuViewType = "list" | "grid";
 
 interface UIState {
   isLoading: boolean;
+  activeNetworkRequestCount: number;
   themeMode: ThemeMode;
   brandTheme: BrandTheme;
   colors: ThemeColors;
@@ -23,6 +24,8 @@ interface UIState {
   /** Stok seçme ekranında birim bilgisini meta satırında göster/gizle. */
   showUnitInStockSelection: boolean;
   setIsLoading: (value: boolean) => void;
+  incrementNetworkRequest: () => void;
+  decrementNetworkRequest: () => void;
   setThemeMode: (mode: ThemeMode) => void;
   setBrandTheme: (theme: BrandTheme) => void;
   toggleTheme: () => void;
@@ -38,6 +41,7 @@ export const useUIStore = create<UIState>()(
   persist(
     (set, get) => ({
       isLoading: false,
+      activeNetworkRequestCount: 0,
       themeMode: "light",
       brandTheme: "v3rii",
       colors: resolveThemeColors("light", "v3rii"),
@@ -46,6 +50,12 @@ export const useUIStore = create<UIState>()(
       uppercaseCompanyNameAfterScan: true,
       showUnitInStockSelection: true,
       setIsLoading: (value: boolean) => set({ isLoading: value }),
+      incrementNetworkRequest: () =>
+        set((state) => ({ activeNetworkRequestCount: state.activeNetworkRequestCount + 1 })),
+      decrementNetworkRequest: () =>
+        set((state) => ({
+          activeNetworkRequestCount: Math.max(0, state.activeNetworkRequestCount - 1),
+        })),
       setThemeMode: (mode: ThemeMode) =>
         set((state) => ({
           themeMode: mode,

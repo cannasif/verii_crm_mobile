@@ -2,6 +2,7 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { API_TIMEOUT, getApiBaseUrl, initializeApiBaseUrl } from "../constants/config";
 import type { ApiResponse, Branch } from "../features/auth/types";
 import { useAuthStore } from "../store/auth";
+import { useUIStore } from "../store/ui";
 import { router } from "expo-router";
 import i18n, { getCurrentLanguage } from "../locales";
 
@@ -92,8 +93,17 @@ export async function initializeApiClient(): Promise<void> {
   apiClient.defaults.baseURL = baseUrl;
 }
 
+function trackApiRequestStart(): void {
+  useUIStore.getState().incrementNetworkRequest();
+}
+
+function trackApiRequestEnd(): void {
+  useUIStore.getState().decrementNetworkRequest();
+}
+
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
+    trackApiRequestStart();
     config.baseURL = getApiBaseUrl();
     const originalMethod = (config.method ?? "get").toLowerCase();
     if (originalMethod === "put") {
@@ -160,6 +170,7 @@ apiClient.interceptors.request.use(
 
 apiClient.interceptors.response.use(
   (response) => {
+    trackApiRequestEnd();
     response.data = normalizeUtcDateStrings(response.data);
     if (__DEV__) {
       const payload = response.data as { data?: unknown; success?: boolean } | undefined;
@@ -180,6 +191,7 @@ apiClient.interceptors.response.use(
     return response;
   },
   async (error: AxiosError<ApiResponse<unknown>>) => {
+    trackApiRequestEnd();
     const requestUrl = error.config?.url || "";
 
     if (__DEV__) {
