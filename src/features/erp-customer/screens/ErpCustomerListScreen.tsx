@@ -16,6 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { LayoutGridIcon, ListViewIcon } from "hugeicons-react-native";
 
 import { ScreenHeader } from "../../../components/navigation";
+import { normalizeSearchText } from "../../../lib/normalizeSearchText";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useErpCustomers } from "../hooks/useErpCustomers";
@@ -55,10 +56,10 @@ export function ErpCustomerListScreen(): React.ReactElement {
   // 2. ARAMA FİLTRELEME (Performans için useMemo)
   const filteredCustomers = useMemo(() => {
     if (!searchText.trim()) return allCustomers;
-    const searchLower = searchText.toLowerCase().trim();
+    const searchLower = normalizeSearchText(searchText);
     return allCustomers.filter(customer => 
-      customer.cariIsim?.toLowerCase().includes(searchLower) ||
-      customer.cariKod?.toLowerCase().includes(searchLower)
+      normalizeSearchText(customer.cariIsim).includes(searchLower) ||
+      normalizeSearchText(customer.cariKod).includes(searchLower)
     );
   }, [allCustomers, searchText]);
 

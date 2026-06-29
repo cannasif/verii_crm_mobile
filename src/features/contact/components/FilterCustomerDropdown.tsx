@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { View, TouchableOpacity, StyleSheet, TextInput, ScrollView, Text } from "react-native";
 import { ArrowDown01Icon, Search01Icon } from "hugeicons-react-native";
 import { useUIStore } from "../../../store/ui";
+import { normalizeSearchText } from "../../../lib/normalizeSearchText";
 
 interface FilterCustomerDropdownProps {
   customers: { id: number; name: string }[];
@@ -31,7 +32,8 @@ export function FilterCustomerDropdown({ customers, selectedId, onSelect, isOpen
 
   const filteredCustomers = useMemo(() => {
     if (!searchQuery.trim()) return customers;
-    return customers.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    const query = normalizeSearchText(searchQuery);
+    return customers.filter(c => normalizeSearchText(c.name).includes(query));
   }, [customers, searchQuery]);
 
   const selectedName = customers.find(c => c.id === selectedId)?.name || "Tüm Müşteriler";

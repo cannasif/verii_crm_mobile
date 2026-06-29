@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
+import { normalizeSearchText } from "../../../lib/normalizeSearchText";
 import { VoiceSearchButton } from "./VoiceSearchButton";
 
 interface PickerOption {
@@ -54,11 +55,11 @@ export function PickerModal({
 
   const filteredOptions = useMemo(() => {
     if (!searchText.trim()) return options;
-    const searchLower = searchText.toLowerCase();
+    const searchLower = normalizeSearchText(searchText);
     return options.filter(
       (option) =>
-        option.name.toLowerCase().includes(searchLower) ||
-        (option.code && option.code.toLowerCase().includes(searchLower))
+        normalizeSearchText(option.name).includes(searchLower) ||
+        normalizeSearchText(option.code).includes(searchLower)
     );
   }, [options, searchText]);
 
