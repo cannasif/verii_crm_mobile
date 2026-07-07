@@ -29,6 +29,7 @@ import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useAuthStore } from "../../../store/auth";
 import { useToastStore } from "../../../store/toast";
+import { useSystemSettingsStore } from "../../../store/system-settings";
 import {
   useCustomer,
   useCreateCustomer,
@@ -139,6 +140,9 @@ export function CustomerFormScreen(): React.ReactElement {
   const { id, autoScan } = useLocalSearchParams<{ id?: string; autoScan?: string }>();
   const { colors, themeMode, uppercaseCompanyNameAfterScan } = useUIStore();
   const { branch, user } = useAuthStore();
+  const useCustomerCodeAsAccountingCode = useSystemSettingsStore(
+    (state) => Boolean(state.settings.useCustomerCodeAsAccountingCode)
+  );
   const insets = useSafeAreaInsets();
   const showToast = useToastStore((state) => state.showToast);
 
@@ -259,6 +263,8 @@ export function CustomerFormScreen(): React.ReactElement {
   const watchCityId = watch("cityId");
   const watchDistrictId = watch("districtId");
   const watchDefaultShippingAddressId = watch("defaultShippingAddressId");
+  const watchCustomerCode = watch("customerCode");
+  const watchAccountingCode = watch("accountingCode");
   const { data: countries } = useCountries();
   const { data: cities } = useCities(watchCountryId);
   const { data: districts } = useDistricts(watchCityId);
@@ -283,6 +289,20 @@ export function CustomerFormScreen(): React.ReactElement {
   const scrollViewRef = useRef<ScrollView | null>(null);
   const scrollOffsetYRef = useRef(0);
   const keyboardHeightRef = useRef(0);
+
+  useEffect(() => {
+    if (!useCustomerCodeAsAccountingCode) {
+      return;
+    }
+
+    const nextAccountingCode = (watchCustomerCode ?? "").trim();
+    if ((watchAccountingCode ?? "") !== nextAccountingCode) {
+      setValue("accountingCode", nextAccountingCode, {
+        shouldDirty: false,
+        shouldValidate: true,
+      });
+    }
+  }, [setValue, useCustomerCodeAsAccountingCode, watchAccountingCode, watchCustomerCode]);
 
   useEffect(() => {
     return () => {
@@ -557,7 +577,9 @@ export function CustomerFormScreen(): React.ReactElement {
         defaultShippingAddressId: data.defaultShippingAddressId ?? undefined,
         salesRepCode: data.salesRepCode || undefined,
         groupCode: data.groupCode || undefined,
-        accountingCode: data.accountingCode || undefined,
+        accountingCode: useCustomerCodeAsAccountingCode
+          ? data.customerCode || undefined
+          : data.accountingCode || undefined,
         creditLimit: toNumberOptional(data.creditLimit),
         branchCode: toNumber(data.branchCode) || 1,
         businessUnitCode: toNumber(data.businessUnitCode) || 1,
@@ -666,6 +688,7 @@ export function CustomerFormScreen(): React.ReactElement {
     t,
     toNumber,
     toNumberOptional,
+    useCustomerCodeAsAccountingCode,
     scannedOriginalImageUri,
     scannedContactName,
     scannedTitle
@@ -1326,6 +1349,8 @@ export function CustomerFormScreen(): React.ReactElement {
                           label={t("customer.accountingCode")}
                           value={value || ""}
                           onChangeText={onChange}
+                          editable={!useCustomerCodeAsAccountingCode}
+                          description={useCustomerCodeAsAccountingCode ? t("customer.accountingCodeMirrorsCustomerCode") : undefined}
                           maxLength={50}
                           returnKeyType="next"
                           onSubmitEditing={focusAfterAccountingCode}

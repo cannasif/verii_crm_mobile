@@ -16,6 +16,7 @@ const DEFAULT_SYSTEM_SETTINGS: SystemSettingsDto = {
   readonlyDemandVatRate: false,
   readonlyQuotationVatRate: false,
   readonlyOrderVatRate: false,
+  useCustomerCodeAsAccountingCode: false,
   catalogGroupCodeLabel: null,
   catalogCode1Label: null,
   catalogCode2Label: null,
@@ -40,6 +41,7 @@ function normalizeSettings(settings: SystemSettingsDto): SystemSettingsDto {
     readonlyDemandVatRate: Boolean(settings.readonlyDemandVatRate),
     readonlyQuotationVatRate: Boolean(settings.readonlyQuotationVatRate),
     readonlyOrderVatRate: Boolean(settings.readonlyOrderVatRate),
+    useCustomerCodeAsAccountingCode: Boolean(settings.useCustomerCodeAsAccountingCode),
   };
 }
 

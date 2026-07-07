@@ -14,6 +14,7 @@ export interface SystemSettingsDto {
   readonlyDemandVatRate?: boolean;
   readonlyQuotationVatRate?: boolean;
   readonlyOrderVatRate?: boolean;
+  useCustomerCodeAsAccountingCode?: boolean;
   catalogGroupCodeLabel?: string | null;
   catalogCode1Label?: string | null;
   catalogCode2Label?: string | null;

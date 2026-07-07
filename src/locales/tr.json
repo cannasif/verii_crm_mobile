@@ -601,6 +601,7 @@
     "salesRepCode": "Satış Temsilcisi",
     "groupCode": "Grup Kodu",
     "accountingCode": "Muhasebe Kodu",
+    "accountingCodeMirrorsCustomerCode": "Sistem ayarı açık olduğu için muhasebe kodu müşteri kodu ile aynı tutulur.",
     "creditLimit": "Kredi Limiti",
     "deleteConfirm": "Bu müşteriyi silmek istediğinize emin misiniz?",
     "deleteSuccess": "Müşteri başarıyla silindi",
