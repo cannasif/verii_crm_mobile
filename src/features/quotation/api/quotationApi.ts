@@ -1,4 +1,5 @@
 import { apiClient } from "../../../lib/axios";
+import { extractPagedItems } from "../../../lib/paged";
 import type {
   WaitingApprovalsResponse,
   ApproveResponse,
@@ -133,14 +134,7 @@ export const quotationApi = {
       );
     }
 
-    const payload = response.data.data;
-    if (Array.isArray(payload)) {
-      return payload;
-    }
-    if (payload && Array.isArray(payload.items)) {
-      return payload.items;
-    }
-    return [];
+    return extractPagedItems<ApprovalActionGetDto>(response.data.data);
   },
 
   approve: async (data: ApproveActionDto): Promise<boolean> => {
