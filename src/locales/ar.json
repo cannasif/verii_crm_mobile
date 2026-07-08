@@ -406,6 +406,7 @@
     "fullNameRequired": "Ad soyad zorunludur",
     "addressRequired": "Adres alanı zorunludur",
     "fillRequiredFields": "Zorunlu alanlar doldurulmadı.",
+    "profilDefinitionRequired": "Profil seçimi zorunludur.",
     "required": "Bu alan zorunludur",
     "maxLength": "Bu alan en fazla {{count}} karakter olabilir"
   },

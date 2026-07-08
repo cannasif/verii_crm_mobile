@@ -333,7 +333,8 @@
     "assignedUserRequired": "Zugewiesener Benutzer ist erforderlich",
     "statusRequired": "Status ist erforderlich",
     "dateRequired": "Datum ist erforderlich",
-    "endDateRequired": "Enddatum ist erforderlich"
+    "endDateRequired": "Enddatum ist erforderlich",
+    "profilDefinitionRequired": "Profilauswahl ist erforderlich."
   },
   "language": {
     "title": "Sprache",

@@ -34,6 +34,7 @@ import {
   normalizeDiscountRateForField,
   type DiscountRateField,
 } from "../../../lib/discountRateValidation";
+import { areProfilDefinitionsValid } from "../../../lib/profilDefinitionValidation";
 import { getApiBaseUrl } from "../../../constants/config";
 import { resolveDocumentVatRate } from "../../../utils/documentVat";
 import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida/hooks/useWindoDefinitionOptions";
@@ -240,6 +241,7 @@ export function QuotationLineForm({
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [projectCodeModalVisible, setProjectCodeModalVisible] = useState(false);
   const [profilPickerVisible, setProfilPickerVisible] = useState(false);
+  const [profilFieldError, setProfilFieldError] = useState(false);
   const [demirPickerVisible, setDemirPickerVisible] = useState(false);
   const [vidaPickerVisible, setVidaPickerVisible] = useState(false);
   const [baskiPickerVisible, setBaskiPickerVisible] = useState(false);
@@ -425,6 +427,7 @@ export function QuotationLineForm({
     setRelatedLinesDisplay([]);
     setBulkDraftLines([]);
     setActiveBulkDraftIndex(0);
+    setProfilFieldError(false);
   }, [offerType]);
 
   const applyDraftLineToForm = useCallback((draft: QuotationLineFormState) => {
@@ -530,6 +533,12 @@ export function QuotationLineForm({
 
     prevLineFormVisibleRef.current = true;
   }, [visible, line, resetForm, hydrateFromEditingLine, hasBulkDrafts, selectedStock?.erpStockCode]);
+
+  useEffect(() => {
+    if (profilDefinitionId != null) {
+      setProfilFieldError(false);
+    }
+  }, [profilDefinitionId]);
 
   useEffect(() => {
     if (profilDefinitionId == null) {
@@ -981,6 +990,22 @@ export function QuotationLineForm({
     Alert.alert("İndirim", "Kademeli iskonto efektif %100 değerine ulaşamaz.");
   }, []);
 
+  const showProfilRequiredError = useCallback(() => {
+    Alert.alert(t("common.warning"), t("validation.profilDefinitionRequired"));
+  }, [t]);
+
+  const validateProfilBeforeSave = useCallback(
+    (linesToValidate: Array<Pick<QuotationLineFormState, "profilDefinitionId">>): boolean => {
+      const isValid = areProfilDefinitionsValid(linesToValidate);
+      if (!isValid) {
+        setProfilFieldError(true);
+        showProfilRequiredError();
+      }
+      return isValid;
+    },
+    [showProfilRequiredError],
+  );
+
   const normalizeDiscountInput = useCallback(
     (field: DiscountField, value: number): number => {
       const normalized = normalizeDiscountRateForField(field, value, {
@@ -1013,6 +1038,9 @@ export function QuotationLineForm({
       const flattenedDrafts = nextDrafts.flatMap((draft) =>
         draft.relatedLines && draft.relatedLines.length > 0 ? [draft, ...draft.relatedLines] : [draft]
       );
+      if (!validateProfilBeforeSave([lineToSave])) {
+        return;
+      }
       if (!validateDiscountRatesBeforeSave(flattenedDrafts)) {
         return;
       }
@@ -1028,6 +1056,10 @@ export function QuotationLineForm({
 
     const canSave = selectedStock || (line?.productCode && lineToSave.productCode);
     if (!canSave) {
+      return;
+    }
+
+    if (!validateProfilBeforeSave([lineToSave])) {
       return;
     }
 
@@ -1047,6 +1079,7 @@ export function QuotationLineForm({
     selectedStock,
     line?.productCode,
     lineToSave,
+    validateProfilBeforeSave,
     validateDiscountRatesBeforeSave,
     onSave,
     onClose,
@@ -1061,6 +1094,9 @@ export function QuotationLineForm({
         ? [draft, ...draft.relatedLines]
         : [draft]
     );
+    if (!validateProfilBeforeSave(drafts)) {
+      return;
+    }
     if (!validateDiscountRatesBeforeSave(flattened)) {
       return;
     }
@@ -1074,6 +1110,7 @@ export function QuotationLineForm({
     activeBulkDraftIndex,
     mergeBulkDraftLinesAtIndex,
     lineToSave,
+    validateProfilBeforeSave,
     validateDiscountRatesBeforeSave,
     onSaveMultiple,
     onSave,
@@ -1528,6 +1565,7 @@ export function QuotationLineForm({
                     onBaskiCreatePress={() => setBaskiCreateVisible(true)}
                     baskiAciklama={baskiAciklama}
                     onBaskiAciklamaChange={setBaskiAciklama}
+                    profilError={profilFieldError}
                     colors={{
                       text: textColor,
                       textSecondary: mutedColor,

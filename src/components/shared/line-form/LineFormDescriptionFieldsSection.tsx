@@ -1,5 +1,6 @@
 import React from "react";
 import { View, StyleSheet, TouchableOpacity, TextInput } from "react-native";
+import { useTranslation } from "react-i18next";
 import { Text } from "@/components/ui/text";
 
 export type LineFormDescriptionFieldsColors = {
@@ -42,6 +43,7 @@ type LineFormDescriptionFieldsSectionProps = {
   baskiAciklama: string;
   onBaskiAciklamaChange: (value: string) => void;
   isDefinitionOptionsLoading?: boolean;
+  profilError?: boolean;
   colors: LineFormDescriptionFieldsColors;
   compact?: boolean;
 };
@@ -75,10 +77,13 @@ export function LineFormDescriptionFieldsSection({
   baskiAciklama,
   onBaskiAciklamaChange,
   isDefinitionOptionsLoading = false,
+  profilError = false,
   colors,
   compact = false,
 }: LineFormDescriptionFieldsSectionProps) {
+  const { t } = useTranslation();
   const inputTextColor = colors.inputText ?? colors.text;
+  const errorBorderColor = "#EF4444";
   const inputStyle = [
     styles.input,
     compact && styles.compactInput,
@@ -167,8 +172,16 @@ export function LineFormDescriptionFieldsSection({
 
       <View style={styles.rowThree}>
         <View style={styles.fieldThird}>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>Profil</Text>
-          <TouchableOpacity style={pickerStyle} onPress={onProfilPress}>
+          <Text style={[styles.label, { color: profilError ? errorBorderColor : colors.textSecondary }]}>
+            {t("common.profil")} *
+          </Text>
+          <TouchableOpacity
+            style={[
+              pickerStyle,
+              profilError ? { borderColor: errorBorderColor } : null,
+            ]}
+            onPress={onProfilPress}
+          >
             <Text
               style={[styles.pickerText, { color: profilDefinitionId != null ? colors.text : colors.textSecondary }]}
               numberOfLines={1}

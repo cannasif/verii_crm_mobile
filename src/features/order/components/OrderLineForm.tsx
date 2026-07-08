@@ -34,6 +34,7 @@ import {
   normalizeDiscountRateForField,
   type DiscountRateField,
 } from "../../../lib/discountRateValidation";
+import { areProfilDefinitionsValid } from "../../../lib/profilDefinitionValidation";
 import { getApiBaseUrl } from "../../../constants/config";
 import { resolveDocumentVatRate } from "../../../utils/documentVat";
 import { getCurrencyDisplayLabel } from "../../../lib/currencyDisplay";
@@ -179,6 +180,7 @@ export function OrderLineForm({
   const [imagePath, setImagePath] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [profilPickerVisible, setProfilPickerVisible] = useState(false);
+  const [profilFieldError, setProfilFieldError] = useState(false);
   const [demirPickerVisible, setDemirPickerVisible] = useState(false);
   const [vidaPickerVisible, setVidaPickerVisible] = useState(false);
   const [baskiPickerVisible, setBaskiPickerVisible] = useState(false);
@@ -314,6 +316,12 @@ export function OrderLineForm({
   }, [line, visible]);
 
   useEffect(() => {
+    if (profilDefinitionId != null) {
+      setProfilFieldError(false);
+    }
+  }, [profilDefinitionId]);
+
+  useEffect(() => {
     if (profilDefinitionId == null) {
       if (demirDefinitionId == null && vidaDefinitionId == null) {
         return;
@@ -409,6 +417,7 @@ export function OrderLineForm({
     setRelatedLinesDisplay([]);
     setBulkDraftLines([]);
     setActiveBulkDraftIndex(0);
+    setProfilFieldError(false);
   }, [offerType]);
 
   const { data: stockData } = useStock(selectedStock?.id);
@@ -810,6 +819,22 @@ export function OrderLineForm({
     Alert.alert("İndirim", "Kademeli iskonto efektif %100 değerine ulaşamaz.");
   }, []);
 
+  const showProfilRequiredError = useCallback(() => {
+    Alert.alert(t("common.warning"), t("validation.profilDefinitionRequired"));
+  }, [t]);
+
+  const validateProfilBeforeSave = useCallback(
+    (linesToValidate: Array<Pick<OrderLineFormState, "profilDefinitionId">>): boolean => {
+      const isValid = areProfilDefinitionsValid(linesToValidate);
+      if (!isValid) {
+        setProfilFieldError(true);
+        showProfilRequiredError();
+      }
+      return isValid;
+    },
+    [showProfilRequiredError],
+  );
+
   const normalizeDiscountInput = useCallback(
     (field: DiscountField, value: number): number => {
       const normalized = normalizeDiscountRateForField(field, value, {
@@ -849,6 +874,9 @@ export function OrderLineForm({
       const flattenedDrafts = drafts.flatMap((draft) =>
         draft.relatedLines && draft.relatedLines.length > 0 ? [draft, ...draft.relatedLines] : [draft]
       );
+      if (!validateProfilBeforeSave([lineToSave])) {
+        return;
+      }
       if (!validateDiscountRatesBeforeSave(flattenedDrafts)) {
         return;
       }
@@ -866,6 +894,10 @@ export function OrderLineForm({
       return;
     }
 
+    if (!validateProfilBeforeSave([lineToSave])) {
+      return;
+    }
+
     if (!validateDiscountRatesBeforeSave([lineToSave, ...(lineToSave.relatedLines ?? [])])) {
       return;
     }
@@ -878,6 +910,7 @@ export function OrderLineForm({
     activeBulkDraftIndex,
     bulkDraftLines,
     applyDraftLineToForm,
+    validateProfilBeforeSave,
     validateDiscountRatesBeforeSave,
     selectedStock,
     line?.productCode,
@@ -902,6 +935,9 @@ export function OrderLineForm({
         ? [draft, ...draft.relatedLines]
         : [draft]
     );
+    if (!validateProfilBeforeSave(drafts)) {
+      return;
+    }
     if (!validateDiscountRatesBeforeSave(flattened)) {
       return;
     }
@@ -918,6 +954,7 @@ export function OrderLineForm({
     bulkDraftLines,
     activeBulkDraftIndex,
     lineToSave,
+    validateProfilBeforeSave,
     validateDiscountRatesBeforeSave,
     onSaveMultiple,
     onSave,
@@ -1313,6 +1350,7 @@ export function OrderLineForm({
               baskiAciklama={baskiAciklama}
               onBaskiAciklamaChange={setBaskiAciklama}
               isDefinitionOptionsLoading={isDefinitionOptionsLoading}
+              profilError={profilFieldError}
               colors={{
                 text: textColor,
                 textSecondary: mutedColor,
