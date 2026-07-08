@@ -387,7 +387,8 @@
     "assignedUserRequired": "Assigned user is required",
     "statusRequired": "Status is required",
     "dateRequired": "Date is required",
-    "endDateRequired": "End date is required"
+    "endDateRequired": "End date is required",
+    "profilDefinitionRequired": "Profile selection is required."
   },
   "language": {
     "title": "Language",
