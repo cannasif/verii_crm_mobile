@@ -156,7 +156,7 @@ export function CustomerFormScreen(): React.ReactElement {
     : ['rgba(255, 235, 240, 0.8)', '#FFFFFF', 'rgba(255, 240, 225, 0.8)']) as [string, string, ...string[]];
 
   const formConfig = {
-    showCustomerCode: false,
+    showCustomerCode: true,
     showBusinessCardScan: true,
     showCustomerType: true,
     showShippingAddress: false,
@@ -173,9 +173,9 @@ export function CustomerFormScreen(): React.ReactElement {
     showAddress: true,
     showPostalCode: true,
     showLocation: true,
-    showTaxNumber: false,
-    showTaxOffice: false,
-    showTCKN: false,
+    showTaxNumber: true,
+    showTaxOffice: true,
+    showTCKN: true,
     showNotes: true,
   };
 
@@ -616,6 +616,10 @@ export function CustomerFormScreen(): React.ReactElement {
             email: base.email,
             phone: base.phone,
             phone2: base.phone2,
+            customerCode: base.customerCode,
+            taxNumber: base.taxNumber,
+            taxOffice: base.taxOffice,
+            tcknNumber: base.tcknNumber,
             address: base.address,
             postalCode: base.postalCode,
             website: base.website,
@@ -1030,7 +1034,7 @@ export function CustomerFormScreen(): React.ReactElement {
                 onPress={() => setActiveTab("general")}
               >
                 <Text style={[styles.tabText, activeTab === "general" ? { color: THEME.primary } : { color: THEME.textMute }]}>
-                  Genel Bilgiler
+                  {t("customer.mobileGeneralTab")}
                 </Text>
               </TouchableOpacity>
 
@@ -1049,7 +1053,7 @@ export function CustomerFormScreen(): React.ReactElement {
                 onPress={() => setActiveTab("details")}
               >
                 <Text style={[styles.tabText, activeTab === "details" ? { color: THEME.primary } : { color: THEME.textMute }]}>
-                  Detaylar & Adres
+                  {t("customer.mobileDetailsTab")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1124,7 +1128,7 @@ export function CustomerFormScreen(): React.ReactElement {
                 </>
               )}
 
-              <FormSection title="Genel Bilgiler" icon={<UserCircleIcon size={16} color={THEME.primary} variant="stroke" />} theme={THEME} isDark={isDark}>
+              <FormSection title={t("customer.mobileGeneralInfo")} icon={<UserCircleIcon size={16} color={THEME.primary} variant="stroke" />} theme={THEME} isDark={isDark}>
                 <Controller
                   control={control}
                   name="name"
@@ -1182,7 +1186,7 @@ export function CustomerFormScreen(): React.ReactElement {
               </FormSection>
 
               {(formConfig.showPhone || formConfig.showPhone2 || formConfig.showEmail || formConfig.showWebsite) && (
-                <FormSection title="İletişim Bilgileri" icon={<ContactBookIcon size={16} color={THEME.primary} variant="stroke" />} theme={THEME} isDark={isDark}>
+                <FormSection title={t("customer.contactInfo")} icon={<ContactBookIcon size={16} color={THEME.primary} variant="stroke" />} theme={THEME} isDark={isDark}>
                   {(formConfig.showPhone || formConfig.showPhone2) && (
                       <View style={styles.row}>
                           {formConfig.showPhone && (
@@ -1290,7 +1294,7 @@ export function CustomerFormScreen(): React.ReactElement {
             {activeTab === "details" ? (
             <View style={{ gap: 10 }}>
               {(formConfig.showSalesRep || formConfig.showGroupCode || formConfig.showAccountingCode || formConfig.showCreditLimit || formConfig.showBranchCode || formConfig.showBusinessUnit) && (
-                <FormSection title="Ticari Detaylar" icon={<Briefcase01Icon size={16} color={THEME.primary} variant="stroke" />} theme={THEME} isDark={isDark}>
+                <FormSection title={t("customer.mobileCommercialDetails")} icon={<Briefcase01Icon size={16} color={THEME.primary} variant="stroke" />} theme={THEME} isDark={isDark}>
                   
                   {(formConfig.showSalesRep || formConfig.showGroupCode) && (
                       <View style={styles.row}>
@@ -1383,7 +1387,7 @@ export function CustomerFormScreen(): React.ReactElement {
               )}
 
               {(formConfig.showAddress || formConfig.showPostalCode || formConfig.showLocation || formConfig.showShippingAddress) && (
-                <FormSection title="Adres Bilgileri" icon={<Location01Icon size={16} color={THEME.primary} variant="stroke" />} theme={THEME} isDark={isDark}>
+                <FormSection title={t("customer.mobileAddressInfo")} icon={<Location01Icon size={16} color={THEME.primary} variant="stroke" />} theme={THEME} isDark={isDark}>
                   {formConfig.showLocation && (
                     <View style={styles.locationSection}>
                       <Text style={[styles.subSectionTitle, { color: THEME.textMute }]}>{t("lookup.location")}</Text>
@@ -1446,7 +1450,7 @@ export function CustomerFormScreen(): React.ReactElement {
               )}
 
               {(formConfig.showTaxNumber || formConfig.showTaxOffice || formConfig.showTCKN) && (
-                <FormSection title="Yasal Bilgiler" icon={<Invoice01Icon size={16} color={THEME.primary} variant="stroke" />} theme={THEME} isDark={isDark}>
+                <FormSection title={t("customer.taxInfo")} icon={<Invoice01Icon size={16} color={THEME.primary} variant="stroke" />} theme={THEME} isDark={isDark}>
                   {(formConfig.showTaxOffice || formConfig.showTaxNumber) && (
                       <View style={styles.row}>
                           {formConfig.showTaxOffice && (
@@ -1508,7 +1512,7 @@ export function CustomerFormScreen(): React.ReactElement {
                     }
                   ]}
                 >
-                  <Text style={[styles.sleekNextText, { color: THEME.primary }]}>Detaylara İlerle</Text>
+                  <Text style={[styles.sleekNextText, { color: THEME.primary }]}>{t("customer.mobileGoToDetails")}</Text>
                   <ArrowRight01Icon size={18} color={THEME.primary} variant="stroke" />
                 </TouchableOpacity>
               </View>

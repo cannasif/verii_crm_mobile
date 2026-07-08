@@ -182,6 +182,10 @@ export const customerApi = {
     appendIfPresent("contactMiddleName", data.contactMiddleName);
     appendIfPresent("contactLastName", data.contactLastName);
     appendIfPresent("title", data.title);
+    appendIfPresent("customerCode", data.customerCode);
+    appendIfPresent("taxNumber", data.taxNumber);
+    appendIfPresent("taxOffice", data.taxOffice);
+    appendIfPresent("tcknNumber", data.tcknNumber);
     appendIfPresent("email", data.email);
     appendIfPresent("phone", data.phone);
     appendIfPresent("phone2", data.phone2);

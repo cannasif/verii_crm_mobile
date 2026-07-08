@@ -89,6 +89,10 @@ export interface CreateCustomerFromMobileDto {
   contactMiddleName?: string;
   contactLastName?: string;
   title?: string;
+  customerCode?: string;
+  taxNumber?: string;
+  taxOffice?: string;
+  tcknNumber?: string;
   email?: string;
   phone?: string;
   phone2?: string;
