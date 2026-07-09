@@ -254,7 +254,7 @@ export function CustomerFormScreen(): React.ReactElement {
       accountingCode: "",
       creditLimit: 0,
       defaultShippingAddressId: null,
-      branchCode: branch?.code ? Number(branch.code) : 1,
+      branchCode: branch?.code !== undefined && branch.code !== null && String(branch.code).trim() !== "" ? Number(branch.code) : 0,
       businessUnitCode: 1,
     },
   });
@@ -581,7 +581,7 @@ export function CustomerFormScreen(): React.ReactElement {
           ? data.customerCode || undefined
           : data.accountingCode || undefined,
         creditLimit: toNumberOptional(data.creditLimit),
-        branchCode: toNumber(data.branchCode) || 1,
+        branchCode: toNumber(data.branchCode) ?? 0,
         businessUnitCode: toNumber(data.businessUnitCode) || 1,
         phone: data.phone || undefined,
         phone2: data.phone2 || undefined,
