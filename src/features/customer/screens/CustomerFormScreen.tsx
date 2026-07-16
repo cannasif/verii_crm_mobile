@@ -52,7 +52,7 @@ import type { CountryDto, CityDto, DistrictDto } from "../types";
 import type { BusinessCardOcrResult } from "../types/businessCard";
 import { trackBusinessCardTelemetry } from "../services/businessCardTelemetryService";
 import { translateBusinessCardToTurkish } from "../services/businessCardTranslationService";
-import { normalizeCustomerNameToEnglishUpper } from "../utils/customerNameNormalizer";
+import { normalizeCustomerNameToEnglishCharacters } from "../utils/customerNameNormalizer";
 import { 
   Camera01Icon, 
   Image01Icon, 
@@ -576,7 +576,7 @@ export function CustomerFormScreen(): React.ReactElement {
 
       const base = {
         name: requireEnglishCustomerName
-          ? normalizeCustomerNameToEnglishUpper(data.name)
+          ? normalizeCustomerNameToEnglishCharacters(data.name)
           : data.name,
         customerCode: data.customerCode || undefined,
         customerTypeId: data.customerTypeId,
@@ -1155,7 +1155,7 @@ export function CustomerFormScreen(): React.ReactElement {
                       onInputBlur={() => {
                         onBlur();
                         if (requireEnglishCustomerName) {
-                          onChange(normalizeCustomerNameToEnglishUpper(value));
+                          onChange(normalizeCustomerNameToEnglishCharacters(value));
                         }
                       }}
                     />
