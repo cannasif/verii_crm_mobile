@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import {
@@ -8,6 +8,7 @@ import {
   Alert02Icon,
   Cancel01Icon,
   Invoice03Icon,
+  ArrowRight01Icon,
 } from "hugeicons-react-native";
 import type { Customer360TimelineItemDto } from "../types";
 
@@ -17,6 +18,7 @@ interface TimelineRowProps {
   formatDateTime: (date: string) => string;
   statusLabel: string;
   formatAmount?: (value: number) => string;
+  onPress?: () => void;
 }
 
 function getStatusMeta(status: string, isDark: boolean) {
@@ -76,6 +78,7 @@ export function TimelineRow({
   formatDateTime,
   statusLabel,
   formatAmount,
+  onPress,
 }: TimelineRowProps): React.ReactElement {
   const { themeMode } = useUIStore();
   const isDark = themeMode === "dark";
@@ -101,7 +104,14 @@ export function TimelineRow({
   const StatusIcon = statusMeta?.Icon;
 
   return (
-    <View style={styles.row}>
+    <TouchableOpacity
+      style={styles.row}
+      activeOpacity={0.72}
+      disabled={!onPress}
+      onPress={onPress}
+      accessibilityRole={onPress ? "button" : undefined}
+      accessibilityLabel={item.title}
+    >
       <View style={styles.leftRail}>
         <View
           style={[
@@ -162,7 +172,12 @@ export function TimelineRow({
           </View>
         ) : null}
       </View>
-    </View>
+      {onPress ? (
+        <View style={styles.chevronWrap}>
+          <ArrowRight01Icon size={14} color={softText} variant="stroke" />
+        </View>
+      ) : null}
+    </TouchableOpacity>
   );
 }
 
@@ -192,6 +207,11 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     paddingBottom: 2,
+  },
+  chevronWrap: {
+    width: 22,
+    alignItems: "flex-end",
+    justifyContent: "center",
   },
   topMetaRow: {
     flexDirection: "row",

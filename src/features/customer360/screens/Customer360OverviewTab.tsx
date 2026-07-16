@@ -1,5 +1,6 @@
 import React, { useCallback } from "react";
 import { View, StyleSheet } from "react-native";
+import { useRouter } from "expo-router";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { useTranslation } from "react-i18next";
 import { Text } from "../../../components/ui/text";
@@ -9,7 +10,11 @@ import {
   SectionCard,
   TimelineSection,
 } from "../components";
-import type { Customer360OverviewDto } from "../types";
+import type {
+  Customer360OverviewDto,
+  Customer360SimpleItemDto,
+  Customer360TimelineItemDto,
+} from "../types";
 import { Calendar03Icon } from "hugeicons-react-native";
 
 interface Customer360OverviewTabProps {
@@ -52,6 +57,7 @@ export function Customer360OverviewTab({
   data,
   colors,
 }: Customer360OverviewTabProps): React.ReactElement {
+  const router = useRouter();
   const { t, i18n } = useTranslation();
   const { themeMode } = useUIStore();
 
@@ -89,6 +95,49 @@ export function Customer360OverviewTab({
   const formatAmountCb = useCallback(
     (v: number) => formatAmount(v, locale),
     [locale]
+  );
+
+  const openDetail = useCallback(
+    (type: string | null | undefined, itemId: number): void => {
+      if (!Number.isFinite(itemId) || itemId <= 0) return;
+
+      switch (type?.trim().toLocaleLowerCase("en-US")) {
+        case "activity":
+          router.push(`/(tabs)/activities/${itemId}`);
+          break;
+        case "demand":
+          router.push(`/(tabs)/sales/demands/${itemId}`);
+          break;
+        case "quotation":
+          router.push(`/(tabs)/sales/quotations/${itemId}`);
+          break;
+        case "order":
+          router.push(`/(tabs)/sales/orders/${itemId}`);
+          break;
+      }
+    },
+    [router]
+  );
+
+  const openDemand = useCallback(
+    (item: Customer360SimpleItemDto) => openDetail("Demand", item.id),
+    [openDetail]
+  );
+  const openQuotation = useCallback(
+    (item: Customer360SimpleItemDto) => openDetail("Quotation", item.id),
+    [openDetail]
+  );
+  const openOrder = useCallback(
+    (item: Customer360SimpleItemDto) => openDetail("Order", item.id),
+    [openDetail]
+  );
+  const openActivity = useCallback(
+    (item: Customer360SimpleItemDto) => openDetail("Activity", item.id),
+    [openDetail]
+  );
+  const openTimelineItem = useCallback(
+    (item: Customer360TimelineItemDto) => openDetail(item.type, item.itemId),
+    [openDetail]
   );
 
   const getStatusLabel = useCallback(
@@ -216,6 +265,7 @@ export function Customer360OverviewTab({
           colors={colors}
           noDataKey={noDataKey}
           formatDate={formatDateCb}
+          onItemPress={openQuotation}
         />
 
         <View style={[styles.sectionDivider, { backgroundColor: divider }]} />
@@ -226,6 +276,7 @@ export function Customer360OverviewTab({
           colors={colors}
           noDataKey={noDataKey}
           formatDate={formatDateCb}
+          onItemPress={openOrder}
         />
 
         <View style={[styles.sectionDivider, { backgroundColor: divider }]} />
@@ -236,6 +287,7 @@ export function Customer360OverviewTab({
           colors={colors}
           noDataKey={noDataKey}
           formatDate={formatDateCb}
+          onItemPress={openDemand}
         />
 
         <View style={[styles.sectionDivider, { backgroundColor: divider }]} />
@@ -246,6 +298,7 @@ export function Customer360OverviewTab({
           colors={colors}
           noDataKey={noDataKey}
           formatDate={formatDateCb}
+          onItemPress={openActivity}
         />
       </View>
 
@@ -258,6 +311,7 @@ export function Customer360OverviewTab({
           formatDateTime={formatDateTimeCb}
           getStatusLabel={getStatusLabel}
           formatAmount={formatAmountCb}
+          onItemPress={openTimelineItem}
         />
       </View>
     </FlatListScrollView>

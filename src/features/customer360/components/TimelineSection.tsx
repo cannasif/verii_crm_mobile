@@ -15,6 +15,7 @@ interface TimelineSectionProps {
   formatDateTime: (date: string) => string;
   getStatusLabel: (status: string | null | undefined) => string;
   formatAmount?: (value: number) => string;
+  onItemPress?: (item: Customer360TimelineItemDto) => void;
 }
 
 export function TimelineSection({
@@ -25,6 +26,7 @@ export function TimelineSection({
   formatDateTime,
   getStatusLabel,
   formatAmount,
+  onItemPress,
 }: TimelineSectionProps): React.ReactElement {
   const { themeMode } = useUIStore();
   const isDark = themeMode === "dark";
@@ -58,13 +60,14 @@ export function TimelineSection({
         formatDateTime={formatDateTime}
         statusLabel={getStatusLabel(item.status)}
         formatAmount={formatAmount}
+        onPress={onItemPress ? () => onItemPress(item) : undefined}
       />
     ),
-    [colors, formatDateTime, getStatusLabel, formatAmount]
+    [colors, formatDateTime, getStatusLabel, formatAmount, onItemPress]
   );
 
   const keyExtractor = useCallback(
-    (item: Customer360TimelineItemDto) => String(item.itemId),
+    (item: Customer360TimelineItemDto) => `${item.type ?? "unknown"}:${item.itemId}`,
     []
   );
 

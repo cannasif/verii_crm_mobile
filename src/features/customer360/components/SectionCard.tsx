@@ -293,6 +293,8 @@ export function SectionCard({
                         ? {
                             activeOpacity: 0.72,
                             onPress: () => onItemPress?.(item),
+                            accessibilityRole: "button" as const,
+                            accessibilityLabel: item.title,
                           }
                         : {})}
                       style={[
@@ -361,6 +363,8 @@ export function SectionCard({
                         ? {
                             activeOpacity: 0.72,
                             onPress: () => onItemPress?.(item),
+                            accessibilityRole: "button" as const,
+                            accessibilityLabel: item.title,
                           }
                         : {})}
                       style={[
