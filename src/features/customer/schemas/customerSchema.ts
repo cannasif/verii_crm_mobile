@@ -24,6 +24,8 @@ export const createCustomerSchema = () =>
     groupCode: z.string().max(50).optional(),
     accountingCode: z.string().max(50).optional(),
     creditLimit: z.number().min(0, i18n.t("validation.creditLimitNonNegative")).optional(),
+    erpCurrencyType: z.number().int().min(0).max(255).optional(),
+    paymentTermDays: z.number().int(i18n.t("validation.paymentTermDaysInteger")).min(0, i18n.t("validation.paymentTermDaysRange")).max(3650, i18n.t("validation.paymentTermDaysRange")).optional(),
     defaultShippingAddressId: z.number().optional().nullable(),
     branchCode: z.number(),
     businessUnitCode: z.number(),

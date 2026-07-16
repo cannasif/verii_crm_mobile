@@ -292,6 +292,8 @@ export function CustomerDetailScreen(): React.ReactElement {
           salesRepCode: customer.salesRepCode,
           groupCode: customer.groupCode,
           creditLimit: customer.creditLimit,
+          erpCurrencyType: customer.erpCurrencyType,
+          paymentTermDays: customer.paymentTermDays,
           defaultShippingAddressId: customer.defaultShippingAddressId,
           branchCode: customer.branchCode ?? 0,
           businessUnitCode: customer.businessUnitCode ?? 0,

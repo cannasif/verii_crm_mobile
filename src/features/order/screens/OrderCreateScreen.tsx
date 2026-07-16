@@ -9,6 +9,7 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  TextInput,
 } from "react-native";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { CustomerErpBalanceAction } from "@/components/shared/CustomerErpBalanceAction";
@@ -378,8 +379,14 @@ export function OrderCreateScreen(): React.ReactElement {
   useEffect(() => {
     if (customer) {
       setSelectedCustomer(customer);
+      if (customer.erpCurrencyType != null) {
+        setValue("order.currency", String(customer.erpCurrencyType), { shouldValidate: true });
+      }
+      if (customer.paymentTermDays != null) {
+        setValue("order.paymentTermDays", customer.paymentTermDays, { shouldValidate: true });
+      }
     }
-  }, [customer]);
+  }, [customer, setValue]);
 
   const totals = useMemo(() => calculateTotals(lines), [lines]);
 
@@ -1223,6 +1230,25 @@ export function OrderCreateScreen(): React.ReactElement {
                   {errors.order?.paymentTypeId?.message && (
                     <Text style={[styles.fieldError, { color: colors.error }]}>{errors.order.paymentTypeId.message}</Text>
                   )}
+                </View>
+              )}
+            />
+
+            <Controller
+              control={control}
+              name="order.paymentTermDays"
+              render={({ field: { onChange, value } }) => (
+                <View style={styles.fieldContainerTight}>
+                  <Text style={[styles.labelCompact, { color: colors.textSecondary }]}>Vade günü</Text>
+                  <TextInput
+                    value={value != null ? String(value) : ""}
+                    onChangeText={(text) => onChange(text ? Number(text.replace(/\D/g, "")) : null)}
+                    keyboardType="number-pad"
+                    placeholder="0 - 3650"
+                    placeholderTextColor={colors.textSecondary}
+                    style={[styles.pickerButton, styles.pickerShellCompact, { backgroundColor: innerBg, borderColor: errors.order?.paymentTermDays ? colors.error : innerBorder, color: colors.text }]}
+                  />
+                  {errors.order?.paymentTermDays?.message && <Text style={[styles.fieldError, { color: colors.error }]}>{errors.order.paymentTermDays.message}</Text>}
                 </View>
               )}
             />

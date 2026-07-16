@@ -81,6 +81,7 @@ export interface OrderGetDto {
   cancelledAt?: string | null;
   cancellationReason?: string | null;
   paymentTypeId?: number | null;
+  paymentTermDays?: number | null;
   paymentTypeName?: string | null;
   documentSerialTypeId?: number | null;
   ozelKod1?: string | null;
@@ -129,6 +130,7 @@ export interface CreateOrderDto {
   status?: number | null;
   description?: string | null;
   paymentTypeId?: number | null;
+  paymentTermDays?: number | null;
   documentSerialTypeId?: number | null;
   ozelKod1?: string | null;
   ozelKod2?: string | null;
@@ -450,6 +452,7 @@ export interface OrderDetailGetDto {
   status: DetailApprovalStatus | null;
   description: string | null;
   paymentTypeId: number | null;
+  paymentTermDays?: number | null;
   paymentTypeName: string | null;
   documentSerialTypeId: number;
   documentSerialTypeName: string | null;

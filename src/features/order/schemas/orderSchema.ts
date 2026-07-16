@@ -13,6 +13,7 @@ export const createOrderSchema = () =>
         status: z.number().nullable().optional(),
         description: z.string().max(500).nullable().optional(),
         paymentTypeId: z.number().nullable().optional(),
+        paymentTermDays: z.number().int("Vade günü tam sayı olmalıdır").min(0, "Vade günü 0 ile 3650 arasında olmalıdır").max(3650, "Vade günü 0 ile 3650 arasında olmalıdır").nullable().optional(),
         documentSerialTypeId: z
           .number()
           .nullable()

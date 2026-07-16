@@ -82,6 +82,7 @@ export interface QuotationGetDto {
   cancelledAt?: string | null;
   cancellationReason?: string | null;
   paymentTypeId?: number | null;
+  paymentTermDays?: number | null;
   paymentTypeName?: string | null;
   documentSerialTypeId?: number | null;
   ozelKod1?: string | null;
@@ -146,6 +147,7 @@ export interface CreateQuotationDto {
   status?: number | null;
   description?: string | null;
   paymentTypeId?: number | null;
+  paymentTermDays?: number | null;
   documentSerialTypeId: number;
   offerType: string;
   offerDate?: string | null;
@@ -537,6 +539,7 @@ export interface QuotationDetailGetDto {
   koliBaskiDefinitionId?: number | null;
   koliBaskiDefinitionName?: string | null;
   paymentTypeId: number | null;
+  paymentTermDays?: number | null;
   paymentTypeName: string | null;
   documentSerialTypeId: number;
   documentSerialTypeName: string | null;

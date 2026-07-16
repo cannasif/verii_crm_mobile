@@ -28,6 +28,8 @@ export function buildUpdateCustomerDtoFromCustomer(
     groupCode: customer.groupCode,
     accountingCode: customer.accountingCode,
     creditLimit: customer.creditLimit,
+    erpCurrencyType: customer.erpCurrencyType,
+    paymentTermDays: customer.paymentTermDays,
     defaultShippingAddressId: customer.defaultShippingAddressId,
     branchCode: customer.branchCode ?? 0,
     businessUnitCode: customer.businessUnitCode ?? 0,

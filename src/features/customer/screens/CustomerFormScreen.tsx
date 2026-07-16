@@ -53,6 +53,7 @@ import type { BusinessCardOcrResult } from "../types/businessCard";
 import { trackBusinessCardTelemetry } from "../services/businessCardTelemetryService";
 import { translateBusinessCardToTurkish } from "../services/businessCardTranslationService";
 import { normalizeCustomerNameToEnglishCharacters } from "../utils/customerNameNormalizer";
+import { useCurrencyOptions } from "../../quotation/hooks";
 import { 
   Camera01Icon, 
   Image01Icon, 
@@ -169,6 +170,8 @@ export function CustomerFormScreen(): React.ReactElement {
     showGroupCode: true,
     showAccountingCode: true,
     showCreditLimit: true,
+    showErpCurrencyType: true,
+    showPaymentTermDays: true,
     showBranchCode: false,
     showBusinessUnit: false,
     showPhone: true,
@@ -259,6 +262,8 @@ export function CustomerFormScreen(): React.ReactElement {
       groupCode: "",
       accountingCode: "",
       creditLimit: 0,
+      erpCurrencyType: undefined,
+      paymentTermDays: 0,
       defaultShippingAddressId: null,
       branchCode: branch?.code !== undefined && branch.code !== null && String(branch.code).trim() !== "" ? Number(branch.code) : 0,
       businessUnitCode: 1,
@@ -274,6 +279,7 @@ export function CustomerFormScreen(): React.ReactElement {
   const { data: countries } = useCountries();
   const { data: cities } = useCities(watchCountryId);
   const { data: districts } = useDistricts(watchCityId);
+  const { data: erpCurrencies = [], isLoading: isErpCurrenciesLoading } = useCurrencyOptions();
 
   const selectedShippingAddress = customerShippingAddresses.find((address) => address.id === watchDefaultShippingAddressId);
   const isMountedRef = useRef(true);
@@ -474,6 +480,14 @@ export function CustomerFormScreen(): React.ReactElement {
     { label: t("customer.erpCariTypeSeller"), value: "S" },
   ], [t]);
 
+  const erpCurrencyOptions = useMemo(
+    () => erpCurrencies.map((currency) => ({
+      label: `${currency.dovizIsmi || `DOVIZ_${currency.dovizTipi}`} (${currency.dovizTipi})`,
+      value: currency.dovizTipi,
+    })),
+    [erpCurrencies]
+  );
+
   useEffect(() => {
     if (existingCustomer) {
       reset({
@@ -498,6 +512,8 @@ export function CustomerFormScreen(): React.ReactElement {
         groupCode: existingCustomer.groupCode || "",
         accountingCode: existingCustomer.accountingCode || "",
         creditLimit: existingCustomer.creditLimit,
+        erpCurrencyType: existingCustomer.erpCurrencyType,
+        paymentTermDays: existingCustomer.paymentTermDays ?? 0,
         defaultShippingAddressId: existingCustomer.defaultShippingAddressId ?? null,
         branchCode: existingCustomer.branchCode,
         businessUnitCode: existingCustomer.businessUnitCode,
@@ -596,6 +612,8 @@ export function CustomerFormScreen(): React.ReactElement {
           ? data.customerCode || undefined
           : data.accountingCode || undefined,
         creditLimit: toNumberOptional(data.creditLimit),
+        erpCurrencyType: toNumberOptional(data.erpCurrencyType),
+        paymentTermDays: toNumberOptional(data.paymentTermDays),
         branchCode: toNumber(data.branchCode) ?? 0,
         businessUnitCode: toNumber(data.businessUnitCode) || 1,
         phone: data.phone || undefined,
@@ -648,6 +666,8 @@ export function CustomerFormScreen(): React.ReactElement {
             groupCode: base.groupCode,
             accountingCode: base.accountingCode,
             creditLimit: base.creditLimit,
+            erpCurrencyType: base.erpCurrencyType,
+            paymentTermDays: base.paymentTermDays,
             branchCode: base.branchCode,
             businessUnitCode: base.businessUnitCode,
             imageUri: scannedOriginalImageUri || undefined,
@@ -680,6 +700,8 @@ export function CustomerFormScreen(): React.ReactElement {
             groupCode: base.groupCode,
             accountingCode: base.accountingCode,
             creditLimit: base.creditLimit,
+            erpCurrencyType: base.erpCurrencyType,
+            paymentTermDays: base.paymentTermDays,
             defaultShippingAddressId: base.defaultShippingAddressId,
             branchCode: base.branchCode,
             businessUnitCode: base.businessUnitCode,
@@ -1333,7 +1355,7 @@ export function CustomerFormScreen(): React.ReactElement {
 
             {activeTab === "details" ? (
             <View style={{ gap: 10 }}>
-              {(formConfig.showSalesRep || formConfig.showGroupCode || formConfig.showAccountingCode || formConfig.showCreditLimit || formConfig.showBranchCode || formConfig.showBusinessUnit) && (
+              {(formConfig.showSalesRep || formConfig.showGroupCode || formConfig.showAccountingCode || formConfig.showCreditLimit || formConfig.showErpCurrencyType || formConfig.showPaymentTermDays || formConfig.showBranchCode || formConfig.showBusinessUnit) && (
                 <FormSection title={t("customer.mobileCommercialDetails")} icon={<Briefcase01Icon size={16} color={THEME.primary} variant="stroke" />} theme={THEME} isDark={isDark}>
                   
                   {(formConfig.showSalesRep || formConfig.showGroupCode) && (
@@ -1422,6 +1444,42 @@ export function CustomerFormScreen(): React.ReactElement {
 
                   {formConfig.showCreditLimit && (
                     <Controller control={control} name="creditLimit" render={({ field: { onChange, value, ref } }) => <FormField inputRef={ref} label={t("customer.creditLimit")} value={value !== undefined && value !== null ? String(value) : ""} onChangeText={(text) => onChange(text ? Number(text.replace(',', '.')) : undefined)} keyboardType="decimal-pad" description={t("customer.creditLimitErpHint")} error={errors.creditLimit?.message} />} />
+                  )}
+
+                  {formConfig.showErpCurrencyType && (
+                    <Controller
+                      control={control}
+                      name="erpCurrencyType"
+                      render={({ field: { onChange, value } }) => (
+                        <PremiumPicker
+                          label={t("customer.erpCurrencyType")}
+                          items={erpCurrencyOptions}
+                          value={value}
+                          onValueChange={onChange}
+                          placeholder={isErpCurrenciesLoading ? t("common.loading") : t("customer.selectErpCurrencyType")}
+                          description={t("customer.erpCurrencyTypeHint")}
+                          error={errors.erpCurrencyType?.message}
+                        />
+                      )}
+                    />
+                  )}
+
+                  {formConfig.showPaymentTermDays && (
+                    <Controller
+                      control={control}
+                      name="paymentTermDays"
+                      render={({ field: { onChange, value, ref } }) => (
+                        <FormField
+                          inputRef={ref}
+                          label={t("customer.paymentTermDays")}
+                          value={value !== undefined && value !== null ? String(value) : ""}
+                          onChangeText={(text) => onChange(text ? Number(text) : undefined)}
+                          keyboardType="numeric"
+                          description={t("customer.paymentTermDaysHint")}
+                          error={errors.paymentTermDays?.message}
+                        />
+                      )}
+                    />
                   )}
                 </FormSection>
               )}

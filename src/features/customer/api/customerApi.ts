@@ -202,6 +202,8 @@ export const customerApi = {
     appendIfPresent("groupCode", data.groupCode);
     appendIfPresent("accountingCode", data.accountingCode);
     appendIfPresent("creditLimit", data.creditLimit);
+    appendIfPresent("erpCurrencyType", data.erpCurrencyType);
+    appendIfPresent("paymentTermDays", data.paymentTermDays);
     appendIfPresent("branchCode", data.branchCode);
     appendIfPresent("businessUnitCode", data.businessUnitCode);
     appendIfPresent("imageDescription", data.imageDescription);

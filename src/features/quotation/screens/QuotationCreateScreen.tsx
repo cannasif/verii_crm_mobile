@@ -484,8 +484,14 @@ export function QuotationCreateScreen(): React.ReactElement {
   useEffect(() => {
     if (customer) {
       setSelectedCustomer(customer);
+      if (customer.erpCurrencyType != null) {
+        setValue("quotation.currency", String(customer.erpCurrencyType), { shouldValidate: true });
+      }
+      if (customer.paymentTermDays != null) {
+        setValue("quotation.paymentTermDays", customer.paymentTermDays, { shouldValidate: true });
+      }
     }
-  }, [customer]);
+  }, [customer, setValue]);
 
   useEffect(() => {
     if (!watchedCustomerId || isCustomerInRepresentativeScope !== false) return;
@@ -1538,6 +1544,25 @@ export function QuotationCreateScreen(): React.ReactElement {
                         {errors.quotation.paymentTypeId.message}
                       </Text>
                     )}
+                  </View>
+                )}
+              />
+
+              <Controller
+                control={control}
+                name="quotation.paymentTermDays"
+                render={({ field: { onChange, value } }) => (
+                  <View style={styles.fieldContainerTight}>
+                    <Text style={[styles.labelCompact, { color: mutedText }]}>Vade günü</Text>
+                    <TextInput
+                      value={value != null ? String(value) : ""}
+                      onChangeText={(text) => onChange(text ? Number(text.replace(/\D/g, "")) : null)}
+                      keyboardType="number-pad"
+                      placeholder="0 - 3650"
+                      placeholderTextColor={mutedText}
+                      style={[styles.pickerButton, styles.pickerShellCompact, { backgroundColor: innerBg, borderColor: errors.quotation?.paymentTermDays ? colors.error : innerBorder, color: colors.text }]}
+                    />
+                    {errors.quotation?.paymentTermDays?.message && <Text style={[styles.fieldError, { color: colors.error }]}>{errors.quotation.paymentTermDays.message}</Text>}
                   </View>
                 )}
               />

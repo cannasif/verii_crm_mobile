@@ -29,6 +29,8 @@ export interface CustomerGetDto {
   groupCode?: string;
   accountingCode?: string;
   creditLimit?: number;
+  erpCurrencyType?: number;
+  paymentTermDays?: number;
   defaultShippingAddressId?: number;
   branchCode?: number;
   businessUnitCode?: number;
@@ -80,6 +82,8 @@ export interface CreateCustomerDto {
   groupCode?: string;
   accountingCode?: string;
   creditLimit?: number;
+  erpCurrencyType?: number;
+  paymentTermDays?: number;
   defaultShippingAddressId?: number;
   branchCode: number;
   businessUnitCode: number;
@@ -113,6 +117,8 @@ export interface CreateCustomerFromMobileDto {
   groupCode?: string;
   accountingCode?: string;
   creditLimit?: number;
+  erpCurrencyType?: number;
+  paymentTermDays?: number;
   branchCode?: number;
   businessUnitCode?: number;
   imageUri?: string;
@@ -154,6 +160,8 @@ export interface UpdateCustomerDto {
   groupCode?: string;
   accountingCode?: string;
   creditLimit?: number;
+  erpCurrencyType?: number;
+  paymentTermDays?: number;
   defaultShippingAddressId?: number;
   branchCode: number;
   businessUnitCode: number;
