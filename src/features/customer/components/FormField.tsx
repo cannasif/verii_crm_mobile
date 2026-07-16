@@ -31,6 +31,7 @@ interface FormFieldProps {
   onSubmitEditing?: TextInputProps["onSubmitEditing"];
   onKeyPress?: TextInputProps["onKeyPress"];
   onInputFocus?: () => void;
+  onInputBlur?: () => void;
 }
 
 export function FormField({
@@ -54,6 +55,7 @@ export function FormField({
   onSubmitEditing,
   onKeyPress,
   onInputFocus,
+  onInputBlur,
 }: FormFieldProps): React.ReactElement {
   const { colors, themeMode } = useUIStore();
   const [isFocused, setIsFocused] = useState(false);
@@ -113,7 +115,10 @@ export function FormField({
           setIsFocused(true);
           onInputFocus?.();
         }}
-        onBlur={() => setIsFocused(false)}
+        onBlur={() => {
+          setIsFocused(false);
+          onInputBlur?.();
+        }}
         returnKeyType={returnKeyType}
         blurOnSubmit={blurOnSubmit ?? (multiline ? false : Boolean(onSubmitEditing))}
         onSubmitEditing={onSubmitEditing}

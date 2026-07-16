@@ -52,6 +52,7 @@ import type { CountryDto, CityDto, DistrictDto } from "../types";
 import type { BusinessCardOcrResult } from "../types/businessCard";
 import { trackBusinessCardTelemetry } from "../services/businessCardTelemetryService";
 import { translateBusinessCardToTurkish } from "../services/businessCardTranslationService";
+import { normalizeCustomerNameToEnglishUpper } from "../utils/customerNameNormalizer";
 import { 
   Camera01Icon, 
   Image01Icon, 
@@ -142,6 +143,9 @@ export function CustomerFormScreen(): React.ReactElement {
   const { branch, user } = useAuthStore();
   const useCustomerCodeAsAccountingCode = useSystemSettingsStore(
     (state) => Boolean(state.settings.useCustomerCodeAsAccountingCode)
+  );
+  const requireEnglishCustomerName = useSystemSettingsStore(
+    (state) => Boolean(state.settings.requireEnglishCustomerName)
   );
   const insets = useSafeAreaInsets();
   const showToast = useToastStore((state) => state.showToast);
@@ -571,7 +575,9 @@ export function CustomerFormScreen(): React.ReactElement {
       };
 
       const base = {
-        name: data.name,
+        name: requireEnglishCustomerName
+          ? normalizeCustomerNameToEnglishUpper(data.name)
+          : data.name,
         customerCode: data.customerCode || undefined,
         customerTypeId: data.customerTypeId,
         defaultShippingAddressId: data.defaultShippingAddressId ?? undefined,
@@ -693,6 +699,7 @@ export function CustomerFormScreen(): React.ReactElement {
     toNumber,
     toNumberOptional,
     useCustomerCodeAsAccountingCode,
+    requireEnglishCustomerName,
     scannedOriginalImageUri,
     scannedContactName,
     scannedTitle
@@ -1132,7 +1139,7 @@ export function CustomerFormScreen(): React.ReactElement {
                 <Controller
                   control={control}
                   name="name"
-                  render={({ field: { onChange, value, ref } }) => (
+                  render={({ field: { onBlur, onChange, value, ref } }) => (
                     <FormField
                       inputRef={assignRef(ref, nameInputRef)}
                       label={t("customer.name")}
@@ -1145,6 +1152,12 @@ export function CustomerFormScreen(): React.ReactElement {
                       onSubmitEditing={focusAfterName}
                       onKeyPress={keyboardTabForward(focusAfterName)}
                       onInputFocus={() => scrollInputIntoView(nameInputRef)}
+                      onInputBlur={() => {
+                        onBlur();
+                        if (requireEnglishCustomerName) {
+                          onChange(normalizeCustomerNameToEnglishUpper(value));
+                        }
+                      }}
                     />
                   )}
                 />
