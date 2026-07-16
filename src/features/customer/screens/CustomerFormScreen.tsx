@@ -163,11 +163,12 @@ export function CustomerFormScreen(): React.ReactElement {
     showCustomerCode: true,
     showBusinessCardScan: true,
     showCustomerType: true,
+    showErpCariType: true,
     showShippingAddress: false,
     showSalesRep: false,
     showGroupCode: true,
     showAccountingCode: true,
-    showCreditLimit: false,
+    showCreditLimit: true,
     showBranchCode: false,
     showBusinessUnit: false,
     showPhone: true,
@@ -243,6 +244,7 @@ export function CustomerFormScreen(): React.ReactElement {
     defaultValues: {
       name: "",
       customerCode: "",
+      erpCariType: "A",
       taxNumber: "",
       taxOffice: "",
       tcknNumber: "",
@@ -467,6 +469,11 @@ export function CustomerFormScreen(): React.ReactElement {
     }));
   }, [customerTypes]);
 
+  const erpCariTypeOptions = useMemo(() => [
+    { label: t("customer.erpCariTypeBuyer"), value: "A" },
+    { label: t("customer.erpCariTypeSeller"), value: "S" },
+  ], [t]);
+
   useEffect(() => {
     if (existingCustomer) {
       reset({
@@ -486,6 +493,7 @@ export function CustomerFormScreen(): React.ReactElement {
         cityId: existingCustomer.cityId ?? undefined,
         districtId: existingCustomer.districtId ?? undefined,
         customerTypeId: existingCustomer.customerTypeId ?? undefined,
+        erpCariType: existingCustomer.erpCariType === "S" ? "S" : "A",
         salesRepCode: existingCustomer.salesRepCode || "",
         groupCode: existingCustomer.groupCode || "",
         accountingCode: existingCustomer.accountingCode || "",
@@ -580,6 +588,7 @@ export function CustomerFormScreen(): React.ReactElement {
           : data.name,
         customerCode: data.customerCode || undefined,
         customerTypeId: data.customerTypeId,
+        erpCariType: data.erpCariType,
         defaultShippingAddressId: data.defaultShippingAddressId ?? undefined,
         salesRepCode: data.salesRepCode || undefined,
         groupCode: data.groupCode || undefined,
@@ -634,6 +643,7 @@ export function CustomerFormScreen(): React.ReactElement {
             cityId: base.cityId,
             districtId: base.districtId,
             customerTypeId: base.customerTypeId,
+            erpCariType: base.erpCariType,
             salesRepCode: base.salesRepCode,
             groupCode: base.groupCode,
             accountingCode: base.accountingCode,
@@ -665,6 +675,7 @@ export function CustomerFormScreen(): React.ReactElement {
             cityId: base.cityId,
             districtId: base.districtId,
             customerTypeId: base.customerTypeId,
+            erpCariType: base.erpCariType,
             salesRepCode: base.salesRepCode,
             groupCode: base.groupCode,
             accountingCode: base.accountingCode,
@@ -1196,6 +1207,22 @@ export function CustomerFormScreen(): React.ReactElement {
                       )}
                   </View>
                 )}
+                {formConfig.showErpCariType && (
+                  <Controller
+                    control={control}
+                    name="erpCariType"
+                    render={({ field: { onChange, value } }) => (
+                      <PremiumPicker
+                        label={t("customer.erpCariType")}
+                        items={erpCariTypeOptions}
+                        value={value}
+                        onValueChange={onChange}
+                        description={t("customer.erpCariTypeHint")}
+                        error={errors.erpCariType?.message}
+                      />
+                    )}
+                  />
+                )}
               </FormSection>
 
               {(formConfig.showPhone || formConfig.showPhone2 || formConfig.showEmail || formConfig.showWebsite) && (
@@ -1394,7 +1421,7 @@ export function CustomerFormScreen(): React.ReactElement {
                   )}
 
                   {formConfig.showCreditLimit && (
-                    <Controller control={control} name="creditLimit" render={({ field: { onChange, value, ref } }) => <FormField inputRef={ref} label={t("customer.creditLimit")} value={value !== undefined && value !== null ? String(value) : ""} onChangeText={(text) => onChange(text ? Number(text) : undefined)} keyboardType="numeric" />} />
+                    <Controller control={control} name="creditLimit" render={({ field: { onChange, value, ref } }) => <FormField inputRef={ref} label={t("customer.creditLimit")} value={value !== undefined && value !== null ? String(value) : ""} onChangeText={(text) => onChange(text ? Number(text.replace(',', '.')) : undefined)} keyboardType="decimal-pad" description={t("customer.creditLimitErpHint")} error={errors.creditLimit?.message} />} />
                   )}
                 </FormSection>
               )}

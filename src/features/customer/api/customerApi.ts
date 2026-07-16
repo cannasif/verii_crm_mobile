@@ -197,6 +197,7 @@ export const customerApi = {
     appendIfPresent("cityId", data.cityId);
     appendIfPresent("districtId", data.districtId);
     appendIfPresent("customerTypeId", data.customerTypeId);
+    appendIfPresent("erpCariType", data.erpCariType);
     appendIfPresent("salesRepCode", data.salesRepCode);
     appendIfPresent("groupCode", data.groupCode);
     appendIfPresent("accountingCode", data.accountingCode);

@@ -25,6 +25,7 @@ interface PremiumPickerProps {
   onValueChange: (value: any) => void;
   placeholder?: string;
   error?: string;
+  description?: string;
 }
 
 export function PremiumPicker({
@@ -34,6 +35,7 @@ export function PremiumPicker({
   onValueChange,
   placeholder = "Seçiniz",
   error,
+  description,
 }: PremiumPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { themeMode } = useUIStore();
@@ -92,6 +94,8 @@ export function PremiumPicker({
             strokeWidth={1.5} 
         />
       </TouchableOpacity>
+
+      {description ? <Text style={[styles.description, { color: THEME.textMute }]}>{description}</Text> : null}
 
       {error && <Text style={styles.errorText}>{error}</Text>}
 
@@ -208,6 +212,12 @@ const styles = StyleSheet.create({
     marginTop: 4, 
     marginLeft: 2,
     fontWeight: '500'
+  },
+  description: {
+    fontSize: 11,
+    lineHeight: 15,
+    marginTop: 4,
+    marginLeft: 2,
   },
   modalOverlay: { 
     flex: 1, 

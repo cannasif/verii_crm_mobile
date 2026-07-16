@@ -1,3 +1,5 @@
+export type ErpCariType = "A" | "S";
+
 export interface CustomerGetDto {
   id: number;
   customerCode?: string;
@@ -22,6 +24,7 @@ export interface CustomerGetDto {
   districtName?: string;
   customerTypeId?: number;
   customerTypeName?: string;
+  erpCariType?: ErpCariType;
   salesRepCode?: string;
   groupCode?: string;
   accountingCode?: string;
@@ -72,6 +75,7 @@ export interface CreateCustomerDto {
   cityId?: number;
   districtId?: number;
   customerTypeId?: number;
+  erpCariType: ErpCariType;
   salesRepCode?: string;
   groupCode?: string;
   accountingCode?: string;
@@ -104,6 +108,7 @@ export interface CreateCustomerFromMobileDto {
   cityId?: number;
   districtId?: number;
   customerTypeId?: number;
+  erpCariType: ErpCariType;
   salesRepCode?: string;
   groupCode?: string;
   accountingCode?: string;
@@ -144,6 +149,7 @@ export interface UpdateCustomerDto {
   cityId?: number;
   districtId?: number;
   customerTypeId?: number;
+  erpCariType: ErpCariType;
   salesRepCode?: string;
   groupCode?: string;
   accountingCode?: string;

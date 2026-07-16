@@ -288,6 +288,7 @@ export function CustomerDetailScreen(): React.ReactElement {
           cityId: customer.cityId,
           districtId: customer.districtId,
           customerTypeId: customer.customerTypeId,
+          erpCariType: customer.erpCariType === "S" ? "S" : "A",
           salesRepCode: customer.salesRepCode,
           groupCode: customer.groupCode,
           creditLimit: customer.creditLimit,
