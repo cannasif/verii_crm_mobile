@@ -114,7 +114,11 @@
       "totalLabel": "Total balance",
       "warehouseCount": "{{count}} warehouses",
       "branch": "Branch {{branch}}",
-      "holdHint": "Press and hold for warehouse breakdown"
+      "holdHint": "Press and hold for warehouse breakdown",
+      "loadLabel": "Balance",
+      "loadingLabel": "Loading stock balance",
+      "retryLabel": "Try again",
+      "openHint": "Opens warehouse breakdown"
     }
   },
   "header": {

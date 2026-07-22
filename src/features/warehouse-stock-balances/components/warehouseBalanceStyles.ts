@@ -70,6 +70,23 @@ export const warehouseBalanceBadgeStyles = StyleSheet.create({
     fontWeight: "700",
     fontVariant: ["tabular-nums"],
   },
+  requestButton: {
+    alignSelf: "flex-start",
+    minWidth: 64,
+    height: 24,
+    paddingHorizontal: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+  },
+  requestButtonText: {
+    fontSize: 9,
+    lineHeight: 11,
+    fontWeight: "700",
+  },
 });
 
 export const warehouseBalanceSheetStyles = StyleSheet.create({

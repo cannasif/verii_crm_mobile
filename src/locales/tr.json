@@ -115,7 +115,11 @@
       "totalLabel": "Toplam bakiye",
       "warehouseCount": "{{count}} depo",
       "branch": "Şube {{branch}}",
-      "holdHint": "Depo kırılımı için basılı tutun"
+      "holdHint": "Depo kırılımı için basılı tutun",
+      "loadLabel": "Bakiye",
+      "loadingLabel": "Stok bakiyesi yükleniyor",
+      "retryLabel": "Tekrar dene",
+      "openHint": "Depo kırılımını açar"
     }
   },
   "header": {

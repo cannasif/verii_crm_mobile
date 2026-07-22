@@ -24,6 +24,7 @@ import {
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { CatalogStockPickerModal } from "@/components/shared/CatalogStockPickerModal";
+import { WarehouseBalanceBadge } from "@/features/warehouse-stock-balances";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { Text } from "../../../components/ui/text";
@@ -454,14 +455,6 @@ function getRelationDisplayName(relation: StockRelationDto, currentStockId?: num
   return `#${relation.relatedStockId}`;
 }
 
-function formatStockBalance(item: StockGetDto): string | null {
-  if (item.balanceText?.trim()) return item.balanceText.trim();
-  if (typeof item.balance === "number" && Number.isFinite(item.balance)) {
-    return new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 2 }).format(item.balance);
-  }
-  return null;
-}
-
 function StockListItem({
   item,
   isSelected,
@@ -483,7 +476,6 @@ function StockListItem({
   const borderColor = isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)";
   const textColor = isDark ? "#F8FAFC" : "#0F172A";
   const mutedColor = isDark ? "#94A3B8" : "#64748B";
-  const balance = formatStockBalance(item);
   const displayStockName = getLocalizedStockNameFromStock(item, i18n.language);
   const unitGroupText = useMemo(() => {
     const unit = showUnitInStockSelection && item.unit ? `${t("stockPicker.unit")}: ${item.unit}` : null;
@@ -597,13 +589,22 @@ function StockListItem({
           </View>
         </View>
 
-        {isSelected ? (
-          <View style={[styles.checkmark, { backgroundColor: brandColor }]}>
-            <Ionicons name="checkmark" size={14} color="#FFFFFF" />
-          </View>
-        ) : (
-          <Ionicons name="chevron-forward" size={18} color={mutedColor} />
-        )}
+        <View style={styles.stockActions}>
+          <WarehouseBalanceBadge
+            stockId={item.id}
+            unit={item.unit}
+            isDark={isDark}
+            compact
+            loadOnPress
+          />
+          {isSelected ? (
+            <View style={[styles.checkmark, { backgroundColor: brandColor }]}>
+              <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+            </View>
+          ) : (
+            <Ionicons name="chevron-forward" size={18} color={mutedColor} />
+          )}
+        </View>
       </TouchableOpacity>
     </View>
   );
@@ -2497,6 +2498,14 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     justifyContent: "center",
+  },
+  stockActions: {
+    minWidth: 68,
+    flexShrink: 0,
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    gap: 8,
+    paddingTop: 1,
   },
   metaPill: {
     marginTop: 5,

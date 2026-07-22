@@ -98,7 +98,11 @@
       "totalLabel": "Gesamtbestand",
       "warehouseCount": "{{count}} Lager",
       "branch": "Filiale {{branch}}",
-      "holdHint": "Gedrückt halten für Lageraufschlüsselung"
+      "holdHint": "Gedrückt halten für Lageraufschlüsselung",
+      "loadLabel": "Bestand",
+      "loadingLabel": "Bestand wird geladen",
+      "retryLabel": "Erneut versuchen",
+      "openHint": "Öffnet die Lagerdetails"
     }
   },
   "header": {

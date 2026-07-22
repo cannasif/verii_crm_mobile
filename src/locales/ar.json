@@ -115,7 +115,11 @@
       "totalLabel": "إجمالي الرصيد",
       "warehouseCount": "{{count}} مستودعات",
       "branch": "الفرع {{branch}}",
-      "holdHint": "Depo kırılımı için basılı tutun"
+      "holdHint": "Depo kırılımı için basılı tutun",
+      "loadLabel": "الرصيد",
+      "loadingLabel": "جارٍ تحميل رصيد المخزون",
+      "retryLabel": "حاول مرة أخرى",
+      "openHint": "يفتح تفاصيل المستودعات"
     }
   },
   "header": {
