@@ -258,6 +258,9 @@ export function OrderDetailScreen(): React.ReactElement {
   const { t, i18n } = useTranslation();
   const { colors, themeMode } = useUIStore();
   const hideVatRate = useSystemSettingsStore((state) => state.settings.hideOrderVatRate);
+  const specialCodeEditingEnabled = useSystemSettingsStore(
+    (state) => state.settings.enableOrderSpecialCodeEditing !== false
+  );
   const isDark = themeMode === "dark";
   const { user, branch } = useAuthStore();
   const insets = useSafeAreaInsets();
@@ -1254,6 +1257,7 @@ export function OrderDetailScreen(): React.ReactElement {
 
   const pageTitle = header?.offerNo ?? (orderId != null ? `#${orderId}` : t("order.detail"));
   const isReadonly = isDocumentDetailReadOnlyWhileLoading(readOnlyState, canEditLoading);
+  const specialCodeFieldsDisabled = isReadonly || !specialCodeEditingEnabled;
   const showOnayaGonder = header?.status === APPROVAL_HAVENOT_STARTED && !isReadonly;
   const showSaveUpdate = !isReadonly;
   const showApproveReject = header?.status === APPROVAL_WAITING;
@@ -1813,9 +1817,9 @@ export function OrderDetailScreen(): React.ReactElement {
                             borderColor: errors.order?.ozelKod1 ? colors.error : innerBorder,
                           },
                         ]}
-                        onPress={() => !isReadonly && setSpecialCode1ModalVisible(true)}
-                        disabled={isReadonly}
-                        activeOpacity={isReadonly ? 1 : 0.85}
+                        onPress={() => !specialCodeFieldsDisabled && setSpecialCode1ModalVisible(true)}
+                        disabled={specialCodeFieldsDisabled}
+                        activeOpacity={specialCodeFieldsDisabled ? 1 : 0.85}
                       >
                         <Text style={[styles.pickerText, styles.pickerTextCompact, { color: titleText }]} numberOfLines={1}>
                           {resolveSpecialCodeLabel(value, specialCode1Options, t("order.select"))}
@@ -1847,9 +1851,9 @@ export function OrderDetailScreen(): React.ReactElement {
                             borderColor: errors.order?.ozelKod2 ? colors.error : innerBorder,
                           },
                         ]}
-                        onPress={() => !isReadonly && setSpecialCode2ModalVisible(true)}
-                        disabled={isReadonly}
-                        activeOpacity={isReadonly ? 1 : 0.85}
+                        onPress={() => !specialCodeFieldsDisabled && setSpecialCode2ModalVisible(true)}
+                        disabled={specialCodeFieldsDisabled}
+                        activeOpacity={specialCodeFieldsDisabled ? 1 : 0.85}
                       >
                         <Text style={[styles.pickerText, styles.pickerTextCompact, { color: titleText }]} numberOfLines={1}>
                           {resolveSpecialCodeLabel(value, specialCode2Options, t("order.select"))}

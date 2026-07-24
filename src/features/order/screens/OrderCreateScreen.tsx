@@ -113,6 +113,9 @@ export function OrderCreateScreen(): React.ReactElement {
   const router = useRouter();
   const { colors, themeMode } = useUIStore();
   const hideVatRate = useSystemSettingsStore((state) => state.settings.hideOrderVatRate);
+  const specialCodeFieldsDisabled = useSystemSettingsStore(
+    (state) => state.settings.enableOrderSpecialCodeEditing === false
+  );
   const { user, branch } = useAuthStore();
   const insets = useSafeAreaInsets();
   const showToast = useToastStore((state) => state.showToast);
@@ -1360,7 +1363,9 @@ export function OrderCreateScreen(): React.ReactElement {
                             borderColor: errors.order?.ozelKod1 ? colors.error : innerBorder,
                           },
                         ]}
-                        onPress={() => setSpecialCode1ModalVisible(true)}
+                        onPress={() => !specialCodeFieldsDisabled && setSpecialCode1ModalVisible(true)}
+                        disabled={specialCodeFieldsDisabled}
+                        activeOpacity={specialCodeFieldsDisabled ? 1 : 0.85}
                       >
                         <Text
                           style={[styles.pickerText, styles.pickerTextCompact, { color: colors.text }]}
@@ -1396,7 +1401,9 @@ export function OrderCreateScreen(): React.ReactElement {
                             borderColor: errors.order?.ozelKod2 ? colors.error : innerBorder,
                           },
                         ]}
-                        onPress={() => setSpecialCode2ModalVisible(true)}
+                        onPress={() => !specialCodeFieldsDisabled && setSpecialCode2ModalVisible(true)}
+                        disabled={specialCodeFieldsDisabled}
+                        activeOpacity={specialCodeFieldsDisabled ? 1 : 0.85}
                       >
                         <Text
                           style={[styles.pickerText, styles.pickerTextCompact, { color: colors.text }]}
