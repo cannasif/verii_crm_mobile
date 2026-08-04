@@ -88,6 +88,7 @@ export function CustomerSelectDialog({
   );
   const customerSearchOptions = useMemo(() => {
     const labels: Record<string, string> = {
+      Id: "Kayıt ID",
       CustomerCode: "Müşteri kodu", CustomerName: "Müşteri adı", TaxOffice: "Vergi dairesi",
       TaxNumber: "Vergi no", TcknNumber: "TCKN", SalesRepCode: "Plasiyer kodu",
       GroupCode: "Grup kodu", AccountingCode: "Muhasebe kodu", Notes: "Notlar",

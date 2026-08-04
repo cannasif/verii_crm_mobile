@@ -59,6 +59,27 @@ for (const [file, expected] of requiredContracts) {
   if (!content.includes(expected)) failures.push(`${file}: missing ${expected}`);
 }
 
+const pagedSearchFieldsSource = await readFile(path.join(root, "src/lib/pagedSearchFields.ts"), "utf8");
+const idSearchContracts = [
+  "STOCK_LIST_SEARCH_FIELDS",
+  "CUSTOMER_LIST_SEARCH_FIELDS",
+  "CONTACT_LIST_SEARCH_FIELDS",
+  "SHIPPING_ADDRESS_LIST_SEARCH_FIELDS",
+  "ACTIVITY_LIST_SEARCH_FIELDS",
+  "TITLE_LIST_SEARCH_FIELDS",
+  "SALES_DOCUMENT_LIST_SEARCH_FIELDS",
+  "DOCUMENT_SERIAL_SEARCH_FIELDS",
+];
+
+for (const contract of idSearchContracts) {
+  const declaration = pagedSearchFieldsSource.match(
+    new RegExp(`export const ${contract}\\s*=\\s*\\[([\\s\\S]*?)\\]\\s*as const`),
+  );
+  if (!declaration?.[1]?.includes('"Id"')) {
+    failures.push(`src/lib/pagedSearchFields.ts: ${contract} must include the numeric record Id`);
+  }
+}
+
 if (failures.length) {
   console.error(`Paged SearchFields check failed:\n\n${failures.join("\n")}`);
   process.exit(1);
