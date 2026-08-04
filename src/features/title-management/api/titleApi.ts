@@ -15,6 +15,7 @@ export const titleApi = {
       pageNumber: params.pageNumber ?? 1,
       pageSize: params.pageSize ?? 10,
       search: params.search ?? "",
+      searchFields: params.searchFields ?? [],
       sortBy: params.sortBy ?? "Id",
       sortDirection: params.sortDirection ?? "asc",
       filterLogic: params.filterLogic ?? "and",

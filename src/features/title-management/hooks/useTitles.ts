@@ -7,6 +7,7 @@ const DEFAULT_PAGE_SIZE = 20;
 interface UseTitlesParams {
   filters?: PagedFilter[];
   search?: string;
+  searchFields?: string[];
   filterLogic?: "and" | "or";
   sortBy?: string;
   sortDirection?: "asc" | "desc";
@@ -17,6 +18,7 @@ export function useTitles(params: UseTitlesParams = {}) {
   const {
     filters,
     search,
+    searchFields,
     filterLogic = "and",
     sortBy = "titleName",
     sortDirection = "asc",
@@ -24,12 +26,13 @@ export function useTitles(params: UseTitlesParams = {}) {
   } = params;
 
   return useInfiniteQuery<PagedResponse<TitleDto>, Error>({
-    queryKey: ["title", "list", { filters, search, filterLogic, sortBy, sortDirection, pageSize }],
+    queryKey: ["title", "list", { filters, search, searchFields, filterLogic, sortBy, sortDirection, pageSize }],
     queryFn: ({ pageParam }) =>
       titleApi.getList({
         pageNumber: pageParam as number,
         pageSize,
         search,
+        searchFields: search ? searchFields : undefined,
         sortBy,
         sortDirection,
         filters,
