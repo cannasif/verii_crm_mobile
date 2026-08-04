@@ -1,6 +1,6 @@
 import { apiClient } from "../../../lib/axios";
 import { getApiBaseUrl } from "../../../constants/config";
-import { appendMobileUploadFile, prepareMobileImageUpload } from "../../../lib/uploadMedia";
+import { appendMobileUploadFile, postMobileMultipart, prepareMobileImageUpload } from "../../../lib/uploadMedia";
 import type {
   AuthUserProfile,
   AuthUserProfileResponse,
@@ -80,16 +80,12 @@ export const profileApi = {
     const file = await prepareMobileImageUpload(localUri, { namePrefix: `profile-${userId}` });
     appendMobileUploadFile(formData, "file", file);
 
-    const response = await apiClient.post<UserDetailProfileResponse>(
+    const response = await postMobileMultipart<UserDetailProfile>(
       `/api/UserDetail/users/${userId}/profile-picture`,
       formData,
+      { fallbackMessage: "Profil resmi yüklenemedi" },
     );
-
-    if (!response.data.success) {
-      throw new Error(response.data.message || "Profil resmi yüklenemedi");
-    }
-
-    return mapUserDetail(response.data.data);
+    return mapUserDetail(response.data);
   },
 
   changePassword: async (payload: ChangePasswordPayload): Promise<void> => {

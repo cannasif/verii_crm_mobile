@@ -1,6 +1,6 @@
 import { apiClient } from "../../../lib/axios";
 import { normalizeApiRequestError } from "../../../lib/api-error";
-import { appendMobileUploadFile, prepareMobileImageUpload } from "../../../lib/uploadMedia";
+import { appendMobileUploadFile, postMobileMultipart, prepareMobileImageUpload } from "../../../lib/uploadMedia";
 import i18n from "../../../locales";
 import type { ApiResponse } from "../../auth/types";
 import type {
@@ -149,22 +149,16 @@ export const customerApi = {
     }
 
     try {
-      const response = await apiClient.post<ApiResponse<CreateCustomerFromMobileResultDto>>(
+      const response = await postMobileMultipart<CreateCustomerFromMobileResultDto>(
         "/api/Customer/mobile/create-from-ocr",
         formData,
         {
-          timeout: 120000,
+          timeoutMs: 120000,
+          fallbackMessage: i18n.t("customer.ocrCreateError", "Kartvizitten müşteri oluşturulamadı"),
         }
       );
 
-      if (!response.data.success) {
-        const msg =
-          [response.data.message, response.data.exceptionMessage].filter(Boolean).join(" — ") ||
-          i18n.t("customer.ocrCreateError", "Kartvizitten müşteri oluşturulamadı");
-        throw new Error(msg);
-      }
-
-      return response.data.data;
+      return response.data;
     } catch (error) {
       throw normalizeMobileOcrCreateError(error);
     }
@@ -207,19 +201,12 @@ export const customerApi = {
       formData.append("imageDescriptions", imageDescription.trim());
     }
 
-    const response = await apiClient.post<ApiResponse<CustomerImageDto[]>>(
+    const response = await postMobileMultipart<CustomerImageDto[]>(
       `/api/CustomerImage/upload/${customerId}`,
-      formData
+      formData,
+      { fallbackMessage: "Müşteri görseli yüklenemedi" },
     );
-
-    if (!response.data.success) {
-      const msg =
-        [response.data.message, response.data.exceptionMessage].filter(Boolean).join(" — ") ||
-        "Müşteri görseli yüklenemedi";
-      throw new Error(msg);
-    }
-
-    return response.data.data;
+    return response.data;
   },
 
   getCustomerImages: async (customerId: number): Promise<CustomerImageDto[]> => {

@@ -1,7 +1,7 @@
 import { apiClient } from "../../../lib/axios";
 import i18n from "../../../locales";
 import { normalizeApiRequestError } from "../../../lib/api-error";
-import { appendMobileUploadFile, prepareMobileImageUpload } from "../../../lib/uploadMedia";
+import { appendMobileUploadFile, postMobileMultipart, prepareMobileImageUpload } from "../../../lib/uploadMedia";
 import type { ApiResponse } from "../../auth/types";
 import type {
   ActivityDto,
@@ -209,27 +209,20 @@ export const activityImageApi = {
       formData.append("resimAciklamalar", image.description?.trim() || "");
     }
 
-    let response;
     const endpoint = `/api/ActivityImage/upload/${activityId}`;
     try {
-      response = await apiClient.post<ApiResponse<ActivityImageDto[]>>(
+      const response = await postMobileMultipart<ActivityImageDto[]>(
         endpoint,
         formData,
         {
-          timeout: 120000,
+          timeoutMs: 120000,
+          fallbackMessage: i18n.t("activity.imageUploadError"),
         }
       );
+      return normalizeActivityImageList(response.data);
     } catch (error) {
       throw normalizeApiRequestError(error, i18n.t("activity.imageUploadError"), endpoint);
     }
-
-    if (!response.data.success) {
-      throw new Error(
-        response.data.message || response.data.exceptionMessage || i18n.t("activity.imageUploadError")
-      );
-    }
-
-    return normalizeActivityImageList(response.data.data);
   },
 
   delete: async (id: number): Promise<void> => {

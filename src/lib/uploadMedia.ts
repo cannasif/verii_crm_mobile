@@ -1,4 +1,11 @@
 import * as FileSystem from "expo-file-system/legacy";
+import { File } from "expo-file-system";
+import { fetch as expoFetch } from "expo/fetch";
+import { getApiBaseUrl } from "../constants/config";
+import { useAuthStore } from "../store/auth";
+import { useUIStore } from "../store/ui";
+import { getCurrentLanguage } from "../locales";
+import type { ApiResponse, Branch } from "../features/auth/types";
 import { normalizeLocalMediaUri } from "./mediaUri";
 
 const cachedUploadUris = new Map<string, string>();
@@ -131,9 +138,101 @@ export async function prepareMobileImageUpload(
 }
 
 export function appendMobileUploadFile(formData: FormData, fieldName: string, file: PreparedMobileUploadFile): void {
-  formData.append(fieldName, {
-    uri: file.uri,
-    name: file.name,
-    type: file.type,
-  } as unknown as Blob);
+  // Expo File gerçek binary içeriği temsil eder. React Native 0.81'in Android
+  // { uri, name, type } FormData yolundaki binary upload hatasını kullanmayız.
+  formData.append(fieldName, new File(file.uri), file.name);
+}
+
+function extractUploadError(payload: unknown, fallback: string): string {
+  const data = payload as { message?: string; exceptionMessage?: string; errors?: string[] } | undefined;
+  const messages = [
+    data?.message,
+    data?.exceptionMessage,
+    ...(Array.isArray(data?.errors) ? data.errors : []),
+  ]
+    .map((message) => typeof message === "string" ? message.trim() : "")
+    .filter(Boolean);
+
+  return [...new Set(messages)].join(" — ") || fallback;
+}
+
+export async function postMobileMultipart<T>(
+  endpoint: string,
+  formData: FormData,
+  options: { timeoutMs?: number; fallbackMessage?: string } = {},
+): Promise<ApiResponse<T>> {
+  const fallbackMessage = options.fallbackMessage || "Dosya yükleme hatası.";
+  const authState = useAuthStore.getState();
+  if (!authState.isHydrated) {
+    await authState.hydrate();
+  }
+
+  const latestAuthState = useAuthStore.getState();
+  let branch = latestAuthState.branch as Branch | null;
+  if (latestAuthState.token && !branch) {
+    branch = await latestAuthState.hydrateBranch();
+  }
+
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "X-Language": getCurrentLanguage() || "tr",
+  };
+  if (latestAuthState.token) {
+    headers.Authorization = `Bearer ${latestAuthState.token}`;
+  }
+  if (branch?.code !== undefined && branch?.code !== null && String(branch.code).trim()) {
+    headers["X-Branch-Code"] = String(branch.code);
+    headers.BranchCode = String(branch.code);
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? 120000);
+  const url = `${getApiBaseUrl()}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+  useUIStore.getState().incrementNetworkRequest();
+
+  try {
+    // Expo fetch FormData boundary'sini ve Content-Length'i binary gövdeden üretir.
+    // Content-Type burada bilerek elle verilmez.
+    const response = await expoFetch(url, {
+      method: "POST",
+      headers,
+      body: formData,
+      signal: controller.signal,
+    });
+    const responseText = await response.text();
+    let payload: ApiResponse<T> | undefined;
+    try {
+      payload = responseText ? JSON.parse(responseText) as ApiResponse<T> : undefined;
+    } catch {
+      throw new Error(`${fallbackMessage} Sunucu geçerli JSON döndürmedi (${response.status}).`);
+    }
+
+    if (response.status === 401) {
+      await useAuthStore.getState().clearAuth();
+    }
+    if (!response.ok || !payload?.success) {
+      const error = new Error(extractUploadError(payload, `${fallbackMessage} Sunucu ${response.status} döndü.`)) as Error & {
+        status?: number;
+        response?: { data?: unknown };
+      };
+      error.status = response.status;
+      error.response = { data: payload };
+      throw error;
+    }
+
+    return payload;
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error(`${fallbackMessage} İstek zaman aşımına uğradı.`);
+    }
+    const serverError = error as Error & { status?: number; response?: unknown };
+    if (serverError?.status || serverError?.response) {
+      throw error;
+    }
+    const detail = error instanceof Error && error.message ? ` Detay: ${error.message}` : "";
+    throw new Error(`${fallbackMessage} API'ye ulaşılamadı. Aktif API: ${getApiBaseUrl()}.${detail}`);
+  } finally {
+    clearTimeout(timeout);
+    useUIStore.getState().decrementNetworkRequest();
+  }
 }

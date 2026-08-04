@@ -1,5 +1,5 @@
 import { apiClient } from "../../../lib/axios";
-import { appendMobileUploadFile, prepareMobileImageUpload } from "../../../lib/uploadMedia";
+import { appendMobileUploadFile, postMobileMultipart, prepareMobileImageUpload } from "../../../lib/uploadMedia";
 import i18n from "../../../locales";
 import type { ApiResponse } from "../../auth/types";
 import type { StockImageDto } from "../types";
@@ -99,16 +99,12 @@ export const stockImageApi = {
       formData.append("altTexts", altTexts?.[i]?.trim() || "");
     }
 
-    const response = await apiClient.post<ApiResponse<unknown>>(
+    const response = await postMobileMultipart<unknown>(
       `/api/StockImage/upload/${stockId}`,
-      formData
+      formData,
+      { fallbackMessage: i18n.t("stock.uploadError") },
     );
-
-    if (!response.data.success) {
-      throw new Error(extractApiErrorMessage(response.data, "stock.uploadError"));
-    }
-
-    return parseStockImageList(response.data.data);
+    return parseStockImageList(response.data);
   },
 
   delete: async (imageId: number): Promise<void> => {

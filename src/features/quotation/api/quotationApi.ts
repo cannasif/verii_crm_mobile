@@ -1,6 +1,6 @@
 import { apiClient } from "../../../lib/axios";
 import { extractPagedItems } from "../../../lib/paged";
-import { appendMobileUploadFile, prepareMobileImageUpload } from "../../../lib/uploadMedia";
+import { appendMobileUploadFile, postMobileMultipart, prepareMobileImageUpload } from "../../../lib/uploadMedia";
 import type {
   WaitingApprovalsResponse,
   ApproveResponse,
@@ -792,18 +792,12 @@ export const quotationApi = {
       formData.append("orderLineId", String(options.orderLineId));
     }
 
-    const response = await apiClient.post<ApiResponse<PdfTemplateAssetDto>>(
+    const response = await postMobileMultipart<PdfTemplateAssetDto>(
       "/api/pdf-report-templates/assets/upload",
-      formData
+      formData,
+      { fallbackMessage: "Görsel yüklenemedi" },
     );
-
-    if (!response.data.success || !response.data.data) {
-      throw new Error(
-        response.data.message || response.data.exceptionMessage || "Görsel yüklenemedi"
-      );
-    }
-
-    return response.data.data;
+    return response.data;
   },
 
   generateReportPdf: async (
