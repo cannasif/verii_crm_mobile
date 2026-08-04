@@ -8,8 +8,9 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
+    "check:paged-search": "node ./scripts/check-paged-search-fields.mjs",
     "test:business-card": "node ./scripts/run-business-card-tests.mjs",
-    "test": "npm run typecheck && npm run test:business-card",
+    "test": "npm run typecheck && npm run check:paged-search && npm run test:business-card",
     "postinstall": "patch-package"
   },
   "dependencies": {

@@ -8,6 +8,7 @@ export interface PagedQueryParams {
   pageNumber?: number;
   pageSize?: number;
   search?: string;
+  searchFields?: string[];
   sortBy?: string;
   sortDirection?: "asc" | "desc";
   filterLogic?: "and" | "or";
@@ -51,6 +52,7 @@ export function buildPagedQueryPayload(params: PagedQueryParams = {}): Required<
     pageNumber: params.pageNumber ?? 1,
     pageSize: params.pageSize ?? 20,
     search: params.search?.trim() ?? "",
+    searchFields: params.searchFields ?? [],
     sortBy: params.sortBy ?? "Id",
     sortDirection: params.sortDirection ?? "asc",
     filterLogic: params.filterLogic ?? "and",
