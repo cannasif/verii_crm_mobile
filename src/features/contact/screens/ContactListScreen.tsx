@@ -21,6 +21,7 @@ import {
   type PagedAdvancedFilterRow,
 } from "../../../components/paged";
 import { useUIStore } from "../../../store/ui";
+import { asSearchFields, CONTACT_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
 
 import { useContacts } from "../hooks";
 import { useCustomers } from "../../customer/hooks";
@@ -148,6 +149,7 @@ export function ContactListScreen(): React.ReactElement {
   const { data, isPending, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage, isRefetching } = useContacts({ 
     filters,
     search: debouncedQuery.trim().length >= 2 ? debouncedQuery.trim() : undefined,
+    searchFields: asSearchFields(CONTACT_LIST_SEARCH_FIELDS),
     sortBy: "fullName",
     sortDirection: sortOrder,
     filterLogic: appliedFilterLogic,

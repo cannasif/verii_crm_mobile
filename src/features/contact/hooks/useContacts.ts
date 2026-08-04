@@ -7,6 +7,7 @@ const DEFAULT_PAGE_SIZE = 20;
 interface UseContactsParams {
   filters?: PagedFilter[];
   search?: string;
+  searchFields?: string[];
   sortBy?: string;
   sortDirection?: "asc" | "desc";
   pageSize?: number;
@@ -18,6 +19,7 @@ export function useContacts(params: UseContactsParams = {}) {
   const {
     filters: externalFilters,
     search,
+    searchFields,
     sortBy = "fullName",
     sortDirection = "asc",
     pageSize = DEFAULT_PAGE_SIZE,
@@ -32,12 +34,13 @@ export function useContacts(params: UseContactsParams = {}) {
   }
 
   return useInfiniteQuery<PagedResponse<ContactDto>, Error>({
-    queryKey: ["contact", "list", { filters, search, sortBy, sortDirection, filterLogic, pageSize }],
+    queryKey: ["contact", "list", { filters, search, searchFields, sortBy, sortDirection, filterLogic, pageSize }],
     queryFn: ({ pageParam }) => {
       const apiParams = {
         pageNumber: pageParam as number,
         pageSize,
         search,
+        searchFields: search ? searchFields : undefined,
         sortBy,
         sortDirection,
         filters: filters.length > 0 ? filters : undefined,
