@@ -25,6 +25,7 @@ import type { StockRelationDto } from "../../stocks/types";
 import { getProductSelectionKey, type ProductSelectionResult } from "../../stocks/types";
 import { demandApi } from "../api";
 import { quotationApi } from "../../quotation/api";
+import { useErpProjects } from "../../quotation/hooks";
 import type { UploadReportAssetOptions } from "../../quotation/api/quotationApi";
 import { stockApi } from "../../stocks/api";
 import { useStock } from "../../stocks/hooks";
@@ -172,6 +173,7 @@ export function DemandLineForm({
   const [vidaDefinitionId, setVidaDefinitionId] = useState<number | null>(null);
   const [baskiDefinitionId, setBaskiDefinitionId] = useState<number | null>(null);
   const [baskiAciklama, setBaskiAciklama] = useState<string>("");
+  const [erpProjectCode, setErpProjectCode] = useState<string | null>(null);
   const [isLoadingPrice, setIsLoadingPrice] = useState(false);
   const [approvalStatus, setApprovalStatus] = useState<number>(0);
   const [approvalMessage, setApprovalMessage] = useState<string>("");
@@ -186,6 +188,8 @@ export function DemandLineForm({
   const [vidaPickerVisible, setVidaPickerVisible] = useState(false);
   const [baskiPickerVisible, setBaskiPickerVisible] = useState(false);
   const [baskiCreateVisible, setBaskiCreateVisible] = useState(false);
+  const [projectCodeModalVisible, setProjectCodeModalVisible] = useState(false);
+  const { data: projects = [] } = useErpProjects();
   const productPickerRef = useRef<ProductPickerRef>(null);
   const {
     profilOptions,
@@ -245,6 +249,7 @@ export function DemandLineForm({
       baskiDefinitionId,
       baskiDefinitionName: baskiDefinitionId ? baskiMap[baskiDefinitionId] ?? null : null,
       baskiAciklama: baskiAciklama.trim() || null,
+      erpProjectCode: erpProjectCode || null,
       imagePath,
       isEditing: false,
       approvalStatus,
@@ -276,6 +281,7 @@ export function DemandLineForm({
     baskiDefinitionId,
     baskiMap,
     baskiAciklama,
+    erpProjectCode,
     imagePath,
     approvalStatus,
   ]);
@@ -297,6 +303,7 @@ export function DemandLineForm({
       setVidaDefinitionId(line.vidaDefinitionId ?? null);
       setBaskiDefinitionId(line.baskiDefinitionId ?? null);
       setBaskiAciklama(line.baskiAciklama || "");
+      setErpProjectCode(line.erpProjectCode ?? null);
       setImagePath(line.imagePath || null);
       setApprovalStatus(line.approvalStatus || 0);
       setRelatedLinesDisplay(line.relatedLines ?? []);
@@ -412,6 +419,7 @@ export function DemandLineForm({
     setVidaDefinitionId(null);
     setBaskiDefinitionId(null);
     setBaskiAciklama("");
+    setErpProjectCode(null);
     setImagePath(null);
     setApprovalStatus(0);
     setApprovalMessage("");
@@ -459,6 +467,7 @@ export function DemandLineForm({
     setVidaDefinitionId(draft.vidaDefinitionId ?? null);
     setBaskiDefinitionId(draft.baskiDefinitionId ?? null);
     setBaskiAciklama(draft.baskiAciklama || "");
+    setErpProjectCode(draft.erpProjectCode ?? null);
     setImagePath(draft.imagePath || null);
     setApprovalStatus(draft.approvalStatus || 0);
     setRelatedLinesDisplay(draft.relatedLines ?? []);
@@ -1283,8 +1292,8 @@ export function DemandLineForm({
                 </View>
               </View>
 
-              {!hideVatRate ? (
-                <View style={styles.rowTwo}>
+              <View style={styles.rowTwo}>
+                {!hideVatRate ? (
                   <View style={styles.fieldHalf}>
                     <Text style={[styles.label, { color: mutedColor }]}>KDV Oranı (%)</Text>
                     <TextInput
@@ -1303,8 +1312,24 @@ export function DemandLineForm({
                       keyboardType="decimal-pad"
                     />
                   </View>
+                ) : null}
+                <View style={styles.fieldHalf}>
+                  <Text style={[styles.label, { color: mutedColor }]}>{t("demand.projectCode")}</Text>
+                  <TouchableOpacity
+                    style={[styles.pickerButton, { backgroundColor: softPinkBg, borderColor: softPinkBorder }]}
+                    onPress={() => setProjectCodeModalVisible(true)}
+                  >
+                    <Text style={[styles.pickerText, { color: erpProjectCode ? softInputText : mutedColor }]} numberOfLines={1}>
+                      {erpProjectCode
+                        ? (() => {
+                            const project = projects.find((item) => item.projeKod === erpProjectCode);
+                            return project?.projeAciklama ? `${project.projeKod} - ${project.projeAciklama}` : project?.projeKod ?? erpProjectCode;
+                          })()
+                        : t("common.select")}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-              ) : null}
+              </View>
 
               <View style={styles.fieldContainer}>
                 <Text style={[styles.label, { color: mutedColor }]}>Açıklama</Text>
@@ -1544,6 +1569,22 @@ export function DemandLineForm({
         </View>
       </View>
     </Modal>
+    <PickerModal
+      visible={projectCodeModalVisible}
+      options={projects.map((project) => ({
+        id: project.projeKod,
+        name: project.projeAciklama ? `${project.projeKod} - ${project.projeAciklama}` : project.projeKod,
+        code: project.projeKod,
+      }))}
+      selectedValue={erpProjectCode ?? undefined}
+      onSelect={(option) => {
+        setErpProjectCode(String(option.code ?? option.id));
+        setProjectCodeModalVisible(false);
+      }}
+      onClose={() => setProjectCodeModalVisible(false)}
+      title={t("demand.projectCode")}
+      searchPlaceholder={t("demand.projectCodeSearch")}
+    />
     <PickerModal
       visible={profilPickerVisible}
       title="Profil seç"

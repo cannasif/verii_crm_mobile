@@ -370,9 +370,10 @@ export const demandApi = {
   },
 
   createBulk: async (data: DemandBulkCreateDto): Promise<DemandGetDto> => {
+    const { notes, ...bulkPayload } = data;
     const response = await apiClient.post<DemandBulkCreateResponse>(
       "/api/demand/bulk-demand",
-      data
+      bulkPayload
     );
 
     if (!response.data.success) {
@@ -381,7 +382,18 @@ export const demandApi = {
       );
     }
 
-    return response.data.data;
+    const created = response.data.data;
+    const normalizedNotes = notes?.map((note) => note.trim()).filter(Boolean) ?? [];
+    if (normalizedNotes.length > 0) {
+      const notesResponse = await apiClient.put<ApiResponse<unknown>>(
+        `/api/DemandNotes/by-demand/${created.id}/notes-list`,
+        { notes: normalizedNotes }
+      );
+      if (!notesResponse.data.success) {
+        throw new Error(notesResponse.data.message || notesResponse.data.exceptionMessage || "Talep notları kaydedilemedi");
+      }
+    }
+    return created;
   },
 
   updateBulk: async (id: number, data: DemandBulkCreateDto): Promise<DemandGetDto> => {

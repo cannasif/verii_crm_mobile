@@ -139,6 +139,12 @@ export interface CreateDemandDto {
   revisionNo?: string | null;
   revisionId?: number | null;
   currency: string;
+  generalDiscountRate?: number | null;
+  generalDiscountAmount?: number | null;
+  erpProjectCode?: string | null;
+  projectCode?: string | null;
+  salesTypeDefinitionId?: number | null;
+  deliveryMethod?: string | null;
 }
 
 export interface CreateDemandLineDto {
@@ -147,6 +153,7 @@ export interface CreateDemandLineDto {
   productCode: string;
   productName: string;
   groupCode?: string | null;
+  unit?: string | null;
   quantity: number;
   unitPrice: number;
   discountRate1: number;
@@ -175,6 +182,8 @@ export interface CreateDemandLineDto {
   relatedStockId?: number | null;
   relatedProductKey?: string | null;
   isMainRelatedProduct?: boolean;
+  erpProjectCode?: string | null;
+  projectCode?: string | null;
   approvalStatus?: number;
 }
 
@@ -229,6 +238,7 @@ export interface DemandBulkCreateDto {
   demand: CreateDemandDto;
   lines: CreateDemandLineDto[];
   exchangeRates?: DemandExchangeRateCreateDto[];
+  notes?: string[];
 }
 
 export interface DemandLineFormState {
@@ -266,6 +276,7 @@ export interface DemandLineFormState {
   relatedStockId?: number | null;
   relatedProductKey?: string | null;
   isMainRelatedProduct?: boolean;
+  erpProjectCode?: string | null;
   approvalStatus?: number;
   isEditing: boolean;
   relatedLines?: DemandLineFormState[];
@@ -395,6 +406,11 @@ export interface CalculationTotals {
   subtotal: number;
   totalVat: number;
   grandTotal: number;
+  netTotal: number;
+  discountedNetTotal: number;
+  generalDiscountAmount: number;
+  totalVatAfterDiscount: number;
+  grandTotalAfterDiscount: number;
 }
 
 export type ApprovalStatus = 0 | 1;

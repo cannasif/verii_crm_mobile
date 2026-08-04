@@ -9,10 +9,12 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  TextInput,
 } from "react-native";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { CustomerErpBalanceAction } from "@/components/shared/CustomerErpBalanceAction";
 import { createClientId } from "@/lib/create-client-id";
+import { parseDecimalInput, sanitizeDecimalInput } from "@/lib/decimal-input";
 import { getValidRelatedProductGroup } from "@/lib/relatedProductGroup";
 import { resolveDocumentSerialCustomerTypeId } from "@/lib/resolve-document-serial-customer-type-id";
 import {
@@ -38,6 +40,7 @@ import {
   UserIcon,
   ArrowRight01Icon,
   MoneyExchange01Icon,
+  Note01Icon,
 } from "hugeicons-react-native";
 import {
   SalesDocumentFormLineGroup,
@@ -84,6 +87,9 @@ import {
   ProductPicker,
 } from "../components";
 import { CustomerSelectDialog, type CustomerSelectionResult } from "../../customer";
+import { useErpProjects, useSalesTypeList } from "../../quotation/hooks";
+import { QuotationNotesModal, validateNotesMaxLength } from "../../quotation/components";
+import { normalizeOfferType } from "../../quotation/types";
 import type { CustomerDto } from "../../customer/types";
 import { createDemandSchema, type CreateDemandSchema } from "../schemas";
 import type {
@@ -155,6 +161,10 @@ export function DemandCreateScreen(): React.ReactElement {
   const [koliBaskiModalVisible, setKoliBaskiModalVisible] = useState(false);
   const [customerSelectDialogOpen, setCustomerSelectDialogOpen] = useState(false);
   const [representativeModalVisible, setRepresentativeModalVisible] = useState(false);
+  const [projectCodeModalVisible, setProjectCodeModalVisible] = useState(false);
+  const [salesTypeModalVisible, setSalesTypeModalVisible] = useState(false);
+  const [notes, setNotes] = useState<string[]>(Array(15).fill(""));
+  const [notesModalVisible, setNotesModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<"general" | "lines">("general");
   const [pendingStockForRelated, setPendingStockForRelated] = useState<
     (StockGetDto & { parentRelations: StockRelationDto[] }) | null
@@ -217,6 +227,8 @@ export function DemandCreateScreen(): React.ReactElement {
   const watchedOfferDate = watch("demand.offerDate");
   const watchedDeliveryDate = watch("demand.deliveryDate");
   const watchedOfferType = watch("demand.offerType");
+  const watchedGeneralDiscountRate = watch("demand.generalDiscountRate");
+  const watchedGeneralDiscountAmount = watch("demand.generalDiscountAmount");
   const specialCodeManualChangeRef = useRef({ ozelKod1: false, ozelKod2: false });
   const { specialCode1Options, specialCode2Options, isSpecialCodesLoading } = useSpecialCodes("demand");
 
@@ -294,6 +306,17 @@ export function DemandCreateScreen(): React.ReactElement {
   const { data: currencyOptions } = useCurrencyOptions(exchangeRateParamsOnce);
   const { data: paymentTypes } = usePaymentTypes();
   const { data: relatedUsers = [] } = useRelatedUsers(user?.id);
+  const { data: projects = [] } = useErpProjects();
+  const { data: salesTypeList = [] } = useSalesTypeList({
+    offerType: normalizeOfferType(watchedOfferType),
+  });
+
+  const previousOfferTypeRef = useRef(watchedOfferType);
+  useEffect(() => {
+    if (previousOfferTypeRef.current === watchedOfferType) return;
+    previousOfferTypeRef.current = watchedOfferType;
+    setValue("demand.salesTypeDefinitionId", null);
+  }, [setValue, watchedOfferType]);
 
   useEffect(() => {
     if (exchangeRatesData && exchangeRatesData.length > 0 && !hasFilledErpRates.current) {
@@ -375,7 +398,13 @@ export function DemandCreateScreen(): React.ReactElement {
     }
   }, [customer]);
 
-  const totals = useMemo(() => calculateTotals(lines), [lines]);
+  const totals = useMemo(
+    () => calculateTotals(lines, {
+      generalDiscountRate: watchedGeneralDiscountRate ?? null,
+      generalDiscountAmount: watchedGeneralDiscountAmount ?? null,
+    }),
+    [lines, watchedGeneralDiscountAmount, watchedGeneralDiscountRate]
+  );
 
   const handleCustomerSelect = useCallback(
     (result: CustomerSelectionResult) => {
@@ -457,6 +486,12 @@ export function DemandCreateScreen(): React.ReactElement {
       if (lines.length === 0) {
         setValue("demand.currency", newCurrency);
         setCurrencyModalVisible(false);
+        return;
+      }
+
+      const notesError = validateNotesMaxLength(notes);
+      if (notesError) {
+        setError("root", { type: "manual", message: notesError });
         return;
       }
       Alert.alert(
@@ -826,6 +861,7 @@ export function DemandCreateScreen(): React.ReactElement {
         return {
           ...rest,
           demandId: 0,
+          projectCode: rest.erpProjectCode ?? null,
           productId: rest.productId || null,
           pricingRuleHeaderId:
             rest.pricingRuleHeaderId != null && rest.pricingRuleHeaderId > 0
@@ -848,15 +884,25 @@ export function DemandCreateScreen(): React.ReactElement {
       createDemand.mutate({
         demand: {
           ...formData.demand,
+          offerType: normalizeOfferType(formData.demand.offerType),
+          generalDiscountRate: formData.demand.generalDiscountRate ?? null,
+          generalDiscountAmount: formData.demand.generalDiscountAmount ?? null,
+          erpProjectCode: formData.demand.erpProjectCode ?? null,
+          projectCode: formData.demand.erpProjectCode ?? null,
+          salesTypeDefinitionId: formData.demand.salesTypeDefinitionId ?? null,
+          deliveryMethod: formData.demand.salesTypeDefinitionId != null
+            ? String(formData.demand.salesTypeDefinitionId)
+            : null,
           ozelKod1: formData.demand.ozelKod1?.trim() || null,
           ozelKod2: formData.demand.ozelKod2?.trim() || null,
           koliBaskiDefinitionId: formData.demand.koliBaskiDefinitionId ?? null,
         },
         lines: cleanedLines,
         exchangeRates: cleanedExchangeRates.length > 0 ? cleanedExchangeRates : undefined,
+        notes,
       });
     },
-    [lines, exchangeRates, createDemand, setError]
+    [lines, exchangeRates, notes, createDemand, setError]
   );
 
   const onInvalidSubmit = useCallback(() => {
@@ -1234,6 +1280,52 @@ export function DemandCreateScreen(): React.ReactElement {
               <View style={styles.twoColumnItem}>
                 <Controller
                   control={control}
+                  name="demand.salesTypeDefinitionId"
+                  render={({ field: { value } }) => (
+                    <View style={styles.fieldContainerTight}>
+                      <Text style={[styles.labelCompact, { color: colors.textSecondary }]}>{t("demand.deliveryMethod")}</Text>
+                      <TouchableOpacity
+                        style={[styles.pickerButton, styles.pickerShellCompact, { backgroundColor: innerBg, borderColor: innerBorder }]}
+                        onPress={() => setSalesTypeModalVisible(true)}
+                      >
+                        <Text style={[styles.pickerText, styles.pickerTextCompact, { color: colors.text }]} numberOfLines={1}>
+                          {value ? salesTypeList.find((item) => item.id === value)?.name ?? t("common.select") : t("common.select")}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                />
+              </View>
+              <View style={styles.twoColumnItem}>
+                <Controller
+                  control={control}
+                  name="demand.erpProjectCode"
+                  render={({ field: { value } }) => (
+                    <View style={styles.fieldContainerTight}>
+                      <Text style={[styles.labelCompact, { color: colors.textSecondary }]}>{t("demand.projectCode")}</Text>
+                      <TouchableOpacity
+                        style={[styles.pickerButton, styles.pickerShellCompact, { backgroundColor: innerBg, borderColor: innerBorder }]}
+                        onPress={() => setProjectCodeModalVisible(true)}
+                      >
+                        <Text style={[styles.pickerText, styles.pickerTextCompact, { color: colors.text }]} numberOfLines={1}>
+                          {value
+                            ? (() => {
+                                const project = projects.find((item) => item.projeKod === value);
+                                return project?.projeAciklama ? `${project.projeKod} - ${project.projeAciklama}` : project?.projeKod ?? value;
+                              })()
+                            : t("common.select")}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                />
+              </View>
+            </View>
+
+            <View style={styles.twoColumnRow}>
+              <View style={styles.twoColumnItem}>
+                <Controller
+                  control={control}
                   name="demand.ozelKod1"
                   render={({ field: { value } }) => (
                     <View style={styles.fieldContainerTight}>
@@ -1329,6 +1421,53 @@ export function DemandCreateScreen(): React.ReactElement {
               )}
             />
 
+            <View style={styles.twoColumnRow}>
+              <View style={styles.twoColumnItem}>
+                <Controller
+                  control={control}
+                  name="demand.generalDiscountRate"
+                  render={({ field: { onChange, value } }) => (
+                    <View style={styles.fieldContainerTight}>
+                      <Text style={[styles.labelCompact, { color: colors.textSecondary }]}>{t("demand.generalDiscountRate")}</Text>
+                      <TextInput
+                        style={[styles.input, styles.inputCompact, { backgroundColor: innerBg, borderColor: innerBorder, color: colors.text }]}
+                        value={value != null ? String(value) : ""}
+                        onChangeText={(text) => {
+                          const sanitized = sanitizeDecimalInput(text);
+                          onChange(sanitized === "" ? null : parseDecimalInput(sanitized));
+                        }}
+                        placeholder="%"
+                        placeholderTextColor={colors.textMuted}
+                        keyboardType="decimal-pad"
+                      />
+                    </View>
+                  )}
+                />
+              </View>
+              <View style={styles.twoColumnItem}>
+                <Controller
+                  control={control}
+                  name="demand.generalDiscountAmount"
+                  render={({ field: { onChange, value } }) => (
+                    <View style={styles.fieldContainerTight}>
+                      <Text style={[styles.labelCompact, { color: colors.textSecondary }]}>{t("demand.generalDiscountAmount")}</Text>
+                      <TextInput
+                        style={[styles.input, styles.inputCompact, { backgroundColor: innerBg, borderColor: innerBorder, color: colors.text }]}
+                        value={value != null ? String(value) : ""}
+                        onChangeText={(text) => {
+                          const sanitized = sanitizeDecimalInput(text);
+                          onChange(sanitized === "" ? null : parseDecimalInput(sanitized));
+                        }}
+                        placeholder="0,00"
+                        placeholderTextColor={colors.textMuted}
+                        keyboardType="decimal-pad"
+                      />
+                    </View>
+                  )}
+                />
+              </View>
+            </View>
+
             <FormField
               label="Açıklama"
               value={watch("demand.description") || ""}
@@ -1337,6 +1476,22 @@ export function DemandCreateScreen(): React.ReactElement {
               multiline
               numberOfLines={3}
               maxLength={500}
+            />
+            <TouchableOpacity
+              style={[styles.notesButton, { backgroundColor: innerBg, borderColor: innerBorder }]}
+              onPress={() => setNotesModalVisible(true)}
+            >
+              <Note01Icon size={16} color={accent} variant="stroke" strokeWidth={1.8} />
+              <Text style={[styles.notesButtonText, { color: titleText }]}>
+                {t("demand.notesSection", "Talep Notları")}{notes.some((note) => note.trim()) ? ` (${notes.filter((note) => note.trim()).length})` : ""}
+              </Text>
+            </TouchableOpacity>
+            <QuotationNotesModal
+              visible={notesModalVisible}
+              notes={notes}
+              title={t("demand.notesSection", "Talep Notları")}
+              onSave={(value) => { setNotes(value); setNotesModalVisible(false); }}
+              onClose={() => setNotesModalVisible(false)}
             />
           </View>
           </View>
@@ -1392,10 +1547,16 @@ export function DemandCreateScreen(): React.ReactElement {
                   {totals.totalVat.toFixed(2)}
                 </Text>
               </View>
+              {totals.generalDiscountAmount > 0 && (
+                <View style={styles.summaryRow}>
+                  <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{t("demand.generalDiscount")}:</Text>
+                  <Text style={[styles.summaryValue, { color: colors.error }]}>-{totals.generalDiscountAmount.toFixed(2)}</Text>
+                </View>
+              )}
               <View style={styles.summaryRow}>
                 <Text style={[styles.summaryLabel, { color: colors.text }]}>Genel Toplam:</Text>
                 <Text style={[styles.summaryValue, { color: colors.accent, fontWeight: "600" }]}>
-                  {totals.grandTotal.toFixed(2)}
+                  {totals.grandTotalAfterDiscount.toFixed(2)}
                 </Text>
               </View>
             </View>
@@ -1637,6 +1798,26 @@ export function DemandCreateScreen(): React.ReactElement {
           onClose={() => setCurrencyModalVisible(false)}
           title="Para Birimi Seçiniz"
           searchPlaceholder="Para birimi ara..."
+        />
+
+        <PickerModal
+          visible={projectCodeModalVisible}
+          options={projects.map((project) => ({ id: project.projeKod, name: project.projeAciklama ? `${project.projeKod} - ${project.projeAciklama}` : project.projeKod, code: project.projeKod }))}
+          selectedValue={watch("demand.erpProjectCode") ?? undefined}
+          onSelect={(option) => { setValue("demand.erpProjectCode", String(option.code ?? option.id)); setProjectCodeModalVisible(false); }}
+          onClose={() => setProjectCodeModalVisible(false)}
+          title={t("demand.projectCode")}
+          searchPlaceholder={t("demand.projectCodeSearch")}
+        />
+
+        <PickerModal
+          visible={salesTypeModalVisible}
+          options={salesTypeList.map((item) => ({ id: item.id, name: item.name }))}
+          selectedValue={watch("demand.salesTypeDefinitionId") ?? undefined}
+          onSelect={(option) => { setValue("demand.salesTypeDefinitionId", option.id as number); setSalesTypeModalVisible(false); }}
+          onClose={() => setSalesTypeModalVisible(false)}
+          title={t("demand.deliveryMethod")}
+          searchPlaceholder={t("common.search")}
         />
 
         <PickerModal
@@ -1924,6 +2105,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
+  },
+  inputCompact: {
+    minHeight: 40,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    fontSize: 13,
+  },
+  notesButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 16,
+  },
+  notesButtonText: {
+    fontSize: 15,
+    fontWeight: "500",
   },
   pickerButton: {
     borderWidth: 1.3,
