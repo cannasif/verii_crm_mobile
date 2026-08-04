@@ -7,11 +7,13 @@ import { Mic01Icon, StopIcon } from "hugeicons-react-native";
 interface VoiceSearchButtonProps {
   onResult: (text: string) => void;
   disabled?: boolean;
+  embedded?: boolean;
 }
 
 export function VoiceSearchButton({
   onResult,
   disabled = false,
+  embedded = false,
 }: VoiceSearchButtonProps): React.ReactElement {
   const { colors, themeMode } = useUIStore();
   const { startListening, isListening } = useSpeechToText();
@@ -31,6 +33,7 @@ export function VoiceSearchButton({
     <TouchableOpacity
       style={[
         styles.button,
+        embedded && styles.buttonEmbedded,
         {
           backgroundColor: isListening ? (isDark ? "rgba(236, 72, 153, 0.15)" : "rgba(219, 39, 119, 0.1)") : inputBg,
           borderColor: isListening ? (isDark ? "rgba(236, 72, 153, 0.3)" : "rgba(219, 39, 119, 0.2)") : borderColor,
@@ -62,5 +65,11 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.5,
+  },
+  buttonEmbedded: {
+    width: 38,
+    height: 38,
+    borderWidth: 0,
+    backgroundColor: "transparent",
   },
 });

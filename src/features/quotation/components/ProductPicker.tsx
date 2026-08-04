@@ -1535,9 +1535,9 @@ function ProductPickerInner(
                           <Ionicons name="close-circle" size={17} color={mutedColor} />
                         </TouchableOpacity>
                       )}
+                      <VoiceSearchButton onResult={setSearchText} embedded />
+                      <SearchFieldSelectorButton options={stockSearchOptions} selectedFields={stockSearchFields} onChange={setStockSearchFields} compact embedded />
                     </View>
-                    <VoiceSearchButton onResult={setSearchText} />
-                    <SearchFieldSelectorButton options={stockSearchOptions} selectedFields={stockSearchFields} onChange={setStockSearchFields} compact />
                   </View>
                   <View style={styles.searchBottomRow}>
                     <TouchableOpacity

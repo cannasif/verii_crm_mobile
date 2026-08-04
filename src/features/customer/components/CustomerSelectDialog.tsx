@@ -343,12 +343,14 @@ export function CustomerSelectDialog({
                   <Cancel01Icon size={16} color={THEME.textMute} variant="stroke" />
                 </TouchableOpacity>
               ) : null}
+              <SearchFieldSelectorButton
+                options={customerSearchOptions}
+                selectedFields={customerSearchFields}
+                onChange={setCustomerSearchFields}
+                compact
+                embedded
+              />
             </View>
-            <SearchFieldSelectorButton
-              options={customerSearchOptions}
-              selectedFields={customerSearchFields}
-              onChange={setCustomerSearchFields}
-            />
             <TouchableOpacity
               style={[
                 styles.filterButton,
