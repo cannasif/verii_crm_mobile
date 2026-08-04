@@ -19,7 +19,8 @@ import {
   Note01Icon,
 } from "hugeicons-react-native";
 import { listContentBottomPadding } from "../../../constants/layout";
-import { asSearchFields, SALES_DOCUMENT_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
+import { SALES_DOCUMENT_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
+import { usePagedListSearchFields } from "../../../hooks/usePagedListSearchFields";
 import { ScreenHeader } from "../../../components/navigation";
 import {
   PagedFlatList,
@@ -50,6 +51,7 @@ const PADDING = 16;
 type DemandListViewMode = "card" | "list";
 
 export function DemandListScreen(): React.ReactElement {
+  const demandSearch = usePagedListSearchFields("demands", SALES_DOCUMENT_LIST_SEARCH_FIELDS);
   const { t } = useTranslation();
   const router = useRouter();
   const { themeMode } = useUIStore();
@@ -110,7 +112,7 @@ export function DemandListScreen(): React.ReactElement {
     isFetchingNextPage,
   } = useDemandList({
     search: debouncedQuery.trim().length >= 2 ? debouncedQuery.trim() : undefined,
-    searchFields: asSearchFields(SALES_DOCUMENT_LIST_SEARCH_FIELDS),
+    searchFields: demandSearch.selectedFields,
     sortBy,
     sortDirection,
     approvalStatusFilter,
@@ -291,6 +293,9 @@ export function DemandListScreen(): React.ReactElement {
           searchValue={searchText}
           onSearchChange={setSearchText}
           searchPlaceholder={t("demand.searchPlaceholder")}
+          searchFieldOptions={demandSearch.options}
+          selectedSearchFields={demandSearch.selectedFields}
+          onSearchFieldsChange={demandSearch.setSelectedFields}
           browseListShell={
             viewMode === "list"
               ? {

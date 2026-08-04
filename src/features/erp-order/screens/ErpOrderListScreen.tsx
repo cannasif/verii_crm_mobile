@@ -22,6 +22,8 @@ import { PagedFlatList } from "../../../components/paged";
 import { stockBrowseStyles } from "../../../components/shared/stock-browse";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
+import { usePagedListSearchFields } from "../../../hooks/usePagedListSearchFields";
+import { ERP_ORDER_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
 import { ErpOrderListRow, ErpOrderScopeBadge } from "../components";
 import { useErpOrderListController } from "../hooks";
 import type { NetsisOrderHeader } from "../types";
@@ -33,6 +35,10 @@ export function ErpOrderListScreen(): React.ReactElement {
   const { themeMode, colors } = useUIStore();
   const isDark = themeMode === "dark";
   const locale = i18n.language || "tr-TR";
+  const erpOrderSearch = usePagedListSearchFields(
+    "erp-orders",
+    ERP_ORDER_LIST_SEARCH_FIELDS,
+  );
 
   const BRAND_COLOR = "#db2777";
   const BRAND_COLOR_DARK = "#ec4899";
@@ -68,7 +74,9 @@ export function ErpOrderListScreen(): React.ReactElement {
     error,
     refresh,
     isRefetching,
-  } = useErpOrderListController();
+  } = useErpOrderListController({
+    searchFields: erpOrderSearch.selectedFields as (keyof NetsisOrderHeader)[],
+  });
 
   const browseListShell = useMemo(
     () => ({
@@ -145,6 +153,9 @@ export function ErpOrderListScreen(): React.ReactElement {
               searchValue={searchText}
               onSearchChange={setSearchText}
               searchPlaceholder={t("erpOrder.searchPlaceholder")}
+              searchFieldOptions={erpOrderSearch.options}
+              selectedSearchFields={erpOrderSearch.selectedFields}
+              onSearchFieldsChange={erpOrderSearch.setSelectedFields}
               toolbarActions={
                 <TouchableOpacity
                   style={[styles.sortBtn, { borderColor: theme.borderColor, backgroundColor: theme.surfaceBg }]}

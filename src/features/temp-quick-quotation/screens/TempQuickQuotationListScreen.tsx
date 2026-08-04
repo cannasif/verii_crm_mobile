@@ -26,6 +26,8 @@ import {
   SalesDocumentCreateToolbarIcon,
 } from "../../../components/paged";
 import { useKeyboardBottomInset } from "../../../hooks/useKeyboardBottomInset";
+import { usePagedListSearchFields } from "../../../hooks/usePagedListSearchFields";
+import { TEMP_QUICK_QUOTATION_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
 import { useUIStore } from "../../../store/ui";
 import {
   useTempQuickQuotationList,
@@ -50,6 +52,10 @@ export function TempQuickQuotationListScreen(): React.ReactElement {
   const { themeMode } = useUIStore();
   const insets = useSafeAreaInsets();
   const keyboardInset = useKeyboardBottomInset();
+  const quotationSearch = usePagedListSearchFields(
+    "temp-quick-quotations",
+    TEMP_QUICK_QUOTATION_LIST_SEARCH_FIELDS,
+  );
 
   const isDark = themeMode === "dark";
 
@@ -95,7 +101,7 @@ export function TempQuickQuotationListScreen(): React.ReactElement {
     isFetchingNextPage,
   } = useTempQuickQuotationList({
     search: debouncedQuery.trim().length >= 2 ? debouncedQuery.trim() : undefined,
-    searchFields: ["Id", "CustomerName", "Description", "CurrencyCode"],
+    searchFields: quotationSearch.selectedFields,
     sortBy,
     sortDirection,
     filters,
@@ -266,6 +272,9 @@ export function TempQuickQuotationListScreen(): React.ReactElement {
           searchValue={searchText}
           onSearchChange={setSearchText}
           searchPlaceholder={t("tempQuickQuotation.searchPlaceholder")}
+          searchFieldOptions={quotationSearch.options}
+          selectedSearchFields={quotationSearch.selectedFields}
+          onSearchFieldsChange={quotationSearch.setSelectedFields}
           browseListShell={
             viewMode === "list"
               ? {

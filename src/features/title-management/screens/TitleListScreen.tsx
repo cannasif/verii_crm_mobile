@@ -23,7 +23,8 @@ import {
 } from "../../../components/paged";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
-import { asSearchFields, TITLE_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
+import { TITLE_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
+import { usePagedListSearchFields } from "../../../hooks/usePagedListSearchFields";
 import { stockBrowseStyles } from "../../../components/shared/stock-browse";
 import { useTitles, useDeleteTitle } from "../hooks";
 import { TitleListRow, TitleFormModal } from "../components";
@@ -41,6 +42,7 @@ export function TitleListScreen(): React.ReactElement {
   const { themeMode, colors } = useUIStore();
   const insets = useSafeAreaInsets();
   const deleteTitle = useDeleteTitle();
+  const titleSearch = usePagedListSearchFields("titles", TITLE_LIST_SEARCH_FIELDS);
 
   const isDark = themeMode === "dark";
 
@@ -103,7 +105,7 @@ export function TitleListScreen(): React.ReactElement {
     filters: apiFilters,
     filterLogic: appliedFilterLogic,
     search: debouncedQuery.trim().length >= 2 ? debouncedQuery.trim() : undefined,
-    searchFields: asSearchFields(TITLE_LIST_SEARCH_FIELDS),
+    searchFields: titleSearch.selectedFields,
     sortBy: "titleName",
     sortDirection: sortOrder,
   });
@@ -239,6 +241,9 @@ export function TitleListScreen(): React.ReactElement {
                     searchValue={searchText}
                     onSearchChange={setSearchText}
                     searchPlaceholder={t("titleManagement.searchPlaceholder")}
+                    searchFieldOptions={titleSearch.options}
+                    selectedSearchFields={titleSearch.selectedFields}
+                    onSearchFieldsChange={titleSearch.setSelectedFields}
                     onOpenFilters={() => {
                       setDraftFilterRows(appliedFilterRows);
                       setTempFilterLogic(appliedFilterLogic);

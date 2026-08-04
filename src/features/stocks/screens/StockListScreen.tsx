@@ -17,7 +17,8 @@ import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenHeader } from "../../../components/navigation";
-import { asSearchFields, STOCK_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
+import { STOCK_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
+import { usePagedListSearchFields } from "../../../hooks/usePagedListSearchFields";
 import {
   PagedAdvancedFilterBuilder,
   PagedAdvancedFilterModal,
@@ -176,6 +177,7 @@ const fuzzyMatch = (query: string, text: string) => {
 };
 
 export function StockListScreen() {
+  const stockSearch = usePagedListSearchFields("stocks", STOCK_LIST_SEARCH_FIELDS);
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -310,7 +312,7 @@ export function StockListScreen() {
     filters: apiFilters,
     filterLogic: appliedFilterLogic,
     search: normalizedSearch,
-    searchFields: asSearchFields(STOCK_LIST_SEARCH_FIELDS),
+    searchFields: stockSearch.selectedFields,
     sortBy: "createdDate",
     sortDirection: sortOrder,
     pageSize: 20,
@@ -329,7 +331,7 @@ export function StockListScreen() {
     selections: appliedSpecialCodeSelections,
     enabled: hasAppliedSpecialCodeSelection,
     search: normalizedSearch,
-    searchFields: asSearchFields(STOCK_LIST_SEARCH_FIELDS),
+    searchFields: stockSearch.selectedFields,
     additionalFilters: apiFilters,
     filterLogic: appliedFilterLogic,
     sortBy: "createdDate",
@@ -678,6 +680,9 @@ export function StockListScreen() {
             searchValue={searchText}
             onSearchChange={setSearchText}
             searchPlaceholder={t("common.search")}
+            searchFieldOptions={stockSearch.options}
+            selectedSearchFields={stockSearch.selectedFields}
+            onSearchFieldsChange={stockSearch.setSelectedFields}
             toolbarActions={toolbarActions}
             metaContent={
               <View style={styles.metaRow}>

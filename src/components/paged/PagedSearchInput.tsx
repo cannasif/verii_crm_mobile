@@ -9,12 +9,16 @@ interface PagedSearchInputProps {
   value: string;
   onChangeText: (value: string) => void;
   placeholder?: string;
+  trailingAction?: React.ReactNode;
+  searchFieldSelector?: React.ReactNode;
 }
 
 export function PagedSearchInput({
   value,
   onChangeText,
   placeholder = "Ara...",
+  trailingAction,
+  searchFieldSelector,
 }: PagedSearchInputProps): React.ReactElement {
   const { i18n } = useTranslation();
   const language = i18n.language;
@@ -104,6 +108,8 @@ export function PagedSearchInput({
           <Cancel01Icon size={16} color={theme.icon} variant="stroke" />
         </Pressable>
       ) : null}
+      {trailingAction}
+      {searchFieldSelector}
     </View>
   );
 }

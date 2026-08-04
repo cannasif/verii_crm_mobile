@@ -11,6 +11,7 @@ import { ERP_ORDER_PAGE_SIZE } from "../types";
 interface UseErpOrderListControllerOptions {
   customerErpCode?: string | null;
   pageSize?: number;
+  searchFields?: readonly (keyof import("../types").NetsisOrderHeader)[];
 }
 
 export function useErpOrderListController(options: UseErpOrderListControllerOptions = {}) {
@@ -35,9 +36,9 @@ export function useErpOrderListController(options: UseErpOrderListControllerOpti
   const processedItems = useMemo(() => {
     const source = data ?? [];
     const scoped = filterErpOrdersByCustomerCode(source, options.customerErpCode);
-    const searched = filterErpOrdersBySearch(scoped, debouncedSearch);
+    const searched = filterErpOrdersBySearch(scoped, debouncedSearch, options.searchFields);
     return sortErpOrders(searched, sortBy, sortDirection);
-  }, [data, debouncedSearch, options.customerErpCode, sortBy, sortDirection]);
+  }, [data, debouncedSearch, options.customerErpCode, options.searchFields, sortBy, sortDirection]);
 
   const visibleItems = useMemo(
     () => processedItems.slice(0, visibleCount),

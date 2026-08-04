@@ -3,20 +3,22 @@ import { ERP_ORDER_NUMERIC_SORT_FIELDS } from "../types";
 
 export function filterErpOrdersBySearch(
   items: NetsisOrderHeader[],
-  searchTerm: string
+  searchTerm: string,
+  searchFields: readonly (keyof NetsisOrderHeader)[] = [
+    "fatirsNo",
+    "cariKodu",
+    "cariIsim",
+    "plasiyerKodu",
+    "tarih",
+    "teslimTarihi",
+  ],
 ): NetsisOrderHeader[] {
   const query = searchTerm.trim().toLocaleLowerCase("tr-TR");
   if (!query) return items;
 
   return items.filter((item) => {
-    const haystack = [
-      item.fatirsNo,
-      item.cariKodu,
-      item.cariIsim,
-      item.plasiyerKodu,
-      item.tarih,
-      item.teslimTarihi,
-    ]
+    const haystack = searchFields
+      .map((field) => item[field])
       .map((value) => String(value ?? "").toLocaleLowerCase("tr-TR"))
       .join(" ");
     return haystack.includes(query);

@@ -27,7 +27,8 @@ import {
 } from "../../../components/paged";
 import { useUIStore } from "../../../store/ui";
 import { useCustomers, useCities, useDistricts } from "../hooks";
-import { asSearchFields, CUSTOMER_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
+import { CUSTOMER_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
+import { usePagedListSearchFields } from "../../../hooks/usePagedListSearchFields";
 import type { CustomerDto, PagedFilter } from "../types";
 
 import {
@@ -53,6 +54,7 @@ export function CustomerListScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const customerSearch = usePagedListSearchFields("customers", CUSTOMER_LIST_SEARCH_FIELDS);
 
   const { themeMode } = useUIStore();
   const isDark = themeMode === "dark";
@@ -114,7 +116,7 @@ export function CustomerListScreen() {
   const { data, isLoading, refetch, isRefetching, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useCustomers({
       search: debouncedQuery.trim().length >= 2 ? debouncedQuery.trim() : undefined,
-      searchFields: asSearchFields(CUSTOMER_LIST_SEARCH_FIELDS),
+      searchFields: customerSearch.selectedFields,
       filters: apiFilters,
       filterLogic: appliedFilterLogic,
       sortBy: "Id",
@@ -305,6 +307,9 @@ export function CustomerListScreen() {
             searchValue={searchText}
             onSearchChange={setSearchText}
             searchPlaceholder={t("customer.search")}
+            searchFieldOptions={customerSearch.options}
+            selectedSearchFields={customerSearch.selectedFields}
+            onSearchFieldsChange={customerSearch.setSelectedFields}
             onOpenFilters={openFilterModal}
             activeFilterCount={apiFilters.length}
             topRightActions={topRightActions}

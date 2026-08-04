@@ -14,6 +14,7 @@ import { StockBrowseListSeparator, stockBrowseStyles } from "../shared/stock-bro
 import { useUIStore } from "../../store/ui";
 import { Text } from "../ui/text";
 import { PagedSearchInput } from "./PagedSearchInput";
+import { SearchFieldSelectorButton, type SearchFieldSelectorOption } from "./SearchFieldSelectorButton";
 import { rtlEndMargin, rtlRow, rtlStartMargin } from "../../lib/rtl";
 
 interface BrowseListShellConfig {
@@ -29,6 +30,10 @@ interface PagedFlatListProps<ItemT>
   searchValue: string;
   onSearchChange: (value: string) => void;
   searchPlaceholder?: string;
+  searchFieldOptions?: readonly SearchFieldSelectorOption[];
+  selectedSearchFields?: readonly string[];
+  onSearchFieldsChange?: (fields: string[]) => void;
+  searchTrailingAction?: React.ReactNode;
   onOpenFilters?: () => void;
   activeFilterCount?: number;
   toolbarActions?: React.ReactNode;
@@ -54,6 +59,10 @@ export function PagedFlatList<ItemT>({
   searchValue,
   onSearchChange,
   searchPlaceholder,
+  searchFieldOptions,
+  selectedSearchFields,
+  onSearchFieldsChange,
+  searchTrailingAction,
   onOpenFilters,
   activeFilterCount = 0,
   toolbarActions,
@@ -148,6 +157,16 @@ export function PagedFlatList<ItemT>({
             value={searchValue}
             onChangeText={onSearchChange}
             placeholder={searchPlaceholder}
+            trailingAction={searchTrailingAction}
+            searchFieldSelector={searchFieldOptions?.length && selectedSearchFields && onSearchFieldsChange ? (
+              <SearchFieldSelectorButton
+                options={searchFieldOptions}
+                selectedFields={selectedSearchFields}
+                onChange={onSearchFieldsChange}
+                compact
+                embedded
+              />
+            ) : undefined}
           />
         </View>
 

@@ -20,7 +20,8 @@ import {
   Invoice01Icon,
 } from "hugeicons-react-native";
 import { listContentBottomPadding } from "../../../constants/layout";
-import { asSearchFields, SALES_DOCUMENT_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
+import { SALES_DOCUMENT_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
+import { usePagedListSearchFields } from "../../../hooks/usePagedListSearchFields";
 import { ScreenHeader } from "../../../components/navigation";
 import {
   PagedFlatList,
@@ -51,6 +52,7 @@ const PADDING = 16;
 type QuotationListViewMode = "card" | "list";
 
 export function QuotationListScreen(): React.ReactElement {
+  const quotationSearch = usePagedListSearchFields("quotations", SALES_DOCUMENT_LIST_SEARCH_FIELDS);
   const { t } = useTranslation();
   const router = useRouter();
   const { themeMode } = useUIStore();
@@ -120,7 +122,7 @@ export function QuotationListScreen(): React.ReactElement {
     isFetchingNextPage,
   } = useQuotationList({
     search: debouncedQuery.trim().length >= 2 ? debouncedQuery.trim() : undefined,
-    searchFields: asSearchFields(SALES_DOCUMENT_LIST_SEARCH_FIELDS),
+    searchFields: quotationSearch.selectedFields,
     sortBy,
     sortDirection,
     approvalStatusFilter,
@@ -335,6 +337,9 @@ export function QuotationListScreen(): React.ReactElement {
           searchValue={searchText}
           onSearchChange={setSearchText}
           searchPlaceholder={t("quotation.searchPlaceholder")}
+          searchFieldOptions={quotationSearch.options}
+          selectedSearchFields={quotationSearch.selectedFields}
+          onSearchFieldsChange={quotationSearch.setSelectedFields}
           browseListShell={
             viewMode === "list"
               ? {

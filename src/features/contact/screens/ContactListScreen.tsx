@@ -21,7 +21,8 @@ import {
   type PagedAdvancedFilterRow,
 } from "../../../components/paged";
 import { useUIStore } from "../../../store/ui";
-import { asSearchFields, CONTACT_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
+import { CONTACT_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
+import { usePagedListSearchFields } from "../../../hooks/usePagedListSearchFields";
 
 import { useContacts } from "../hooks";
 import { useCustomers } from "../../customer/hooks";
@@ -41,6 +42,7 @@ export function ContactListScreen(): React.ReactElement {
   const router = useRouter();
   const { themeMode } = useUIStore();
   const insets = useSafeAreaInsets();
+  const contactSearch = usePagedListSearchFields("contacts", CONTACT_LIST_SEARCH_FIELDS);
 
   const isDark = themeMode === "dark";
 
@@ -149,7 +151,7 @@ export function ContactListScreen(): React.ReactElement {
   const { data, isPending, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage, isRefetching } = useContacts({ 
     filters,
     search: debouncedQuery.trim().length >= 2 ? debouncedQuery.trim() : undefined,
-    searchFields: asSearchFields(CONTACT_LIST_SEARCH_FIELDS),
+    searchFields: contactSearch.selectedFields,
     sortBy: "fullName",
     sortDirection: sortOrder,
     filterLogic: appliedFilterLogic,
@@ -225,6 +227,9 @@ export function ContactListScreen(): React.ReactElement {
               searchValue={searchText}
               onSearchChange={setSearchText}
               searchPlaceholder={t("contact.searchPlaceholder")}
+              searchFieldOptions={contactSearch.options}
+              selectedSearchFields={contactSearch.selectedFields}
+              onSearchFieldsChange={contactSearch.setSelectedFields}
               onOpenFilters={() => {
                 setDraftFilterRows(appliedFilterRows);
                 setTempFilterLogic(appliedFilterLogic);

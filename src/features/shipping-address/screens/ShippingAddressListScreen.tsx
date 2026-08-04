@@ -22,7 +22,8 @@ import {
   type PagedAdvancedFilterRow,
 } from "../../../components/paged";
 import { useUIStore } from "../../../store/ui";
-import { asSearchFields, SHIPPING_ADDRESS_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
+import { SHIPPING_ADDRESS_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
+import { usePagedListSearchFields } from "../../../hooks/usePagedListSearchFields";
 import { useShippingAddresses } from "../hooks";
 import { ShippingAddressCard } from "../components";
 import type { ShippingAddressDto } from "../types";
@@ -41,6 +42,7 @@ export function ShippingAddressListScreen(): React.ReactElement {
   const router = useRouter();
   const { themeMode } = useUIStore();
   const insets = useSafeAreaInsets();
+  const addressSearch = usePagedListSearchFields("shipping-addresses", SHIPPING_ADDRESS_LIST_SEARCH_FIELDS);
   
   const isDark = themeMode === "dark";
 
@@ -101,7 +103,7 @@ export function ShippingAddressListScreen(): React.ReactElement {
     filters: apiFilters,
     filterLogic: appliedFilterLogic,
     search: debouncedQuery.trim().length >= 2 ? debouncedQuery.trim() : undefined,
-    searchFields: asSearchFields(SHIPPING_ADDRESS_LIST_SEARCH_FIELDS),
+    searchFields: addressSearch.selectedFields,
     sortBy: "address",
     sortDirection: sortOrder,
   });
@@ -207,6 +209,9 @@ export function ShippingAddressListScreen(): React.ReactElement {
               searchValue={searchText}
               onSearchChange={setSearchText}
               searchPlaceholder={t("shippingAddress.searchPlaceholder")}
+              searchFieldOptions={addressSearch.options}
+              selectedSearchFields={addressSearch.selectedFields}
+              onSearchFieldsChange={addressSearch.setSelectedFields}
               onOpenFilters={() => {
                 setDraftFilterRows(appliedFilterRows);
                 setTempFilterLogic(appliedFilterLogic);

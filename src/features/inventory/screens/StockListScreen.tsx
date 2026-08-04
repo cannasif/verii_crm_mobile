@@ -15,7 +15,8 @@ import {
   type PagedAdvancedFilterRow,
 } from "../../../components/paged";
 import { useUIStore } from "../../../store/ui";
-import { asSearchFields, STOCK_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
+import { STOCK_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
+import { usePagedListSearchFields } from "../../../hooks/usePagedListSearchFields";
 import { useStocks } from "../hooks";
 import { StockCard } from "../components";
 import type { StockGetDto, PagedResponse } from "../types";
@@ -26,6 +27,7 @@ export function StockListScreen(): React.ReactElement {
   const router = useRouter();
   const { colors, themeMode } = useUIStore();
   const insets = useSafeAreaInsets();
+  const stockSearch = usePagedListSearchFields("inventory-stocks", STOCK_LIST_SEARCH_FIELDS);
 
   const [searchText, setSearchText] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -73,7 +75,7 @@ export function StockListScreen(): React.ReactElement {
     filters: apiFilters,
     filterLogic: appliedFilterLogic,
     search: debouncedQuery.trim().length >= 2 ? debouncedQuery.trim() : undefined,
-    searchFields: asSearchFields(STOCK_LIST_SEARCH_FIELDS),
+    searchFields: stockSearch.selectedFields,
     sortBy: "stockName",
     sortDirection: sortOrder,
   });
@@ -147,6 +149,9 @@ export function StockListScreen(): React.ReactElement {
               searchValue={searchText}
               onSearchChange={setSearchText}
               searchPlaceholder={t("stock.searchPlaceholder")}
+              searchFieldOptions={stockSearch.options}
+              selectedSearchFields={stockSearch.selectedFields}
+              onSearchFieldsChange={stockSearch.setSelectedFields}
               onOpenFilters={() => {
                 setDraftFilterRows(appliedFilterRows);
                 setTempFilterLogic(appliedFilterLogic);

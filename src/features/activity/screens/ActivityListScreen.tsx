@@ -20,7 +20,8 @@ import {
   type PagedAdvancedFilterRow,
 } from "../../../components/paged";
 import { useUIStore } from "../../../store/ui";
-import { ACTIVITY_LIST_SEARCH_FIELDS, asSearchFields } from "../../../lib/pagedSearchFields";
+import { ACTIVITY_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
+import { usePagedListSearchFields } from "../../../hooks/usePagedListSearchFields";
 import { PermissionDeniedState } from "../../access-control/components/PermissionDeniedState";
 import { isForbiddenError } from "../../access-control/utils/isForbiddenError";
 import { hasPermission } from "../../access-control/utils/hasPermission";
@@ -40,6 +41,7 @@ const BRAND_COLOR = "#db2777";
 const BRAND_COLOR_DARK = "#ec4899";
 
 export function ActivityListScreen(): React.ReactElement {
+  const activitySearch = usePagedListSearchFields("activities", ACTIVITY_LIST_SEARCH_FIELDS);
   const { t } = useTranslation();
   const router = useRouter();
   const { themeMode } = useUIStore();
@@ -131,7 +133,7 @@ export function ActivityListScreen(): React.ReactElement {
     filters: apiFilters,
     filterLogic: appliedFilterLogic,
     search: debouncedQuery.trim().length >= 2 ? debouncedQuery.trim() : undefined,
-    searchFields: asSearchFields(ACTIVITY_LIST_SEARCH_FIELDS),
+    searchFields: activitySearch.selectedFields,
     sortBy: "Id",
     sortDirection: sortOrder,
     pageSize: 20,
@@ -270,6 +272,9 @@ export function ActivityListScreen(): React.ReactElement {
             searchValue={searchText}
             onSearchChange={setSearchText}
             searchPlaceholder={t("activity.searchPlaceholder")}
+            searchFieldOptions={activitySearch.options}
+            selectedSearchFields={activitySearch.selectedFields}
+            onSearchFieldsChange={activitySearch.setSelectedFields}
             onOpenFilters={() => {
               setDraftFilterRows(appliedFilterRows);
               setTempFilterLogic(appliedFilterLogic);

@@ -35,6 +35,18 @@ for (const file of await walk(src)) {
       failures.push(`${relative}:${index + 1} paged serializer drops searchFields`);
     }
   });
+
+  if (content.includes("<PagedFlatList") && !relative.endsWith("components/paged/PagedFlatList.tsx")) {
+    for (const requiredProp of [
+      "searchFieldOptions=",
+      "selectedSearchFields=",
+      "onSearchFieldsChange=",
+    ]) {
+      if (!content.includes(requiredProp)) {
+        failures.push(`${relative}: PagedFlatList is missing ${requiredProp}`);
+      }
+    }
+  }
 }
 
 const requiredContracts = [
@@ -47,6 +59,8 @@ const requiredContracts = [
   ["src/features/order/screens/OrderListScreen.tsx", "SALES_DOCUMENT_LIST_SEARCH_FIELDS"],
   ["src/features/demand/screens/DemandListScreen.tsx", "SALES_DOCUMENT_LIST_SEARCH_FIELDS"],
   ["src/features/quotation/screens/QuotationListScreen.tsx", "SALES_DOCUMENT_LIST_SEARCH_FIELDS"],
+  ["src/features/temp-quick-quotation/screens/TempQuickQuotationListScreen.tsx", "TEMP_QUICK_QUOTATION_LIST_SEARCH_FIELDS"],
+  ["src/features/erp-order/screens/ErpOrderListScreen.tsx", "ERP_ORDER_LIST_SEARCH_FIELDS"],
   ["src/features/customer/components/CustomerSelectDialog.tsx", "searchFields: customerSearchFields"],
   ["src/features/demand/components/ProductPicker.tsx", "searchFields: stockSearchFields"],
   ["src/features/quotation/components/ProductPicker.tsx", "searchFields: stockSearchFields"],
@@ -69,6 +83,7 @@ const idSearchContracts = [
   "TITLE_LIST_SEARCH_FIELDS",
   "SALES_DOCUMENT_LIST_SEARCH_FIELDS",
   "DOCUMENT_SERIAL_SEARCH_FIELDS",
+  "TEMP_QUICK_QUOTATION_LIST_SEARCH_FIELDS",
 ];
 
 for (const contract of idSearchContracts) {

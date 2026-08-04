@@ -20,7 +20,8 @@ import {
   ShoppingCart01Icon,
 } from "hugeicons-react-native";
 import { listContentBottomPadding } from "../../../constants/layout";
-import { asSearchFields, SALES_DOCUMENT_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
+import { SALES_DOCUMENT_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
+import { usePagedListSearchFields } from "../../../hooks/usePagedListSearchFields";
 import { ScreenHeader } from "../../../components/navigation";
 import {
   PagedFlatList,
@@ -50,6 +51,7 @@ const PADDING = 16;
 type OrderListViewMode = "card" | "list";
 
 export function OrderListScreen(): React.ReactElement {
+  const orderSearch = usePagedListSearchFields("orders", SALES_DOCUMENT_LIST_SEARCH_FIELDS);
   const { t } = useTranslation();
   const router = useRouter();
   const { themeMode } = useUIStore();
@@ -110,7 +112,7 @@ export function OrderListScreen(): React.ReactElement {
     isFetchingNextPage,
   } = useOrderList({
     search: debouncedQuery.trim().length >= 2 ? debouncedQuery.trim() : undefined,
-    searchFields: asSearchFields(SALES_DOCUMENT_LIST_SEARCH_FIELDS),
+    searchFields: orderSearch.selectedFields,
     sortBy,
     sortDirection,
     approvalStatusFilter,
@@ -328,6 +330,9 @@ export function OrderListScreen(): React.ReactElement {
           searchValue={searchText}
           onSearchChange={setSearchText}
           searchPlaceholder={t("order.searchPlaceholder")}
+          searchFieldOptions={orderSearch.options}
+          selectedSearchFields={orderSearch.selectedFields}
+          onSearchFieldsChange={orderSearch.setSelectedFields}
           browseListShell={
             viewMode === "list"
               ? {
