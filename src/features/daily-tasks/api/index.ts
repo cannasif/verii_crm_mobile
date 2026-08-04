@@ -90,6 +90,7 @@ export const dailyTasksApi = {
         pageNumber: 1,
         pageSize: 1000,
         search: "",
+        searchFields: ["Subject", "Description", "AssignedUserName"],
         sortBy: "StartDateTime",
         sortDirection: "asc",
         filterLogic: "and",
