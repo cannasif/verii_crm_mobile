@@ -22,6 +22,7 @@ import {
   type PagedAdvancedFilterRow,
 } from "../../../components/paged";
 import { useUIStore } from "../../../store/ui";
+import { asSearchFields, SHIPPING_ADDRESS_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
 import { useShippingAddresses } from "../hooks";
 import { ShippingAddressCard } from "../components";
 import type { ShippingAddressDto } from "../types";
@@ -100,6 +101,7 @@ export function ShippingAddressListScreen(): React.ReactElement {
     filters: apiFilters,
     filterLogic: appliedFilterLogic,
     search: debouncedQuery.trim().length >= 2 ? debouncedQuery.trim() : undefined,
+    searchFields: asSearchFields(SHIPPING_ADDRESS_LIST_SEARCH_FIELDS),
     sortBy: "address",
     sortDirection: sortOrder,
   });
