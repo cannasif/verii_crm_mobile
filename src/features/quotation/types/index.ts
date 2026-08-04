@@ -675,6 +675,7 @@ export interface SalesTypeGetDto {
   id: number;
   salesType: string;
   name: string;
+  code?: string | null;
 }
 
 export type { PagedFilter, PagedParams, PagedResponse };

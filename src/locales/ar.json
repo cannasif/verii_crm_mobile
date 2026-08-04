@@ -127,6 +127,10 @@
     "selectSerialNumber": "Seri No Seçiniz",
     "searchSerialNumber": "Seri no ara...",
     "noAvailableSerialTypes": "Uygun seri yok",
+    "customerSerialSuggestion": "السلسلة المقترحة للعميل: {{serial}} · تطبيق",
+    "unsavedDraftTitle": "تم العثور على مسودة غير محفوظة",
+    "unsavedDraftMessage": "هل تريد استعادة المستند الذي تركته غير مكتمل؟",
+    "restoreDraft": "استعادة",
     "koliBaski": "Koli Baskı",
     "notes": "Notlar"
   },

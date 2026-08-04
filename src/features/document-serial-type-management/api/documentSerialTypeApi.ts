@@ -1,6 +1,10 @@
 import { apiClient } from "../../../lib/axios";
 import type { ApiResponse } from "../../auth/types";
-import type { DocumentSerialTypeDto } from "../types";
+import type {
+  CustomerDocumentSerialDocumentKindValue,
+  CustomerDocumentSerialSuggestionDto,
+  DocumentSerialTypeDto,
+} from "../types";
 
 interface DocumentSerialTypesResponse {
   success?: boolean;
@@ -25,4 +29,24 @@ export async function getAvailableDocumentSerialTypes(params: {
     return body;
   }
   return [];
+}
+
+export async function getCustomerDocumentSerialSuggestion(params: {
+  customerId: number;
+  documentKind: CustomerDocumentSerialDocumentKindValue;
+  requestBranchCode?: string | null;
+}): Promise<CustomerDocumentSerialSuggestionDto | null> {
+  const response = await apiClient.get<ApiResponse<CustomerDocumentSerialSuggestionDto | null>>(
+    `/api/DocumentSerialType/suggestion/customer/${params.customerId}/document-kind/${params.documentKind}`,
+    {
+      params: params.requestBranchCode?.trim()
+        ? { requestBranchCode: params.requestBranchCode.trim() }
+        : undefined,
+    }
+  );
+  const body = response.data;
+  if (body && typeof body === "object" && "data" in body) {
+    return body.data ?? null;
+  }
+  return null;
 }

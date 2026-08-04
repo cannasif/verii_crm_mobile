@@ -126,6 +126,10 @@
     "selectSerialNumber": "Select Serial No",
     "searchSerialNumber": "Search serial no...",
     "noAvailableSerialTypes": "No available serial types",
+    "customerSerialSuggestion": "Suggested series for customer: {{serial}} · Apply",
+    "unsavedDraftTitle": "Unsaved draft found",
+    "unsavedDraftMessage": "Would you like to restore the document you previously left unfinished?",
+    "restoreDraft": "Restore",
     "koliBaski": "Package Print",
     "notes": "Notes"
   },

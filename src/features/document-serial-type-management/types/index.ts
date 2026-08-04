@@ -19,3 +19,25 @@ export const DocumentSerialRuleType = {
 
 export type DocumentSerialRuleTypeValue =
   (typeof DocumentSerialRuleType)[keyof typeof DocumentSerialRuleType];
+
+export const CustomerDocumentSerialDocumentKind = {
+  Quotation: 1,
+  Order: 2,
+  Demand: 3,
+} as const;
+
+export type CustomerDocumentSerialDocumentKindValue =
+  (typeof CustomerDocumentSerialDocumentKind)[keyof typeof CustomerDocumentSerialDocumentKind];
+
+export interface CustomerDocumentSerialSuggestionDto {
+  customerId: number;
+  documentKind: CustomerDocumentSerialDocumentKindValue;
+  documentSerialTypeId: number;
+  serialPrefix?: string | null;
+  serialPrefixSnapshot?: string | null;
+  usageCount: number;
+  lastUsedAt?: string | null;
+  lastDocumentId?: number | null;
+  lastDocumentNo?: string | null;
+  requestBranchCode?: string | null;
+}

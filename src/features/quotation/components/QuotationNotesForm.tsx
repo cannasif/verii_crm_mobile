@@ -161,10 +161,13 @@ export function notesToPutPayload(notes: string[]): string[] {
     .filter((n) => n.length > 0);
 }
 
-export function validateNotesMaxLength(notes: string[]): string | null {
+export function validateNotesMaxLength(
+  notes: string[],
+  maxCharactersPerNote = MAX_CHAR_PER_NOTE
+): string | null {
   for (let i = 0; i < notes.length; i++) {
-    if (notes[i].length > MAX_CHAR_PER_NOTE) {
-      return `Not ${i + 1} en fazla ${MAX_CHAR_PER_NOTE} karakter olabilir.`;
+    if (notes[i].length > maxCharactersPerNote) {
+      return `Not ${i + 1} en fazla ${maxCharactersPerNote} karakter olabilir.`;
     }
   }
   return null;

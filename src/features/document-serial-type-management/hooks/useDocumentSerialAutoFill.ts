@@ -1,9 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import type { DocumentSerialTypeDto } from "../types";
+import { useQuery } from "@tanstack/react-query";
+import { getCustomerDocumentSerialSuggestion } from "../api/documentSerialTypeApi";
+import type {
+  CustomerDocumentSerialDocumentKindValue,
+  DocumentSerialTypeDto,
+} from "../types";
 import {
   getLastDocumentSerialTypeId,
   saveLastDocumentSerialTypeId,
 } from "../utils/documentSerialPreferenceStore";
+import { formatSuggestedDocumentNumber } from "../utils/formatSuggestedDocumentNumber";
 
 export interface UseDocumentSerialAutoFillParams {
   documentId?: number | null;
@@ -16,6 +22,9 @@ export interface UseDocumentSerialAutoFillParams {
   isAvailableListReady: boolean;
   userId?: number | null;
   branchCode?: string | null;
+  customerId?: number | null;
+  documentKind?: CustomerDocumentSerialDocumentKindValue | null;
+  setOfferNo?: (offerNo: string) => void;
 }
 
 export function useDocumentSerialAutoFill(params: UseDocumentSerialAutoFillParams) {
@@ -29,6 +38,34 @@ export function useDocumentSerialAutoFill(params: UseDocumentSerialAutoFillParam
       ),
     [params.availableSerialTypes]
   );
+  const customerSuggestionQuery = useQuery({
+    queryKey: [
+      "document-serial-type-customer-suggestion",
+      params.customerId ?? 0,
+      params.documentKind ?? 0,
+      params.branchCode ?? "",
+    ],
+    queryFn: () =>
+      getCustomerDocumentSerialSuggestion({
+        customerId: params.customerId!,
+        documentKind: params.documentKind!,
+        requestBranchCode: params.branchCode,
+      }),
+    enabled:
+      !params.readOnly &&
+      (params.customerId ?? 0) > 0 &&
+      params.documentKind != null,
+    staleTime: 30_000,
+  });
+  const customerSuggestedSerialType = useMemo(
+    () =>
+      customerSuggestionQuery.data?.documentSerialTypeId
+        ? filteredTypes.find(
+            (item) => item.id === customerSuggestionQuery.data?.documentSerialTypeId
+          )
+        : undefined,
+    [customerSuggestionQuery.data?.documentSerialTypeId, filteredTypes]
+  );
 
   const handleDocumentSerialTypeSelect = useCallback(
     (documentSerialTypeId: number | null) => {
@@ -41,6 +78,10 @@ export function useDocumentSerialAutoFill(params: UseDocumentSerialAutoFillParam
 
       const serialType = filteredTypes.find((item) => item.id === documentSerialTypeId);
       if (!serialType) return;
+
+      if (isCreateMode && !params.readOnly && params.setOfferNo) {
+        params.setOfferNo(formatSuggestedDocumentNumber(serialType));
+      }
 
       if (
         isCreateMode &&
@@ -68,10 +109,16 @@ export function useDocumentSerialAutoFill(params: UseDocumentSerialAutoFillParam
       params.readOnly,
       params.ruleType,
       params.salesRepId,
+      params.setOfferNo,
       params.setDocumentSerialTypeId,
       params.userId,
     ]
   );
+
+  const applyCustomerSerialSuggestion = useCallback(() => {
+    if (!customerSuggestedSerialType) return;
+    handleDocumentSerialTypeSelect(customerSuggestedSerialType.id);
+  }, [customerSuggestedSerialType, handleDocumentSerialTypeSelect]);
 
   useEffect(() => {
     if (!isCreateMode || params.readOnly) return;
@@ -122,5 +169,11 @@ export function useDocumentSerialAutoFill(params: UseDocumentSerialAutoFillParam
     params.userId,
   ]);
 
-  return { handleDocumentSerialTypeSelect };
+  return {
+    handleDocumentSerialTypeSelect,
+    customerSuggestion: customerSuggestionQuery.data ?? null,
+    customerSuggestedSerialType,
+    isCustomerSerialSuggestionLoading: customerSuggestionQuery.isLoading,
+    applyCustomerSerialSuggestion,
+  };
 }

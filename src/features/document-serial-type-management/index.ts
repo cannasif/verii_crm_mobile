@@ -4,6 +4,9 @@ export { useDocumentSerialAutoFill } from "./hooks/useDocumentSerialAutoFill";
 export type { UseDocumentSerialAutoFillParams } from "./hooks/useDocumentSerialAutoFill";
 export {
   DocumentSerialRuleType,
+  CustomerDocumentSerialDocumentKind,
+  type CustomerDocumentSerialDocumentKindValue,
+  type CustomerDocumentSerialSuggestionDto,
   type DocumentSerialRuleTypeValue,
   type DocumentSerialTypeDto,
 } from "./types";

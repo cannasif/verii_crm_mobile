@@ -16,7 +16,7 @@ import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { validateNotesMaxLength } from "./QuotationNotesForm";
 
 const MAX_NOTES = 15;
-const MAX_CHAR_PER_NOTE = 100;
+const DEFAULT_MAX_CHAR_PER_NOTE = 100;
 
 export interface QuotationNotesModalProps {
   visible: boolean;
@@ -25,6 +25,7 @@ export interface QuotationNotesModalProps {
   onClose: () => void;
   isSaving?: boolean;
   title?: string;
+  maxCharactersPerNote?: number;
 }
 
 export function QuotationNotesModal({
@@ -34,6 +35,7 @@ export function QuotationNotesModal({
   onClose,
   isSaving = false,
   title,
+  maxCharactersPerNote = DEFAULT_MAX_CHAR_PER_NOTE,
 }: QuotationNotesModalProps): React.ReactElement {
   const { t } = useTranslation();
   const { colors, themeMode } = useUIStore();
@@ -61,14 +63,14 @@ export function QuotationNotesModal({
   }, []);
 
   const handleSave = useCallback(() => {
-    const err = validateNotesMaxLength(internalNotes);
+    const err = validateNotesMaxLength(internalNotes, maxCharactersPerNote);
     if (err) {
       setValidationError(err);
       return;
     }
     setValidationError(null);
     onSave(internalNotes);
-  }, [internalNotes, onSave]);
+  }, [internalNotes, maxCharactersPerNote, onSave]);
 
   const handleCancel = useCallback(() => {
     setValidationError(null);
@@ -135,10 +137,10 @@ export function QuotationNotesModal({
                   onChangeText={(text) => handleChange(index, text)}
                   placeholder={t("quotation.notePlaceholder")}
                   placeholderTextColor={colors.textMuted}
-                  maxLength={MAX_CHAR_PER_NOTE}
+                  maxLength={maxCharactersPerNote}
                 />
                 <Text style={[styles.charCount, { color: colors.textMuted }]}>
-                  {note.length}/{MAX_CHAR_PER_NOTE}
+                  {note.length}/{maxCharactersPerNote}
                 </Text>
               </View>
             ))}

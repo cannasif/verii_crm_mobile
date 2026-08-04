@@ -127,6 +127,10 @@
     "selectSerialNumber": "Seri No Seçiniz",
     "searchSerialNumber": "Seri no ara...",
     "noAvailableSerialTypes": "Uygun seri yok",
+    "customerSerialSuggestion": "Müşteri için önerilen seri: {{serial}} · Uygula",
+    "unsavedDraftTitle": "Kaydedilmemiş taslak bulundu",
+    "unsavedDraftMessage": "Daha önce yarım bıraktığınız belgeyi geri yüklemek ister misiniz?",
+    "restoreDraft": "Geri yükle",
     "koliBaski": "Koli Baskı",
     "notes": "Notlar"
   },

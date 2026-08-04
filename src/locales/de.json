@@ -110,6 +110,10 @@
     "selectSerialNumber": "Serien-Nr. auswählen",
     "searchSerialNumber": "Serien-Nr. suchen...",
     "noAvailableSerialTypes": "Keine passende Serie",
+    "customerSerialSuggestion": "Empfohlene Serie für Kunden: {{serial}} · Anwenden",
+    "unsavedDraftTitle": "Ungespeicherter Entwurf gefunden",
+    "unsavedDraftMessage": "Möchten Sie das zuvor unvollständige Dokument wiederherstellen?",
+    "restoreDraft": "Wiederherstellen",
     "koliBaski": "Kartonaufdruck",
     "notes": "Notizen"
   },
