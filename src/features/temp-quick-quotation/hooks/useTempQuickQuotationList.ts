@@ -40,6 +40,7 @@ const STALE_TIME_MS = 2 * 60 * 1000;
 
 interface UseTempQuickQuotationListParams {
   search?: string;
+  searchFields?: string[];
   sortBy?: string;
   sortDirection?: "asc" | "desc";
   filters?: PagedFilter[];
@@ -49,6 +50,7 @@ interface UseTempQuickQuotationListParams {
 export function useTempQuickQuotationList(params: UseTempQuickQuotationListParams = {}) {
   const {
     search,
+    searchFields,
     sortBy = "Id",
     sortDirection = "desc",
     filters,
@@ -59,13 +61,14 @@ export function useTempQuickQuotationList(params: UseTempQuickQuotationListParam
     queryKey: [
       "temp-quick-quotation",
       "list",
-      { search, sortBy, sortDirection, filters, pageSize },
+      { search, searchFields, sortBy, sortDirection, filters, pageSize },
     ],
     queryFn: ({ pageParam }) =>
       tempQuickQuotationRepository.getList({
         pageNumber: pageParam as number,
         pageSize,
         search,
+        searchFields: search ? searchFields : undefined,
         sortBy,
         sortDirection,
         filters,

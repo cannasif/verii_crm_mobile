@@ -107,6 +107,7 @@ export function createTempQuotattionService(httpClient: TempQuickQuotationHttpCl
         pageNumber: params.pageNumber ?? 1,
         pageSize: params.pageSize ?? 20,
         search: params.search ?? "",
+        searchFields: params.searchFields ?? [],
         sortBy: params.sortBy ?? "Id",
         sortDirection: params.sortDirection ?? "asc",
         filterLogic: params.filterLogic ?? "and",

@@ -95,6 +95,7 @@ export function TempQuickQuotationListScreen(): React.ReactElement {
     isFetchingNextPage,
   } = useTempQuickQuotationList({
     search: debouncedQuery.trim().length >= 2 ? debouncedQuery.trim() : undefined,
+    searchFields: ["CustomerName", "Description", "CurrencyCode"],
     sortBy,
     sortDirection,
     filters,
