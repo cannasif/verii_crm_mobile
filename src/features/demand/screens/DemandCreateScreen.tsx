@@ -22,11 +22,15 @@ import {
   resolvePricingRuleCustomerCode,
 } from "@/lib/customerIntegration";
 import {
+  buildEffectiveExchangeRates,
   hasDocumentExchangeRate,
   resolveExchangeRateByCurrency as findExchangeRateByCurrency,
 } from "@/lib/resolve-exchange-rate";
 import { buildDocumentExchangeRatesForLines } from "@/lib/document-exchange-rates";
 import { applyExchangeRateChangeToLines } from "@/lib/salesDocumentExchangeRate";
+import { addDaysToDateOnly } from "@/lib/salesDocumentDate";
+import { useMobileSalesDocumentDraft } from "../../sales-document-drafts/useMobileSalesDocumentDraft";
+import { findMatchingSalesDocumentPricingRule } from "../../../lib/salesDocumentLinePricing";
 import { resolveLineListCurrencyLabel } from "../../../lib/currencyDisplay";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -101,9 +105,13 @@ import type { StockRelationDto } from "../../stocks/types";
 import type { ProductSelectionResult } from "../../stocks/types";
 import { calculateLineTotals, calculateTotals } from "../utils";
 import type { ExchangeRateDto } from "../types";
-import { enforceExportVatOnLine, isExportOfferType, resolveDocumentVatRate } from "../../../utils/documentVat";
+import {
+  enforceExportVatOnLine,
+  getDefaultDocumentVatRate,
+} from "../../../utils/documentVat";
 import {
   canApplySpecialCodeDefault,
+  deriveSpecialCode2FromSpecialCode1,
   getDefaultSpecialCodeForOfferType,
   hasSpecialCodeOption,
 } from "@/lib/salesDocumentSpecialCodeDefaults";
@@ -116,7 +124,7 @@ export function DemandCreateScreen(): React.ReactElement {
   const specialCodeFieldsDisabled = useSystemSettingsStore(
     (state) => state.settings.enableDemandSpecialCodeEditing === false
   );
-  const { user } = useAuthStore();
+  const { user, branch } = useAuthStore();
   const insets = useSafeAreaInsets();
   const showToast = useToastStore((state) => state.showToast);
 
@@ -178,6 +186,7 @@ export function DemandCreateScreen(): React.ReactElement {
     setValue,
     getValues,
     watch,
+    reset,
     setError,
     clearErrors,
     formState: { errors, isSubmitting },
@@ -188,13 +197,30 @@ export function DemandCreateScreen(): React.ReactElement {
         offerType: "Domestic",
         currency: "",
         offerDate: new Date().toISOString().split("T")[0],
-        deliveryDate: new Date().toISOString().split("T")[0],
+        deliveryDate: addDaysToDateOnly(new Date().toISOString().split("T")[0], 21),
         representativeId: user?.id || null,
         activityId: null,
         ozelKod1: "",
         ozelKod2: "",
         koliBaskiDefinitionId: null,
       },
+    },
+  });
+  const draftFormValues = watch();
+  const { clearDraft } = useMobileSalesDocumentDraft({
+    documentType: "demand",
+    rootKey: "demand",
+    userId: user?.id,
+    branchCode: branch?.code,
+    formValues: draftFormValues,
+    lines,
+    exchangeRates,
+    notes,
+    restore: (payload) => {
+      reset(payload.formValues);
+      setLines(payload.lines);
+      setExchangeRates(payload.exchangeRates);
+      setNotes(payload.notes);
     },
   });
 
@@ -224,32 +250,71 @@ export function DemandCreateScreen(): React.ReactElement {
   const watchedCustomerId = watch("demand.potentialCustomerId");
   const watchedErpCustomerCode = watch("demand.erpCustomerCode");
   const watchedRepresentativeId = watch("demand.representativeId");
+  const watchedActivityId = watch("demand.activityId");
   const watchedOfferDate = watch("demand.offerDate");
   const watchedDeliveryDate = watch("demand.deliveryDate");
   const watchedOfferType = watch("demand.offerType");
+  const watchedSalesTypeDefinitionId = watch("demand.salesTypeDefinitionId");
+  const watchedOzelKod1 = watch("demand.ozelKod1");
   const watchedGeneralDiscountRate = watch("demand.generalDiscountRate");
   const watchedGeneralDiscountAmount = watch("demand.generalDiscountAmount");
+  const offerDateSyncInitializedRef = useRef(false);
   const specialCodeManualChangeRef = useRef({ ozelKod1: false, ozelKod2: false });
   const { specialCode1Options, specialCode2Options, isSpecialCodesLoading } = useSpecialCodes("demand");
+  const { data: salesTypeList = [] } = useSalesTypeList({
+    offerType: normalizeOfferType(watchedOfferType),
+  });
+  const selectedSalesType = useMemo(
+    () => salesTypeList.find((item) => item.id === watchedSalesTypeDefinitionId),
+    [salesTypeList, watchedSalesTypeDefinitionId]
+  );
+  const selectedDeliveryMethodName = selectedSalesType?.name ?? null;
+  const selectedDeliveryMethodCode = selectedSalesType?.code ?? null;
+  const previousVatContextRef = useRef({
+    offerType: watchedOfferType,
+    deliveryMethodName: selectedDeliveryMethodName,
+  });
 
   useEffect(() => {
-    if (!isExportOfferType(watchedOfferType)) return;
-    setLines((prev) => {
-      if (!prev.some((line) => (line.vatRate ?? 0) !== 0 || (line.vatAmount ?? 0) !== 0)) {
-        return prev;
-      }
-      return prev.map((line) => calculateLineTotals(enforceExportVatOnLine(line, watchedOfferType)));
+    if (!watchedOfferDate) return;
+    if (!offerDateSyncInitializedRef.current) {
+      offerDateSyncInitializedRef.current = true;
+      return;
+    }
+    const nextDeliveryDate = addDaysToDateOnly(watchedOfferDate, 21);
+    if (getValues("demand.deliveryDate") === nextDeliveryDate) return;
+    setValue("demand.deliveryDate", nextDeliveryDate, {
+      shouldDirty: true,
+      shouldValidate: true,
     });
-  }, [watchedOfferType]);
+  }, [getValues, setValue, watchedOfferDate]);
 
   useEffect(() => {
-    const nextSpecialCode = getDefaultSpecialCodeForOfferType(watchedOfferType);
+    const previous = previousVatContextRef.current;
+    if (
+      previous.offerType === watchedOfferType &&
+      previous.deliveryMethodName === selectedDeliveryMethodName
+    ) return;
+
+    previousVatContextRef.current = {
+      offerType: watchedOfferType,
+      deliveryMethodName: selectedDeliveryMethodName,
+    };
+    const vatRate = getDefaultDocumentVatRate(watchedOfferType, selectedDeliveryMethodName);
+    setLines((prev) =>
+      prev.map((line) => calculateLineTotals({ ...line, vatRate, vatAmount: 0 }))
+    );
+  }, [selectedDeliveryMethodName, watchedOfferType]);
+
+  useEffect(() => {
+    const nextSpecialCode = getDefaultSpecialCodeForOfferType(
+      watchedOfferType,
+      selectedDeliveryMethodCode
+    );
     if (!nextSpecialCode || isSpecialCodesLoading) return;
 
     const currentOzelKod1 = getValues("demand.ozelKod1");
-    const currentOzelKod2 = getValues("demand.ozelKod2");
     const hasOzelKod1Default = hasSpecialCodeOption(specialCode1Options, nextSpecialCode);
-    const hasOzelKod2Default = hasSpecialCodeOption(specialCode2Options, nextSpecialCode);
 
     if (
       hasOzelKod1Default &&
@@ -260,22 +325,23 @@ export function DemandCreateScreen(): React.ReactElement {
       setValue("demand.ozelKod1", nextSpecialCode, { shouldDirty: false, shouldValidate: true });
     }
 
-    if (
-      hasOzelKod2Default &&
-      !specialCodeManualChangeRef.current.ozelKod2 &&
-      currentOzelKod2 !== nextSpecialCode &&
-      canApplySpecialCodeDefault(currentOzelKod2)
-    ) {
-      setValue("demand.ozelKod2", nextSpecialCode, { shouldDirty: false, shouldValidate: true });
-    }
   }, [
     watchedOfferType,
+    selectedDeliveryMethodCode,
     isSpecialCodesLoading,
     specialCode1Options,
-    specialCode2Options,
     getValues,
     setValue,
   ]);
+
+  useEffect(() => {
+    const nextOzelKod2 = deriveSpecialCode2FromSpecialCode1(watchedOzelKod1);
+    if (getValues("demand.ozelKod2") === nextOzelKod2) return;
+    setValue("demand.ozelKod2", nextOzelKod2, {
+      shouldDirty: false,
+      shouldValidate: true,
+    });
+  }, [getValues, setValue, watchedOzelKod1]);
 
   useEffect(() => {
     if (deliveryDateModalOpen) {
@@ -293,6 +359,20 @@ export function DemandCreateScreen(): React.ReactElement {
   );
   const { data: shippingAddresses } = useCustomerShippingAddresses(watchedCustomerId ?? undefined);
   const { data: customerActivities = [], isLoading: isCustomerActivitiesLoading } = useCustomerActivities(watchedCustomerId);
+
+  useEffect(() => {
+    if (!watchedCustomerId) {
+      if (watchedActivityId != null) setValue("demand.activityId", null);
+      return;
+    }
+    if (
+      watchedActivityId != null &&
+      !isCustomerActivitiesLoading &&
+      !customerActivities.some((activity) => activity.id === watchedActivityId)
+    ) {
+      setValue("demand.activityId", null);
+    }
+  }, [customerActivities, isCustomerActivitiesLoading, setValue, watchedActivityId, watchedCustomerId]);
   const { data: erpCustomers } = useErpCustomers();
   const exchangeRateParamsOnce = useMemo(
     () => ({
@@ -307,14 +387,11 @@ export function DemandCreateScreen(): React.ReactElement {
   const { data: paymentTypes } = usePaymentTypes();
   const { data: relatedUsers = [] } = useRelatedUsers(user?.id);
   const { data: projects = [] } = useErpProjects();
-  const { data: salesTypeList = [] } = useSalesTypeList({
-    offerType: normalizeOfferType(watchedOfferType),
-  });
-
   const previousOfferTypeRef = useRef(watchedOfferType);
   useEffect(() => {
     if (previousOfferTypeRef.current === watchedOfferType) return;
     previousOfferTypeRef.current = watchedOfferType;
+    specialCodeManualChangeRef.current.ozelKod1 = false;
     setValue("demand.salesTypeDefinitionId", null);
   }, [setValue, watchedOfferType]);
 
@@ -446,7 +523,9 @@ export function DemandCreateScreen(): React.ReactElement {
     (_: DateTimePickerEvent, selectedDate?: Date) => {
       if (selectedDate) {
         setTempOfferDate(selectedDate);
-        setValue("demand.offerDate", selectedDate.toISOString().split("T")[0]);
+        const nextOfferDate = selectedDate.toISOString().split("T")[0];
+        setValue("demand.offerDate", nextOfferDate);
+        setValue("demand.deliveryDate", addDaysToDateOnly(nextOfferDate, 21));
       }
     },
     [setValue]
@@ -461,9 +540,8 @@ export function DemandCreateScreen(): React.ReactElement {
       }
       const oldRate = findExchangeRateByCurrency(oldCurrency, exchangeRates, erpRatesForDemand, currencyOptions);
       const newRate = findExchangeRateByCurrency(newCurrency, exchangeRates, erpRatesForDemand, currencyOptions);
-      if (oldRate == null || newRate == null || newRate <= 0) {
-        setValue("demand.currency", newCurrency);
-        setLines((prev) => prev);
+      if (oldRate == null || oldRate <= 0 || newRate == null || newRate <= 0) {
+        showToast("error", "Geçerli döviz kuru bulunamadığı için para birimi değiştirilemedi.");
         return;
       }
       const conversionRatio = oldRate / newRate;
@@ -478,7 +556,7 @@ export function DemandCreateScreen(): React.ReactElement {
       );
       setValue("demand.currency", newCurrency);
     },
-    [watchedCurrency, exchangeRates, erpRatesForDemand, setValue]
+    [watchedCurrency, exchangeRates, erpRatesForDemand, currencyOptions, setValue, showToast]
   );
 
   const handleCurrencySelect = useCallback(
@@ -489,7 +567,7 @@ export function DemandCreateScreen(): React.ReactElement {
         return;
       }
 
-      const notesError = validateNotesMaxLength(notes);
+      const notesError = validateNotesMaxLength(notes, 400);
       if (notesError) {
         setError("root", { type: "manual", message: notesError });
         return;
@@ -566,9 +644,13 @@ export function DemandCreateScreen(): React.ReactElement {
 
   const handleSaveLine = useCallback(
     (savedLine: DemandLineFormState) => {
-      const normalizedSavedLine = enforceExportVatOnLine(savedLine, watchedOfferType);
+      const normalizedSavedLine = enforceExportVatOnLine(
+        savedLine,
+        watchedOfferType,
+        selectedDeliveryMethodName
+      );
       const normalizedRelatedLines = normalizedSavedLine.relatedLines?.map((line) =>
-        enforceExportVatOnLine(line, watchedOfferType),
+        enforceExportVatOnLine(line, watchedOfferType, selectedDeliveryMethodName),
       );
       const lineToSave = normalizedRelatedLines
         ? { ...normalizedSavedLine, relatedLines: normalizedRelatedLines }
@@ -611,7 +693,7 @@ export function DemandCreateScreen(): React.ReactElement {
       setEditingLine(null);
       setLineFormVisible(false);
     },
-    [editingLine, watchedOfferType]
+    [editingLine, selectedDeliveryMethodName, watchedOfferType]
   );
 
   const handleProductSelectWithRelatedStocks = useCallback(
@@ -677,9 +759,16 @@ export function DemandCreateScreen(): React.ReactElement {
       }
 
       const mainPrice = priceData[0];
-      const mainUnitPrice = mainPrice
-        ? applyCurrencyToPrice(mainPrice.listPrice, mainPrice.currency)
-        : 0;
+      const mainPricingRule = findMatchingSalesDocumentPricingRule(
+        pricingRules,
+        stock.erpStockCode,
+        1
+      );
+      const mainUnitPrice = mainPricingRule?.fixedUnitPrice != null
+        ? applyCurrencyToPrice(mainPricingRule.fixedUnitPrice, mainPricingRule.currencyCode)
+        : mainPrice
+          ? applyCurrencyToPrice(mainPrice.listPrice, mainPrice.currency)
+          : 0;
       if (mainUnitPrice == null) return;
       const relatedProductKey = createClientId(`main-${stock.id}`);
       const mainProductName = await resolveDocumentLineProductName(
@@ -694,19 +783,20 @@ export function DemandCreateScreen(): React.ReactElement {
         groupCode: stock.grupKodu || null,
         quantity: 1,
         unitPrice: mainUnitPrice,
-        discountRate1: mainPrice?.discount1 ?? 0,
+        discountRate1: mainPricingRule?.discountRate1 ?? mainPrice?.discount1 ?? 0,
         discountAmount1: 0,
-        discountRate2: mainPrice?.discount2 ?? 0,
+        discountRate2: mainPricingRule?.discountRate2 ?? mainPrice?.discount2 ?? 0,
         discountAmount2: 0,
-        discountRate3: mainPrice?.discount3 ?? 0,
+        discountRate3: mainPricingRule?.discountRate3 ?? mainPrice?.discount3 ?? 0,
         discountAmount3: 0,
-        vatRate: resolveDocumentVatRate(20, watchedOfferType),
+        vatRate: getDefaultDocumentVatRate(watchedOfferType, selectedDeliveryMethodName),
         vatAmount: 0,
         lineTotal: 0,
         lineGrandTotal: 0,
         relatedStockId: stock.id,
         relatedProductKey,
         isMainRelatedProduct: true,
+        pricingRuleHeaderId: mainPricingRule?.pricingRuleHeaderId ?? null,
         isEditing: false,
       });
 
@@ -716,8 +806,14 @@ export function DemandCreateScreen(): React.ReactElement {
           const relation = filteredRelations[idx];
           const relStock = relatedStocks[idx];
           const price = priceData[idx + 1];
-          const unitPrice =
-            price && relStock
+          const relatedPricingRule = findMatchingSalesDocumentPricingRule(
+            pricingRules,
+            relation.relatedStockCode,
+            relation.quantity
+          );
+          const unitPrice = relatedPricingRule?.fixedUnitPrice != null
+            ? applyCurrencyToPrice(relatedPricingRule.fixedUnitPrice, relatedPricingRule.currencyCode)
+            : price && relStock
               ? applyCurrencyToPrice(price.listPrice, price.currency)
               : 0;
           if (unitPrice == null) {
@@ -733,19 +829,20 @@ export function DemandCreateScreen(): React.ReactElement {
                 : relation.relatedStockName ?? "",
             quantity: relation.quantity,
             unitPrice,
-            discountRate1: price?.discount1 ?? 0,
+            discountRate1: relatedPricingRule?.discountRate1 ?? price?.discount1 ?? 0,
             discountAmount1: 0,
-            discountRate2: price?.discount2 ?? 0,
+            discountRate2: relatedPricingRule?.discountRate2 ?? price?.discount2 ?? 0,
             discountAmount2: 0,
-            discountRate3: price?.discount3 ?? 0,
+            discountRate3: relatedPricingRule?.discountRate3 ?? price?.discount3 ?? 0,
             discountAmount3: 0,
-            vatRate: resolveDocumentVatRate(20, watchedOfferType),
+            vatRate: getDefaultDocumentVatRate(watchedOfferType, selectedDeliveryMethodName),
             vatAmount: 0,
             lineTotal: 0,
             lineGrandTotal: 0,
             relatedStockId: stock.id,
             relatedProductKey,
             isMainRelatedProduct: false,
+            pricingRuleHeaderId: relatedPricingRule?.pricingRuleHeaderId ?? null,
             isEditing: false,
             relationQuantity: relation.quantity,
           }));
@@ -764,6 +861,8 @@ export function DemandCreateScreen(): React.ReactElement {
       ensureDocumentExchangeRate,
       showToast,
       i18n.language,
+      pricingRules,
+      selectedDeliveryMethodName,
       watchedOfferType,
     ]
   );
@@ -799,6 +898,26 @@ export function DemandCreateScreen(): React.ReactElement {
   const handleMultiProductSelect = useCallback(
     async (products: ProductSelectionResult[]) => {
       if (products.length === 0) return [];
+      if (!ensureDocumentExchangeRate()) return [];
+
+      const convertPrice = (amount: number, sourceCurrency: string): number => {
+        if (!watchedCurrency || sourceCurrency === watchedCurrency) return amount;
+        const sourceRate = findExchangeRateByCurrency(
+          sourceCurrency,
+          exchangeRates,
+          erpRatesForDemand,
+          currencyOptions
+        );
+        const targetRate = findExchangeRateByCurrency(
+          watchedCurrency,
+          exchangeRates,
+          erpRatesForDemand,
+          currencyOptions
+        );
+        return sourceRate != null && sourceRate > 0 && targetRate != null && targetRate > 0
+          ? (amount * sourceRate) / targetRate
+          : amount;
+      };
 
       const priceData = await demandApi.getPriceOfProduct(
         products.map((product) => ({
@@ -818,6 +937,14 @@ export function DemandCreateScreen(): React.ReactElement {
             },
             i18n.language
           );
+          const matchingRule = findMatchingSalesDocumentPricingRule(
+            pricingRules,
+            product.code,
+            1
+          );
+          const unitPrice = matchingRule?.fixedUnitPrice != null
+            ? convertPrice(matchingRule.fixedUnitPrice, matchingRule.currencyCode)
+            : convertPrice(price?.listPrice ?? 0, price?.currency ?? watchedCurrency ?? "TRY");
           return calculateLineTotals({
             id: `temp-${Date.now()}-m${index}`,
             productId: product.id ?? null,
@@ -826,14 +953,18 @@ export function DemandCreateScreen(): React.ReactElement {
           unit: product.unit ?? null,
           groupCode: product.groupCode ?? null,
           quantity: 1,
-          unitPrice: price?.listPrice ?? 0,
-          discountRate1: price?.discount1 ?? 0,
+          unitPrice,
+          discountRate1: matchingRule?.discountRate1 ?? price?.discount1 ?? 0,
           discountAmount1: 0,
-          discountRate2: price?.discount2 ?? 0,
+          discountRate2: matchingRule?.discountRate2 ?? price?.discount2 ?? 0,
           discountAmount2: 0,
-          discountRate3: price?.discount3 ?? 0,
+          discountRate3: matchingRule?.discountRate3 ?? price?.discount3 ?? 0,
           discountAmount3: 0,
-          vatRate: resolveDocumentVatRate(product.vatRate, watchedOfferType),
+          vatRate: getDefaultDocumentVatRate(
+            watchedOfferType,
+            selectedDeliveryMethodName,
+            product.vatRate ?? 20
+          ),
           vatAmount: 0,
           lineTotal: 0,
           lineGrandTotal: 0,
@@ -841,12 +972,23 @@ export function DemandCreateScreen(): React.ReactElement {
           relatedStockId: product.id ?? null,
           relatedProductKey: null,
           isMainRelatedProduct: true,
+          pricingRuleHeaderId: matchingRule?.pricingRuleHeaderId ?? null,
         });
         })
       );
       return nextLines;
     },
-    [i18n.language]
+    [
+      currencyOptions,
+      ensureDocumentExchangeRate,
+      erpRatesForDemand,
+      exchangeRates,
+      i18n.language,
+      pricingRules,
+      selectedDeliveryMethodName,
+      watchedCurrency,
+      watchedOfferType,
+    ]
   );
 
   const onSubmit = useCallback(
@@ -872,7 +1014,13 @@ export function DemandCreateScreen(): React.ReactElement {
         };
       });
 
-      const cleanedExchangeRates = exchangeRates.map((rate) => {
+      const effectiveExchangeRatePayload = buildEffectiveExchangeRates(
+        exchangeRates,
+        erpRatesForDemand,
+        currencyOptions,
+        formData.demand.offerDate || new Date().toISOString().split("T")[0]
+      );
+      const cleanedExchangeRates = effectiveExchangeRatePayload.map((rate) => {
         const { id, dovizTipi, ...rest } = rate;
         return {
           ...rest,
@@ -900,9 +1048,13 @@ export function DemandCreateScreen(): React.ReactElement {
         lines: cleanedLines,
         exchangeRates: cleanedExchangeRates.length > 0 ? cleanedExchangeRates : undefined,
         notes,
+      }, {
+        onSuccess: () => {
+          void clearDraft();
+        },
       });
     },
-    [lines, exchangeRates, notes, createDemand, setError]
+    [lines, exchangeRates, erpRatesForDemand, currencyOptions, notes, createDemand, setError, clearDraft]
   );
 
   const onInvalidSubmit = useCallback(() => {
@@ -1273,6 +1425,7 @@ export function DemandCreateScreen(): React.ReactElement {
               control={control}
               customerTypeId={customerTypeId}
               representativeId={watchedRepresentativeId || undefined}
+              customerId={watchedCustomerId ?? null}
               disabled={!watchedRepresentativeId}
             />
 
@@ -1490,6 +1643,7 @@ export function DemandCreateScreen(): React.ReactElement {
               visible={notesModalVisible}
               notes={notes}
               title={t("demand.notesSection", "Talep Notları")}
+              maxCharactersPerNote={400}
               onSave={(value) => { setNotes(value); setNotesModalVisible(false); }}
               onClose={() => setNotesModalVisible(false)}
             />
@@ -1701,6 +1855,7 @@ export function DemandCreateScreen(): React.ReactElement {
           visible={lineFormVisible}
           line={editingLine}
           offerType={watchedOfferType}
+          deliveryMethodName={selectedDeliveryMethodName}
           onClose={() => {
             setLineFormVisible(false);
             setEditingLine(null);

@@ -49,6 +49,12 @@ import type {
 import { calculateLineTotals } from "../utils";
 import { getCurrencyDisplayLabel } from "../../../lib/currencyDisplay";
 import { resolveDocumentLineProductName } from "../../stocks/utils";
+import {
+  convertSalesDocumentLinePrice,
+  findMatchingSalesDocumentDiscountLimit,
+  findMatchingSalesDocumentPricingRule,
+  normalizeSalesDocumentCurrencyCode,
+} from "../../../lib/salesDocumentLinePricing";
 
 interface QuotationLineFormProps {
   visible: boolean;
@@ -74,6 +80,7 @@ interface QuotationLineFormProps {
   userDiscountLimits?: UserDiscountLimitDto[];
   exchangeRates?: Array<{ dovizTipi: number; kurDegeri: number }>;
   offerType?: string | null;
+  deliveryMethodName?: string | null;
   allowImageUpload?: boolean;
   imageUploadScope?:
     | "quick-quotation"
@@ -87,34 +94,6 @@ interface QuotationLineFormProps {
 
 type DiscountField = DiscountRateField;
 
-function normalizeCurrencyCode(value?: string | null): string {
-  const normalized = String(value ?? "").trim().toUpperCase();
-
-  if (normalized === "TL" || normalized === "TRY") return "TRY";
-  return normalized;
-}
-
-function resolveCurrencyRate(
-  currencyCode: string,
-  currencyOptions?: Array<{ code: string; dovizTipi: number; dovizIsmi: string }>,
-  exchangeRates?: Array<{ dovizTipi: number; kurDegeri: number }>
-): number | null {
-  const normalizedCode = normalizeCurrencyCode(currencyCode);
-
-  if (!normalizedCode) return null;
-  if (normalizedCode === "TRY") return 1;
-
-  const option = currencyOptions?.find(
-    (c) => normalizeCurrencyCode(c.code) === normalizedCode
-  );
-
-  if (!option) return null;
-
-  const rate = exchangeRates?.find((r) => r.dovizTipi === option.dovizTipi)?.kurDegeri;
-
-  return rate && rate > 0 ? rate : null;
-}
-
 function resolveMobileImageUri(path?: string | null): string | null {
   if (!path) return null;
   if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("file://")) {
@@ -126,30 +105,6 @@ function resolveMobileImageUri(path?: string | null): string | null {
   }
 
   return path;
-}
-
-function convertPriceBetweenCurrencies(
-  amount: number,
-  sourceCurrency: string,
-  targetCurrency: string,
-  currencyOptions?: Array<{ code: string; dovizTipi: number; dovizIsmi: string }>,
-  exchangeRates?: Array<{ dovizTipi: number; kurDegeri: number }>
-): number {
-  const safeAmount = Number(amount) || 0;
-  const source = normalizeCurrencyCode(sourceCurrency || "TRY");
-  const target = normalizeCurrencyCode(targetCurrency || "TRY");
-
-  if (safeAmount <= 0) return 0;
-  if (source === target) return safeAmount;
-
-  const sourceRate = resolveCurrencyRate(source, currencyOptions, exchangeRates);
-  const targetRate = resolveCurrencyRate(target, currencyOptions, exchangeRates);
-
-  if (sourceRate == null || targetRate == null || targetRate <= 0) {
-    return safeAmount;
-  }
-
-  return (safeAmount * sourceRate) / targetRate;
 }
 
 export function QuotationLineForm({
@@ -171,6 +126,7 @@ export function QuotationLineForm({
   userDiscountLimits,
   exchangeRates,
   offerType,
+  deliveryMethodName,
   allowImageUpload = false,
   imageUploadScope = "pdf-designer",
   imageUploadExtras,
@@ -210,7 +166,7 @@ export function QuotationLineForm({
   const secondaryActionText = isDark ? "#D9D1E8" : "#6D5A80";
   const warningColor = "#F59E0B";
 
-  const normalizedCurrency = useMemo(() => normalizeCurrencyCode(currency), [currency]);
+  const normalizedCurrency = useMemo(() => normalizeSalesDocumentCurrencyCode(currency), [currency]);
 
   const [selectedStock, setSelectedStock] = useState<StockGetDto | undefined>();
   const [lineProductName, setLineProductName] = useState("");
@@ -219,7 +175,9 @@ export function QuotationLineForm({
   const [discountRate1, setDiscountRate1] = useState<string>("0");
   const [discountRate2, setDiscountRate2] = useState<string>("0");
   const [discountRate3, setDiscountRate3] = useState<string>("0");
-  const [vatRate, setVatRate] = useState<string>(() => String(resolveDocumentVatRate(20, offerType)));
+  const [vatRate, setVatRate] = useState<string>(() =>
+    String(resolveDocumentVatRate(undefined, offerType, deliveryMethodName))
+  );
   const [description, setDescription] = useState<string>("");
   const [description1, setDescription1] = useState<string>("");
   const [description2, setDescription2] = useState<string>("");
@@ -232,6 +190,7 @@ export function QuotationLineForm({
   const [isLoadingPrice, setIsLoadingPrice] = useState(false);
   const [approvalStatus, setApprovalStatus] = useState<number>(0);
   const [approvalMessage, setApprovalMessage] = useState<string>("");
+  const [pricingRuleHeaderId, setPricingRuleHeaderId] = useState<number | null>(null);
   const [relatedLinesDisplay, setRelatedLinesDisplay] = useState<QuotationLineFormState[]>([]);
   const [bulkDraftLines, setBulkDraftLines] = useState<QuotationLineFormState[]>([]);
   const [activeBulkDraftIndex, setActiveBulkDraftIndex] = useState<number>(0);
@@ -299,7 +258,7 @@ export function QuotationLineForm({
     const disc1 = parseDecimalInput(discountRate1);
     const disc2 = parseDecimalInput(discountRate2);
     const disc3 = parseDecimalInput(discountRate3);
-    const vat = resolveDocumentVatRate(parseDecimalInput(vatRate), offerType);
+    const vat = resolveDocumentVatRate(parseDecimalInput(vatRate), offerType, deliveryMethodName);
 
     const baseLine: QuotationLineFormState = {
       id: line?.id || `temp-${Date.now()}`,
@@ -332,6 +291,7 @@ export function QuotationLineForm({
       baskiAciklama: baskiAciklama.trim() || null,
       erpProjectCode: erpProjectCode || null,
       pendingImageUri,
+      pricingRuleHeaderId,
       isEditing: false,
       approvalStatus,
       relatedStockId: line?.relatedStockId ?? selectedStock?.id ?? null,
@@ -366,11 +326,12 @@ export function QuotationLineForm({
     imagePath,
     pendingImageUri,
     erpProjectCode,
+    pricingRuleHeaderId,
     approvalStatus,
   ]);
 
   const lineCurrencyDisplay = useMemo(() => {
-    const opt = currencyOptions?.find((c) => normalizeCurrencyCode(c.code) === normalizedCurrency);
+    const opt = currencyOptions?.find((c) => normalizeSalesDocumentCurrencyCode(c.code) === normalizedCurrency);
     if (opt?.dovizIsmi?.trim()) return opt.dovizIsmi.trim();
     return getCurrencyDisplayLabel(normalizedCurrency);
   }, [currencyOptions, normalizedCurrency]);
@@ -409,7 +370,7 @@ export function QuotationLineForm({
     setDiscountRate1("0");
     setDiscountRate2("0");
     setDiscountRate3("0");
-    setVatRate(String(resolveDocumentVatRate(20, offerType)));
+    setVatRate(String(resolveDocumentVatRate(undefined, offerType, deliveryMethodName)));
     setDescription("");
     setDescription1("");
     setDescription2("");
@@ -424,11 +385,12 @@ export function QuotationLineForm({
     setErpProjectCode(null);
     setApprovalStatus(0);
     setApprovalMessage("");
+    setPricingRuleHeaderId(null);
     setRelatedLinesDisplay([]);
     setBulkDraftLines([]);
     setActiveBulkDraftIndex(0);
     setProfilFieldError(false);
-  }, [offerType]);
+  }, [deliveryMethodName, offerType]);
 
   const applyDraftLineToForm = useCallback((draft: QuotationLineFormState) => {
     setQuantity(sanitizeDecimalInput(String(draft.quantity)));
@@ -436,7 +398,9 @@ export function QuotationLineForm({
     setDiscountRate1(sanitizeDecimalInput(String(draft.discountRate1)));
     setDiscountRate2(sanitizeDecimalInput(String(draft.discountRate2)));
     setDiscountRate3(sanitizeDecimalInput(String(draft.discountRate3)));
-    setVatRate(sanitizeDecimalInput(String(resolveDocumentVatRate(draft.vatRate, offerType))));
+    setVatRate(sanitizeDecimalInput(String(
+      resolveDocumentVatRate(draft.vatRate, offerType, deliveryMethodName)
+    )));
     setDescription(draft.description || "");
     setDescription1(draft.description1 || "");
     setDescription2(draft.description2 || "");
@@ -450,6 +414,7 @@ export function QuotationLineForm({
     setPendingImageUri(draft.pendingImageUri || null);
     setErpProjectCode(draft.erpProjectCode ?? null);
     setApprovalStatus(draft.approvalStatus || 0);
+    setPricingRuleHeaderId(draft.pricingRuleHeaderId ?? null);
     setRelatedLinesDisplay(draft.relatedLines ?? []);
 
     setLineProductName(draft.productName || "");
@@ -461,7 +426,7 @@ export function QuotationLineForm({
       branchCode: 0,
       grupKodu: draft.groupCode ?? undefined,
     } as StockGetDto);
-  }, [offerType]);
+  }, [deliveryMethodName, offerType]);
 
   const hydrateFromEditingLine = useCallback((editing: QuotationLineFormState) => {
     setBulkDraftLines([]);
@@ -471,7 +436,9 @@ export function QuotationLineForm({
     setDiscountRate1(sanitizeDecimalInput(String(editing.discountRate1)));
     setDiscountRate2(sanitizeDecimalInput(String(editing.discountRate2)));
     setDiscountRate3(sanitizeDecimalInput(String(editing.discountRate3)));
-    setVatRate(sanitizeDecimalInput(String(resolveDocumentVatRate(editing.vatRate, offerType))));
+    setVatRate(sanitizeDecimalInput(String(
+      resolveDocumentVatRate(editing.vatRate, offerType, deliveryMethodName)
+    )));
     setDescription(editing.description || "");
     setDescription1(editing.description1 || "");
     setDescription2(editing.description2 || "");
@@ -485,6 +452,7 @@ export function QuotationLineForm({
     setPendingImageUri(editing.pendingImageUri || null);
     setErpProjectCode(editing.erpProjectCode ?? null);
     setApprovalStatus(editing.approvalStatus || 0);
+    setPricingRuleHeaderId(editing.pricingRuleHeaderId ?? null);
     setRelatedLinesDisplay(editing.relatedLines ?? []);
 
     if (editing.productCode || editing.productName) {
@@ -500,15 +468,16 @@ export function QuotationLineForm({
     } else {
       setSelectedStock(undefined);
     }
-  }, [offerType]);
+  }, [deliveryMethodName, offerType]);
 
-  const previousOfferTypeRef = useRef(offerType);
+  const previousVatContextRef = useRef({ offerType, deliveryMethodName });
   useEffect(() => {
-    if (previousOfferTypeRef.current === offerType) return;
+    const previous = previousVatContextRef.current;
+    if (previous.offerType === offerType && previous.deliveryMethodName === deliveryMethodName) return;
 
-    previousOfferTypeRef.current = offerType;
-    setVatRate(String(resolveDocumentVatRate(undefined, offerType)));
-  }, [offerType]);
+    previousVatContextRef.current = { offerType, deliveryMethodName };
+    setVatRate(String(resolveDocumentVatRate(undefined, offerType, deliveryMethodName)));
+  }, [deliveryMethodName, offerType]);
 
   useEffect(() => {
     if (!visible) {
@@ -732,10 +701,10 @@ export function QuotationLineForm({
         if (priceData && priceData.length > 0) {
           const price = priceData[0];
 
-          const sourceCurrency = normalizeCurrencyCode(price.currency || "TRY");
+          const sourceCurrency = normalizeSalesDocumentCurrencyCode(price.currency || "TRY");
           const targetCurrency = normalizedCurrency || "TRY";
 
-          const finalPrice = convertPriceBetweenCurrencies(
+          const finalPrice = convertSalesDocumentLinePrice(
             Number(price.listPrice) || 0,
             sourceCurrency,
             targetCurrency,
@@ -758,11 +727,10 @@ export function QuotationLineForm({
 
         if (pricingRules && stockToUse.erpStockCode) {
           const qty = parseDecimalInput(quantity, 1);
-          const matchingRule = pricingRules.find(
-            (rule) =>
-              rule.stokCode === stockToUse.erpStockCode &&
-              qty >= rule.minQuantity &&
-              (!rule.maxQuantity || qty <= rule.maxQuantity)
+          const matchingRule = findMatchingSalesDocumentPricingRule(
+            pricingRules,
+            stockToUse.erpStockCode,
+            qty
           );
 
           if (matchingRule) {
@@ -770,9 +738,9 @@ export function QuotationLineForm({
               matchingRule.fixedUnitPrice !== null &&
               matchingRule.fixedUnitPrice !== undefined
             ) {
-              const convertedRulePrice = convertPriceBetweenCurrencies(
+              const convertedRulePrice = convertSalesDocumentLinePrice(
                 Number(matchingRule.fixedUnitPrice) || 0,
-                "TRY",
+                matchingRule.currencyCode,
                 normalizedCurrency || "TRY",
                 currencyOptions,
                 exchangeRates
@@ -784,6 +752,9 @@ export function QuotationLineForm({
             setDiscountRate1(String(matchingRule.discountRate1));
             setDiscountRate2(String(matchingRule.discountRate2));
             setDiscountRate3(String(matchingRule.discountRate3));
+            setPricingRuleHeaderId(matchingRule.pricingRuleHeaderId);
+          } else {
+            setPricingRuleHeaderId(null);
           }
         }
       } catch (error) {
@@ -830,18 +801,17 @@ export function QuotationLineForm({
   useEffect(() => {
     if (selectedStock && pricingRules && selectedStock.erpStockCode) {
       const qty = parseDecimalInput(quantity, 1);
-      const matchingRule = pricingRules.find(
-        (rule) =>
-          rule.stokCode === selectedStock.erpStockCode &&
-          qty >= rule.minQuantity &&
-          (!rule.maxQuantity || qty <= rule.maxQuantity)
+      const matchingRule = findMatchingSalesDocumentPricingRule(
+        pricingRules,
+        selectedStock.erpStockCode,
+        qty
       );
 
       if (matchingRule) {
         if (matchingRule.fixedUnitPrice !== null && matchingRule.fixedUnitPrice !== undefined) {
-          const convertedRulePrice = convertPriceBetweenCurrencies(
+          const convertedRulePrice = convertSalesDocumentLinePrice(
             Number(matchingRule.fixedUnitPrice) || 0,
-            "TRY",
+            matchingRule.currencyCode,
             normalizedCurrency || "TRY",
             currencyOptions,
             exchangeRates
@@ -853,6 +823,9 @@ export function QuotationLineForm({
         setDiscountRate1(String(matchingRule.discountRate1));
         setDiscountRate2(String(matchingRule.discountRate2));
         setDiscountRate3(String(matchingRule.discountRate3));
+        setPricingRuleHeaderId(matchingRule.pricingRuleHeaderId);
+      } else {
+        setPricingRuleHeaderId(null);
       }
     }
   }, [
@@ -878,8 +851,9 @@ export function QuotationLineForm({
 
   useEffect(() => {
     if (selectedStock && userDiscountLimits && selectedStock.grupKodu) {
-      const matchingLimit = userDiscountLimits.find(
-        (limit) => limit.erpProductGroupCode === selectedStock.grupKodu
+      const matchingLimit = findMatchingSalesDocumentDiscountLimit(
+        userDiscountLimits,
+        selectedStock.grupKodu
       );
 
       if (matchingLimit) {
@@ -908,7 +882,13 @@ export function QuotationLineForm({
           setApprovalStatus(0);
           setApprovalMessage("");
         }
+      } else {
+        setApprovalStatus(0);
+        setApprovalMessage("");
       }
+    } else {
+      setApprovalStatus(0);
+      setApprovalMessage("");
     }
   }, [selectedStock, userDiscountLimits, discountRate1, discountRate2, discountRate3]);
 

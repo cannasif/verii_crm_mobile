@@ -40,6 +40,12 @@ import { getApiBaseUrl } from "../../../constants/config";
 import { resolveDocumentVatRate } from "../../../utils/documentVat";
 import { getCurrencyDisplayLabel } from "../../../lib/currencyDisplay";
 import { resolveDocumentLineProductName } from "../../stocks/utils";
+import {
+  convertSalesDocumentLinePrice,
+  findMatchingSalesDocumentDiscountLimit,
+  findMatchingSalesDocumentPricingRule,
+  normalizeSalesDocumentCurrencyCode,
+} from "../../../lib/salesDocumentLinePricing";
 import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida/hooks/useWindoDefinitionOptions";
 import { BaskiQuickCreateModal } from "../../windo-profil-demir-vida/components/BaskiQuickCreateModal";
 import { LineFormDescriptionFieldsSection } from "@/components/shared/line-form";
@@ -71,18 +77,13 @@ interface OrderLineFormProps {
   userDiscountLimits?: UserDiscountLimitDto[];
   exchangeRates?: Array<{ dovizTipi: number; kurDegeri: number }>;
   offerType?: string | null;
+  deliveryMethodName?: string | null;
   allowImageUpload?: boolean;
   imageUploadScope?: "order-line";
   imageUploadExtras?: Omit<UploadReportAssetOptions, "assetScope">;
 }
 
 type DiscountField = DiscountRateField;
-
-function normalizeCurrencyCode(value?: string | null): string {
-  const normalized = String(value ?? "").trim().toUpperCase();
-  if (normalized === "TL" || normalized === "TRY") return "TRY";
-  return normalized;
-}
 
 function resolveMobileImageUri(path?: string | null): string | null {
   if (!path) return null;
@@ -116,6 +117,7 @@ export function OrderLineForm({
   userDiscountLimits,
   exchangeRates,
   offerType,
+  deliveryMethodName,
   allowImageUpload = false,
   imageUploadScope = "order-line",
   imageUploadExtras,
@@ -162,7 +164,9 @@ export function OrderLineForm({
   const [discountRate1, setDiscountRate1] = useState<string>("0");
   const [discountRate2, setDiscountRate2] = useState<string>("0");
   const [discountRate3, setDiscountRate3] = useState<string>("0");
-  const [vatRate, setVatRate] = useState<string>(() => String(resolveDocumentVatRate(20, offerType)));
+  const [vatRate, setVatRate] = useState<string>(() =>
+    String(resolveDocumentVatRate(undefined, offerType, deliveryMethodName))
+  );
   const [description, setDescription] = useState<string>("");
   const [description1, setDescription1] = useState<string>("");
   const [description2, setDescription2] = useState<string>("");
@@ -176,6 +180,7 @@ export function OrderLineForm({
   const [isLoadingPrice, setIsLoadingPrice] = useState(false);
   const [approvalStatus, setApprovalStatus] = useState<number>(0);
   const [approvalMessage, setApprovalMessage] = useState<string>("");
+  const [pricingRuleHeaderId, setPricingRuleHeaderId] = useState<number | null>(null);
   const [relatedLinesDisplay, setRelatedLinesDisplay] = useState<OrderLineFormState[]>([]);
   const [bulkDraftLines, setBulkDraftLines] = useState<OrderLineFormState[]>([]);
   const [activeBulkDraftIndex, setActiveBulkDraftIndex] = useState<number>(0);
@@ -216,7 +221,7 @@ export function OrderLineForm({
     const disc1 = parseDecimalInput(discountRate1);
     const disc2 = parseDecimalInput(discountRate2);
     const disc3 = parseDecimalInput(discountRate3);
-    const vat = resolveDocumentVatRate(parseDecimalInput(vatRate), offerType);
+    const vat = resolveDocumentVatRate(parseDecimalInput(vatRate), offerType, deliveryMethodName);
 
     const baseLine: OrderLineFormState = {
       id: line?.id || `temp-${Date.now()}`,
@@ -250,6 +255,7 @@ export function OrderLineForm({
       baskiAciklama: baskiAciklama.trim() || null,
       erpProjectCode: erpProjectCode || null,
       imagePath,
+      pricingRuleHeaderId,
       isEditing: false,
       approvalStatus,
       relatedStockId: line?.relatedStockId ?? selectedStock?.id ?? null,
@@ -282,6 +288,7 @@ export function OrderLineForm({
     baskiAciklama,
     erpProjectCode,
     imagePath,
+    pricingRuleHeaderId,
     approvalStatus,
   ]);
 
@@ -292,7 +299,9 @@ export function OrderLineForm({
       setDiscountRate1(sanitizeDecimalInput(String(line.discountRate1)));
       setDiscountRate2(sanitizeDecimalInput(String(line.discountRate2)));
       setDiscountRate3(sanitizeDecimalInput(String(line.discountRate3)));
-      setVatRate(sanitizeDecimalInput(String(resolveDocumentVatRate(line.vatRate, offerType))));
+      setVatRate(sanitizeDecimalInput(String(
+        resolveDocumentVatRate(line.vatRate, offerType, deliveryMethodName)
+      )));
       setDescription(line.description || "");
       setDescription1(line.description1 || "");
       setDescription2(line.description2 || "");
@@ -305,6 +314,7 @@ export function OrderLineForm({
       setErpProjectCode(line.erpProjectCode ?? null);
       setImagePath(line.imagePath || null);
       setApprovalStatus(line.approvalStatus || 0);
+      setPricingRuleHeaderId(line.pricingRuleHeaderId ?? null);
       setRelatedLinesDisplay(line.relatedLines ?? []);
       if (line.productCode || line.productName) {
         setLineProductName(line.productName || "");
@@ -385,10 +395,10 @@ export function OrderLineForm({
     return currentLine;
   }, [currentLine, displayedRelatedLines]);
 
-  const normalizedCurrency = useMemo(() => normalizeCurrencyCode(currency), [currency]);
+  const normalizedCurrency = useMemo(() => normalizeSalesDocumentCurrencyCode(currency), [currency]);
 
   const lineCurrencyDisplay = useMemo(() => {
-    const opt = currencyOptions?.find((c) => normalizeCurrencyCode(c.code) === normalizedCurrency);
+    const opt = currencyOptions?.find((c) => normalizeSalesDocumentCurrencyCode(c.code) === normalizedCurrency);
     if (opt?.dovizIsmi?.trim()) return opt.dovizIsmi.trim();
     return getCurrencyDisplayLabel(normalizedCurrency);
   }, [currencyOptions, normalizedCurrency]);
@@ -408,7 +418,7 @@ export function OrderLineForm({
     setDiscountRate1("0");
     setDiscountRate2("0");
     setDiscountRate3("0");
-    setVatRate(String(resolveDocumentVatRate(20, offerType)));
+    setVatRate(String(resolveDocumentVatRate(undefined, offerType, deliveryMethodName)));
     setDescription("");
     setDescription1("");
     setDescription2("");
@@ -422,11 +432,12 @@ export function OrderLineForm({
     setImagePath(null);
     setApprovalStatus(0);
     setApprovalMessage("");
+    setPricingRuleHeaderId(null);
     setRelatedLinesDisplay([]);
     setBulkDraftLines([]);
     setActiveBulkDraftIndex(0);
     setProfilFieldError(false);
-  }, [offerType]);
+  }, [deliveryMethodName, offerType]);
 
   const { data: stockData } = useStock(selectedStock?.id);
   const isMultiSelectMode = !line && Boolean(onMultiProductSelect);
@@ -456,7 +467,9 @@ export function OrderLineForm({
     setDiscountRate1(sanitizeDecimalInput(String(draft.discountRate1)));
     setDiscountRate2(sanitizeDecimalInput(String(draft.discountRate2)));
     setDiscountRate3(sanitizeDecimalInput(String(draft.discountRate3)));
-    setVatRate(sanitizeDecimalInput(String(resolveDocumentVatRate(draft.vatRate, offerType))));
+    setVatRate(sanitizeDecimalInput(String(
+      resolveDocumentVatRate(draft.vatRate, offerType, deliveryMethodName)
+    )));
     setDescription(draft.description || "");
     setDescription1(draft.description1 || "");
     setDescription2(draft.description2 || "");
@@ -469,6 +482,7 @@ export function OrderLineForm({
     setErpProjectCode(draft.erpProjectCode ?? null);
     setImagePath(draft.imagePath || null);
     setApprovalStatus(draft.approvalStatus || 0);
+    setPricingRuleHeaderId(draft.pricingRuleHeaderId ?? null);
     setRelatedLinesDisplay(draft.relatedLines ?? []);
 
     setLineProductName(draft.productName || "");
@@ -480,15 +494,16 @@ export function OrderLineForm({
       branchCode: 0,
       grupKodu: draft.groupCode ?? undefined,
     } as StockGetDto);
-  }, [offerType]);
+  }, [deliveryMethodName, offerType]);
 
-  const previousOfferTypeRef = useRef(offerType);
+  const previousVatContextRef = useRef({ offerType, deliveryMethodName });
   useEffect(() => {
-    if (previousOfferTypeRef.current === offerType) return;
+    const previous = previousVatContextRef.current;
+    if (previous.offerType === offerType && previous.deliveryMethodName === deliveryMethodName) return;
 
-    previousOfferTypeRef.current = offerType;
-    setVatRate(String(resolveDocumentVatRate(undefined, offerType)));
-  }, [offerType]);
+    previousVatContextRef.current = { offerType, deliveryMethodName };
+    setVatRate(String(resolveDocumentVatRate(undefined, offerType, deliveryMethodName)));
+  }, [deliveryMethodName, offerType]);
 
   const handlePickImage = useCallback(async (mode: "camera" | "gallery") => {
     const permission =
@@ -710,20 +725,29 @@ export function OrderLineForm({
 
         if (pricingRules && stockToUse.erpStockCode) {
           const qty = parseDecimalInput(quantity, 1);
-          const matchingRule = pricingRules.find(
-            (rule) =>
-              rule.stokCode === stockToUse.erpStockCode &&
-              qty >= rule.minQuantity &&
-              (!rule.maxQuantity || qty <= rule.maxQuantity)
+          const matchingRule = findMatchingSalesDocumentPricingRule(
+            pricingRules,
+            stockToUse.erpStockCode,
+            qty
           );
 
           if (matchingRule) {
             if (matchingRule.fixedUnitPrice !== null && matchingRule.fixedUnitPrice !== undefined) {
-              setUnitPrice(String(matchingRule.fixedUnitPrice));
+              const convertedRulePrice = convertSalesDocumentLinePrice(
+                matchingRule.fixedUnitPrice,
+                matchingRule.currencyCode,
+                normalizedCurrency || "TRY",
+                currencyOptions,
+                exchangeRates
+              );
+              setUnitPrice(sanitizeDecimalInput(String(convertedRulePrice)));
             }
             setDiscountRate1(String(matchingRule.discountRate1));
             setDiscountRate2(String(matchingRule.discountRate2));
             setDiscountRate3(String(matchingRule.discountRate3));
+            setPricingRuleHeaderId(matchingRule.pricingRuleHeaderId);
+          } else {
+            setPricingRuleHeaderId(null);
           }
         }
       } catch (error) {
@@ -733,7 +757,7 @@ export function OrderLineForm({
       }
       return true;
     },
-    [currency, exchangeRates, currencyOptions, pricingRules, quantity, disableRelatedStocks, onAddWithRelatedStocks, onRequestRelatedStocksSelection, i18n.language]
+    [currency, normalizedCurrency, exchangeRates, currencyOptions, pricingRules, quantity, disableRelatedStocks, onAddWithRelatedStocks, onRequestRelatedStocksSelection, i18n.language]
   );
 
   useEffect(() => {
@@ -759,23 +783,32 @@ export function OrderLineForm({
   useEffect(() => {
     if (selectedStock && pricingRules && selectedStock.erpStockCode) {
       const qty = parseDecimalInput(quantity, 1);
-      const matchingRule = pricingRules.find(
-        (rule) =>
-          rule.stokCode === selectedStock.erpStockCode &&
-          qty >= rule.minQuantity &&
-          (!rule.maxQuantity || qty <= rule.maxQuantity)
+      const matchingRule = findMatchingSalesDocumentPricingRule(
+        pricingRules,
+        selectedStock.erpStockCode,
+        qty
       );
 
       if (matchingRule) {
         if (matchingRule.fixedUnitPrice !== null && matchingRule.fixedUnitPrice !== undefined) {
-          setUnitPrice(String(matchingRule.fixedUnitPrice));
+          const convertedRulePrice = convertSalesDocumentLinePrice(
+            matchingRule.fixedUnitPrice,
+            matchingRule.currencyCode,
+            normalizedCurrency || "TRY",
+            currencyOptions,
+            exchangeRates
+          );
+          setUnitPrice(sanitizeDecimalInput(String(convertedRulePrice)));
         }
         setDiscountRate1(String(matchingRule.discountRate1));
         setDiscountRate2(String(matchingRule.discountRate2));
         setDiscountRate3(String(matchingRule.discountRate3));
+        setPricingRuleHeaderId(matchingRule.pricingRuleHeaderId);
+      } else {
+        setPricingRuleHeaderId(null);
       }
     }
-  }, [selectedStock, pricingRules, quantity]);
+  }, [selectedStock, pricingRules, quantity, normalizedCurrency, currencyOptions, exchangeRates]);
 
   useEffect(() => {
     if (stockData && stockData.parentRelations && stockData.parentRelations.length > 0) {
@@ -792,8 +825,9 @@ export function OrderLineForm({
 
   useEffect(() => {
     if (selectedStock && userDiscountLimits && selectedStock.grupKodu) {
-      const matchingLimit = userDiscountLimits.find(
-        (limit) => limit.erpProductGroupCode === selectedStock.grupKodu
+      const matchingLimit = findMatchingSalesDocumentDiscountLimit(
+        userDiscountLimits,
+        selectedStock.grupKodu
       );
 
       if (matchingLimit) {
@@ -820,7 +854,13 @@ export function OrderLineForm({
           setApprovalStatus(0);
           setApprovalMessage("");
         }
+      } else {
+        setApprovalStatus(0);
+        setApprovalMessage("");
       }
+    } else {
+      setApprovalStatus(0);
+      setApprovalMessage("");
     }
   }, [selectedStock, userDiscountLimits, discountRate1, discountRate2, discountRate3]);
 

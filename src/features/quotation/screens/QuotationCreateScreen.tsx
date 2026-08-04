@@ -29,6 +29,9 @@ import {
 } from "@/lib/resolve-exchange-rate";
 import { buildDocumentExchangeRatesForLines } from "@/lib/document-exchange-rates";
 import { applyExchangeRateChangeToLines } from "@/lib/salesDocumentExchangeRate";
+import { addDaysToDateOnly } from "@/lib/salesDocumentDate";
+import { useMobileSalesDocumentDraft } from "../../sales-document-drafts/useMobileSalesDocumentDraft";
+import { findMatchingSalesDocumentPricingRule } from "../../../lib/salesDocumentLinePricing";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { StatusBar } from "expo-status-bar";
@@ -109,11 +112,15 @@ import { buildSalesDocumentPreviewPdfExtras } from "../../../lib/salesDocumentPr
 import { resolveQuotationCustomerLabelForPdf } from "../utils/resolveQuotationCustomerLabelForPdf";
 import {
   canApplySpecialCodeDefault,
+  deriveSpecialCode2FromSpecialCode1,
   getDefaultSpecialCodeForOfferType,
   hasSpecialCodeOption,
 } from "@/lib/salesDocumentSpecialCodeDefaults";
 import type { ExchangeRateDto } from "../types";
-import { enforceExportVatOnLine, isExportOfferType, resolveDocumentVatRate } from "../../../utils/documentVat";
+import {
+  enforceExportVatOnLine,
+  getDefaultDocumentVatRate,
+} from "../../../utils/documentVat";
 import {
   UserIcon,
   ArrowRight01Icon,
@@ -154,13 +161,6 @@ async function finalizePendingQuotationImages(
   }
 }
 import { LinearGradient } from "expo-linear-gradient";
-
-function addDaysToDateOnly(dateValue: string, days: number): string {
-  const date = new Date(`${dateValue}T12:00:00`);
-  if (Number.isNaN(date.getTime())) return dateValue;
-  date.setDate(date.getDate() + days);
-  return date.toISOString().split("T")[0];
-}
 
 export function QuotationCreateScreen(): React.ReactElement {
   const { t, i18n } = useTranslation();
@@ -244,6 +244,7 @@ export function QuotationCreateScreen(): React.ReactElement {
     setValue,
     getValues,
     watch,
+    reset,
     setError,
     clearErrors,
     formState: { errors, isSubmitting },
@@ -261,6 +262,23 @@ export function QuotationCreateScreen(): React.ReactElement {
         ozelKod2: "",
         koliBaskiDefinitionId: null,
       },
+    },
+  });
+  const draftFormValues = watch();
+  const { clearDraft } = useMobileSalesDocumentDraft({
+    documentType: "quotation",
+    rootKey: "quotation",
+    userId: user?.id,
+    branchCode: branch?.code,
+    formValues: draftFormValues,
+    lines,
+    exchangeRates,
+    notes,
+    restore: (payload) => {
+      reset(payload.formValues);
+      setLines(payload.lines);
+      setExchangeRates(payload.exchangeRates);
+      setNotes(payload.notes);
     },
   });
 
@@ -290,6 +308,7 @@ export function QuotationCreateScreen(): React.ReactElement {
   const watchedCustomerId = watch("quotation.potentialCustomerId");
   const watchedErpCustomerCode = watch("quotation.erpCustomerCode");
   const watchedRepresentativeId = watch("quotation.representativeId");
+  const watchedActivityId = watch("quotation.activityId");
   const watchedOfferDate = watch("quotation.offerDate");
   const watchedDeliveryDate = watch("quotation.deliveryDate");
   const watchedOfferNo = watch("quotation.offerNo");
@@ -298,6 +317,8 @@ export function QuotationCreateScreen(): React.ReactElement {
   const watchedGeneralDiscountRate = watch("quotation.generalDiscountRate");
   const watchedGeneralDiscountAmount = watch("quotation.generalDiscountAmount");
   const watchedOfferType = watch("quotation.offerType");
+  const watchedSalesTypeDefinitionId = watch("quotation.salesTypeDefinitionId");
+  const watchedOzelKod1 = watch("quotation.ozelKod1");
   const specialCodeManualChangeRef = useRef({ ozelKod1: false, ozelKod2: false });
   const offerDateSyncInitializedRef = useRef(false);
   const { specialCode1Options, specialCode2Options, isSpecialCodesLoading } = useSpecialCodes("quotation");
@@ -336,6 +357,20 @@ export function QuotationCreateScreen(): React.ReactElement {
   );
   const { data: customerActivities = [], isLoading: isCustomerActivitiesLoading } = useCustomerActivities(watchedCustomerId);
 
+  useEffect(() => {
+    if (!watchedCustomerId) {
+      if (watchedActivityId != null) setValue("quotation.activityId", null);
+      return;
+    }
+    if (
+      watchedActivityId != null &&
+      !isCustomerActivitiesLoading &&
+      !customerActivities.some((activity) => activity.id === watchedActivityId)
+    ) {
+      setValue("quotation.activityId", null);
+    }
+  }, [customerActivities, isCustomerActivitiesLoading, setValue, watchedActivityId, watchedCustomerId]);
+
   const exchangeRateParamsOnce = useMemo(
     () => ({
       tarih: new Date().toISOString().split("T")[0],
@@ -353,25 +388,43 @@ export function QuotationCreateScreen(): React.ReactElement {
   const { data: salesTypeList = [] } = useSalesTypeList({
     offerType: watchedOfferType || undefined,
   });
+  const selectedSalesType = useMemo(
+    () => salesTypeList.find((item) => item.id === watchedSalesTypeDefinitionId),
+    [salesTypeList, watchedSalesTypeDefinitionId]
+  );
+  const selectedDeliveryMethodName = selectedSalesType?.name ?? null;
+  const selectedDeliveryMethodCode = selectedSalesType?.code ?? null;
+  const previousVatContextRef = useRef({
+    offerType: watchedOfferType,
+    deliveryMethodName: selectedDeliveryMethodName,
+  });
 
   useEffect(() => {
-    if (!isExportOfferType(watchedOfferType)) return;
-    setLines((prev) => {
-      if (!prev.some((line) => (line.vatRate ?? 0) !== 0 || (line.vatAmount ?? 0) !== 0)) {
-        return prev;
-      }
-      return prev.map((line) => calculateLineTotals(enforceExportVatOnLine(line, watchedOfferType)));
-    });
-  }, [watchedOfferType]);
+    const previous = previousVatContextRef.current;
+    if (
+      previous.offerType === watchedOfferType &&
+      previous.deliveryMethodName === selectedDeliveryMethodName
+    ) return;
+
+    previousVatContextRef.current = {
+      offerType: watchedOfferType,
+      deliveryMethodName: selectedDeliveryMethodName,
+    };
+    const vatRate = getDefaultDocumentVatRate(watchedOfferType, selectedDeliveryMethodName);
+    setLines((prev) =>
+      prev.map((line) => calculateLineTotals({ ...line, vatRate, vatAmount: 0 }))
+    );
+  }, [selectedDeliveryMethodName, watchedOfferType]);
 
   useEffect(() => {
-    const nextSpecialCode = getDefaultSpecialCodeForOfferType(watchedOfferType);
+    const nextSpecialCode = getDefaultSpecialCodeForOfferType(
+      watchedOfferType,
+      selectedDeliveryMethodCode
+    );
     if (!nextSpecialCode || isSpecialCodesLoading) return;
 
     const currentOzelKod1 = getValues("quotation.ozelKod1");
-    const currentOzelKod2 = getValues("quotation.ozelKod2");
     const hasOzelKod1Default = hasSpecialCodeOption(specialCode1Options, nextSpecialCode);
-    const hasOzelKod2Default = hasSpecialCodeOption(specialCode2Options, nextSpecialCode);
 
     if (
       hasOzelKod1Default &&
@@ -382,22 +435,23 @@ export function QuotationCreateScreen(): React.ReactElement {
       setValue("quotation.ozelKod1", nextSpecialCode, { shouldDirty: false, shouldValidate: true });
     }
 
-    if (
-      hasOzelKod2Default &&
-      !specialCodeManualChangeRef.current.ozelKod2 &&
-      currentOzelKod2 !== nextSpecialCode &&
-      canApplySpecialCodeDefault(currentOzelKod2)
-    ) {
-      setValue("quotation.ozelKod2", nextSpecialCode, { shouldDirty: false, shouldValidate: true });
-    }
   }, [
     watchedOfferType,
+    selectedDeliveryMethodCode,
     isSpecialCodesLoading,
     specialCode1Options,
-    specialCode2Options,
     getValues,
     setValue,
   ]);
+
+  useEffect(() => {
+    const nextOzelKod2 = deriveSpecialCode2FromSpecialCode1(watchedOzelKod1);
+    if (getValues("quotation.ozelKod2") === nextOzelKod2) return;
+    setValue("quotation.ozelKod2", nextOzelKod2, {
+      shouldDirty: false,
+      shouldValidate: true,
+    });
+  }, [getValues, setValue, watchedOzelKod1]);
 
   useEffect(() => {
     if (
@@ -480,6 +534,7 @@ export function QuotationCreateScreen(): React.ReactElement {
   useEffect(() => {
     if (prevOfferTypeRef.current !== watchedOfferType) {
       prevOfferTypeRef.current = watchedOfferType;
+      specialCodeManualChangeRef.current.ozelKod1 = false;
       setValue("quotation.salesTypeDefinitionId", null);
     }
   }, [watchedOfferType, setValue]);
@@ -582,9 +637,8 @@ export function QuotationCreateScreen(): React.ReactElement {
         erpRatesForQuotation,
         currencyOptions
       );
-      if (oldRate == null || newRate == null || newRate <= 0) {
-        setValue("quotation.currency", newCurrency);
-        setLines((prev) => prev);
+      if (oldRate == null || oldRate <= 0 || newRate == null || newRate <= 0) {
+        showToast("error", "Geçerli döviz kuru bulunamadığı için para birimi değiştirilemedi.");
         return;
       }
       const conversionRatio = oldRate / newRate;
@@ -599,7 +653,7 @@ export function QuotationCreateScreen(): React.ReactElement {
       );
       setValue("quotation.currency", newCurrency);
     },
-    [watchedCurrency, exchangeRates, erpRatesForQuotation, setValue]
+    [watchedCurrency, exchangeRates, erpRatesForQuotation, currencyOptions, setValue, showToast]
   );
 
   const handleCurrencySelect = useCallback(
@@ -685,9 +739,13 @@ export function QuotationCreateScreen(): React.ReactElement {
 
   const handleSaveLine = useCallback(
     (savedLine: QuotationLineFormState) => {
-      const normalizedSavedLine = enforceExportVatOnLine(savedLine, watchedOfferType);
+      const normalizedSavedLine = enforceExportVatOnLine(
+        savedLine,
+        watchedOfferType,
+        selectedDeliveryMethodName
+      );
       const normalizedRelatedLines = normalizedSavedLine.relatedLines?.map((line) =>
-        enforceExportVatOnLine(line, watchedOfferType),
+        enforceExportVatOnLine(line, watchedOfferType, selectedDeliveryMethodName),
       );
       const lineToSave = normalizedRelatedLines
         ? { ...normalizedSavedLine, relatedLines: normalizedRelatedLines }
@@ -733,7 +791,7 @@ export function QuotationCreateScreen(): React.ReactElement {
       setEditingLine(null);
       setLineFormVisible(false);
     },
-    [editingLine, watchedOfferType]
+    [editingLine, selectedDeliveryMethodName, watchedOfferType]
   );
 
   const handleProductSelectWithRelatedStocks = useCallback(
@@ -837,9 +895,16 @@ export function QuotationCreateScreen(): React.ReactElement {
       }
 
       const mainPrice = priceData[0];
-      const mainUnitPrice = mainPrice
-        ? applyCurrencyToPrice(mainPrice.listPrice, mainPrice.currency)
-        : 0;
+      const mainPricingRule = findMatchingSalesDocumentPricingRule(
+        pricingRules,
+        stock.erpStockCode,
+        1
+      );
+      const mainUnitPrice = mainPricingRule?.fixedUnitPrice != null
+        ? applyCurrencyToPrice(mainPricingRule.fixedUnitPrice, mainPricingRule.currencyCode)
+        : mainPrice
+          ? applyCurrencyToPrice(mainPrice.listPrice, mainPrice.currency)
+          : 0;
       if (mainUnitPrice == null) return;
       const relatedProductKey = createClientId(`main-${stock.id}`);
 
@@ -856,19 +921,20 @@ export function QuotationCreateScreen(): React.ReactElement {
         groupCode: stock.grupKodu || null,
         quantity: 1,
         unitPrice: mainUnitPrice,
-        discountRate1: mainPrice?.discount1 ?? 0,
+        discountRate1: mainPricingRule?.discountRate1 ?? mainPrice?.discount1 ?? 0,
         discountAmount1: 0,
-        discountRate2: mainPrice?.discount2 ?? 0,
+        discountRate2: mainPricingRule?.discountRate2 ?? mainPrice?.discount2 ?? 0,
         discountAmount2: 0,
-        discountRate3: mainPrice?.discount3 ?? 0,
+        discountRate3: mainPricingRule?.discountRate3 ?? mainPrice?.discount3 ?? 0,
         discountAmount3: 0,
-        vatRate: resolveDocumentVatRate(20, watchedOfferType),
+        vatRate: getDefaultDocumentVatRate(watchedOfferType, selectedDeliveryMethodName),
         vatAmount: 0,
         lineTotal: 0,
         lineGrandTotal: 0,
         relatedStockId: stock.id,
         relatedProductKey,
         isMainRelatedProduct: true,
+        pricingRuleHeaderId: mainPricingRule?.pricingRuleHeaderId ?? null,
         isEditing: false,
       });
 
@@ -878,8 +944,14 @@ export function QuotationCreateScreen(): React.ReactElement {
             const relation = filteredRelations[idx];
             const relStock = relatedStocks[idx];
             const price = priceData[idx + 1];
-            const unitPrice =
-              price && relStock
+            const relatedPricingRule = findMatchingSalesDocumentPricingRule(
+              pricingRules,
+              relation.relatedStockCode,
+              relation.quantity
+            );
+            const unitPrice = relatedPricingRule?.fixedUnitPrice != null
+              ? applyCurrencyToPrice(relatedPricingRule.fixedUnitPrice, relatedPricingRule.currencyCode)
+              : price && relStock
                 ? applyCurrencyToPrice(price.listPrice, price.currency)
                 : 0;
             if (unitPrice == null) {
@@ -896,19 +968,20 @@ export function QuotationCreateScreen(): React.ReactElement {
                   : relation.relatedStockName ?? "",
               quantity: relation.quantity,
               unitPrice,
-              discountRate1: price?.discount1 ?? 0,
+              discountRate1: relatedPricingRule?.discountRate1 ?? price?.discount1 ?? 0,
               discountAmount1: 0,
-              discountRate2: price?.discount2 ?? 0,
+              discountRate2: relatedPricingRule?.discountRate2 ?? price?.discount2 ?? 0,
               discountAmount2: 0,
-              discountRate3: price?.discount3 ?? 0,
+              discountRate3: relatedPricingRule?.discountRate3 ?? price?.discount3 ?? 0,
               discountAmount3: 0,
-              vatRate: resolveDocumentVatRate(20, watchedOfferType),
+              vatRate: getDefaultDocumentVatRate(watchedOfferType, selectedDeliveryMethodName),
               vatAmount: 0,
               lineTotal: 0,
               lineGrandTotal: 0,
               relatedStockId: stock.id,
               relatedProductKey,
               isMainRelatedProduct: false,
+              pricingRuleHeaderId: relatedPricingRule?.pricingRuleHeaderId ?? null,
               isEditing: false,
               relationQuantity: relation.quantity,
             }));
@@ -927,6 +1000,8 @@ export function QuotationCreateScreen(): React.ReactElement {
       ensureDocumentExchangeRate,
       showToast,
       i18n.language,
+      pricingRules,
+      selectedDeliveryMethodName,
       watchedOfferType,
     ]
   );
@@ -964,6 +1039,26 @@ export function QuotationCreateScreen(): React.ReactElement {
   const handleMultiProductSelect = useCallback(
     async (products: ProductSelectionResult[]) => {
       if (products.length === 0) return [];
+      if (!ensureDocumentExchangeRate()) return [];
+
+      const convertPrice = (amount: number, sourceCurrency: string): number => {
+        if (!watchedCurrency || sourceCurrency === watchedCurrency) return amount;
+        const sourceRate = findExchangeRateByCurrency(
+          sourceCurrency,
+          exchangeRates,
+          erpRatesForQuotation,
+          currencyOptions
+        );
+        const targetRate = findExchangeRateByCurrency(
+          watchedCurrency,
+          exchangeRates,
+          erpRatesForQuotation,
+          currencyOptions
+        );
+        return sourceRate != null && sourceRate > 0 && targetRate != null && targetRate > 0
+          ? (amount * sourceRate) / targetRate
+          : amount;
+      };
 
       const priceData = await quotationApi.getPriceOfProduct(
         products.map((product) => ({
@@ -983,6 +1078,14 @@ export function QuotationCreateScreen(): React.ReactElement {
             },
             i18n.language
           );
+          const matchingRule = findMatchingSalesDocumentPricingRule(
+            pricingRules,
+            product.code,
+            1
+          );
+          const unitPrice = matchingRule?.fixedUnitPrice != null
+            ? convertPrice(matchingRule.fixedUnitPrice, matchingRule.currencyCode)
+            : convertPrice(price?.listPrice ?? 0, price?.currency ?? watchedCurrency ?? "TRY");
           return calculateLineTotals({
             id: `temp-${Date.now()}-m${index}`,
             productId: product.id ?? null,
@@ -991,14 +1094,18 @@ export function QuotationCreateScreen(): React.ReactElement {
           unit: product.unit ?? null,
           groupCode: product.groupCode ?? null,
           quantity: 1,
-          unitPrice: price?.listPrice ?? 0,
-          discountRate1: price?.discount1 ?? 0,
+          unitPrice,
+          discountRate1: matchingRule?.discountRate1 ?? price?.discount1 ?? 0,
           discountAmount1: 0,
-          discountRate2: price?.discount2 ?? 0,
+          discountRate2: matchingRule?.discountRate2 ?? price?.discount2 ?? 0,
           discountAmount2: 0,
-          discountRate3: price?.discount3 ?? 0,
+          discountRate3: matchingRule?.discountRate3 ?? price?.discount3 ?? 0,
           discountAmount3: 0,
-          vatRate: resolveDocumentVatRate(product.vatRate, watchedOfferType),
+          vatRate: getDefaultDocumentVatRate(
+            watchedOfferType,
+            selectedDeliveryMethodName,
+            product.vatRate ?? 20
+          ),
           vatAmount: 0,
           lineTotal: 0,
           lineGrandTotal: 0,
@@ -1013,12 +1120,23 @@ export function QuotationCreateScreen(): React.ReactElement {
           relatedStockId: product.id ?? null,
           relatedProductKey: null,
           isMainRelatedProduct: true,
+          pricingRuleHeaderId: matchingRule?.pricingRuleHeaderId ?? null,
         });
         })
       );
       return nextLines;
     },
-    [i18n.language]
+    [
+      currencyOptions,
+      ensureDocumentExchangeRate,
+      erpRatesForQuotation,
+      exchangeRates,
+      i18n.language,
+      pricingRules,
+      selectedDeliveryMethodName,
+      watchedCurrency,
+      watchedOfferType,
+    ]
   );
 
   const onSubmit = useCallback(
@@ -1104,10 +1222,11 @@ export function QuotationCreateScreen(): React.ReactElement {
       });
 
       await finalizePendingQuotationImages(result, lines);
+      await clearDraft();
       showToast("success", t("common.quotationCreatedAndSentForApproval"));
       router.replace(`/(tabs)/sales/quotations/${result.id}`);
     },
-    [lines, exchangeRates, erpRatesForQuotation, currencyOptions, notes, createQuotation, setError, showToast, t, router]
+    [lines, exchangeRates, erpRatesForQuotation, currencyOptions, notes, createQuotation, setError, showToast, t, router, clearDraft]
   );
 
   const onInvalidSubmit = useCallback(() => {
@@ -1677,6 +1796,7 @@ export function QuotationCreateScreen(): React.ReactElement {
                 control={control}
                 customerTypeId={customerTypeId}
                 representativeId={watchedRepresentativeId || undefined}
+                customerId={watchedCustomerId ?? null}
                 disabled={!watchedRepresentativeId}
               />
 
@@ -2293,6 +2413,7 @@ export function QuotationCreateScreen(): React.ReactElement {
             visible={lineFormVisible}
             line={editingLine}
             offerType={watchedOfferType}
+            deliveryMethodName={selectedDeliveryMethodName}
             onClose={() => {
               setLineFormVisible(false);
               setEditingLine(null);

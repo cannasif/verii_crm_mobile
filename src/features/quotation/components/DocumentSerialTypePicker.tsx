@@ -7,6 +7,7 @@ import { useUIStore } from "../../../store/ui";
 import { useAuthStore } from "../../../store/auth";
 import {
   DocumentSerialRuleType,
+  CustomerDocumentSerialDocumentKind,
   useAvailableDocumentSerialTypes,
   useDocumentSerialAutoFill,
 } from "../../document-serial-type-management";
@@ -17,6 +18,7 @@ interface DocumentSerialTypePickerProps {
   control: Control<CreateQuotationSchema>;
   customerTypeId: number | undefined | null;
   representativeId: number | undefined;
+  customerId?: number | null;
   disabled?: boolean;
   documentId?: number | null;
   readOnly?: boolean;
@@ -26,6 +28,7 @@ export function DocumentSerialTypePicker({
   control,
   customerTypeId,
   representativeId,
+  customerId,
   disabled = false,
   documentId = null,
   readOnly = false,
@@ -50,6 +53,10 @@ export function DocumentSerialTypePicker({
     control,
     name: "quotation.documentSerialTypeId",
   });
+  const { field: offerNoField } = useController({
+    control,
+    name: "quotation.offerNo",
+  });
 
   const { data: availableDocumentSerialTypes = [], isLoading } = useAvailableDocumentSerialTypes(
     customerTypeId,
@@ -57,7 +64,12 @@ export function DocumentSerialTypePicker({
     DocumentSerialRuleType.Quotation
   );
 
-  const { handleDocumentSerialTypeSelect } = useDocumentSerialAutoFill({
+  const {
+    handleDocumentSerialTypeSelect,
+    customerSuggestedSerialType,
+    isCustomerSerialSuggestionLoading,
+    applyCustomerSerialSuggestion,
+  } = useDocumentSerialAutoFill({
     documentId,
     readOnly,
     ruleType: DocumentSerialRuleType.Quotation,
@@ -68,6 +80,9 @@ export function DocumentSerialTypePicker({
     isAvailableListReady: !isLoading,
     userId: user?.id,
     branchCode: branch?.code,
+    customerId,
+    documentKind: CustomerDocumentSerialDocumentKind.Quotation,
+    setOfferNo: offerNoField.onChange,
   });
 
   const filteredTypes = useMemo(() => {
@@ -129,6 +144,21 @@ export function DocumentSerialTypePicker({
         <Text style={[styles.emptyText, { color: mutedColor }]}>
           {t("header.noAvailableSerialTypes")}
         </Text>
+      )}
+
+      {customerSuggestedSerialType && !isCustomerSerialSuggestionLoading && (
+        <TouchableOpacity
+          style={[styles.suggestionButton, { borderColor: dashedBorderColor, backgroundColor: dashedBgColor }]}
+          onPress={applyCustomerSerialSuggestion}
+          disabled={isDisabled}
+        >
+          <Text style={[styles.suggestionText, { color: brandColor }]}>
+            {t("header.customerSerialSuggestion", {
+              defaultValue: "Müşteri için önerilen seri: {{serial}} · Uygula",
+              serial: customerSuggestedSerialType.serialPrefix || customerSuggestedSerialType.name || "-",
+            })}
+          </Text>
+        </TouchableOpacity>
       )}
 
       <PickerModal
@@ -203,5 +233,17 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontStyle: "italic",
     marginLeft: 4,
+  },
+  suggestionButton: {
+    marginTop: 8,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  suggestionText: {
+    fontSize: 12,
+    fontWeight: "600",
   },
 });
