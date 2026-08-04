@@ -47,6 +47,10 @@ const requiredContracts = [
   ["src/features/order/screens/OrderListScreen.tsx", "SALES_DOCUMENT_LIST_SEARCH_FIELDS"],
   ["src/features/demand/screens/DemandListScreen.tsx", "SALES_DOCUMENT_LIST_SEARCH_FIELDS"],
   ["src/features/quotation/screens/QuotationListScreen.tsx", "SALES_DOCUMENT_LIST_SEARCH_FIELDS"],
+  ["src/features/customer/components/CustomerSelectDialog.tsx", "searchFields: customerSearchFields"],
+  ["src/features/demand/components/ProductPicker.tsx", "searchFields: stockSearchFields"],
+  ["src/features/quotation/components/ProductPicker.tsx", "searchFields: stockSearchFields"],
+  ["src/features/order/components/ProductPicker.tsx", "searchFields: stockSearchFields"],
   ["src/features/catalog/api/catalogApi.ts", "query.append(\"searchFields\", field)"],
 ];
 

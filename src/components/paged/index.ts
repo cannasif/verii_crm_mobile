@@ -2,6 +2,7 @@ export * from "./PagedAdvancedFilterModal";
 export * from "./PagedAdvancedFilterBuilder";
 export * from "./PagedFlatList";
 export * from "./PagedSearchInput";
+export * from "./SearchFieldSelectorButton";
 export * from "./SalesListFilterButton";
 export * from "./SalesListCreateButton";
 export * from "./DocumentDetailStatusAlerts";

@@ -31,7 +31,10 @@ import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { VoiceSearchButton } from "./VoiceSearchButton";
 import { getLocalizedStockNameFromStock } from "../../../lib/localizedStockName";
-import { asSearchFields, STOCK_PICKER_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
+import { STOCK_PICKER_AVAILABLE_SEARCH_FIELDS, STOCK_PICKER_SEARCH_FIELD_LABELS, STOCK_PICKER_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
+import { SearchFieldSelectorButton } from "../../../components/paged";
+import { usePersistedSearchFields } from "../../../hooks/usePersistedSearchFields";
+import { useAuthStore } from "../../../store/auth";
 import {
   useStocks,
 } from "../../stocks/hooks";
@@ -631,6 +634,9 @@ function ProductPickerInner(
   ref: React.Ref<ProductPickerRef>
 ): React.ReactElement {
   const { t, i18n } = useTranslation();
+  const userId = useAuthStore((state) => state.user?.id);
+  const [stockSearchFields, setStockSearchFields] = usePersistedSearchFields(`stock-picker:${userId ?? 'anonymous'}`, STOCK_PICKER_AVAILABLE_SEARCH_FIELDS, STOCK_PICKER_SEARCH_FIELDS);
+  const stockSearchOptions = useMemo(() => STOCK_PICKER_AVAILABLE_SEARCH_FIELDS.map((key) => ({ key, label: STOCK_PICKER_SEARCH_FIELD_LABELS[key] ?? key })), []);
   const { themeMode } = useUIStore();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -865,7 +871,7 @@ function ProductPickerInner(
       filters: apiFilters,
       filterLogic: appliedFilterLogic,
       search: debouncedSearchText || undefined,
-      searchFields: asSearchFields(STOCK_PICKER_SEARCH_FIELDS),
+      searchFields: stockSearchFields,
       enabled: isOpen,
     }
   );
@@ -1531,6 +1537,7 @@ function ProductPickerInner(
                       )}
                     </View>
                     <VoiceSearchButton onResult={setSearchText} />
+                    <SearchFieldSelectorButton options={stockSearchOptions} selectedFields={stockSearchFields} onChange={setStockSearchFields} compact />
                   </View>
                   <View style={styles.searchBottomRow}>
                     <TouchableOpacity

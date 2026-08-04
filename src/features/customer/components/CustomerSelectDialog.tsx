@@ -18,10 +18,13 @@ import {
   type PagedAdvancedFilterFieldConfig,
   type PagedAdvancedFilterRow,
 } from "../../../components/paged";
+import { SearchFieldSelectorButton } from "../../../components/paged";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useCustomers } from "../hooks";
-import { asSearchFields, CUSTOMER_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
+import { CUSTOMER_PICKER_AVAILABLE_SEARCH_FIELDS, CUSTOMER_PICKER_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
+import { usePersistedSearchFields } from "../../../hooks/usePersistedSearchFields";
+import { useAuthStore } from "../../../store/auth";
 import type { CustomerGetDto } from "../types";
 import {
   formatCustomerSelectLabel,
@@ -77,6 +80,23 @@ export function CustomerSelectDialog({
   contextUserId,
 }: CustomerSelectDialogProps): React.ReactElement {
   const { t } = useTranslation();
+  const userId = useAuthStore((state) => state.user?.id);
+  const [customerSearchFields, setCustomerSearchFields] = usePersistedSearchFields(
+    `customer-picker:${userId ?? 'anonymous'}`,
+    CUSTOMER_PICKER_AVAILABLE_SEARCH_FIELDS,
+    CUSTOMER_PICKER_SEARCH_FIELDS,
+  );
+  const customerSearchOptions = useMemo(() => {
+    const labels: Record<string, string> = {
+      CustomerCode: "Müşteri kodu", CustomerName: "Müşteri adı", TaxOffice: "Vergi dairesi",
+      TaxNumber: "Vergi no", TcknNumber: "TCKN", SalesRepCode: "Plasiyer kodu",
+      GroupCode: "Grup kodu", AccountingCode: "Muhasebe kodu", Notes: "Notlar",
+      Email: "E-posta", Website: "Web sitesi", Phone1: "Telefon", Phone2: "Telefon 2",
+      Address: "Adres", PostalCode: "Posta kodu", "Country.Name": "Ülke",
+      "City.Name": "Şehir", "District.Name": "İlçe", "CustomerType.Name": "Müşteri tipi",
+    };
+    return CUSTOMER_PICKER_AVAILABLE_SEARCH_FIELDS.map((key) => ({ key, label: labels[key] ?? key }));
+  }, []);
   const { colors, themeMode } = useUIStore();
   const insets = useSafeAreaInsets();
 
@@ -177,7 +197,7 @@ export function CustomerSelectDialog({
     pageSize: PAGE_SIZE,
     enabled: open,
     search: debouncedSearchQuery || undefined,
-    searchFields: asSearchFields(CUSTOMER_LIST_SEARCH_FIELDS),
+    searchFields: customerSearchFields,
     sortBy: "Id",
     sortDirection: "asc",
     filters: apiFilters,
@@ -323,6 +343,11 @@ export function CustomerSelectDialog({
                 </TouchableOpacity>
               ) : null}
             </View>
+            <SearchFieldSelectorButton
+              options={customerSearchOptions}
+              selectedFields={customerSearchFields}
+              onChange={setCustomerSearchFields}
+            />
             <TouchableOpacity
               style={[
                 styles.filterButton,
