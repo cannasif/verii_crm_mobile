@@ -15,6 +15,7 @@ import {
   type PagedAdvancedFilterRow,
 } from "../../../components/paged";
 import { useUIStore } from "../../../store/ui";
+import { asSearchFields, STOCK_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
 import { useStocks } from "../hooks";
 import { StockCard } from "../components";
 import type { StockGetDto, PagedResponse } from "../types";
@@ -72,6 +73,7 @@ export function StockListScreen(): React.ReactElement {
     filters: apiFilters,
     filterLogic: appliedFilterLogic,
     search: debouncedQuery.trim().length >= 2 ? debouncedQuery.trim() : undefined,
+    searchFields: asSearchFields(STOCK_LIST_SEARCH_FIELDS),
     sortBy: "stockName",
     sortDirection: sortOrder,
   });
