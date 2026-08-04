@@ -36,6 +36,10 @@ export const createOrderSchema = () =>
         revisionNo: z.string().max(50).nullable().optional(),
         revisionId: z.number().nullable().optional(),
         currency: z.string().min(1, "Para birimi seçilmelidir"),
+        generalDiscountRate: z.number().min(0).max(100).nullable().optional(),
+        generalDiscountAmount: z.number().min(0).nullable().optional(),
+        erpProjectCode: z.string().max(50).nullable().optional(),
+        salesTypeDefinitionId: z.number().nullable().optional(),
       }),
     })
     .superRefine((data, ctx) => {

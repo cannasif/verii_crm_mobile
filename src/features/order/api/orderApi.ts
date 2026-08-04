@@ -370,9 +370,10 @@ export const orderApi = {
   },
 
   createBulk: async (data: OrderBulkCreateDto): Promise<OrderGetDto> => {
+    const { notes, ...bulkPayload } = data;
     const response = await apiClient.post<OrderBulkCreateResponse>(
       "/api/order/bulk-order",
-      data
+      bulkPayload
     );
 
     if (!response.data.success) {
@@ -381,7 +382,18 @@ export const orderApi = {
       );
     }
 
-    return response.data.data;
+    const created = response.data.data;
+    const normalizedNotes = notes?.map((note) => note.trim()).filter(Boolean) ?? [];
+    if (normalizedNotes.length > 0) {
+      const notesResponse = await apiClient.put<ApiResponse<unknown>>(
+        `/api/OrderNotes/by-order/${created.id}/notes-list`,
+        { notes: normalizedNotes }
+      );
+      if (!notesResponse.data.success) {
+        throw new Error(notesResponse.data.message || notesResponse.data.exceptionMessage || "Sipariş notları kaydedilemedi");
+      }
+    }
+    return created;
   },
 
   updateBulk: async (id: number, data: OrderBulkCreateDto): Promise<OrderGetDto> => {

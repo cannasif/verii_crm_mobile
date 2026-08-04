@@ -141,6 +141,12 @@ export interface CreateOrderDto {
   revisionNo?: string | null;
   revisionId?: number | null;
   currency: string;
+  generalDiscountRate?: number | null;
+  generalDiscountAmount?: number | null;
+  erpProjectCode?: string | null;
+  projectCode?: string | null;
+  salesTypeDefinitionId?: number | null;
+  deliveryMethod?: string | null;
 }
 
 export interface CreateOrderLineDto {
@@ -149,6 +155,7 @@ export interface CreateOrderLineDto {
   productCode: string;
   productName: string;
   groupCode?: string | null;
+  unit?: string | null;
   quantity: number;
   unitPrice: number;
   discountRate1: number;
@@ -177,6 +184,8 @@ export interface CreateOrderLineDto {
   relatedStockId?: number | null;
   relatedProductKey?: string | null;
   isMainRelatedProduct?: boolean;
+  erpProjectCode?: string | null;
+  projectCode?: string | null;
   approvalStatus?: number;
 }
 
@@ -231,6 +240,7 @@ export interface OrderBulkCreateDto {
   order: CreateOrderDto;
   lines: CreateOrderLineDto[];
   exchangeRates?: OrderExchangeRateCreateDto[];
+  notes?: string[];
 }
 
 export interface OrderLineFormState {
@@ -269,6 +279,7 @@ export interface OrderLineFormState {
   relatedStockId?: number | null;
   relatedProductKey?: string | null;
   isMainRelatedProduct?: boolean;
+  erpProjectCode?: string | null;
   approvalStatus?: number;
   isEditing: boolean;
   relatedLines?: OrderLineFormState[];

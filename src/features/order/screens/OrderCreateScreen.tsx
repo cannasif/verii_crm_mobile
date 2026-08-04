@@ -14,6 +14,7 @@ import {
 import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { CustomerErpBalanceAction } from "@/components/shared/CustomerErpBalanceAction";
 import { createClientId } from "@/lib/create-client-id";
+import { parseDecimalInput, sanitizeDecimalInput } from "@/lib/decimal-input";
 import { getValidRelatedProductGroup } from "@/lib/relatedProductGroup";
 import { resolveDocumentSerialCustomerTypeId } from "@/lib/resolve-document-serial-customer-type-id";
 import {
@@ -43,6 +44,7 @@ import {
   ArrowRight01Icon,
   MoneyExchange01Icon,
   Pdf01Icon,
+  Note01Icon,
 } from "hugeicons-react-native";
 import {
   SalesDocumentFormLineGroup,
@@ -90,6 +92,9 @@ import {
   OrderPreviewPdfDialog,
 } from "../components";
 import { CustomerSelectDialog, type CustomerSelectionResult } from "../../customer";
+import { useErpProjects, useSalesTypeList } from "../../quotation/hooks";
+import { QuotationNotesModal, validateNotesMaxLength } from "../../quotation/components";
+import { normalizeOfferType } from "../../quotation/types";
 import type { CustomerDto } from "../../customer/types";
 import { createOrderSchema, type CreateOrderSchema } from "../schemas";
 import type {
@@ -162,6 +167,10 @@ export function OrderCreateScreen(): React.ReactElement {
   const [koliBaskiModalVisible, setKoliBaskiModalVisible] = useState(false);
   const [customerSelectDialogOpen, setCustomerSelectDialogOpen] = useState(false);
   const [representativeModalVisible, setRepresentativeModalVisible] = useState(false);
+  const [projectCodeModalVisible, setProjectCodeModalVisible] = useState(false);
+  const [salesTypeModalVisible, setSalesTypeModalVisible] = useState(false);
+  const [notes, setNotes] = useState<string[]>(Array(15).fill(""));
+  const [notesModalVisible, setNotesModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<"general" | "lines">("general");
   const [previewPdfVisible, setPreviewPdfVisible] = useState(false);
   const [pendingStockForRelated, setPendingStockForRelated] = useState<
@@ -227,6 +236,8 @@ export function OrderCreateScreen(): React.ReactElement {
   const watchedKoliBaskiDefinitionId = watch("order.koliBaskiDefinitionId");
   const watchedDeliveryDate = watch("order.deliveryDate");
   const watchedOfferType = watch("order.offerType");
+  const watchedGeneralDiscountRate = watch("order.generalDiscountRate");
+  const watchedGeneralDiscountAmount = watch("order.generalDiscountAmount");
   const specialCodeManualChangeRef = useRef({ ozelKod1: false, ozelKod2: false });
   const { specialCode1Options, specialCode2Options, isSpecialCodesLoading } = useSpecialCodes("order");
 
@@ -304,6 +315,17 @@ export function OrderCreateScreen(): React.ReactElement {
   const { data: currencyOptions } = useCurrencyOptions(exchangeRateParamsOnce);
   const { data: paymentTypes } = usePaymentTypes();
   const { data: relatedUsers = [] } = useRelatedUsers(user?.id);
+  const { data: projects = [] } = useErpProjects();
+  const { data: salesTypeList = [] } = useSalesTypeList({
+    offerType: normalizeOfferType(watchedOfferType),
+  });
+
+  const previousOfferTypeRef = useRef(watchedOfferType);
+  useEffect(() => {
+    if (previousOfferTypeRef.current === watchedOfferType) return;
+    previousOfferTypeRef.current = watchedOfferType;
+    setValue("order.salesTypeDefinitionId", null);
+  }, [setValue, watchedOfferType]);
 
   useEffect(() => {
     if (exchangeRatesData && exchangeRatesData.length > 0 && !hasFilledErpRates.current) {
@@ -391,7 +413,13 @@ export function OrderCreateScreen(): React.ReactElement {
     }
   }, [customer, setValue]);
 
-  const totals = useMemo(() => calculateTotals(lines), [lines]);
+  const totals = useMemo(
+    () => calculateTotals(lines, {
+      generalDiscountRate: watchedGeneralDiscountRate ?? null,
+      generalDiscountAmount: watchedGeneralDiscountAmount ?? null,
+    }),
+    [lines, watchedGeneralDiscountAmount, watchedGeneralDiscountRate]
+  );
 
   const handleCustomerSelect = useCallback(
     (result: CustomerSelectionResult) => {
@@ -473,6 +501,12 @@ export function OrderCreateScreen(): React.ReactElement {
       if (lines.length === 0) {
         setValue("order.currency", newCurrency);
         setCurrencyModalVisible(false);
+        return;
+      }
+
+      const notesError = validateNotesMaxLength(notes);
+      if (notesError) {
+        setError("root", { type: "manual", message: notesError });
         return;
       }
       Alert.alert(
@@ -842,6 +876,7 @@ export function OrderCreateScreen(): React.ReactElement {
         return {
           ...rest,
           orderId: 0,
+          projectCode: rest.erpProjectCode ?? null,
           productId: rest.productId || null,
           pricingRuleHeaderId:
             rest.pricingRuleHeaderId != null && rest.pricingRuleHeaderId > 0
@@ -864,15 +899,25 @@ export function OrderCreateScreen(): React.ReactElement {
       createOrder.mutate({
         order: {
           ...formData.order,
+          offerType: normalizeOfferType(formData.order.offerType),
+          generalDiscountRate: formData.order.generalDiscountRate ?? null,
+          generalDiscountAmount: formData.order.generalDiscountAmount ?? null,
+          erpProjectCode: formData.order.erpProjectCode ?? null,
+          projectCode: formData.order.erpProjectCode ?? null,
+          salesTypeDefinitionId: formData.order.salesTypeDefinitionId ?? null,
+          deliveryMethod: formData.order.salesTypeDefinitionId != null
+            ? String(formData.order.salesTypeDefinitionId)
+            : null,
           ozelKod1: formData.order.ozelKod1?.trim() || null,
           ozelKod2: formData.order.ozelKod2?.trim() || null,
           koliBaskiDefinitionId: formData.order.koliBaskiDefinitionId ?? null,
         },
         lines: cleanedLines,
         exchangeRates: cleanedExchangeRates.length > 0 ? cleanedExchangeRates : undefined,
+        notes,
       });
     },
-    [lines, exchangeRates, createOrder, setError]
+    [lines, exchangeRates, notes, createOrder, setError]
   );
 
   const onInvalidSubmit = useCallback(() => {
@@ -904,8 +949,8 @@ export function OrderCreateScreen(): React.ReactElement {
         branch,
         currency: watchedCurrency,
         currencyCode: resolveCurrencyIsoCode(watchedCurrency),
-        generalDiscountRate: null,
-        generalDiscountAmount: null,
+        generalDiscountRate: watchedGeneralDiscountRate ?? null,
+        generalDiscountAmount: watchedGeneralDiscountAmount ?? null,
         draft,
         lines,
         t,
@@ -930,6 +975,8 @@ export function OrderCreateScreen(): React.ReactElement {
       watchedErpCustomerCode,
       watchedKoliBaskiDefinitionId,
       watchedOfferDate,
+      watchedGeneralDiscountAmount,
+      watchedGeneralDiscountRate,
     ]
   );
 
@@ -1348,6 +1395,52 @@ export function OrderCreateScreen(): React.ReactElement {
               <View style={styles.twoColumnItem}>
                 <Controller
                   control={control}
+                  name="order.salesTypeDefinitionId"
+                  render={({ field: { value } }) => (
+                    <View style={styles.fieldContainerTight}>
+                      <Text style={[styles.labelCompact, { color: colors.textSecondary }]}>{t("order.deliveryMethod")}</Text>
+                      <TouchableOpacity
+                        style={[styles.pickerButton, styles.pickerShellCompact, { backgroundColor: innerBg, borderColor: innerBorder }]}
+                        onPress={() => setSalesTypeModalVisible(true)}
+                      >
+                        <Text style={[styles.pickerText, styles.pickerTextCompact, { color: colors.text }]} numberOfLines={1}>
+                          {value ? salesTypeList.find((item) => item.id === value)?.name ?? t("common.select") : t("common.select")}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                />
+              </View>
+              <View style={styles.twoColumnItem}>
+                <Controller
+                  control={control}
+                  name="order.erpProjectCode"
+                  render={({ field: { value } }) => (
+                    <View style={styles.fieldContainerTight}>
+                      <Text style={[styles.labelCompact, { color: colors.textSecondary }]}>{t("order.projectCode")}</Text>
+                      <TouchableOpacity
+                        style={[styles.pickerButton, styles.pickerShellCompact, { backgroundColor: innerBg, borderColor: innerBorder }]}
+                        onPress={() => setProjectCodeModalVisible(true)}
+                      >
+                        <Text style={[styles.pickerText, styles.pickerTextCompact, { color: colors.text }]} numberOfLines={1}>
+                          {value
+                            ? (() => {
+                                const project = projects.find((item) => item.projeKod === value);
+                                return project?.projeAciklama ? `${project.projeKod} - ${project.projeAciklama}` : project?.projeKod ?? value;
+                              })()
+                            : t("common.select")}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                />
+              </View>
+            </View>
+
+            <View style={styles.twoColumnRow}>
+              <View style={styles.twoColumnItem}>
+                <Controller
+                  control={control}
                   name="order.ozelKod1"
                   render={({ field: { value } }) => (
                     <View style={styles.fieldContainerTight}>
@@ -1449,6 +1542,53 @@ export function OrderCreateScreen(): React.ReactElement {
               )}
             />
 
+            <View style={styles.twoColumnRow}>
+              <View style={styles.twoColumnItem}>
+                <Controller
+                  control={control}
+                  name="order.generalDiscountRate"
+                  render={({ field: { onChange, value } }) => (
+                    <View style={styles.fieldContainerTight}>
+                      <Text style={[styles.labelCompact, { color: colors.textSecondary }]}>{t("order.generalDiscountRate")}</Text>
+                      <TextInput
+                        style={[styles.input, styles.inputCompact, { backgroundColor: innerBg, borderColor: innerBorder, color: colors.text }]}
+                        value={value != null ? String(value) : ""}
+                        onChangeText={(text) => {
+                          const sanitized = sanitizeDecimalInput(text);
+                          onChange(sanitized === "" ? null : parseDecimalInput(sanitized));
+                        }}
+                        placeholder="%"
+                        placeholderTextColor={colors.textMuted}
+                        keyboardType="decimal-pad"
+                      />
+                    </View>
+                  )}
+                />
+              </View>
+              <View style={styles.twoColumnItem}>
+                <Controller
+                  control={control}
+                  name="order.generalDiscountAmount"
+                  render={({ field: { onChange, value } }) => (
+                    <View style={styles.fieldContainerTight}>
+                      <Text style={[styles.labelCompact, { color: colors.textSecondary }]}>{t("order.generalDiscountAmount")}</Text>
+                      <TextInput
+                        style={[styles.input, styles.inputCompact, { backgroundColor: innerBg, borderColor: innerBorder, color: colors.text }]}
+                        value={value != null ? String(value) : ""}
+                        onChangeText={(text) => {
+                          const sanitized = sanitizeDecimalInput(text);
+                          onChange(sanitized === "" ? null : parseDecimalInput(sanitized));
+                        }}
+                        placeholder="0,00"
+                        placeholderTextColor={colors.textMuted}
+                        keyboardType="decimal-pad"
+                      />
+                    </View>
+                  )}
+                />
+              </View>
+            </View>
+
             <FormField
               label="Açıklama"
               value={watch("order.description") || ""}
@@ -1457,6 +1597,22 @@ export function OrderCreateScreen(): React.ReactElement {
               multiline
               numberOfLines={3}
               maxLength={500}
+            />
+            <TouchableOpacity
+              style={[styles.notesButton, { backgroundColor: innerBg, borderColor: innerBorder }]}
+              onPress={() => setNotesModalVisible(true)}
+            >
+              <Note01Icon size={16} color={accent} variant="stroke" strokeWidth={1.8} />
+              <Text style={[styles.notesButtonText, { color: titleText }]}>
+                {t("order.notesSection", "Sipariş Notları")}{notes.some((note) => note.trim()) ? ` (${notes.filter((note) => note.trim()).length})` : ""}
+              </Text>
+            </TouchableOpacity>
+            <QuotationNotesModal
+              visible={notesModalVisible}
+              notes={notes}
+              title={t("order.notesSection", "Sipariş Notları")}
+              onSave={(value) => { setNotes(value); setNotesModalVisible(false); }}
+              onClose={() => setNotesModalVisible(false)}
             />
           </View>
           </View>
@@ -1512,10 +1668,16 @@ export function OrderCreateScreen(): React.ReactElement {
                   {totals.totalVat.toFixed(2)}
                 </Text>
               </View>
+              {totals.generalDiscountAmount > 0 && (
+                <View style={styles.summaryRow}>
+                  <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{t("order.generalDiscount")}:</Text>
+                  <Text style={[styles.summaryValue, { color: colors.error }]}>-{totals.generalDiscountAmount.toFixed(2)}</Text>
+                </View>
+              )}
               <View style={styles.summaryRow}>
                 <Text style={[styles.summaryLabel, { color: colors.text }]}>Genel Toplam:</Text>
                 <Text style={[styles.summaryValue, { color: colors.accent, fontWeight: "600" }]}>
-                  {totals.grandTotal.toFixed(2)}
+                  {totals.grandTotalAfterDiscount.toFixed(2)}
                 </Text>
               </View>
             </View>
@@ -1774,6 +1936,26 @@ export function OrderCreateScreen(): React.ReactElement {
           onClose={() => setCurrencyModalVisible(false)}
           title="Para Birimi Seçiniz"
           searchPlaceholder="Para birimi ara..."
+        />
+
+        <PickerModal
+          visible={projectCodeModalVisible}
+          options={projects.map((project) => ({ id: project.projeKod, name: project.projeAciklama ? `${project.projeKod} - ${project.projeAciklama}` : project.projeKod, code: project.projeKod }))}
+          selectedValue={watch("order.erpProjectCode") ?? undefined}
+          onSelect={(option) => { setValue("order.erpProjectCode", String(option.code ?? option.id)); setProjectCodeModalVisible(false); }}
+          onClose={() => setProjectCodeModalVisible(false)}
+          title={t("order.projectCode")}
+          searchPlaceholder={t("order.projectCodeSearch")}
+        />
+
+        <PickerModal
+          visible={salesTypeModalVisible}
+          options={salesTypeList.map((item) => ({ id: item.id, name: item.name }))}
+          selectedValue={watch("order.salesTypeDefinitionId") ?? undefined}
+          onSelect={(option) => { setValue("order.salesTypeDefinitionId", option.id as number); setSalesTypeModalVisible(false); }}
+          onClose={() => setSalesTypeModalVisible(false)}
+          title={t("order.deliveryMethod")}
+          searchPlaceholder={t("common.search")}
         />
 
         <PickerModal
@@ -2070,6 +2252,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
+  },
+  inputCompact: {
+    minHeight: 40,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    fontSize: 13,
+  },
+  notesButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 16,
+  },
+  notesButtonText: {
+    fontSize: 15,
+    fontWeight: "500",
   },
   pickerButton: {
     borderWidth: 1.3,
