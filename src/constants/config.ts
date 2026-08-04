@@ -44,28 +44,43 @@ export async function saveApiBaseUrl(url: string): Promise<string> {
 
 export async function testApiBaseUrl(url: string): Promise<void> {
   const normalized = normalizeApiBaseUrl(url);
-  const response = await axios.get(`${normalized}/api/NetsisRead/health-check`, {
-    timeout: API_TIMEOUT,
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "X-Language": "tr",
-    },
-  });
+  try {
+    const response = await axios.get(`${normalized}/health/live`, {
+      timeout: API_TIMEOUT,
+      headers: { Accept: "application/json" },
+    });
 
-  const payload = response.data as {
-    success?: boolean;
-    message?: string;
-    exceptionMessage?: string;
-    errors?: string[];
-  };
+    const payload = response.data as { status?: string } | undefined;
+    if (payload?.status?.toLocaleLowerCase("en-US") !== "live") {
+      throw new Error("API saglik kontrolu beklenen yaniti vermedi.");
+    }
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const payload = error.response?.data as
+        | { message?: string; exceptionMessage?: string; errors?: string[] }
+        | undefined;
+      const apiMessage =
+        payload?.message ||
+        payload?.exceptionMessage ||
+        (Array.isArray(payload?.errors) && payload.errors.length > 0
+          ? payload.errors.join(", ")
+          : undefined);
 
-  if (payload?.success === false) {
-    throw new Error(
-      payload.message ||
-        payload.exceptionMessage ||
-        (Array.isArray(payload.errors) && payload.errors.length > 0 ? payload.errors.join(", ") : "") ||
-        "API baglanti testi basarisiz oldu."
-    );
+      if (apiMessage) {
+        throw new Error(apiMessage);
+      }
+
+      if (error.code === "ECONNABORTED") {
+        throw new Error("API baglanti testi zaman asimina ugradi.");
+      }
+
+      throw new Error(
+        error.response
+          ? `API saglik kontrolu ${error.response.status} durum kodu dondu.`
+          : "API adresine ulasilamadi. Adresi ve internet baglantisini kontrol edin."
+      );
+    }
+
+    throw error;
   }
 }
