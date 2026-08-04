@@ -24,6 +24,7 @@ export interface QuotationNotesModalProps {
   onSave: (notes: string[]) => void;
   onClose: () => void;
   isSaving?: boolean;
+  title?: string;
 }
 
 export function QuotationNotesModal({
@@ -32,6 +33,7 @@ export function QuotationNotesModal({
   onSave,
   onClose,
   isSaving = false,
+  title,
 }: QuotationNotesModalProps): React.ReactElement {
   const { t } = useTranslation();
   const { colors, themeMode } = useUIStore();
@@ -100,7 +102,7 @@ export function QuotationNotesModal({
           <View style={[styles.header, { borderBottomColor: colors.border }]}>
             <View style={[styles.handle, { backgroundColor: colors.border }]} />
             <Text style={[styles.title, { color: colors.text }]}>
-              {t("quotation.notesSection")}
+              {title ?? t("quotation.notesSection")}
             </Text>
             <TouchableOpacity onPress={handleCancel} style={styles.closeBtn}>
               <Text style={[styles.closeBtnText, { color: colors.text }]}>✕</Text>

@@ -1054,6 +1054,7 @@ export function QuotationCreateScreen(): React.ReactElement {
               ? rest.relatedStockId
               : null,
           erpProjectCode: rest.erpProjectCode ?? null,
+          projectCode: rest.erpProjectCode ?? null,
           approvalStatus: rest.approvalStatus ?? 0,
         };
       });
@@ -1081,7 +1082,11 @@ export function QuotationCreateScreen(): React.ReactElement {
         generalDiscountRate: formData.quotation.generalDiscountRate ?? null,
         generalDiscountAmount: formData.quotation.generalDiscountAmount ?? null,
         erpProjectCode: formData.quotation.erpProjectCode ?? null,
+        projectCode: formData.quotation.erpProjectCode ?? null,
         salesTypeDefinitionId: formData.quotation.salesTypeDefinitionId ?? null,
+        deliveryMethod: formData.quotation.salesTypeDefinitionId != null
+          ? String(formData.quotation.salesTypeDefinitionId)
+          : null,
         ozelKod1: formData.quotation.ozelKod1?.trim() || null,
         ozelKod2: formData.quotation.ozelKod2?.trim() || null,
         koliBaskiDefinitionId: formData.quotation.koliBaskiDefinitionId ?? null,

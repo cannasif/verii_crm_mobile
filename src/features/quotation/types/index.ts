@@ -159,9 +159,11 @@ export interface CreateQuotationDto {
   generalDiscountAmount?: number | null;
   demandId?: number | null;
   erpProjectCode?: string | null;
+  projectCode?: string | null;
   ozelKod1?: string | null;
   ozelKod2?: string | null;
   salesTypeDefinitionId?: number | null;
+  deliveryMethod?: string | null;
   koliBaskiDefinitionId?: number | null;
 }
 
@@ -171,6 +173,7 @@ export interface CreateQuotationLineDto {
   productCode: string;
   productName: string;
   groupCode?: string | null;
+  unit?: string | null;
   quantity: number;
   unitPrice: number;
   discountRate1: number;
@@ -200,6 +203,7 @@ export interface CreateQuotationLineDto {
   relatedProductKey?: string | null;
   isMainRelatedProduct?: boolean;
   erpProjectCode?: string | null;
+  projectCode?: string | null;
   approvalStatus?: number;
 }
 
