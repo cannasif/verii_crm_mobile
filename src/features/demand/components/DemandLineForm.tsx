@@ -541,6 +541,8 @@ export function DemandLineForm({
         undefined;
 
       const uploaded = await quotationApi.uploadReportAsset(result.assets[0].uri, {
+        mimeType: result.assets[0].mimeType ?? undefined,
+        fileName: result.assets[0].fileName ?? undefined,
         assetScope: imageUploadScope,
         demandId: imageUploadExtras?.demandId,
         demandLineId:

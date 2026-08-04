@@ -1,5 +1,6 @@
 import { apiClient } from "../../../lib/axios";
 import { extractPagedItems } from "../../../lib/paged";
+import { appendMobileUploadFile, prepareMobileImageUpload } from "../../../lib/uploadMedia";
 import type {
   WaitingApprovalsResponse,
   ApproveResponse,
@@ -751,23 +752,15 @@ export const quotationApi = {
 
   uploadReportAsset: async (
     fileUri: string,
-    options?: UploadReportAssetOptions
+    options?: UploadReportAssetOptions & { mimeType?: string; fileName?: string }
   ): Promise<PdfTemplateAssetDto> => {
-    const cleanedUri = fileUri.split("?")[0]?.split("#")[0] ?? fileUri;
-    const rawTail = decodeURIComponent(cleanedUri).split("/").pop()?.trim() || `fast_quotation_${Date.now()}.jpg`;
-    const ext = rawTail.includes(".") ? rawTail.substring(rawTail.lastIndexOf(".") + 1).toLowerCase() : "jpg";
-    const mimeType =
-      ext === "png" ? "image/png" :
-      ext === "webp" ? "image/webp" :
-      ext === "gif" ? "image/gif" :
-      "image/jpeg";
-
     const formData = new FormData();
-    formData.append("file", {
-      uri: fileUri,
-      name: rawTail,
-      type: mimeType,
-    } as any);
+    const file = await prepareMobileImageUpload(fileUri, {
+      mimeType: options?.mimeType,
+      fileName: options?.fileName,
+      namePrefix: "sales-line",
+    });
+    appendMobileUploadFile(formData, "file", file);
     if (options?.assetScope) {
       formData.append("assetScope", options.assetScope);
     }

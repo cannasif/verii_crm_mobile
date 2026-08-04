@@ -1,7 +1,6 @@
 import { apiClient } from "../../../lib/axios";
 import { normalizeApiRequestError } from "../../../lib/api-error";
-import * as FileSystem from "expo-file-system/legacy";
-import { normalizeLocalMediaUri } from "../../../lib/mediaUri";
+import { appendMobileUploadFile, prepareMobileImageUpload } from "../../../lib/uploadMedia";
 import i18n from "../../../locales";
 import type { ApiResponse } from "../../auth/types";
 import type {
@@ -16,70 +15,6 @@ import type {
   PagedResponse,
   PagedApiResponse,
 } from "../types";
-
-const EXTENSION_TO_MIME: Record<string, string> = {
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  png: "image/png",
-  webp: "image/webp",
-  gif: "image/gif",
-  heic: "image/heic",
-  heif: "image/heif",
-};
-
-function getSafeUploadMeta(imageUri: string): { name: string; type: string; uri: string } {
-  const cleanedUri = imageUri.split("?")[0]?.split("#")[0] ?? imageUri;
-  let decodedUri = cleanedUri;
-  try {
-    decodedUri = decodeURIComponent(cleanedUri);
-  } catch {
-    decodedUri = cleanedUri;
-  }
-  const rawTail = decodedUri.split("/").pop()?.trim() || "";
-
-  const fallbackBase = `customer_${Date.now()}`;
-  const hasDot = rawTail.includes(".");
-  const baseName = hasDot ? rawTail.substring(0, rawTail.lastIndexOf(".")) : rawTail || fallbackBase;
-  const rawExt = hasDot ? rawTail.substring(rawTail.lastIndexOf(".") + 1).toLowerCase() : "";
-  const safeExt = EXTENSION_TO_MIME[rawExt] ? rawExt : "jpg";
-  const safeName = `${baseName.replace(/[^a-zA-Z0-9_-]/g, "_")}.${safeExt}`;
-
-  return {
-    uri: imageUri,
-    name: safeName,
-    type: EXTENSION_TO_MIME[safeExt] ?? "image/jpeg",
-  };
-}
-
-async function ensureReadableUploadUri(imageUri: string): Promise<string> {
-  if (!imageUri) return imageUri;
-  return normalizeLocalMediaUri(imageUri);
-}
-
-async function assertUploadFileIsValid(imageUri: string): Promise<void> {
-  // content:// providers often hide direct stat info; rely on upload attempt in that case.
-  if (imageUri.startsWith("content://")) {
-    return;
-  }
-
-  try {
-    const info = await FileSystem.getInfoAsync(imageUri);
-    const size = (info as { size?: number }).size;
-    if (!info.exists) {
-      throw new Error("Seçilen görsel okunamadı. Lütfen resmi tekrar seçin.");
-    }
-    // Some Android providers return undefined size even for valid files.
-    // Only reject tiny files when we can reliably read size.
-    if (typeof size === "number" && size > 0 && size < 1024) {
-      throw new Error("Seçilen görsel geçersiz görünüyor. Lütfen resmi tekrar seçin.");
-    }
-  } catch (error) {
-    if (error instanceof Error && error.message) {
-      throw error;
-    }
-    throw new Error("Seçilen görsel okunamadı. Lütfen resmi tekrar seçin.");
-  }
-}
 
 function normalizeMobileOcrCreateError(error: unknown): Error {
   if (error instanceof Error) {
@@ -209,14 +144,8 @@ export const customerApi = {
     appendIfPresent("imageDescription", data.imageDescription);
 
     if (data.imageUri) {
-      const readableUri = await ensureReadableUploadUri(data.imageUri);
-      await assertUploadFileIsValid(readableUri);
-      const fileMeta = getSafeUploadMeta(readableUri);
-      formData.append("imageFile", {
-        uri: fileMeta.uri,
-        type: fileMeta.type,
-        name: fileMeta.name,
-      } as any);
+      const file = await prepareMobileImageUpload(data.imageUri, { namePrefix: "customer-card" });
+      appendMobileUploadFile(formData, "imageFile", file);
     }
 
     try {
@@ -270,16 +199,9 @@ export const customerApi = {
     imageUri: string,
     imageDescription?: string
   ): Promise<CustomerImageDto[]> => {
-    const readableUri = await ensureReadableUploadUri(imageUri);
-    await assertUploadFileIsValid(readableUri);
-    const fileMeta = getSafeUploadMeta(readableUri);
-
     const formData = new FormData();
-    formData.append("files", {
-      uri: fileMeta.uri,
-      type: fileMeta.type,
-      name: fileMeta.name,
-    } as any);
+    const file = await prepareMobileImageUpload(imageUri, { namePrefix: `customer-${customerId}` });
+    appendMobileUploadFile(formData, "files", file);
 
     if (imageDescription?.trim()) {
       formData.append("imageDescriptions", imageDescription.trim());

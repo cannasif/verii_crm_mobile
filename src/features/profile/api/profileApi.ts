@@ -1,5 +1,6 @@
 import { apiClient } from "../../../lib/axios";
 import { getApiBaseUrl } from "../../../constants/config";
+import { appendMobileUploadFile, prepareMobileImageUpload } from "../../../lib/uploadMedia";
 import type {
   AuthUserProfile,
   AuthUserProfileResponse,
@@ -75,16 +76,9 @@ export const profileApi = {
   },
 
   uploadProfilePicture: async (userId: number, localUri: string): Promise<UserDetailProfile> => {
-    const fileName = localUri.split("/").pop() || `profile-${Date.now()}.jpg`;
-    const ext = fileName.includes(".") ? fileName.split(".").pop()?.toLowerCase() : "jpg";
-    const mimeType = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
-
     const formData = new FormData();
-    formData.append("file", {
-      uri: localUri,
-      name: fileName,
-      type: mimeType,
-    } as unknown as Blob);
+    const file = await prepareMobileImageUpload(localUri, { namePrefix: `profile-${userId}` });
+    appendMobileUploadFile(formData, "file", file);
 
     const response = await apiClient.post<UserDetailProfileResponse>(
       `/api/UserDetail/users/${userId}/profile-picture`,

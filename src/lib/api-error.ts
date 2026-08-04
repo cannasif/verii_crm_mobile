@@ -9,14 +9,24 @@ type ApiErrorPayload = {
 
 function extractServerMessage(payload: unknown): string {
   const data = payload as ApiErrorPayload | undefined;
-  return (
-    data?.message ||
-    data?.exceptionMessage ||
-    (Array.isArray(data?.errors) && data.errors.length > 0 ? data.errors.join(", ") : "")
-  );
+  const messages = [
+    data?.message,
+    data?.exceptionMessage,
+    ...(Array.isArray(data?.errors) ? data.errors : []),
+  ]
+    .map((message) => message?.trim())
+    .filter((message): message is string => Boolean(message));
+
+  return [...new Set(messages)].join(" — ");
 }
 
 export function normalizeApiRequestError(error: unknown, fallbackMessage: string, endpoint?: string): Error {
+  const enhancedResponseData = (error as { response?: { data?: unknown } } | null)?.response?.data;
+  const enhancedServerMessage = extractServerMessage(enhancedResponseData);
+  if (enhancedServerMessage) {
+    return new Error(enhancedServerMessage);
+  }
+
   if (axios.isAxiosError(error)) {
     const serverMessage = extractServerMessage(error.response?.data);
     if (serverMessage) {

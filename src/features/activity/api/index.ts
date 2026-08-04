@@ -1,7 +1,7 @@
 import { apiClient } from "../../../lib/axios";
 import i18n from "../../../locales";
 import { normalizeApiRequestError } from "../../../lib/api-error";
-import { ensureReadableUploadUri } from "../../../lib/uploadMedia";
+import { appendMobileUploadFile, prepareMobileImageUpload } from "../../../lib/uploadMedia";
 import type { ApiResponse } from "../../auth/types";
 import type {
   ActivityDto,
@@ -50,31 +50,6 @@ function normalizePagedResponse<T>(raw: RawPagedPayload<T> | null | undefined): 
     totalPages,
     hasPreviousPage,
     hasNextPage,
-  };
-}
-
-const EXTENSION_TO_MIME: Record<string, string> = {
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  png: "image/png",
-  webp: "image/webp",
-  gif: "image/gif",
-  heic: "image/heic",
-  heif: "image/heif",
-};
-
-function getSafeUploadMeta(imageUri: string): { name: string; type: string; uri: string } {
-  const cleanedUri = imageUri.split("?")[0]?.split("#")[0] ?? imageUri;
-  const rawTail = cleanedUri.split("/").pop()?.trim() || `activity_${Date.now()}.jpg`;
-  const hasDot = rawTail.includes(".");
-  const baseName = hasDot ? rawTail.substring(0, rawTail.lastIndexOf(".")) : rawTail;
-  const rawExt = hasDot ? rawTail.substring(rawTail.lastIndexOf(".") + 1).toLowerCase() : "";
-  const safeExt = EXTENSION_TO_MIME[rawExt] ? rawExt : "jpg";
-
-  return {
-    uri: imageUri,
-    name: `${baseName.replace(/[^a-zA-Z0-9_-]/g, "_")}.${safeExt}`,
-    type: EXTENSION_TO_MIME[safeExt] ?? "image/jpeg",
   };
 }
 
@@ -225,17 +200,13 @@ export const activityImageApi = {
     const formData = new FormData();
 
     for (const image of images) {
-      const readableUri = await ensureReadableUploadUri(image.uri, image.mimeType);
-      const meta = getSafeUploadMeta(readableUri);
-      formData.append("files", {
-        uri: meta.uri,
-        name: meta.name,
-        type: meta.type,
-      } as any);
-
-      if (image.description) {
-        formData.append("resimAciklamalar", image.description);
-      }
+      const file = await prepareMobileImageUpload(image.uri, {
+        mimeType: image.mimeType,
+        namePrefix: `activity-${activityId}`,
+      });
+      appendMobileUploadFile(formData, "files", file);
+      // Keep list indexes aligned with files even when a description is empty.
+      formData.append("resimAciklamalar", image.description?.trim() || "");
     }
 
     let response;

@@ -134,12 +134,15 @@ apiClient.interceptors.request.use(
     const isFormDataPayload = typeof FormData !== "undefined" && config.data instanceof FormData;
 
     if (isFormDataPayload) {
-      if (typeof (config.headers as any).set === "function") {
-        (config.headers as any).set("Content-Type", "multipart/form-data");
-        (config.headers as any).set("content-type", "multipart/form-data");
+      // React Native's native networking layer must generate the multipart boundary.
+      // A manually forced `multipart/form-data` value omits that boundary on some
+      // Android devices and ASP.NET then receives an unreadable/empty file stream.
+      if (typeof (config.headers as any).delete === "function") {
+        (config.headers as any).delete("Content-Type");
+        (config.headers as any).delete("content-type");
       } else {
-        config.headers["Content-Type"] = "multipart/form-data";
-        config.headers["content-type"] = "multipart/form-data";
+        delete config.headers["Content-Type"];
+        delete config.headers["content-type"];
       }
     } else if (config.data !== undefined) {
       config.data = normalizeOutgoingUtcDateStrings(config.data);
@@ -211,7 +214,20 @@ apiClient.interceptors.response.use(
 
     if (error.response?.data) {
       const responseData = error.response.data as any;
-      if (responseData.message) {
+      const isUploadRequest =
+        (typeof FormData !== "undefined" && error.config?.data instanceof FormData) ||
+        /(?:upload|profile-picture|create-from-ocr)/i.test(requestUrl);
+      const uploadMessages = [
+        responseData.message,
+        responseData.exceptionMessage,
+        ...(Array.isArray(responseData.errors) ? responseData.errors : []),
+      ]
+        .map((message: unknown) => typeof message === "string" ? message.trim() : "")
+        .filter(Boolean);
+
+      if (isUploadRequest && uploadMessages.length > 0) {
+        errorMessage = [...new Set(uploadMessages)].join(" — ");
+      } else if (responseData.message) {
         errorMessage = responseData.message;
       } else if (responseData.exceptionMessage) {
         errorMessage = responseData.exceptionMessage;
