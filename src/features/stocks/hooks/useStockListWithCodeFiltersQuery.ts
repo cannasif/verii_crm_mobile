@@ -7,6 +7,7 @@ interface UseStockListWithCodeFiltersQueryParams {
   selections: CatalogSpecialCodeSelections;
   enabled: boolean;
   search?: string;
+  searchFields?: string[];
   additionalFilters: PagedFilter[];
   filterLogic: "and" | "or";
   sortBy: string;
@@ -19,6 +20,7 @@ export function useStockListWithCodeFiltersQuery(params: UseStockListWithCodeFil
     selections,
     enabled,
     search,
+    searchFields,
     additionalFilters,
     filterLogic,
     sortBy,
@@ -44,6 +46,7 @@ export function useStockListWithCodeFiltersQuery(params: UseStockListWithCodeFil
         sortDirection,
         pageSize,
         normalizedSearch,
+        searchFields,
       },
     ],
     queryFn: ({ pageParam = 1 }) =>
@@ -51,6 +54,7 @@ export function useStockListWithCodeFiltersQuery(params: UseStockListWithCodeFil
         pageNumber: pageParam as number,
         pageSize,
         search: normalizedSearch,
+        searchFields: normalizedSearch ? searchFields : undefined,
         additionalFilters,
         filterLogic,
         sortBy,

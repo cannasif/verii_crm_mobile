@@ -16,6 +16,7 @@ export interface FetchStockListWithCodeFiltersParams {
   pageNumber: number;
   pageSize: number;
   search?: string;
+  searchFields?: string[];
   additionalFilters?: PagedFilter[];
   filterLogic?: "and" | "or";
   sortBy?: string;
@@ -52,7 +53,7 @@ function sortStockRows(
 
 async function fetchAllMatchingStocks(
   selections: CatalogSpecialCodeSelections,
-  options: Pick<FetchStockListWithCodeFiltersParams, "search" | "additionalFilters" | "filterLogic">
+  options: Pick<FetchStockListWithCodeFiltersParams, "search" | "searchFields" | "additionalFilters" | "filterLogic">
 ): Promise<StockGetDto[]> {
   const search = toCatalogStockApiSearch(options.search ?? "");
   const additionalFilters = options.additionalFilters ?? [];
@@ -77,6 +78,7 @@ async function fetchAllMatchingStocks(
       pageNumber: 1,
       pageSize: SPECIAL_CODE_MERGE_FETCH_SIZE,
       search,
+      searchFields: search ? options.searchFields : undefined,
       sortBy: "Id",
       sortDirection: "desc",
       filterLogic,

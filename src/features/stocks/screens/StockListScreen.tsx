@@ -17,6 +17,7 @@ import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenHeader } from "../../../components/navigation";
+import { asSearchFields, STOCK_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
 import {
   PagedAdvancedFilterBuilder,
   PagedAdvancedFilterModal,
@@ -309,6 +310,7 @@ export function StockListScreen() {
     filters: apiFilters,
     filterLogic: appliedFilterLogic,
     search: normalizedSearch,
+    searchFields: asSearchFields(STOCK_LIST_SEARCH_FIELDS),
     sortBy: "createdDate",
     sortDirection: sortOrder,
     pageSize: 20,
@@ -327,6 +329,7 @@ export function StockListScreen() {
     selections: appliedSpecialCodeSelections,
     enabled: hasAppliedSpecialCodeSelection,
     search: normalizedSearch,
+    searchFields: asSearchFields(STOCK_LIST_SEARCH_FIELDS),
     additionalFilters: apiFilters,
     filterLogic: appliedFilterLogic,
     sortBy: "createdDate",

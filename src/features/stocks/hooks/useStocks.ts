@@ -5,6 +5,7 @@ import type { StockGetDto, PagedFilter, PagedResponse } from "../types";
 interface UseStocksParams {
   filters?: PagedFilter[];
   search?: string;
+  searchFields?: string[];
   filterLogic?: "and" | "or";
   sortBy?: string;
   sortDirection?: "asc" | "desc";
@@ -16,6 +17,7 @@ export function useStocks(params: UseStocksParams = {}) {
   const {
     filters = [],
     search,
+    searchFields,
     filterLogic,
     sortBy = "stockName",
     sortDirection = "asc",
@@ -29,12 +31,13 @@ export function useStocks(params: UseStocksParams = {}) {
       : undefined;
 
   return useInfiniteQuery<PagedResponse<StockGetDto>, Error>({
-    queryKey: ["stock", "list", { filters, filterLogic, sortBy, sortDirection, pageSize, normalizedSearch }],
+    queryKey: ["stock", "list", { filters, filterLogic, sortBy, sortDirection, pageSize, normalizedSearch, searchFields }],
     queryFn: ({ pageParam = 1 }) =>
       stockApi.getList({
         pageNumber: pageParam as number,
         pageSize,
         search: normalizedSearch,
+        searchFields: normalizedSearch ? searchFields : undefined,
         sortBy,
         sortDirection,
         filters,
