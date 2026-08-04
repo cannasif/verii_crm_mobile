@@ -45,6 +45,7 @@ async function getDefinitions(endpoint: string): Promise<WindoDefinitionDto[]> {
       pageNumber: 1,
       pageSize: DROPDOWN_PAGE_SIZE,
       search: "",
+      searchFields: ["Name"],
       sortBy: "Name",
       sortDirection: "asc",
     },
