@@ -33,6 +33,7 @@ export function useCatalogFavoritesQuery(params: UseCatalogFavoritesQueryParams)
         pageNumber: pageParam as number,
         pageSize: PAGE_SIZE,
         search: search.trim() || undefined,
+        searchFields: search.trim() ? ["Stock.ErpStockCode", "Stock.StockName"] : undefined,
       });
     },
     enabled: enabled && catalogId != null,

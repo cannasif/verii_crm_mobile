@@ -42,6 +42,7 @@ export function useCatalogCategoryStocksQuery(params: UseCatalogCategoryStocksQu
         pageNumber: pageParam as number,
         pageSize: PAGE_SIZE,
         search: search.trim() || undefined,
+        searchFields: search.trim() ? ["ErpStockCode", "StockName"] : undefined,
         includeDescendants,
       });
     },
