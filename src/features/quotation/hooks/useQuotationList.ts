@@ -9,6 +9,7 @@ const STALE_TIME_MS = 2 * 60 * 1000;
 interface UseQuotationListParams {
   filters?: PagedFilter[];
   search?: string;
+  searchFields?: string[];
   filterLogic?: "and" | "or";
   sortBy?: string;
   sortDirection?: "asc" | "desc";
@@ -20,6 +21,7 @@ export function useQuotationList(params: UseQuotationListParams = {}) {
   const {
     filters,
     search,
+    searchFields,
     filterLogic,
     sortBy = "Id",
     sortDirection = "desc",
@@ -31,7 +33,7 @@ export function useQuotationList(params: UseQuotationListParams = {}) {
     queryKey: [
       "quotation",
       "quotations",
-      { filters, search, filterLogic, sortBy, sortDirection, pageSize, approvalStatusFilter },
+      { filters, search, searchFields, filterLogic, sortBy, sortDirection, pageSize, approvalStatusFilter },
     ],
     queryFn: ({ pageParam }) =>
       fetchPagedDocumentList(
@@ -40,6 +42,7 @@ export function useQuotationList(params: UseQuotationListParams = {}) {
           pageNumber: pageParam as number,
           pageSize,
           search,
+          searchFields: search ? searchFields : undefined,
           sortBy,
           sortDirection,
           filters,

@@ -371,6 +371,7 @@ export const quotationApi = {
       pageNumber: params.pageNumber ?? 1,
       pageSize: params.pageSize ?? 20,
       search: params.search ?? "",
+      searchFields: params.searchFields ?? [],
       sortBy: params.sortBy ?? "Id",
       sortDirection: params.sortDirection ?? "asc",
       filterLogic: params.filterLogic ?? "and",
@@ -567,12 +568,14 @@ export const quotationApi = {
     pageNumber?: number;
     pageSize?: number;
     search?: string;
+    searchFields?: string[];
     filters?: Array<{ column: string; operator: string; value: string }>;
   }): Promise<SalesTypeGetDto[]> => {
     const payload = {
       pageNumber: params.pageNumber ?? 1,
       pageSize: params.pageSize ?? 500,
       search: params.search ?? "",
+      searchFields: params.searchFields ?? [],
       sortBy: "Id",
       sortDirection: "asc" as const,
       filterLogic: "and" as const,
@@ -655,6 +658,7 @@ export const quotationApi = {
       pageNumber: 1,
       pageSize: 1000,
       search: "",
+      searchFields: [],
       sortBy: "Name",
       sortDirection: "asc",
       filterLogic: "and",
@@ -699,6 +703,7 @@ export const quotationApi = {
         pageNumber: params.pageNumber ?? 1,
         pageSize: params.pageSize ?? 100,
         search: params.search ?? "",
+        searchFields: params.searchFields ?? [],
         sortBy: params.sortBy ?? "Id",
         sortDirection: params.sortDirection ?? "asc",
         filterLogic: params.filterLogic ?? "and",
@@ -723,6 +728,7 @@ export const quotationApi = {
       pageNumber: params.pageNumber ?? 1,
       pageSize: params.pageSize ?? 100,
       search: params.search ?? "",
+      searchFields: params.searchFields ?? [],
       sortBy: params.sortBy ?? "Id",
       sortDirection: params.sortDirection ?? "asc",
       filterLogic: params.filterLogic ?? "and",

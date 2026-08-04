@@ -31,6 +31,7 @@ import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { VoiceSearchButton } from "./VoiceSearchButton";
 import { getLocalizedStockNameFromStock } from "../../../lib/localizedStockName";
+import { asSearchFields, STOCK_PICKER_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
 import {
   useStocks,
 } from "../../stocks/hooks";
@@ -864,6 +865,7 @@ function ProductPickerInner(
       filters: apiFilters,
       filterLogic: appliedFilterLogic,
       search: debouncedSearchText || undefined,
+      searchFields: asSearchFields(STOCK_PICKER_SEARCH_FIELDS),
       enabled: isOpen,
     }
   );

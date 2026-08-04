@@ -20,6 +20,7 @@ import {
   Invoice01Icon,
 } from "hugeicons-react-native";
 import { listContentBottomPadding } from "../../../constants/layout";
+import { asSearchFields, SALES_DOCUMENT_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
 import { ScreenHeader } from "../../../components/navigation";
 import {
   PagedFlatList,
@@ -119,6 +120,7 @@ export function QuotationListScreen(): React.ReactElement {
     isFetchingNextPage,
   } = useQuotationList({
     search: debouncedQuery.trim().length >= 2 ? debouncedQuery.trim() : undefined,
+    searchFields: asSearchFields(SALES_DOCUMENT_LIST_SEARCH_FIELDS),
     sortBy,
     sortDirection,
     approvalStatusFilter,
