@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useCustomers } from "../hooks";
+import { asSearchFields, CUSTOMER_PICKER_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
 import type { CustomerDto } from "../types";
 // YENİ İKONLAR
 import { ArrowDown01Icon, Cancel01Icon, CheckmarkCircle02Icon, Search01Icon } from "hugeicons-react-native";
@@ -64,6 +65,7 @@ export function CustomerPicker({
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useCustomers({
     enabled: isOpen,
     search: debouncedSearch.length >= 2 ? debouncedSearch : undefined,
+    searchFields: asSearchFields(CUSTOMER_PICKER_SEARCH_FIELDS),
   });
 
   const customers = useMemo(() => {

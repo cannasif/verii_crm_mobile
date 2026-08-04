@@ -27,6 +27,7 @@ import {
 } from "../../../components/paged";
 import { useUIStore } from "../../../store/ui";
 import { useCustomers, useCities, useDistricts } from "../hooks";
+import { asSearchFields, CUSTOMER_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
 import type { CustomerDto, PagedFilter } from "../types";
 
 import {
@@ -113,6 +114,7 @@ export function CustomerListScreen() {
   const { data, isLoading, refetch, isRefetching, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useCustomers({
       search: debouncedQuery.trim().length >= 2 ? debouncedQuery.trim() : undefined,
+      searchFields: asSearchFields(CUSTOMER_LIST_SEARCH_FIELDS),
       filters: apiFilters,
       filterLogic: appliedFilterLogic,
       sortBy: "Id",

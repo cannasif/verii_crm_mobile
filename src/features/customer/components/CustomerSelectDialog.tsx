@@ -21,6 +21,7 @@ import {
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useCustomers } from "../hooks";
+import { asSearchFields, CUSTOMER_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
 import type { CustomerGetDto } from "../types";
 import {
   formatCustomerSelectLabel,
@@ -176,6 +177,7 @@ export function CustomerSelectDialog({
     pageSize: PAGE_SIZE,
     enabled: open,
     search: debouncedSearchQuery || undefined,
+    searchFields: asSearchFields(CUSTOMER_LIST_SEARCH_FIELDS),
     sortBy: "Id",
     sortDirection: "asc",
     filters: apiFilters,

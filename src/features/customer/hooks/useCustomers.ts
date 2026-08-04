@@ -7,6 +7,7 @@ const DEFAULT_PAGE_SIZE = 20;
 interface UseCustomersParams {
   filters?: PagedFilter[];
   search?: string;
+  searchFields?: string[];
   filterLogic?: "and" | "or";
   sortBy?: string;
   sortDirection?: "asc" | "desc";
@@ -19,6 +20,7 @@ export function useCustomers(params: UseCustomersParams = {}) {
   const {
     filters,
     search,
+    searchFields,
     filterLogic,
     sortBy = "Id",
     sortDirection = "asc",
@@ -31,13 +33,14 @@ export function useCustomers(params: UseCustomersParams = {}) {
     queryKey: [
       "customer",
       "list",
-      { filters, search, filterLogic, sortBy, sortDirection, pageSize, contextUserId },
+      { filters, search, searchFields, filterLogic, sortBy, sortDirection, pageSize, contextUserId },
     ],
     queryFn: ({ pageParam }) =>
       customerApi.getList({
         pageNumber: pageParam as number,
         pageSize,
         search,
+        searchFields: search ? searchFields : undefined,
         sortBy,
         sortDirection,
         filters,
