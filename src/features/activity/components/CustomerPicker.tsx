@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useCustomers } from "../../customer/hooks";
+import { asSearchFields, CUSTOMER_PICKER_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
 import type { CustomerDto } from "../../customer/types";
 
 interface CustomerPickerProps {
@@ -53,6 +54,7 @@ export function CustomerPicker({
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useCustomers({
     enabled: isOpen,
     search: debouncedSearch.length >= 2 ? debouncedSearch : undefined,
+    searchFields: asSearchFields(CUSTOMER_PICKER_SEARCH_FIELDS),
     contextUserId,
   });
 

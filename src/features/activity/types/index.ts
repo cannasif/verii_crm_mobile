@@ -10,6 +10,7 @@ export interface PagedParams {
   pageNumber?: number;
   pageSize?: number;
   search?: string;
+  searchFields?: string[];
   sortBy?: string;
   sortDirection?: "asc" | "desc";
   filters?: PagedFilter[];

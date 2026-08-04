@@ -7,6 +7,7 @@ const DEFAULT_PAGE_SIZE = 20;
 interface UseActivitiesParams {
   filters?: PagedFilter[];
   search?: string;
+  searchFields?: string[];
   filterLogic?: "and" | "or";
   sortBy?: string;
   sortDirection?: "asc" | "desc";
@@ -18,6 +19,7 @@ export function useActivities(params: UseActivitiesParams = {}) {
   const {
     filters,
     search,
+    searchFields,
     filterLogic = "and",
     sortBy = "Id",
     sortDirection = "desc",
@@ -26,12 +28,13 @@ export function useActivities(params: UseActivitiesParams = {}) {
   } = params;
 
   return useInfiniteQuery<PagedResponse<ActivityDto>, Error>({
-    queryKey: ["activity", "list", { filters, search, filterLogic, sortBy, sortDirection, pageSize }],
+    queryKey: ["activity", "list", { filters, search, searchFields, filterLogic, sortBy, sortDirection, pageSize }],
     queryFn: ({ pageParam }) =>
       activityApi.getList({
         pageNumber: pageParam as number,
         pageSize,
         search,
+        searchFields: search ? searchFields : undefined,
         sortBy,
         sortDirection,
         filters,

@@ -20,6 +20,7 @@ import {
   type PagedAdvancedFilterRow,
 } from "../../../components/paged";
 import { useUIStore } from "../../../store/ui";
+import { ACTIVITY_LIST_SEARCH_FIELDS, asSearchFields } from "../../../lib/pagedSearchFields";
 import { PermissionDeniedState } from "../../access-control/components/PermissionDeniedState";
 import { isForbiddenError } from "../../access-control/utils/isForbiddenError";
 import { hasPermission } from "../../access-control/utils/hasPermission";
@@ -130,6 +131,7 @@ export function ActivityListScreen(): React.ReactElement {
     filters: apiFilters,
     filterLogic: appliedFilterLogic,
     search: debouncedQuery.trim().length >= 2 ? debouncedQuery.trim() : undefined,
+    searchFields: asSearchFields(ACTIVITY_LIST_SEARCH_FIELDS),
     sortBy: "Id",
     sortDirection: sortOrder,
     pageSize: 20,
