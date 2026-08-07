@@ -998,6 +998,7 @@
     "selectStatus": "Select Status",
     "selectPriority": "Select Priority",
     "selectCustomer": "Select Customer",
+    "customerRequiredForActivityType": "A customer is required for the selected activity type.",
     "selectContact": "Select Contact",
     "selectCustomerFirst": "Select customer first",
     "searchCustomer": "Search customer...",

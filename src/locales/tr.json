@@ -1024,6 +1024,7 @@
     "selectStatus": "Durum Seçin",
     "selectPriority": "Öncelik Seçin",
     "selectCustomer": "Müşteri Seçin",
+    "customerRequiredForActivityType": "Seçilen aktivite tipi için müşteri seçimi zorunludur.",
     "selectContact": "Kişi Seçin",
     "selectCustomerFirst": "Önce müşteri seçin",
     "searchCustomer": "Müşteri ara...",

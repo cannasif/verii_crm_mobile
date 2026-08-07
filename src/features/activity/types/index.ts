@@ -33,6 +33,7 @@ export interface ActivityTypeRef {
   id: number;
   name: string;
   description?: string;
+  isCustomerRequired?: boolean;
   createdDate?: string;
   updatedDate?: string;
   isDeleted?: boolean;
@@ -44,6 +45,7 @@ export interface ActivityTypeDto {
   id: number;
   name: string;
   description?: string;
+  isCustomerRequired?: boolean;
   createdDate: string;
   updatedDate?: string;
   createdBy?: string;

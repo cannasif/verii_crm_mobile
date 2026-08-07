@@ -930,6 +930,7 @@
     "selectStatus": "Status wählen",
     "selectPriority": "Priorität wählen",
     "selectCustomer": "Kunde wählen",
+    "customerRequiredForActivityType": "Für den ausgewählten Aktivitätstyp ist ein Kunde erforderlich.",
     "selectContact": "Kontakt wählen",
     "selectCustomerFirst": "Wählen Sie zuerst einen Kunden aus",
     "searchCustomer": "Kunde suchen...",

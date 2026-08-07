@@ -235,6 +235,7 @@ export function ActivityFormScreen(): React.ReactElement {
   });
 
   const watchActivityType = watch("activityType");
+  const watchActivityTypeId = watch("activityTypeId");
   const watchStatus = watch("status");
   const watchPriority = watch("priority");
   const watchStartDateTime = watch("startDateTime");
@@ -243,6 +244,16 @@ export function ActivityFormScreen(): React.ReactElement {
   const watchAssignedUserId = watch("assignedUserId");
   const watchIsAllDay = watch("isAllDay");
   const watchReminders = watch("reminders") || [];
+  const selectedActivityType = useMemo(
+    () =>
+      activityTypes?.find(
+        (type) =>
+          (watchActivityTypeId != null && type.id === watchActivityTypeId) ||
+          type.name === watchActivityType
+      ),
+    [activityTypes, watchActivityType, watchActivityTypeId]
+  );
+  const isCustomerRequired = selectedActivityType?.isCustomerRequired === true;
   const { data: isCustomerInAssignedScope } = useCustomerScopeAccess(
     watchCustomerId ?? undefined,
     watchAssignedUserId ?? user?.id
@@ -847,6 +858,11 @@ export function ActivityFormScreen(): React.ReactElement {
         return;
       }
 
+      if (isCustomerRequired && (!data.potentialCustomerId || data.potentialCustomerId <= 0)) {
+        Alert.alert(t("common.warning"), t("activity.customerRequiredForActivityType"));
+        return;
+      }
+
       try {
         const options = {
           activityTypes: activityTypes ?? [],
@@ -941,6 +957,7 @@ export function ActivityFormScreen(): React.ReactElement {
       queryClient,
       canSubmit,
       canAddActivityImage,
+      isCustomerRequired,
     ]
   );
 
@@ -1364,6 +1381,7 @@ export function ActivityFormScreen(): React.ReactElement {
                     onChange={handleCustomerChange}
                     disabled={isQuickActivityMode}
                     contextUserId={watchAssignedUserId ?? user?.id}
+                    required={isCustomerRequired}
                   />
                 </View>
 
