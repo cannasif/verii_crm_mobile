@@ -10,7 +10,7 @@ import {
   Invoice03Icon,
   ArrowRight01Icon,
 } from "hugeicons-react-native";
-import type { Customer360TimelineItemDto } from "../types";
+import type { Customer360TimelineItemDto } from "../types/customer360-types";
 
 interface TimelineRowProps {
   item: Customer360TimelineItemDto;

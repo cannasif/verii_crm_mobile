@@ -2,7 +2,7 @@ import React from "react";
 import { View, StyleSheet } from "react-native";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
-import type { Customer360AmountComparisonDto } from "../types";
+import type { Customer360AmountComparisonDto } from "../types/customer360-types";
 
 interface AmountComparisonTableProps {
   items: Customer360AmountComparisonDto[];

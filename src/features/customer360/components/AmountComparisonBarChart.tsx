@@ -3,7 +3,7 @@ import { View, StyleSheet, Dimensions } from "react-native";
 import { BarChart } from "react-native-gifted-charts";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
-import type { Customer360AmountComparisonDto } from "../types";
+import type { Customer360AmountComparisonDto } from "../types/customer360-types";
 
 const CHART_COLORS = {
   last12: "#8B5CF6",

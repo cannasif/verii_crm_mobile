@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { useTranslation } from "react-i18next";
 import { Text } from "../../../components/ui/text";
-import type { Customer360QuickQuotationDto } from "../types";
+import type { Customer360QuickQuotationDto } from "../types/customer360-types";
 import { useUIStore } from "../../../store/ui";
 import {
   Invoice03Icon,

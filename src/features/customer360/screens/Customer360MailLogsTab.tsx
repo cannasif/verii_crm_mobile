@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
+import { customer360QueryKeys } from "../utils/query-keys";
 import {
   Mail01Icon,
   Calendar03Icon,
@@ -236,7 +237,7 @@ export function Customer360MailLogsTab({
   const surfaceBorder = isDark ? "rgba(255,255,255,0.05)" : "rgba(148,163,184,0.10)";
 
   const query = useQuery({
-    queryKey: ["customer360", "mail-logs", provider, customerId, pageNumber, pageSize],
+    queryKey: customer360QueryKeys.mailLogs(provider, customerId, pageNumber, pageSize),
     queryFn: () =>
       provider === "google"
         ? integrationApi.getGoogleCustomerMailLogs({

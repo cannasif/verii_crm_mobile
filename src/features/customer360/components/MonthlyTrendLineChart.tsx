@@ -8,7 +8,7 @@ import {
   Invoice03Icon,
   ShoppingBag03Icon,
 } from "hugeicons-react-native";
-import type { Customer360MonthlyTrendItemDto } from "../types";
+import type { Customer360MonthlyTrendItemDto } from "../types/customer360-types";
 
 const CHART_COLORS = {
   demand: "#8B5CF6",

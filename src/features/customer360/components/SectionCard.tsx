@@ -8,7 +8,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
-import type { Customer360SimpleItemDto } from "../types";
+import type { Customer360SimpleItemDto } from "../types/customer360-types";
 import { SimpleItemRow } from "./SimpleItemRow";
 import {
   Contact01Icon,

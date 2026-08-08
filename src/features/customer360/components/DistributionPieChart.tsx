@@ -4,7 +4,7 @@ import { PieChart } from "react-native-gifted-charts";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { AnalyticsUpIcon, Invoice03Icon, ShoppingBag03Icon } from "hugeicons-react-native";
-import type { Customer360DistributionDto } from "../types";
+import type { Customer360DistributionDto } from "../types/customer360-types";
 
 const CHART_COLORS = {
   demand: "#8B5CF6",

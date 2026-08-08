@@ -15,7 +15,7 @@ import {
 import type {
   Customer360ErpBalanceDto,
   Customer360ErpMovementDto,
-} from "../types";
+} from "../types/customer360-types";
 
 interface Customer360ErpMovementsTabProps {
   balance?: Customer360ErpBalanceDto;

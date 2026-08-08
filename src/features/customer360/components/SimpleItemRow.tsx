@@ -8,7 +8,7 @@ import {
   Activity02Icon,
   Invoice01Icon,
 } from "hugeicons-react-native";
-import type { Customer360SimpleItemDto } from "../types";
+import type { Customer360SimpleItemDto } from "../types/customer360-types";
 
 interface SimpleItemRowProps {
   item: Customer360SimpleItemDto;

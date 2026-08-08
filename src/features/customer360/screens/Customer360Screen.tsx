@@ -17,14 +17,12 @@ import { Text } from "../../../components/ui/text";
 import { ScreenHeader } from "../../../components/navigation";
 import { useUIStore } from "../../../store/ui";
 import { isErpIntegratedCustomer } from "../../../lib/customerIntegration";
-import {
-  useCustomer360Overview,
-  useCustomer360AnalyticsSummary,
-  useCustomer360AnalyticsCharts,
-  useCustomer360QuickQuotations,
-  useCustomer360ErpMovements,
-  useCustomer360ErpBalance,
-} from "../hooks";
+import { useCustomer360Overview } from "../hooks/useCustomer360Overview";
+import { useCustomer360AnalyticsSummary } from "../hooks/useCustomer360AnalyticsSummary";
+import { useCustomer360AnalyticsCharts } from "../hooks/useCustomer360AnalyticsCharts";
+import { useCustomer360QuickQuotations } from "../hooks/useCustomer360QuickQuotations";
+import { useCustomer360ErpMovements } from "../hooks/useCustomer360ErpMovements";
+import { useCustomer360ErpBalance } from "../hooks/useCustomer360ErpBalance";
 import { CurrencyPicker } from "../components";
 import { Customer360OverviewTab } from "./Customer360OverviewTab";
 import { Customer360AnalyticsTab } from "./Customer360AnalyticsTab";

@@ -3,7 +3,7 @@ import { View, StyleSheet, FlatList } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
-import type { Customer360TimelineItemDto } from "../types";
+import type { Customer360TimelineItemDto } from "../types/customer360-types";
 import { TimelineRow } from "./TimelineRow";
 import { Activity01Icon } from "hugeicons-react-native";
 

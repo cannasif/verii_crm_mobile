@@ -15,7 +15,7 @@ import type {
   Customer360AnalyticsSummaryDto,
   Customer360AnalyticsChartsDto,
   Customer360CurrencyAmountDto,
-} from "../types";
+} from "../types/customer360-types";
 import {
   AnalyticsUpIcon,
   Calendar03Icon,

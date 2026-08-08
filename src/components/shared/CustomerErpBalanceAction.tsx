@@ -17,7 +17,7 @@ import {
 import { Text } from "@/components/ui/text";
 import { formatSystemNumber } from "@/lib/systemSettings";
 import { useUIStore } from "@/store/ui";
-import { useCustomer360ErpBalance } from "@/features/customer360/hooks";
+import { useCustomer360ErpBalance } from "@/features/customer360/hooks/useCustomer360ErpBalance";
 
 interface CustomerErpBalanceActionProps {
   customerId?: number | null;

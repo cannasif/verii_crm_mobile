@@ -7,7 +7,7 @@ import type {
   Customer360AnalyticsChartsDto,
   Customer360ErpMovementDto,
   Customer360ErpBalanceDto,
-} from "../types";
+} from "../types/customer360-types";
 
 const CUSTOMER_360_OVERVIEW_STALE_MS = 30 * 1000;
 const CUSTOMER_360_SUMMARY_STALE_MS = 30 * 1000;

@@ -14,7 +14,7 @@ import type {
   Customer360OverviewDto,
   Customer360SimpleItemDto,
   Customer360TimelineItemDto,
-} from "../types";
+} from "../types/customer360-types";
 import { Calendar03Icon } from "hugeicons-react-native";
 
 interface Customer360OverviewTabProps {
