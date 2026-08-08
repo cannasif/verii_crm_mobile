@@ -23,7 +23,7 @@ import { Sidebar } from "../components/navigation/Sidebar";
 import { AppHeader } from "../components/navigation/AppHeader";
 import i18n, { initLanguage, isRtlLanguage } from "../locales";
 import { initializeApiClient } from "../lib/axios";
-import { getSystemSettings } from "../features/system-settings/api/systemSettingsApi";
+import { getSystemSettings } from "../features/system-settings/api/system-settings-api";
 import { authAccessApi } from "../features/access-control/api/auth-access-api";
 import { applySystemLanguageIfNeeded } from "../lib/systemSettings";
 import {

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { SystemSettingsDto } from "../features/system-settings/api/systemSettingsApi";
+import type { SystemSettingsDto } from "../features/system-settings/api/system-settings-api";
 
 const DEFAULT_SYSTEM_SETTINGS: SystemSettingsDto = {
   numberFormat: "tr-TR",
