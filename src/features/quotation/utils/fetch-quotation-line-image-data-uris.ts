@@ -2,7 +2,7 @@ import { Buffer } from "buffer";
 import * as FileSystem from "expo-file-system/legacy";
 import { getApiBaseUrl } from "../../../constants/config";
 import { apiClient } from "../../../lib/axios";
-import type { QuotationPreviewPdfLineInput } from "./quotationPreviewPdf.types";
+import type { QuotationPreviewPdfLineInput } from "./quotation-preview-pdf.types";
 
 function resolveRemoteImageUrl(path: string): string {
   if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("file://")) {

@@ -12,7 +12,7 @@ import {
   useDocumentSerialAutoFill,
 } from "../../document-serial-type-management";
 import { PickerModal } from "./PickerModal";
-import type { CreateQuotationSchema } from "../schemas";
+import type { CreateQuotationSchema } from "../schemas/quotation-schema";
 
 interface DocumentSerialTypePickerProps {
   control: Control<CreateQuotationSchema>;

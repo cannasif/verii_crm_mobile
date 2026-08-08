@@ -1,6 +1,7 @@
+import { quotationQueryKeys } from "../utils/query-keys";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { quotationApi } from "../api";
+import { quotationApi } from "../api/quotation-api";
 import { useToastStore } from "../../../store/toast";
 import { useTranslation } from "react-i18next";
 
@@ -13,8 +14,8 @@ export function useCreateRevisionOfQuotation() {
   return useMutation({
     mutationFn: (quotationId: number) => quotationApi.createRevision(quotationId),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["quotation", "quotations"] });
-      queryClient.invalidateQueries({ queryKey: ["quotation", "detail"] });
+      queryClient.invalidateQueries({ queryKey: quotationQueryKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: quotationQueryKeys.detailRoot() });
       showToast("success", t("quotation.revisionSuccess"));
       router.push(`/(tabs)/sales/quotations/${data.id}`);
     },

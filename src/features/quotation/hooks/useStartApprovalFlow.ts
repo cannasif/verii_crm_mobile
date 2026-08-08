@@ -1,6 +1,7 @@
+import { quotationQueryKeys } from "../utils/query-keys";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { invalidateDocumentListQueries } from "../../../lib/documentListQueryInvalidation";
-import { quotationApi } from "../api";
+import { quotationApi } from "../api/quotation-api";
 import { useToastStore } from "../../../store/toast";
 import { useTranslation } from "react-i18next";
 
@@ -19,10 +20,10 @@ export function useStartApprovalFlow() {
     mutationFn: (data) => quotationApi.startApprovalFlow(data),
     onSuccess: async (_, variables) => {
       await invalidateDocumentListQueries(queryClient, "quotation");
-      queryClient.invalidateQueries({ queryKey: ["quotation", "detail", variables.entityId] });
-      queryClient.invalidateQueries({ queryKey: ["quotation", "detail", "lines", variables.entityId] });
-      queryClient.invalidateQueries({ queryKey: ["quotation", "detail", "exchangeRates", variables.entityId] });
-      queryClient.invalidateQueries({ queryKey: ["quotation", "waitingApprovals"] });
+      queryClient.invalidateQueries({ queryKey: quotationQueryKeys.detail(variables.entityId) });
+      queryClient.invalidateQueries({ queryKey: quotationQueryKeys.lines(variables.entityId) });
+      queryClient.invalidateQueries({ queryKey: quotationQueryKeys.exchangeRates(variables.entityId) });
+      queryClient.invalidateQueries({ queryKey: quotationQueryKeys.waitingApprovals() });
       showToast("success", t("common.quotationApprovalFlowStarted"));
     },
     onError: (error) => {

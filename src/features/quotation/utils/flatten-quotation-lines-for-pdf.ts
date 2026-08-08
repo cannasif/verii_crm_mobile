@@ -1,5 +1,5 @@
-import type { QuotationLineFormState } from "../types";
-import type { QuotationPreviewPdfLineInput } from "./quotationPreviewPdf.types";
+import type { QuotationLineFormState } from "../types/quotation-types";
+import type { QuotationPreviewPdfLineInput } from "./quotation-preview-pdf.types";
 
 function mapLine(line: QuotationLineFormState): QuotationPreviewPdfLineInput {
   return {

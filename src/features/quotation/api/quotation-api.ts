@@ -49,14 +49,14 @@ import type {
   PagedResponse,
   ReportTemplateGetDto,
   GenerateReportPdfRequest,
-} from "../types";
+} from "../types/quotation-types";
 import type { ApiResponse } from "../../auth/types";
 import type {
   ProjeDto,
   SalesTypeGetDto,
   QuotationNotesGetDto,
   UpdateQuotationNotesListDto,
-} from "../types";
+} from "../types/quotation-types";
 
 export interface ReportTemplateListResponse extends ApiResponse<PagedResponse<ReportTemplateGetDto>> {}
 export interface PdfTemplateAssetDto {

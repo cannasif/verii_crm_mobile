@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { invalidateDocumentListQueries } from "../../../lib/documentListQueryInvalidation";
-import { quotationApi } from "../api";
-import type { QuotationBulkCreateDto, QuotationGetDto, QuotationNotesDto } from "../types";
+import { quotationApi } from "../api/quotation-api";
+import type { QuotationBulkCreateDto, QuotationGetDto, QuotationNotesDto } from "../types/quotation-types";
 import { useToastStore } from "../../../store/toast";
 import { useTranslation } from "react-i18next";
 

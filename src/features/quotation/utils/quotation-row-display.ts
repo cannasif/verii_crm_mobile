@@ -1,4 +1,4 @@
-import type { QuotationGetDto } from "../types";
+import type { QuotationGetDto } from "../types/quotation-types";
 import {
   formatNumberBySettings,
   getCurrencyDisplayLabel,

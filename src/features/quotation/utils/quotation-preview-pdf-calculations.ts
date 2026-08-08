@@ -1,7 +1,7 @@
 import type {
   QuotationPreviewDocumentTotals,
   QuotationPreviewPdfLineInput,
-} from "./quotationPreviewPdf.types";
+} from "./quotation-preview-pdf.types";
 
 export function round2(value: number): number {
   return Math.round(value * 100) / 100;

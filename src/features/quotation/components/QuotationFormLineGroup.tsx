@@ -4,7 +4,7 @@ import { Text } from "@/components/ui/text";
 import { useUIStore } from "@/store/ui";
 import { useTranslation } from "react-i18next";
 import { QuotationFormLineRow } from "./QuotationFormLineRow";
-import type { QuotationLineFormState } from "../types";
+import type { QuotationLineFormState } from "../types/quotation-types";
 
 export interface QuotationFormLineGroupProps {
   line: QuotationLineFormState;

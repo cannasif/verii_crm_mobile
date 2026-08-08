@@ -39,12 +39,15 @@ import { useKeyboardBottomInset } from "../../../hooks/useKeyboardBottomInset";
 import { useUIStore } from "../../../store/ui";
 import { PermissionDeniedState } from "../../access-control/components/PermissionDeniedState";
 import { isForbiddenError } from "../../access-control/utils/isForbiddenError";
-import { useQuotationList, useCreateRevisionOfQuotation, useQuotationListRowActions, usePaymentTypeNameMap } from "../hooks";
-import { resolveQuotationPaymentTypeLabel } from "../utils/resolveQuotationPaymentTypeLabel";
+import { useQuotationList } from "../hooks/useQuotationList";
+import { useCreateRevisionOfQuotation } from "../hooks/useCreateRevisionOfQuotation";
+import { useQuotationListRowActions } from "../hooks/useQuotationListRowActions";
+import { usePaymentTypeNameMap } from "../hooks/usePaymentTypeNameMap";
+import { resolveQuotationPaymentTypeLabel } from "../utils/resolve-quotation-payment-type-label";
 import { QuotationRow } from "../components/QuotationRow";
 import { QuotationRowActionsSheet } from "../components/QuotationRowActionsSheet";
 import { CustomerMailComposerModal } from "../../integration";
-import type { QuotationGetDto } from "../types";
+import type { QuotationGetDto } from "../types/quotation-types";
 
 const GAP = 16;
 const PADDING = 16;

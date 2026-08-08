@@ -1,6 +1,7 @@
+import { quotationQueryKeys } from "../utils/query-keys";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { quotationApi } from "../api";
-import type { QuotationExchangeRateUpdateDto } from "../types";
+import { quotationApi } from "../api/quotation-api";
+import type { QuotationExchangeRateUpdateDto } from "../types/quotation-types";
 import { useToastStore } from "../../../store/toast";
 import { useTranslation } from "react-i18next";
 
@@ -12,9 +13,9 @@ export function useUpdateExchangeRateInQuotation() {
   return useMutation<boolean, Error, { quotationId: number; body: QuotationExchangeRateUpdateDto[] }>({
     mutationFn: ({ body }) => quotationApi.updateExchangeRateInQuotation(body),
     onSuccess: (_, { quotationId }) => {
-      queryClient.invalidateQueries({ queryKey: ["quotation", "detail", quotationId] });
-      queryClient.invalidateQueries({ queryKey: ["quotation", "detail", "lines", quotationId] });
-      queryClient.invalidateQueries({ queryKey: ["quotation", "detail", "exchangeRates", quotationId] });
+      queryClient.invalidateQueries({ queryKey: quotationQueryKeys.detail(quotationId) });
+      queryClient.invalidateQueries({ queryKey: quotationQueryKeys.lines(quotationId) });
+      queryClient.invalidateQueries({ queryKey: quotationQueryKeys.exchangeRates(quotationId) });
       showToast("success", t("common.exchangeRatesUpdated"));
     },
     onError: (error) => {

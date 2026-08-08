@@ -5,12 +5,12 @@ import { resolveCurrencyIsoCode } from "../../../lib/currencyDisplay";
 import { buildSalesDocumentPreviewPdfExtras } from "../../../lib/salesDocumentPreviewPdf";
 import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida";
 import { ReportTab } from "./ReportTab";
-import type { QuotationLineFormState } from "../types";
-import { DocumentRuleType } from "../types";
-import { buildQuotationPreviewPdfInput } from "../utils/buildQuotationPreviewPdfInput";
-import { createBuiltInQuotationReportPdf } from "../utils/createBuiltInQuotationReportPdf";
-import { createV3riiQuotationPreviewPdf } from "../utils/createV3riiQuotationPreviewPdf";
-import { resolveQuotationCustomerLabelForPdf } from "../utils/resolveQuotationCustomerLabelForPdf";
+import type { QuotationLineFormState } from "../types/quotation-types";
+import { DocumentRuleType } from "../types/quotation-types";
+import { buildQuotationPreviewPdfInput } from "../utils/build-quotation-preview-pdf-input";
+import { createBuiltInQuotationReportPdf } from "../utils/create-built-in-quotation-report-pdf";
+import { createV3riiQuotationPreviewPdf } from "../utils/create-v3rii-quotation-preview-pdf";
+import { resolveQuotationCustomerLabelForPdf } from "../utils/resolve-quotation-customer-label-for-pdf";
 
 export const V3RII_BUILTIN_TEMPLATE_ID = "__builtin_v3rii_template__";
 

@@ -1,6 +1,7 @@
+import { quotationQueryKeys } from "../utils/query-keys";
 import { useQuery } from "@tanstack/react-query";
-import { quotationApi } from "../api";
-import type { PricingRuleLineGetDto } from "../types";
+import { quotationApi } from "../api/quotation-api";
+import type { PricingRuleLineGetDto } from "../types/quotation-types";
 
 interface UsePriceRuleOfQuotationParams {
   customerCode?: string;
@@ -12,7 +13,7 @@ export function usePriceRuleOfQuotation(params: UsePriceRuleOfQuotationParams) {
   const { customerCode, salesmenId, quotationDate } = params;
 
   return useQuery<PricingRuleLineGetDto[], Error>({
-    queryKey: ["quotation", "priceRule", params],
+    queryKey: quotationQueryKeys.priceRule(params),
     queryFn: () =>
       quotationApi.getPriceRuleOfQuotation({
         customerCode: customerCode!,

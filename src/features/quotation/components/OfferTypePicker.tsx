@@ -6,8 +6,8 @@ import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { ArrowDown01Icon } from "hugeicons-react-native";
 import { PickerModal } from "./PickerModal";
-import type { CreateQuotationSchema } from "../schemas";
-import { OfferType } from "../types";
+import type { CreateQuotationSchema } from "../schemas/quotation-schema";
+import { OfferType } from "../types/quotation-types";
 
 interface OfferTypePickerProps {
   control: Control<CreateQuotationSchema>;

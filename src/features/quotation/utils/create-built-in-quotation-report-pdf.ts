@@ -4,7 +4,7 @@ import * as Print from "expo-print";
 import { PDFDocument } from "pdf-lib";
 import { Buffer } from "buffer";
 
-import type { QuotationLineFormState } from "../types";
+import type { QuotationLineFormState } from "../types/quotation-types";
 
 const COVER_TEMPLATE_ASSET = require("../../../../assets/pdf-templates/atlas-cover-first-3-pages.pdf");
 const BRAND_LOGO_ASSET = require("../../../../assets/windoformlogo.png");

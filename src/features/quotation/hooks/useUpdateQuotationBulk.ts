@@ -1,7 +1,8 @@
+import { quotationQueryKeys } from "../utils/query-keys";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { invalidateDocumentListQueries } from "../../../lib/documentListQueryInvalidation";
-import { quotationApi } from "../api";
-import type { QuotationBulkCreateDto, QuotationGetDto } from "../types";
+import { quotationApi } from "../api/quotation-api";
+import type { QuotationBulkCreateDto, QuotationGetDto } from "../types/quotation-types";
 import { useToastStore } from "../../../store/toast";
 import { useTranslation } from "react-i18next";
 
@@ -18,9 +19,9 @@ export function useUpdateQuotationBulk() {
     mutationFn: ({ id, data }) => quotationApi.updateBulk(id, data),
     onSuccess: async (_, { id }) => {
       await invalidateDocumentListQueries(queryClient, "quotation");
-      queryClient.invalidateQueries({ queryKey: ["quotation", "detail", id] });
-      queryClient.invalidateQueries({ queryKey: ["quotation", "detail", "lines", id] });
-      queryClient.invalidateQueries({ queryKey: ["quotation", "detail", "exchangeRates", id] });
+      queryClient.invalidateQueries({ queryKey: quotationQueryKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: quotationQueryKeys.lines(id) });
+      queryClient.invalidateQueries({ queryKey: quotationQueryKeys.exchangeRates(id) });
       showToast("success", t("common.quotationUpdated"));
     },
     onError: (error) => {

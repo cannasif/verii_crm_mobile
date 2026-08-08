@@ -13,7 +13,7 @@ import { useTranslation } from "react-i18next";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { parseDecimalInput, sanitizeDecimalInput } from "../../../lib/decimal-input";
-import type { QuotationExchangeRateFormState, CurrencyOptionDto, ExchangeRateDto } from "../types";
+import type { QuotationExchangeRateFormState, CurrencyOptionDto, ExchangeRateDto } from "../types/quotation-types";
 
 interface ExchangeRateDialogProps {
   visible: boolean;

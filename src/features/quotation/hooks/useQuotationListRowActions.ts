@@ -6,11 +6,11 @@ import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../../store/auth";
 import { useToastStore } from "../../../store/toast";
 import { openPdfExternallyAsync } from "../../../lib/pdf";
-import type { QuotationGetDto } from "../types";
+import type { QuotationGetDto } from "../types/quotation-types";
 import {
   buildQuotationPdfFileName,
   generateQuotationDraftPreviewPdf,
-} from "../utils/generateQuotationDraftPreviewPdf";
+} from "../utils/generate-quotation-draft-preview-pdf";
 
 export function useQuotationListRowActions(): {
   isPdfBusy: boolean;

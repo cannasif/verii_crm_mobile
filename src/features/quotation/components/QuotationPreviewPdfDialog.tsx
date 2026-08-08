@@ -17,8 +17,8 @@ import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useToastStore } from "../../../store/toast";
 import { canPreviewPdfInApp, openPdfExternallyAsync } from "../../../lib/pdf";
-import { createV3riiQuotationPreviewPdf } from "../utils/createV3riiQuotationPreviewPdf";
-import type { QuotationPreviewPdfInput } from "../utils/quotationPreviewPdf.types";
+import { createV3riiQuotationPreviewPdf } from "../utils/create-v3rii-quotation-preview-pdf";
+import type { QuotationPreviewPdfInput } from "../utils/quotation-preview-pdf.types";
 
 const REPORT_PDF_PRIMARY_GRADIENT = {
   dark: ["#ea580c", "#e11d48", "#db2777"] as const,

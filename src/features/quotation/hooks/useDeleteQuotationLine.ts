@@ -1,6 +1,7 @@
+import { quotationQueryKeys } from "../utils/query-keys";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { invalidateDocumentListAndDetailHeader } from "../../../lib/documentListQueryInvalidation";
-import { quotationApi } from "../api";
+import { quotationApi } from "../api/quotation-api";
 import { useToastStore } from "../../../store/toast";
 import { useTranslation } from "react-i18next";
 
@@ -13,8 +14,8 @@ export function useDeleteQuotationLine() {
     mutationFn: ({ lineId }) => quotationApi.deleteQuotationLine(lineId),
     onSuccess: async (_, { quotationId }) => {
       await invalidateDocumentListAndDetailHeader(queryClient, "quotation", quotationId);
-      queryClient.invalidateQueries({ queryKey: ["quotation", "detail", quotationId] });
-      queryClient.invalidateQueries({ queryKey: ["quotation", "detail", "lines", quotationId] });
+      queryClient.invalidateQueries({ queryKey: quotationQueryKeys.detail(quotationId) });
+      queryClient.invalidateQueries({ queryKey: quotationQueryKeys.lines(quotationId) });
       showToast("success", t("common.lineDeleted"));
     },
     onError: (error) => {

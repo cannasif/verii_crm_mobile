@@ -5,12 +5,12 @@ import type {
   PreviewPdfLineDetailLabels,
   PreviewPdfLineDetailMaps,
 } from "../../../lib/salesDocumentPreviewPdf";
-import type { QuotationLineFormState } from "../types";
-import { flattenQuotationLinesForPdf } from "./flattenQuotationLinesForPdf";
+import type { QuotationLineFormState } from "../types/quotation-types";
+import { flattenQuotationLinesForPdf } from "./flatten-quotation-lines-for-pdf";
 import {
   QUOTATION_PREVIEW_PDF_LABELS_TR,
   type QuotationPreviewPdfInput,
-} from "./quotationPreviewPdf.types";
+} from "./quotation-preview-pdf.types";
 
 export interface BuildQuotationPreviewPdfInputParams {
   offerDate?: string | null;

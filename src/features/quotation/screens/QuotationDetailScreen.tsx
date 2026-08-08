@@ -63,7 +63,8 @@ import { useAuthStore } from "../../../store/auth";
 import { useToastStore } from "../../../store/toast";
 import { FormField } from "../../activity/components";
 import { useCustomerActivities } from "../../activity/hooks/useCustomerActivities";
-import { useCustomer, useCustomerScopeAccess } from "../../customer/hooks";
+import { useCustomer } from "../../customer/hooks/useCustomer";
+import { useCustomerScopeAccess } from "../../customer/hooks/useCustomerScopeAccess";
 import { useCustomerShippingAddresses } from "../../shipping-address/hooks";
 import { buildShippingAddressLabel } from "../../shipping-address/utils/shippingAddressLabel";
 import { stockApi } from "../../stocks/api";
@@ -79,37 +80,35 @@ import {
 } from "../../../lib/documentDetailReadOnly";
 import { resolveDocumentCancellationReason } from "../../../lib/resolveDocumentStatus";
 import { enforceExportVatOnLine, isExportOfferType, resolveDocumentVatRate } from "../../../utils/documentVat";
-import { quotationApi } from "../api";
+import { quotationApi } from "../api/quotation-api";
 import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida/hooks/useWindoDefinitionOptions";
 import { useSpecialCodes } from "../../common/hooks/useSpecialCodes";
 import {
   formatSpecialCodeOptionName,
   resolveSpecialCodeLabel,
 } from "../../common/utils/specialCodeLabel";
-import {
-  useQuotationDetail,
-  useStartApprovalFlow,
-  useWaitingApprovals,
-  useApproveAction,
-  useRejectAction,
-  useExchangeRate,
-  useCurrencyOptions,
-  usePaymentTypes,
-  useRelatedUsers,
-  useDocumentSerialTypeList,
-  useSalesTypeList,
-  usePriceRuleOfQuotation,
-  useUserDiscountLimitsBySalesperson,
-  useUpdateExchangeRateInQuotation,
-  useDeleteQuotationLine,
-  useCreateQuotationLines,
-  useUpdateQuotationLines,
-  useQuotationNotes,
-  useUpdateQuotationNotes,
-  useCancelQuotationByCustomer,
-  useCanEditQuotation,
-  useCreateRevisionOfQuotation,
-} from "../hooks";
+import { useQuotationDetail } from "../hooks/useQuotationDetail";
+import { useStartApprovalFlow } from "../hooks/useStartApprovalFlow";
+import { useWaitingApprovals } from "../hooks/useWaitingApprovals";
+import { useApproveAction } from "../hooks/useApproveAction";
+import { useRejectAction } from "../hooks/useRejectAction";
+import { useExchangeRate } from "../hooks/useExchangeRate";
+import { useCurrencyOptions } from "../hooks/useCurrencyOptions";
+import { usePaymentTypes } from "../hooks/usePaymentTypes";
+import { useRelatedUsers } from "../hooks/useRelatedUsers";
+import { useDocumentSerialTypeList } from "../hooks/useDocumentSerialTypeList";
+import { useSalesTypeList } from "../hooks/useSalesTypeList";
+import { usePriceRuleOfQuotation } from "../hooks/usePriceRuleOfQuotation";
+import { useUserDiscountLimitsBySalesperson } from "../hooks/useUserDiscountLimitsBySalesperson";
+import { useUpdateExchangeRateInQuotation } from "../hooks/useUpdateExchangeRateInQuotation";
+import { useDeleteQuotationLine } from "../hooks/useDeleteQuotationLine";
+import { useCreateQuotationLines } from "../hooks/useCreateQuotationLines";
+import { useUpdateQuotationLines } from "../hooks/useUpdateQuotationLines";
+import { useQuotationNotes } from "../hooks/useQuotationNotes";
+import { useUpdateQuotationNotes } from "../hooks/useUpdateQuotationNotes";
+import { useCancelQuotationByCustomer } from "../hooks/useCancelQuotationByCustomer";
+import { useCanEditQuotation } from "../hooks/useCanEditQuotation";
+import { useCreateRevisionOfQuotation } from "../hooks/useCreateRevisionOfQuotation";
 import {
   ExchangeRateDialog,
   PickerModal,
@@ -144,15 +143,15 @@ function addDaysToDateOnly(dateValue: string, days: number): string {
   return date.toISOString().split("T")[0];
 }
 import { CustomerSelectDialog, type CustomerSelectionResult } from "../../customer";
-import type { CustomerDto } from "../../customer/types";
-import { createQuotationSchema, type CreateQuotationSchema } from "../schemas";
+import type { CustomerDto } from "../../customer/types/customer";
+import { createQuotationSchema, type CreateQuotationSchema } from "../schemas/quotation-schema";
 import type {
   QuotationLineFormState,
   QuotationExchangeRateFormState,
   ExchangeRateDto,
   StockGetDto,
   ApprovalActionGetDto,
-} from "../types";
+} from "../types/quotation-types";
 import {
   APPROVAL_HAVENOT_STARTED,
   APPROVAL_WAITING,
@@ -164,7 +163,7 @@ import {
   APPROVAL_SUPERSEDED_BY_APPROVED_REVISION,
   PricingRuleType,
   normalizeOfferType,
-} from "../types";
+} from "../types/quotation-types";
 import type { StockRelationDto } from "../../stocks/types";
 import {
   mapDetailHeaderToForm,
@@ -175,12 +174,13 @@ import {
   mapQuotationLineFormStateToCreateDto,
   mapQuotationLineFormStateToUpdateDto,
   totalsFromDetailLines,
-} from "../utils";
-import { calculateLineTotals, calculateTotals } from "../utils";
+} from "../utils/quotation-detail-mappers";
+import { calculateLineTotals, calculateTotals } from "../utils/calculations";
 import { resolveLineListCurrencyLabel, resolveCurrencyIsoCode } from "../../../lib/currencyDisplay";
-import { buildQuotationPreviewPdfInput } from "../utils/buildQuotationPreviewPdfInput";
+import { buildQuotationPreviewPdfInput } from "../utils/build-quotation-preview-pdf-input";
 import { buildSalesDocumentPreviewPdfExtras } from "../../../lib/salesDocumentPreviewPdf";
-import { resolveQuotationCustomerLabelForPdf } from "../utils/resolveQuotationCustomerLabelForPdf";
+import { resolveQuotationCustomerLabelForPdf } from "../utils/resolve-quotation-customer-label-for-pdf";
+import { quotationQueryKeys } from "../utils/query-keys";
 import { useDocumentDetailDirtyState } from "../../../hooks/useDocumentDetailDirtyState";
 import { invalidateDocumentListAndDetailHeader } from "../../../lib/documentListQueryInvalidation";
 
@@ -1384,10 +1384,10 @@ export function QuotationDetailScreen(): React.ReactElement {
         });
         await invalidateDocumentListAndDetailHeader(queryClient, "quotation", quotationId);
         await queryClient.invalidateQueries({
-          queryKey: ["quotation", "detail", "lines", quotationId],
+          queryKey: quotationQueryKeys.lines(quotationId),
         });
         await queryClient.invalidateQueries({
-          queryKey: ["quotation", "detail", "exchangeRates", quotationId],
+          queryKey: quotationQueryKeys.exchangeRates(quotationId),
         });
         markSaved();
         showToast("success", t("common.quotationUpdated"));

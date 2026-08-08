@@ -1,7 +1,8 @@
+import { quotationCurrencyQueryKeys } from "../utils/query-keys";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { quotationApi } from "../api";
-import type { CurrencyOptionDto } from "../types";
+import { quotationApi } from "../api/quotation-api";
+import type { CurrencyOptionDto } from "../types/quotation-types";
 
 interface UseCurrencyOptionsParams {
   tarih?: string;
@@ -18,7 +19,7 @@ export function useCurrencyOptions(params?: UseCurrencyOptionsParams) {
   }, [params?.tarih, params?.fiyatTipi]);
 
   return useQuery<CurrencyOptionDto[], Error>({
-    queryKey: ["currency", "options", stableParams],
+    queryKey: quotationCurrencyQueryKeys.options(stableParams),
     queryFn: () => quotationApi.getCurrencyOptions(stableParams),
     staleTime: 10 * 60 * 1000,
   });

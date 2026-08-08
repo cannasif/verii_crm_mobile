@@ -1,10 +1,11 @@
+import { quotationQueryKeys } from "../utils/query-keys";
 import { useQueries } from "@tanstack/react-query";
-import { quotationApi } from "../api/quotationApi";
+import { quotationApi } from "../api/quotation-api";
 import type {
   QuotationDetailGetDto,
   QuotationLineDetailGetDto,
   QuotationExchangeRateDetailGetDto,
-} from "../types";
+} from "../types/quotation-types";
 
 const STALE_TIME_MS = 30 * 1000;
 
@@ -20,19 +21,19 @@ export function useQuotationDetail(quotationId: number | undefined): {
   const results = useQueries({
     queries: [
       {
-        queryKey: ["quotation", "detail", quotationId],
+        queryKey: quotationQueryKeys.detail(quotationId),
         queryFn: () => quotationApi.getById(quotationId!),
         enabled: typeof quotationId === "number",
         staleTime: STALE_TIME_MS,
       },
       {
-        queryKey: ["quotation", "detail", "lines", quotationId],
+        queryKey: quotationQueryKeys.lines(quotationId),
         queryFn: () => quotationApi.getLinesByQuotation(quotationId!),
         enabled: typeof quotationId === "number",
         staleTime: STALE_TIME_MS,
       },
       {
-        queryKey: ["quotation", "detail", "exchangeRates", quotationId],
+        queryKey: quotationQueryKeys.exchangeRates(quotationId),
         queryFn: () => quotationApi.getExchangeRatesByQuotation(quotationId!),
         enabled: typeof quotationId === "number",
         staleTime: STALE_TIME_MS,

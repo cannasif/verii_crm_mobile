@@ -11,7 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
-import type { ApprovalActionGetDto } from "../types";
+import type { ApprovalActionGetDto } from "../types/quotation-types";
 
 interface RejectModalProps {
   visible: boolean;

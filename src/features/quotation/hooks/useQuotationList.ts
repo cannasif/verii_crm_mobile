@@ -1,7 +1,8 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { fetchPagedDocumentList } from "../../../lib/documentApprovalFilter";
-import { quotationApi } from "../api";
-import type { PagedFilter, PagedResponse, QuotationGetDto } from "../types";
+import { quotationApi } from "../api/quotation-api";
+import type { PagedFilter, PagedResponse, QuotationGetDto } from "../types/quotation-types";
+import { quotationQueryKeys } from "../utils/query-keys";
 
 const DEFAULT_PAGE_SIZE = 20;
 const STALE_TIME_MS = 2 * 60 * 1000;
@@ -30,11 +31,16 @@ export function useQuotationList(params: UseQuotationListParams = {}) {
   } = params;
 
   return useInfiniteQuery<PagedResponse<QuotationGetDto>, Error>({
-    queryKey: [
-      "quotation",
-      "quotations",
-      { filters, search, searchFields, filterLogic, sortBy, sortDirection, pageSize, approvalStatusFilter },
-    ],
+    queryKey: quotationQueryKeys.list({
+      filters,
+      search,
+      searchFields,
+      filterLogic,
+      sortBy,
+      sortDirection,
+      pageSize,
+      approvalStatusFilter,
+    }),
     queryFn: ({ pageParam }) =>
       fetchPagedDocumentList(
         {

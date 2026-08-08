@@ -9,7 +9,7 @@ import {
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useTranslation } from "react-i18next";
-import type { QuotationGetDto } from "../types";
+import type { QuotationGetDto } from "../types/quotation-types";
 import { formatSystemDate } from "../../../lib/systemSettings";
 import { resolveDocumentApprovalStatusMeta } from "../../../lib/documentApprovalStatus";
 import { useToastStore } from "../../../store/toast";
@@ -17,7 +17,7 @@ import { ApprovalStatus } from "../../../lib/documentApprovalFilter";
 import {
   resolveQuotationRowAmountText,
   resolveQuotationRowCurrencyLabel,
-} from "../utils/quotationRowDisplay";
+} from "../utils/quotation-row-display";
 import { DocumentApprovalStatusIcon } from "../../../components/paged/DocumentApprovalStatusIcon";
 
 interface QuotationCompactListRowProps {

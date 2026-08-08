@@ -26,9 +26,10 @@ import {
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useToastStore } from "../../../store/toast";
-import { useReportTemplateList, useGenerateReportPdf } from "../hooks";
+import { useReportTemplateList } from "../hooks/useReportTemplateList";
+import { useGenerateReportPdf } from "../hooks/useGenerateReportPdf";
 import { PickerModal } from "./PickerModal";
-import type { DocumentRuleTypeValue } from "../types";
+import type { DocumentRuleTypeValue } from "../types/quotation-types";
 import { canPreviewPdfInApp, openPdfExternallyAsync } from "../../../lib/pdf";
 import { listContentBottomPadding } from "../../../constants/layout";
 

@@ -1,6 +1,7 @@
+import { quotationQueryKeys } from "../utils/query-keys";
 import { useQuery } from "@tanstack/react-query";
-import { quotationApi } from "../api";
-import type { SalesTypeGetDto } from "../types";
+import { quotationApi } from "../api/quotation-api";
+import type { SalesTypeGetDto } from "../types/quotation-types";
 
 interface UseSalesTypeListParams {
   pageNumber?: number;
@@ -17,7 +18,7 @@ export function useSalesTypeList(params: UseSalesTypeListParams = {}) {
       : undefined;
 
   return useQuery<SalesTypeGetDto[]>({
-    queryKey: ["quotation", "salesTypes", { offerType }],
+    queryKey: quotationQueryKeys.salesTypes(offerType),
     queryFn: () =>
       quotationApi.getSalesTypeList({
         pageNumber,

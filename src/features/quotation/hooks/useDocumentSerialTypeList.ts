@@ -1,6 +1,7 @@
+import { quotationDocumentSerialTypeQueryKeys } from "../utils/query-keys";
 import { useQuery } from "@tanstack/react-query";
-import { quotationApi } from "../api/quotationApi";
-import type { DocumentSerialTypeDto } from "../types";
+import { quotationApi } from "../api/quotation-api";
+import type { DocumentSerialTypeDto } from "../types/quotation-types";
 
 const STALE_TIME_MS = 60 * 1000;
 
@@ -12,7 +13,7 @@ export function useDocumentSerialTypeList(): {
   refetch: () => void;
 } {
   const query = useQuery<DocumentSerialTypeDto[], Error>({
-    queryKey: ["documentSerialType", "list"],
+    queryKey: quotationDocumentSerialTypeQueryKeys.list(),
     queryFn: () => quotationApi.getDocumentSerialTypeList(),
     staleTime: STALE_TIME_MS,
   });

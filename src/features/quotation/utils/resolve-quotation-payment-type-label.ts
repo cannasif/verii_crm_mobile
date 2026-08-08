@@ -1,4 +1,4 @@
-import type { QuotationGetDto } from "../types";
+import type { QuotationGetDto } from "../types/quotation-types";
 
 export function resolveQuotationPaymentTypeLabel(
   quotation: Pick<QuotationGetDto, "paymentTypeId" | "paymentTypeName">,

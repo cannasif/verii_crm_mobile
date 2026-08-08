@@ -1,5 +1,5 @@
-import type { CreateQuotationSchema } from "../schemas";
-import { normalizeOfferType } from "../types";
+import type { CreateQuotationSchema } from "../schemas/quotation-schema";
+import { normalizeOfferType } from "../types/quotation-types";
 import type {
   QuotationDetailGetDto,
   QuotationLineDetailGetDto,
@@ -10,7 +10,7 @@ import type {
   CurrencyOptionDto,
   CreateQuotationLineDto,
   QuotationLineUpdateDto,
-} from "../types";
+} from "../types/quotation-types";
 import { calculateLineTotals } from "./calculations";
 
 export interface LineGroup {

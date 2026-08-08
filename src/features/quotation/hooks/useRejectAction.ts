@@ -1,6 +1,7 @@
+import { quotationQueryKeys } from "../utils/query-keys";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { quotationApi } from "../api";
-import type { RejectActionDto } from "../types";
+import { quotationApi } from "../api/quotation-api";
+import type { RejectActionDto } from "../types/quotation-types";
 import { useToastStore } from "../../../store/toast";
 import { useTranslation } from "react-i18next";
 
@@ -12,8 +13,8 @@ export function useRejectAction() {
   return useMutation({
     mutationFn: (data: RejectActionDto) => quotationApi.reject(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["quotation", "waitingApprovals"] });
-      queryClient.invalidateQueries({ queryKey: ["quotation"] });
+      queryClient.invalidateQueries({ queryKey: quotationQueryKeys.waitingApprovals() });
+      queryClient.invalidateQueries({ queryKey: quotationQueryKeys.all() });
       showToast("success", t("quotation.rejectSuccess"));
     },
     onError: (error: Error) => {

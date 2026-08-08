@@ -2,13 +2,13 @@ import { resolveCurrencyIsoCode } from "../../../lib/currencyDisplay";
 import { buildSalesDocumentPreviewPdfExtras } from "../../../lib/salesDocumentPreviewPdf";
 import { fetchWindoLineDetailMapsForPdf } from "../../windo-profil-demir-vida";
 import type { Branch } from "../../auth/types/index";
-import { quotationApi } from "../api/quotationApi";
-import type { QuotationGetDto } from "../types";
-import { buildQuotationPreviewPdfInput } from "./buildQuotationPreviewPdfInput";
-import { createV3riiQuotationPreviewPdf } from "./createV3riiQuotationPreviewPdf";
-import { mapDetailLinesToFormState } from "./quotationDetailMappers";
+import { quotationApi } from "../api/quotation-api";
+import type { QuotationGetDto } from "../types/quotation-types";
+import { buildQuotationPreviewPdfInput } from "./build-quotation-preview-pdf-input";
+import { createV3riiQuotationPreviewPdf } from "./create-v3rii-quotation-preview-pdf";
+import { mapDetailLinesToFormState } from "./quotation-detail-mappers";
 import { mapApiLinesToLocalizedFormState } from "../../stocks/utils";
-import { resolveQuotationCustomerLabelForPdf } from "./resolveQuotationCustomerLabelForPdf";
+import { resolveQuotationCustomerLabelForPdf } from "./resolve-quotation-customer-label-for-pdf";
 import i18n from "../../../locales";
 
 function resolveLocale(language: string): string {

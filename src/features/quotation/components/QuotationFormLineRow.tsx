@@ -16,8 +16,8 @@ import {
   formatQuotationLineMoney,
   formatQuotationLineQty,
   formatQuotationLineRate,
-} from "../utils/quotationLineDisplayFormat";
-import type { QuotationLineFormState } from "../types";
+} from "../utils/quotation-line-display-format";
+import type { QuotationLineFormState } from "../types/quotation-types";
 
 function resolveMobileImageUri(path?: string | null): string | null {
   if (!path) return null;

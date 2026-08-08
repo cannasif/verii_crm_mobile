@@ -1,6 +1,7 @@
+import { quotationQueryKeys } from "../utils/query-keys";
 import { useQuery } from "@tanstack/react-query";
-import { quotationApi } from "../api";
-import type { QuotationApprovalFlowReportDto } from "../types";
+import { quotationApi } from "../api/quotation-api";
+import type { QuotationApprovalFlowReportDto } from "../types/quotation-types";
 
 const STALE_TIME_MS = 60 * 1000;
 
@@ -20,7 +21,7 @@ export function useQuotationApprovalFlowReport(
     error,
     refetch,
   } = useQuery({
-    queryKey: ["quotation", "approval-flow-report", quotationId],
+    queryKey: quotationQueryKeys.approvalFlowReport(quotationId),
     queryFn: () => quotationApi.getApprovalFlowReport(quotationId!),
     enabled: typeof quotationId === "number",
     staleTime: STALE_TIME_MS,

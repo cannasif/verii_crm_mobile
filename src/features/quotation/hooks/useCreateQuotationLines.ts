@@ -1,7 +1,8 @@
+import { quotationQueryKeys } from "../utils/query-keys";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { invalidateDocumentListAndDetailHeader } from "../../../lib/documentListQueryInvalidation";
-import { quotationApi } from "../api";
-import type { CreateQuotationLineDto, QuotationLineDetailGetDto } from "../types";
+import { quotationApi } from "../api/quotation-api";
+import type { CreateQuotationLineDto, QuotationLineDetailGetDto } from "../types/quotation-types";
 import { useToastStore } from "../../../store/toast";
 import { useTranslation } from "react-i18next";
 
@@ -18,7 +19,7 @@ export function useCreateQuotationLines() {
     mutationFn: ({ body }) => quotationApi.createQuotationLines(body),
     onSuccess: async (_, { quotationId }) => {
       await invalidateDocumentListAndDetailHeader(queryClient, "quotation", quotationId);
-      queryClient.invalidateQueries({ queryKey: ["quotation", "detail", "lines", quotationId] });
+      queryClient.invalidateQueries({ queryKey: quotationQueryKeys.lines(quotationId) });
       showToast("success", t("common.rowsAdded"));
     },
     onError: (error) => {

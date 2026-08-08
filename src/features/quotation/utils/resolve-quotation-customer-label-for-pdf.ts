@@ -1,5 +1,5 @@
-import { customerApi } from "../../customer/api/customerApi";
-import { QUOTATION_PREVIEW_PDF_LABELS_TR } from "./quotationPreviewPdf.types";
+import { customerApi } from "../../customer/api/customer-api";
+import { QUOTATION_PREVIEW_PDF_LABELS_TR } from "./quotation-preview-pdf.types";
 
 export interface ResolveQuotationCustomerLabelParams {
   potentialCustomerId?: number | null;

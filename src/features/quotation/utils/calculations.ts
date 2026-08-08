@@ -1,4 +1,4 @@
-import type { QuotationLineFormState, CalculationTotals } from "../types";
+import type { QuotationLineFormState, CalculationTotals } from "../types/quotation-types";
 
 export function calculateLineTotals(line: QuotationLineFormState): QuotationLineFormState {
   const baseAmount = line.quantity * line.unitPrice;

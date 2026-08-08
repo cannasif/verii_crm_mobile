@@ -18,7 +18,7 @@ import {
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useQuotationApprovalFlowReport } from "../hooks/useQuotationApprovalFlowReport";
-import type { ApprovalFlowStepReportDto, ApprovalActionDetailDto } from "../types";
+import type { ApprovalFlowStepReportDto, ApprovalActionDetailDto } from "../types/quotation-types";
 
 const STEP_STATUS_IN_PROGRESS = "InProgress";
 const STEP_STATUS_COMPLETED = "Completed";

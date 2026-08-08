@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
-import { quotationApi } from "../api";
-import type { GenerateReportPdfRequest } from "../types";
+import { quotationApi } from "../api/quotation-api";
+import type { GenerateReportPdfRequest } from "../types/quotation-types";
 
 type MutateOptions = {
   onSuccess?: (data: ArrayBuffer) => void;

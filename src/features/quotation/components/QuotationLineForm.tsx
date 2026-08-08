@@ -23,10 +23,10 @@ import { ProductPicker, type ProductPickerRef } from "./ProductPicker";
 import { PickerModal } from "./PickerModal";
 import type { StockRelationDto } from "../../stocks/types";
 import { getProductSelectionKey, type ProductSelectionResult } from "../../stocks/types";
-import { quotationApi } from "../api";
-import type { UploadReportAssetOptions } from "../api/quotationApi";
+import { quotationApi } from "../api/quotation-api";
+import type { UploadReportAssetOptions } from "../api/quotation-api";
 import { stockApi } from "../../stocks/api";
-import { useErpProjects } from "../hooks";
+import { useErpProjects } from "../hooks/useErpProjects";
 import { useStock } from "../../stocks/hooks";
 import { parseDecimalInput, sanitizeDecimalInput } from "../../../lib/decimal-input";
 import {
@@ -45,8 +45,8 @@ import type {
   PricingRuleLineGetDto,
   UserDiscountLimitDto,
   StockGetDto,
-} from "../types";
-import { calculateLineTotals } from "../utils";
+} from "../types/quotation-types";
+import { calculateLineTotals } from "../utils/calculations";
 import { getCurrencyDisplayLabel } from "../../../lib/currencyDisplay";
 import { resolveDocumentLineProductName } from "../../stocks/utils";
 import {

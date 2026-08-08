@@ -49,7 +49,8 @@ import { useAuthStore } from "../../../store/auth";
 import { useToastStore } from "../../../store/toast";
 import { FormField } from "../../activity/components";
 import { useCustomerActivities } from "../../activity/hooks/useCustomerActivities";
-import { useCustomer, useCustomerScopeAccess } from "../../customer/hooks";
+import { useCustomer } from "../../customer/hooks/useCustomer";
+import { useCustomerScopeAccess } from "../../customer/hooks/useCustomerScopeAccess";
 import { useCustomerShippingAddresses } from "../../shipping-address/hooks";
 import { buildShippingAddressLabel } from "../../shipping-address/utils/shippingAddressLabel";
 import { stockApi } from "../../stocks/api";
@@ -60,19 +61,17 @@ import {
   formatSpecialCodeOptionName,
   resolveSpecialCodeLabel,
 } from "../../common/utils/specialCodeLabel";
-import { quotationApi } from "../api";
+import { quotationApi } from "../api/quotation-api";
 import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida/hooks/useWindoDefinitionOptions";
-import {
-  useCreateQuotationBulk,
-  usePriceRuleOfQuotation,
-  useUserDiscountLimitsBySalesperson,
-  useExchangeRate,
-  useCurrencyOptions,
-  usePaymentTypes,
-  useRelatedUsers,
-  useErpProjects,
-  useSalesTypeList,
-} from "../hooks";
+import { useCreateQuotationBulk } from "../hooks/useCreateQuotationBulk";
+import { usePriceRuleOfQuotation } from "../hooks/usePriceRuleOfQuotation";
+import { useUserDiscountLimitsBySalesperson } from "../hooks/useUserDiscountLimitsBySalesperson";
+import { useExchangeRate } from "../hooks/useExchangeRate";
+import { useCurrencyOptions } from "../hooks/useCurrencyOptions";
+import { usePaymentTypes } from "../hooks/usePaymentTypes";
+import { useRelatedUsers } from "../hooks/useRelatedUsers";
+import { useErpProjects } from "../hooks/useErpProjects";
+import { useSalesTypeList } from "../hooks/useSalesTypeList";
 import {
   QuotationLineForm,
   ExchangeRateDialog,
@@ -90,11 +89,11 @@ import {
   CustomerSelectDialog,
   type CustomerSelectionResult,
 } from "../../customer";
-import type { CustomerDto } from "../../customer/types";
+import type { CustomerDto } from "../../customer/types/customer";
 import {
   createQuotationSchema,
   type CreateQuotationSchema,
-} from "../schemas";
+} from "../schemas/quotation-schema";
 import {
   type QuotationLineFormState,
   type QuotationExchangeRateFormState,
@@ -102,21 +101,21 @@ import {
   type QuotationLineUpdateDto,
   type StockGetDto,
   normalizeOfferType,
-} from "../types";
+} from "../types/quotation-types";
 import type { StockRelationDto } from "../../stocks/types";
 import type { ProductSelectionResult } from "../../stocks/types";
-import { calculateLineTotals, calculateTotals } from "../utils";
+import { calculateLineTotals, calculateTotals } from "../utils/calculations";
 import { resolveLineListCurrencyLabel, resolveCurrencyIsoCode } from "../../../lib/currencyDisplay";
-import { buildQuotationPreviewPdfInput } from "../utils/buildQuotationPreviewPdfInput";
+import { buildQuotationPreviewPdfInput } from "../utils/build-quotation-preview-pdf-input";
 import { buildSalesDocumentPreviewPdfExtras } from "../../../lib/salesDocumentPreviewPdf";
-import { resolveQuotationCustomerLabelForPdf } from "../utils/resolveQuotationCustomerLabelForPdf";
+import { resolveQuotationCustomerLabelForPdf } from "../utils/resolve-quotation-customer-label-for-pdf";
 import {
   canApplySpecialCodeDefault,
   deriveSpecialCode2FromSpecialCode1,
   getDefaultSpecialCodeForOfferType,
   hasSpecialCodeOption,
 } from "@/lib/salesDocumentSpecialCodeDefaults";
-import type { ExchangeRateDto } from "../types";
+import type { ExchangeRateDto } from "../types/quotation-types";
 import {
   enforceExportVatOnLine,
   getDefaultDocumentVatRate,

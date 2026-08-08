@@ -1,6 +1,7 @@
+import { reportTemplateQueryKeys } from "../utils/query-keys";
 import { useQuery } from "@tanstack/react-query";
-import { quotationApi } from "../api";
-import type { ReportTemplateGetDto, DocumentRuleTypeValue } from "../types";
+import { quotationApi } from "../api/quotation-api";
+import type { ReportTemplateGetDto, DocumentRuleTypeValue } from "../types/quotation-types";
 
 const STALE_TIME_MS = 5 * 60 * 1000;
 
@@ -18,7 +19,7 @@ export function useReportTemplateList(ruleType: DocumentRuleTypeValue): {
     error,
     refetch,
   } = useQuery({
-    queryKey: ["report-template", "list", ruleType],
+    queryKey: reportTemplateQueryKeys.list(ruleType),
     queryFn: () => quotationApi.getReportTemplates(),
     staleTime: STALE_TIME_MS,
   });
