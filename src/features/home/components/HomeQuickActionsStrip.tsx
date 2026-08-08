@@ -11,7 +11,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { ArrowLeft01Icon, ArrowRight01Icon } from "hugeicons-react-native";
 import { useUIStore } from "../../../store/ui";
-import type { Module } from "../types";
+import type { Module } from "../types/home-types";
 import { ModuleCard } from "./ModuleCard";
 
 const CARD_GAP = 12;

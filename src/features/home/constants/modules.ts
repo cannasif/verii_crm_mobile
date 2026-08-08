@@ -1,4 +1,4 @@
-import type { Module } from "../types";
+import type { Module } from "../types/home-types";
 
 export const CRM_MODULES: Module[] = [
   {

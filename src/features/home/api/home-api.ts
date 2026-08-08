@@ -1,5 +1,5 @@
 import { useAuthStore } from "../../../store/auth";
-import type { DashboardData, ActivityItem } from "../types";
+import type { DashboardData, ActivityItem } from "../types/home-types";
 import type { User } from "../../auth/types/auth-types";
 
 const MOCK_ACTIVITY: ActivityItem[] = [

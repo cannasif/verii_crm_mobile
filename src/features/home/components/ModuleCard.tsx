@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { TouchableWithoutFeedback, View, StyleSheet, Text } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useUIStore } from "../../../store/ui";
-import type { Module } from "../types";
+import type { Module } from "../types/home-types";
 import {
   UserAdd01Icon,
   Invoice01Icon,

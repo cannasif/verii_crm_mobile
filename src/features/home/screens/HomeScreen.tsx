@@ -11,7 +11,7 @@ import { useUIStore } from "../../../store/ui";
 import { useAuthStore } from "../../../store/auth";
 import { hasAnyPermission } from "../../access-control/utils/has-permission";
 import { CRM_MODULES } from "../constants/modules";
-import type { Module } from "../types";
+import type { Module } from "../types/home-types";
 
 import { HomeQuickActionsStrip } from "../components/HomeQuickActionsStrip";
 import { HomeHero } from "../components/HomeHero";
@@ -21,7 +21,7 @@ import { RecentActivities } from "../components/RecentActivities";
 import { useActivities } from "../../activity/hooks/useActivities";
 import { useCustomers } from "../../customer/hooks/useCustomers";
 import { useDailyTasks } from "../../daily-tasks/hooks/useDailyTasks";
-import { countPendingTasksForToday, getTodayRange } from "../utils/homeStats";
+import { countPendingTasksForToday, getTodayRange } from "../utils/home-stats";
 import { clearPerfMarks, perfMark, perfMeasureOnNextPaint } from "../../../lib/perf-metrics";
 
 export function HomeScreen(): React.ReactElement {

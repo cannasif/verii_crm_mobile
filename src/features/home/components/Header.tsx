@@ -6,7 +6,7 @@ import { Menu01Icon, Settings01Icon } from "hugeicons-react-native";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useAuthStore } from "../../../store/auth";
-import type { User } from "../types";
+import type { User } from "../types/home-types";
 
 interface HeaderProps {
   user: User | undefined;
