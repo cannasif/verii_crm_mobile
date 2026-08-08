@@ -18,8 +18,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
-import { useCreateTitle, useUpdateTitle } from "../hooks";
-import { createTitleSchema, type TitleFormData } from "../schemas";
+import { useCreateTitle, useUpdateTitle } from "../hooks/useTitleMutations";
+import { createTitleSchema, type TitleFormData } from "../schemas/title-schema";
 import type { TitleDto } from "../types";
 import { 
   Cancel01Icon, 

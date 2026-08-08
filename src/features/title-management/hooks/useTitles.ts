@@ -1,6 +1,7 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { titleApi } from "../api/titleApi";
+import { titleApi } from "../api/title-api";
 import type { PagedFilter, PagedResponse, TitleDto } from "../types";
+import { titleQueryKeys } from "../utils/query-keys";
 
 const DEFAULT_PAGE_SIZE = 20;
 
@@ -26,7 +27,15 @@ export function useTitles(params: UseTitlesParams = {}) {
   } = params;
 
   return useInfiniteQuery<PagedResponse<TitleDto>, Error>({
-    queryKey: ["title", "list", { filters, search, searchFields, filterLogic, sortBy, sortDirection, pageSize }],
+    queryKey: titleQueryKeys.list({
+      filters,
+      search,
+      searchFields,
+      filterLogic,
+      sortBy,
+      sortDirection,
+      pageSize,
+    }),
     queryFn: ({ pageParam }) =>
       titleApi.getList({
         pageNumber: pageParam as number,

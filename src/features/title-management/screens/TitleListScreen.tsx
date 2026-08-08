@@ -26,7 +26,8 @@ import { useUIStore } from "../../../store/ui";
 import { TITLE_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
 import { usePagedListSearchFields } from "../../../hooks/usePagedListSearchFields";
 import { stockBrowseStyles } from "../../../components/shared/stock-browse";
-import { useTitles, useDeleteTitle } from "../hooks";
+import { useDeleteTitle } from "../hooks/useTitleMutations";
+import { useTitles } from "../hooks/useTitles";
 import { TitleListRow, TitleFormModal } from "../components";
 import type { TitleDto } from "../types";
 import {
