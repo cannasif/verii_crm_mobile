@@ -23,7 +23,7 @@ import type { UseQueryResult } from "@tanstack/react-query";
 import { Text } from "../../../components/ui/text";
 import type { VersionCheckResult } from "../../../lib/versionCheck";
 import type { UpdateFlowPhase } from "../../../lib/versionCheckUi";
-import { formatReleaseDate } from "../utils/formatReleaseDate";
+import { formatReleaseDate } from "../utils/format-release-date";
 import { UpdateProgressBar } from "./UpdateProgressBar";
 
 interface AppInfo {

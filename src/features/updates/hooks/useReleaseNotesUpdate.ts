@@ -11,6 +11,7 @@ import {
 } from "../../../lib/versionCheck";
 import type { UpdateFlowPhase } from "../../../lib/versionCheckUi";
 import { useToast } from "../../../hooks/useToast";
+import { updateQueryKeys } from "../utils/query-keys";
 
 const RELEASE_NOTES_STALE_MS = 60_000;
 
@@ -22,7 +23,7 @@ export function useReleaseNotesUpdate() {
   const [downloadProgress, setDownloadProgress] = useState(0);
 
   const releaseQuery = useQuery({
-    queryKey: ["mobile", "release-notes"],
+    queryKey: updateQueryKeys.releaseNotes(),
     queryFn: fetchLatestReleaseInfo,
     staleTime: RELEASE_NOTES_STALE_MS,
   });
