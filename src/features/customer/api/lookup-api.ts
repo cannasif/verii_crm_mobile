@@ -6,9 +6,11 @@ import type {
   DistrictDto,
   CustomerTypeDto,
   TitleDto,
+} from "../types/lookups";
+import type {
   PagedFilter,
   PagedResponse,
-} from "../types";
+} from "../types/common";
 
 const buildFilterParam = (filters: PagedFilter[]): string => {
   return JSON.stringify(filters);

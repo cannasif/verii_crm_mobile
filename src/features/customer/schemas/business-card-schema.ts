@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { AddressParts, BusinessCardExtraction, BusinessCardOcrResult, BusinessCardReviewFlag, BusinessCardReviewSummary } from "../types/businessCard";
+import type { AddressParts, BusinessCardExtraction, BusinessCardOcrResult, BusinessCardReviewFlag, BusinessCardReviewSummary } from "../types/business-card";
 import { detectBusinessCardLanguageProfile } from "../services/businessCardLanguageProfileService";
 import {
   BUSINESS_CARD_ADDRESS_HINTS,

@@ -16,9 +16,9 @@ import {
   repairJsonString,
   toBusinessCardOcrResult,
   validateAndNormalizeBusinessCardExtraction,
-} from "../schemas/businessCardSchema";
-import { parseBusinessCardText } from "../utils/parseBusinessCardText";
-import type { BusinessCardOcrResult } from "../types/businessCard";
+} from "../schemas/business-card-schema";
+import { parseBusinessCardText } from "../utils/parse-business-card-text";
+import type { BusinessCardOcrResult } from "../types/business-card";
 import type { OcrResultPayload } from "../services/ocrService";
 
 function fallbackToStructuredInput(parsed: BusinessCardOcrResult): {

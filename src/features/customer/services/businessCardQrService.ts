@@ -1,4 +1,4 @@
-import type { BusinessCardOcrResult } from "../types/businessCard";
+import type { BusinessCardOcrResult } from "../types/business-card";
 
 type BarcodeRecord = {
   rawValue?: string;

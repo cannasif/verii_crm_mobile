@@ -15,8 +15,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
-import { useCountries, useCities, useDistricts } from "../hooks";
-import type { CountryDto, CityDto, DistrictDto } from "../types";
+import { useCountries, useCities, useDistricts } from "../hooks/useLookups";
+import type { CountryDto, CityDto, DistrictDto } from "../types/lookups";
 import { ArrowDown01Icon, CheckmarkCircle02Icon, Search01Icon } from "hugeicons-react-native";
 
 interface LocationPickerProps {

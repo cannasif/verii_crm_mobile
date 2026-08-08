@@ -30,30 +30,27 @@ import { useUIStore } from "../../../store/ui";
 import { useAuthStore } from "../../../store/auth";
 import { useToastStore } from "../../../store/toast";
 import { useSystemSettingsStore } from "../../../store/system-settings";
+import { useCustomer } from "../hooks/useCustomer";
 import {
-  useCustomer,
   useCreateCustomer,
   useCreateCustomerFromMobile,
-  useCountries,
-  useCities,
-  useDistricts,
   useUpdateCustomer,
   useDeleteCustomer,
-  useCustomerTypes,
-  useBusinessCardScan,
-  useBusinessCardPotentialMatches,
-  useQrCustomerScan
-} from "../hooks";
+} from "../hooks/useCustomerMutation";
+import { useCountries, useCities, useDistricts, useCustomerTypes } from "../hooks/useLookups";
+import { useBusinessCardScan } from "../hooks/useBusinessCardScan";
+import { useBusinessCardPotentialMatches } from "../hooks/useBusinessCardPotentialMatches";
+import { useQrCustomerScan } from "../hooks/useQrCustomerScan";
 import { useCustomerShippingAddresses } from "../../shipping-address/hooks/useShippingAddresses";
 import { BusinessCardReviewModal, CustomerErpReadOnlyBanner, FormField, LocationPicker, PremiumPicker } from "../components";
 import { isErpIntegratedCustomer } from "../../../lib/customerIntegration";
-import { createCustomerSchema, type CustomerFormData } from "../schemas";
-import type { CountryDto, CityDto, DistrictDto } from "../types";
-import type { BusinessCardOcrResult } from "../types/businessCard";
+import { createCustomerSchema, type CustomerFormData } from "../schemas/customer-schema";
+import type { CountryDto, CityDto, DistrictDto } from "../types/lookups";
+import type { BusinessCardOcrResult } from "../types/business-card";
 import { trackBusinessCardTelemetry } from "../services/businessCardTelemetryService";
 import { translateBusinessCardToTurkish } from "../services/businessCardTranslationService";
-import { normalizeCustomerNameToEnglishCharacters } from "../utils/customerNameNormalizer";
-import { useCurrencyOptions } from "../../quotation/hooks";
+import { normalizeCustomerNameToEnglishCharacters } from "../utils/customer-name-normalizer";
+import { useCurrencyOptions } from "../../quotation/hooks/useCurrencyOptions";
 import { 
   Camera01Icon, 
   Image01Icon, 

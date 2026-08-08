@@ -1,6 +1,8 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { customerApi } from "../api/customerApi";
-import type { PagedFilter, PagedResponse, CustomerDto } from "../types";
+import { customerApi } from "../api/customer-api";
+import type { PagedFilter, PagedResponse } from "../types/common";
+import type { CustomerDto } from "../types/customer";
+import { customerQueryKeys } from "../utils/query-keys";
 
 const DEFAULT_PAGE_SIZE = 20;
 
@@ -30,11 +32,16 @@ export function useCustomers(params: UseCustomersParams = {}) {
   } = params;
 
   return useInfiniteQuery<PagedResponse<CustomerDto>, Error>({
-    queryKey: [
-      "customer",
-      "list",
-      { filters, search, searchFields, filterLogic, sortBy, sortDirection, pageSize, contextUserId },
-    ],
+    queryKey: customerQueryKeys.list({
+      filters,
+      search,
+      searchFields,
+      filterLogic,
+      sortBy,
+      sortDirection,
+      pageSize,
+      contextUserId,
+    }),
     queryFn: ({ pageParam }) =>
       customerApi.getList({
         pageNumber: pageParam as number,

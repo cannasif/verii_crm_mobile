@@ -1,12 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
-import { customerApi } from "../api/customerApi";
+import { customerApi } from "../api/customer-api";
+import { customerQueryKeys } from "../utils/query-keys";
 
 export function useCustomerScopeAccess(
   customerId: number | undefined,
   contextUserId: number | undefined
 ) {
   return useQuery({
-    queryKey: ["customer", "scope-access", customerId, contextUserId],
+    queryKey: customerQueryKeys.scopeAccess(customerId, contextUserId),
     enabled: customerId != null && customerId > 0,
     queryFn: async () => {
       const response = await customerApi.getList({

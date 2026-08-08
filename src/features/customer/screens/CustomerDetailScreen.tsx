@@ -19,13 +19,13 @@ import * as Location from "expo-location";
 import { ScreenHeader } from "../../../components/navigation";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
+import { useCustomer } from "../hooks/useCustomer";
+import { useCustomerImages } from "../hooks/useCustomerImages";
 import {
-  useCustomer,
   useDeleteCustomer,
-  useCustomerImages,
   useUploadCustomerImage,
   useUpdateCustomer,
-} from "../hooks";
+} from "../hooks/useCustomerMutation";
 import { CustomerDetailContent } from "../components/CustomerDetailContent";
 import {
   isErpIntegratedCustomer,

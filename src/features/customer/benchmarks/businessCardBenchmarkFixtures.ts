@@ -1,4 +1,4 @@
-import type { BusinessCardExtraction } from "../types/businessCard";
+import type { BusinessCardExtraction } from "../types/business-card";
 
 export type BusinessCardBenchmarkFixture = {
   id: string;

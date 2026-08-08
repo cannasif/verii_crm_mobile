@@ -11,10 +11,12 @@ import type {
   CreateCustomerFromMobileDto,
   CreateCustomerFromMobileResultDto,
   UpdateCustomerDto,
+} from "../types/customer";
+import type {
   PagedParams,
   PagedResponse,
   PagedApiResponse,
-} from "../types";
+} from "../types/common";
 
 function normalizeMobileOcrCreateError(error: unknown): Error {
   if (error instanceof Error) {

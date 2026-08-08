@@ -15,7 +15,7 @@ import {
   ArrowRight01Icon,
   Calendar03Icon,
 } from "hugeicons-react-native";
-import type { CustomerDto } from "../types"; 
+import type { CustomerDto } from "../types/customer";
 import { useUIStore } from "../../../store/ui";
 import { isErpIntegratedCustomer } from "../../../lib/customerIntegration";
 import i18n from "../../../locales";

@@ -21,11 +21,11 @@ import {
 import { SearchFieldSelectorButton } from "../../../components/paged";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
-import { useCustomers } from "../hooks";
+import { useCustomers } from "../hooks/useCustomers";
 import { CUSTOMER_PICKER_AVAILABLE_SEARCH_FIELDS, CUSTOMER_PICKER_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
 import { usePersistedSearchFields } from "../../../hooks/usePersistedSearchFields";
 import { useAuthStore } from "../../../store/auth";
-import type { CustomerGetDto } from "../types";
+import type { CustomerGetDto } from "../types/customer";
 import {
   formatCustomerSelectLabel,
   resolveCustomerSelectKind,

@@ -1,5 +1,5 @@
 import { Platform } from "react-native";
-import type { CustomerDto } from "../types";
+import type { CustomerDto } from "../types/customer";
 
 const COORDINATE_DECIMALS = 6;
 

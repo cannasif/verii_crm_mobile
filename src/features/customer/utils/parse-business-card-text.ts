@@ -1,4 +1,4 @@
-import type { BusinessCardOcrResult } from "../types/businessCard";
+import type { BusinessCardOcrResult } from "../types/business-card";
 import {
   BUSINESS_CARD_ADDRESS_HINTS,
   BUSINESS_CARD_COMPANY_MARKERS,

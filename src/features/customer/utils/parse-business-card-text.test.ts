@@ -1,4 +1,4 @@
-import { parseBusinessCardText } from "./parseBusinessCardText";
+import { parseBusinessCardText } from "./parse-business-card-text";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) {

@@ -21,15 +21,15 @@ import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { getApiBaseUrl } from "../../../constants/config";
 import i18n from "../../../locales";
-import type { CustomerDto, CustomerImageDto } from "../types";
+import type { CustomerDto, CustomerImageDto } from "../types/customer";
 import {
   buildCustomerMapUrl,
   canOpenCustomerMap,
   hasValidCustomerCoordinates,
-} from "../utils/customerCoordinates";
+} from "../utils/customer-coordinates";
 import { isErpIntegratedCustomer } from "../../../lib/customerIntegration";
 import { CustomerErpReadOnlyBanner } from "./CustomerErpReadOnlyBanner";
-import type { QuotationGetDto } from "../../../features/quotation/types";
+import type { QuotationGetDto } from "../../../features/quotation/types/quotation-types";
 import { formatSystemCurrency, formatSystemDate, formatSystemNumber, getSystemLocale } from "../../../lib/systemSettings";
 import {
   Call02Icon,

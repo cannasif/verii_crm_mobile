@@ -1,5 +1,6 @@
-import type { CustomerDto, PagedFilter } from "../types";
-import type { BusinessCardOcrResult } from "../types/businessCard";
+import type { PagedFilter } from "../types/common";
+import type { CustomerDto } from "../types/customer";
+import type { BusinessCardOcrResult } from "../types/business-card";
 
 export type BusinessCardMatchCandidate = {
   customer: CustomerDto;

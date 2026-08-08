@@ -12,9 +12,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
-import { useCustomers } from "../hooks";
+import { useCustomers } from "../hooks/useCustomers";
 import { asSearchFields, CUSTOMER_PICKER_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
-import type { CustomerDto } from "../types";
+import type { CustomerDto } from "../types/customer";
 // YENİ İKONLAR
 import { ArrowDown01Icon, Cancel01Icon, CheckmarkCircle02Icon, Search01Icon } from "hugeicons-react-native";
 

@@ -3,9 +3,9 @@ import {
   pickBestBusinessCardExtraction,
   toBusinessCardOcrResult,
   validateAndNormalizeBusinessCardExtraction,
-} from "../schemas/businessCardSchema";
-import { parseBusinessCardText } from "../utils/parseBusinessCardText";
-import type { BusinessCardExtraction, BusinessCardOcrResult } from "../types/businessCard";
+} from "../schemas/business-card-schema";
+import { parseBusinessCardText } from "../utils/parse-business-card-text";
+import type { BusinessCardExtraction, BusinessCardOcrResult } from "../types/business-card";
 import { businessCardBenchmarkFixtures, type BusinessCardBenchmarkFixture } from "./businessCardBenchmarkFixtures";
 import { businessCardRealOcrFixtures } from "./businessCardRealOcrFixtures";
 

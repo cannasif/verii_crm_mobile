@@ -26,10 +26,12 @@ import {
   type PagedAdvancedFilterRow,
 } from "../../../components/paged";
 import { useUIStore } from "../../../store/ui";
-import { useCustomers, useCities, useDistricts } from "../hooks";
+import { useCustomers } from "../hooks/useCustomers";
+import { useCities, useDistricts } from "../hooks/useLookups";
 import { CUSTOMER_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
 import { usePagedListSearchFields } from "../../../hooks/usePagedListSearchFields";
-import type { CustomerDto, PagedFilter } from "../types";
+import type { PagedFilter } from "../types/common";
+import type { CustomerDto } from "../types/customer";
 
 import {
   LayoutGridIcon,

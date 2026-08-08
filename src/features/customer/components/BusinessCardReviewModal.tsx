@@ -13,7 +13,7 @@ import {
   View,
 } from "react-native";
 import { useTranslation } from "react-i18next";
-import type { BusinessCardOcrResult } from "../types/businessCard";
+import type { BusinessCardOcrResult } from "../types/business-card";
 import type { BusinessCardMatchCandidate } from "../services/businessCardEntityResolutionService";
 import { canTranslateBusinessCardToTurkish } from "../services/businessCardTranslationService";
 

@@ -1,4 +1,4 @@
-import type { BusinessCardReviewFlag, BusinessCardReviewSummary } from "../types/businessCard";
+import type { BusinessCardReviewFlag, BusinessCardReviewSummary } from "../types/business-card";
 import type { OcrLineItem } from "./ocrService";
 
 export type BusinessCardQualityAssessment = {

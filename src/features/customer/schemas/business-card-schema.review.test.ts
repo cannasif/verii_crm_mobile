@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { toBusinessCardOcrResult } from "./businessCardSchema";
-import type { BusinessCardExtraction } from "../types/businessCard";
+import { toBusinessCardOcrResult } from "./business-card-schema";
+import type { BusinessCardExtraction } from "../types/business-card";
 
 const emptySocial = {
   linkedin: null,

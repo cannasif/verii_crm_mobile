@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { customerApi } from "../api/customerApi";
+import { customerApi } from "../api/customer-api";
 import { useToastStore } from "../../../store/toast";
 import type {
   CreateCustomerDto,
@@ -9,8 +9,9 @@ import type {
   UpdateCustomerDto,
   CustomerDto,
   CustomerImageDto,
-  PagedResponse
-} from "../types";
+} from "../types/customer";
+import type { PagedResponse } from "../types/common";
+import { customerQueryKeys } from "../utils/query-keys";
 
 export function useCreateCustomer() {
   const queryClient = useQueryClient();
@@ -20,7 +21,7 @@ export function useCreateCustomer() {
   return useMutation<CustomerDto, Error, CreateCustomerDto>({
     mutationFn: customerApi.create,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["customer", "list"] });
+      queryClient.invalidateQueries({ queryKey: customerQueryKeys.lists() });
       showToast("success", t("customer.createSuccess"));
     },
     onError: (error) => {
@@ -37,7 +38,7 @@ export function useCreateCustomerFromMobile() {
   return useMutation<CreateCustomerFromMobileResultDto, Error, CreateCustomerFromMobileDto>({
     mutationFn: customerApi.createFromMobile,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["customer", "list"] });
+      queryClient.invalidateQueries({ queryKey: customerQueryKeys.lists() });
       showToast("success", t("customer.createSuccess"));
     },
     onError: (error) => {
@@ -59,10 +60,10 @@ export function useUpdateCustomer() {
   >({
     mutationFn: ({ id, data }) => customerApi.update(id, data),
     onMutate: async ({ id, data }) => {
-      await queryClient.cancelQueries({ queryKey: ["customer", "detail", id] });
-      const previousData = queryClient.getQueryData<CustomerDto>(["customer", "detail", id]);
+      await queryClient.cancelQueries({ queryKey: customerQueryKeys.detail(id) });
+      const previousData = queryClient.getQueryData<CustomerDto>(customerQueryKeys.detail(id));
       if (previousData) {
-        queryClient.setQueryData<CustomerDto>(["customer", "detail", id], {
+        queryClient.setQueryData<CustomerDto>(customerQueryKeys.detail(id), {
           ...previousData,
           ...data,
         });
@@ -70,13 +71,13 @@ export function useUpdateCustomer() {
       return { previousData };
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["customer", "list"] });
-      queryClient.invalidateQueries({ queryKey: ["customer", "detail", variables.id] });
+      queryClient.invalidateQueries({ queryKey: customerQueryKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: customerQueryKeys.detail(variables.id) });
       showToast("success", t("customer.updateSuccess"));
     },
     onError: (error, variables, context) => {
       if (context?.previousData) {
-        queryClient.setQueryData(["customer", "detail", variables.id], context.previousData);
+        queryClient.setQueryData(customerQueryKeys.detail(variables.id), context.previousData);
       }
       showToast("error", error.message || t("common.unknownError"));
     },
@@ -96,11 +97,11 @@ export function useDeleteCustomer() {
   >({
     mutationFn: customerApi.delete,
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ["customer", "list"] });
-      const previousData = queryClient.getQueryData<InfiniteData<PagedResponse<CustomerDto>>>(["customer", "list"]);
+      await queryClient.cancelQueries({ queryKey: customerQueryKeys.lists() });
+      const previousData = queryClient.getQueryData<InfiniteData<PagedResponse<CustomerDto>>>(customerQueryKeys.lists());
       if (previousData) {
         queryClient.setQueryData<InfiniteData<PagedResponse<CustomerDto>>>(
-          ["customer", "list"],
+          customerQueryKeys.lists(),
           {
             ...previousData,
             pages: previousData.pages.map((page) => ({
@@ -114,12 +115,12 @@ export function useDeleteCustomer() {
       return { previousData };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["customer", "list"] });
+      queryClient.invalidateQueries({ queryKey: customerQueryKeys.lists() });
       showToast("success", t("customer.deleteSuccess"));
     },
     onError: (error, _, context) => {
       if (context?.previousData) {
-        queryClient.setQueryData(["customer", "list"], context.previousData);
+        queryClient.setQueryData(customerQueryKeys.lists(), context.previousData);
       }
       showToast("error", error.message || t("common.unknownError"));
     },
@@ -139,8 +140,8 @@ export function useUploadCustomerImage() {
     mutationFn: ({ customerId, imageUri, imageDescription }) =>
       customerApi.uploadCustomerImage(customerId, imageUri, imageDescription),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["customer", "images", variables.customerId] });
-      queryClient.invalidateQueries({ queryKey: ["customer", "detail", variables.customerId] });
+      queryClient.invalidateQueries({ queryKey: customerQueryKeys.images(variables.customerId) });
+      queryClient.invalidateQueries({ queryKey: customerQueryKeys.detail(variables.customerId) });
       showToast("success", t("customer.imageUploadSuccess"));
     },
     onError: (error) => {

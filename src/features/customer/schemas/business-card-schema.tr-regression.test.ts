@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { validateAndNormalizeBusinessCardExtraction } from "./businessCardSchema";
+import { validateAndNormalizeBusinessCardExtraction } from "./business-card-schema";
 
 const emptySocial = {
   linkedin: null,

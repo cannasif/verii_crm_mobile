@@ -3,10 +3,10 @@ import { Alert } from "react-native";
 import * as Location from "expo-location";
 import { useTranslation } from "react-i18next";
 import { useToastStore } from "../../../store/toast";
-import { buildUpdateCustomerDtoFromCustomer } from "../utils/buildUpdateCustomerDto";
-import { roundCoordinate } from "../utils/customerCoordinates";
+import { buildUpdateCustomerDtoFromCustomer } from "../utils/build-update-customer-dto";
+import { roundCoordinate } from "../utils/customer-coordinates";
 import { useUpdateCustomer } from "./useCustomerMutation";
-import type { CustomerDto } from "../types";
+import type { CustomerDto } from "../types/customer";
 
 interface UseUpdateCustomerLocationResult {
   requestLocationUpdate: () => void;

@@ -1,4 +1,4 @@
-import type { CustomerDto, UpdateCustomerDto } from "../types";
+import type { CustomerDto, UpdateCustomerDto } from "../types/customer";
 
 export function buildUpdateCustomerDtoFromCustomer(
   customer: CustomerDto,

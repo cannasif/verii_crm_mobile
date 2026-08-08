@@ -1,6 +1,6 @@
 import { NativeModules, Platform } from "react-native";
 import { detectBusinessCardLanguageProfile } from "./businessCardLanguageProfileService";
-import type { BusinessCardOcrResult, BusinessCardResultLanguageProfile } from "../types/businessCard";
+import type { BusinessCardOcrResult, BusinessCardResultLanguageProfile } from "../types/business-card";
 
 type TranslatableField = "title" | "address" | "notes" | "countryName" | "cityName" | "districtName";
 

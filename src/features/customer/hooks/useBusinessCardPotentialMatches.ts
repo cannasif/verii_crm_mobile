@@ -1,14 +1,15 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { customerApi } from "../api/customerApi";
-import type { BusinessCardOcrResult } from "../types/businessCard";
+import { customerApi } from "../api/customer-api";
+import type { BusinessCardOcrResult } from "../types/business-card";
 import { buildBusinessCardPotentialMatchFilters, scoreBusinessCardPotentialMatches } from "../services/businessCardEntityResolutionService";
+import { customerQueryKeys } from "../utils/query-keys";
 
 export function useBusinessCardPotentialMatches(result: BusinessCardOcrResult | null, enabled = true) {
   const filters = useMemo(() => (result ? buildBusinessCardPotentialMatchFilters(result) : []), [result]);
 
   return useQuery({
-    queryKey: ["customer", "businessCardPotentialMatches", filters],
+    queryKey: customerQueryKeys.businessCardPotentialMatches(filters),
     enabled: enabled && filters.length > 0,
     queryFn: async () => {
       const startedAt = Date.now();

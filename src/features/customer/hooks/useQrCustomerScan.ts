@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { captureBusinessCardFromCamera, pickBusinessCardImageFromGallery } from "../services/businessCardCaptureService";
 import { createBusinessCardPreviewImage } from "../services/businessCardNativeImageProcessor";
 import { detectQrFromImage } from "../services/businessCardQrService";
-import type { BusinessCardOcrResult } from "../types/businessCard";
+import type { BusinessCardOcrResult } from "../types/business-card";
 
 async function withQrImage(result: BusinessCardOcrResult | null, imageUri: string): Promise<BusinessCardOcrResult | null> {
   if (!result) return null;

@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import {
   mergeBusinessCardExtractions,
   pickBestBusinessCardExtraction,
-} from "./businessCardSchema";
-import type { BusinessCardExtraction } from "../types/businessCard";
+} from "./business-card-schema";
+import type { BusinessCardExtraction } from "../types/business-card";
 
 const emptySocial = {
   linkedin: null,
