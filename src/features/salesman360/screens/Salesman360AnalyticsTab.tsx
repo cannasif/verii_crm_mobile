@@ -16,7 +16,7 @@ import type {
   Salesmen360AnalyticsSummaryDto,
   Salesmen360AnalyticsChartsDto,
   Salesmen360CurrencyAmountDto,
-} from "../types";
+} from "../types/salesman360-types";
 
 interface Salesman360AnalyticsTabProps {
   summary: Salesmen360AnalyticsSummaryDto | undefined;

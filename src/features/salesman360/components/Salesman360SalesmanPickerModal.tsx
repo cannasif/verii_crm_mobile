@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "../../../components/ui/text";
 import type { ThemeColors } from "../../../constants/theme";
 import { UserMultipleIcon, UserIcon, Search01Icon, Tick02Icon } from "hugeicons-react-native";
-import type { Salesmen360VisibleUserDto } from "../types";
+import type { Salesmen360VisibleUserDto } from "../types/salesman360-types";
 import { SalesmanPickerVoiceButton } from "./SalesmanPickerVoiceButton";
 
 interface Salesman360SalesmanPickerModalProps {

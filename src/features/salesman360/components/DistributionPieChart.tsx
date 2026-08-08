@@ -5,8 +5,8 @@ import { PieChart } from "react-native-gifted-charts";
 import { Text } from "../../../components/ui/text";
 import type { ThemeColors } from "../../../constants/theme";
 import { useUIStore } from "../../../store/ui";
-import type { Salesmen360DistributionDto } from "../types";
-import { getVividDistributionColors, hexToRgba } from "../utils/chartPalette";
+import type { Salesmen360DistributionDto } from "../types/salesman360-types";
+import { getVividDistributionColors, hexToRgba } from "../utils/chart-palette";
 
 interface DistributionPieChartProps {
   data: Salesmen360DistributionDto;

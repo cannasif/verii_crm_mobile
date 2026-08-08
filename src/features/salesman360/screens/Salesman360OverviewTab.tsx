@@ -20,7 +20,7 @@ import {
   InformationCircleIcon,
   UserMultipleIcon,
 } from "hugeicons-react-native";
-import type { CohortRetentionDto, RecommendedActionDto, Salesmen360OverviewDto } from "../types";
+import type { CohortRetentionDto, RecommendedActionDto, Salesmen360OverviewDto } from "../types/salesman360-types";
 
 interface Salesman360OverviewTabProps {
   data: Salesmen360OverviewDto | undefined;

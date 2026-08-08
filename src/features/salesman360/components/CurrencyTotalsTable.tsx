@@ -4,7 +4,7 @@ import { Coins01Icon } from "hugeicons-react-native";
 import { Text } from "../../../components/ui/text";
 import type { ThemeColors } from "../../../constants/theme";
 import { useUIStore } from "../../../store/ui";
-import type { Salesmen360CurrencyAmountDto } from "../types";
+import type { Salesmen360CurrencyAmountDto } from "../types/salesman360-types";
 
 interface CurrencyTotalsTableProps {
   items: Salesmen360CurrencyAmountDto[];

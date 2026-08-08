@@ -17,8 +17,8 @@ import {
 import { Text } from "../../../components/ui/text";
 import type { ThemeColors } from "../../../constants/theme";
 import { useUIStore } from "../../../store/ui";
-import type { Salesmen360MonthlyTrendItemDto } from "../types";
-import { getSoftSeriesColors, hexToRgba } from "../utils/chartPalette";
+import type { Salesmen360MonthlyTrendItemDto } from "../types/salesman360-types";
+import { getSoftSeriesColors, hexToRgba } from "../utils/chart-palette";
 
 const CHART_HEIGHT = 214;
 const Y_AXIS_LABEL_SPACE = 56;

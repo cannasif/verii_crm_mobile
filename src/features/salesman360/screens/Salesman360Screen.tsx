@@ -15,14 +15,12 @@ import { Text } from "../../../components/ui/text";
 import { ScreenHeader } from "../../../components/navigation";
 import { useUIStore } from "../../../store/ui";
 import { useAuthStore } from "../../../store/auth";
-import {
-  useSalesman360Overview,
-  useSalesman360AnalyticsSummary,
-  useSalesman360AnalyticsCharts,
-  useSalesman360VisibleUsers,
-  useSalesman360Cohort,
-  useExecuteSalesman360Action,
-} from "../hooks";
+import { useSalesman360Overview } from "../hooks/useSalesman360Overview";
+import { useSalesman360AnalyticsSummary } from "../hooks/useSalesman360AnalyticsSummary";
+import { useSalesman360AnalyticsCharts } from "../hooks/useSalesman360AnalyticsCharts";
+import { useSalesman360VisibleUsers } from "../hooks/useSalesman360VisibleUsers";
+import { useSalesman360Cohort } from "../hooks/useSalesman360Cohort";
+import { useExecuteSalesman360Action } from "../hooks/useExecuteSalesman360Action";
 import {
   CurrencyPicker,
   Salesman360OutlineChip,
@@ -32,7 +30,7 @@ import {
 import { Money03Icon, Calendar03Icon } from "hugeicons-react-native";
 import { Salesman360OverviewTab } from "./Salesman360OverviewTab";
 import { Salesman360AnalyticsTab } from "./Salesman360AnalyticsTab";
-import type { Salesmen360PeriodKey, Salesmen360VisibleUserDto } from "../types";
+import type { Salesmen360PeriodKey, Salesmen360VisibleUserDto } from "../types/salesman360-types";
 
 type TabType = "overview" | "analytics";
 const PERIOD_OPTIONS: Salesmen360PeriodKey[] = ["today", "week", "month", "year"];

@@ -9,7 +9,7 @@ import type {
   ExecuteRecommendedActionDto,
   ActivityDto,
   Salesmen360PeriodParams,
-} from "../types";
+} from "../types/salesman360-types";
 
 const SALESMEN_360_STALE_MS = 30 * 1000;
 const SALESMEN_360_COHORT_STALE_MS = 5 * 60 * 1000;

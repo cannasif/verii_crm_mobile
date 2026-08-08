@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, View, Platform, useWindowDimensions } from "rea
 import { Text } from "../../../components/ui/text";
 import type { ThemeColors } from "../../../constants/theme";
 import { useUIStore } from "../../../store/ui";
-import type { Salesmen360AmountComparisonDto } from "../types";
+import type { Salesmen360AmountComparisonDto } from "../types/salesman360-types";
 
 interface AmountComparisonTableProps {
   items: Salesmen360AmountComparisonDto[];
