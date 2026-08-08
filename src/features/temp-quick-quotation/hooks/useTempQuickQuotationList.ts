@@ -3,6 +3,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { tempQuickQuotationRepository } from "../repositories/tempQuotattion.repository";
 import type { PagedFilter, PagedResponse } from "../../customer/types/common";
 import type { TempQuotattionGetDto } from "../models/tempQuotattion.model";
+import { tempQuickQuotationQueryKeys } from "../utils/query-keys";
 
 export type TempQuickQuotationStatusFilter = "all" | "draft" | "approved";
 
@@ -58,11 +59,14 @@ export function useTempQuickQuotationList(params: UseTempQuickQuotationListParam
   } = params;
 
   return useInfiniteQuery<PagedResponse<TempQuotattionGetDto>, Error>({
-    queryKey: [
-      "temp-quick-quotation",
-      "list",
-      { search, searchFields, sortBy, sortDirection, filters, pageSize },
-    ],
+    queryKey: tempQuickQuotationQueryKeys.list({
+      search,
+      searchFields,
+      sortBy,
+      sortDirection,
+      filters,
+      pageSize,
+    }),
     queryFn: ({ pageParam }) =>
       tempQuickQuotationRepository.getList({
         pageNumber: pageParam as number,

@@ -6,7 +6,7 @@ import { useUIStore } from "../../../store/ui";
 import { getCurrencyDisplayLabel } from "../../../lib/currencyDisplay";
 import { formatSystemDate } from "../../../lib/systemSettings";
 import type { TempQuotattionGetDto } from "../models/tempQuotattion.model";
-import { resolveTempQuickQuotationCustomerLabel } from "../utils/resolveTempQuickQuotationCustomerLabel";
+import { resolveTempQuickQuotationCustomerLabel } from "../utils/resolve-temp-quick-quotation-customer-label";
 
 interface TempQuickQuotationCompactListRowProps {
   item: TempQuotattionGetDto;

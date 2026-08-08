@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useToast } from "../../../hooks/useToast";
 import { tempQuickQuotationRepository } from "../repositories/tempQuotattion.repository";
+import { tempQuickQuotationQueryKeys } from "../utils/query-keys";
 
 export function useTempQuickQuotationConvert() {
   const { t } = useTranslation();
@@ -21,7 +22,9 @@ export function useTempQuickQuotationConvert() {
     },
     onSuccess: () => {
       showSuccess(t("tempQuickQuotation.convertSuccess"));
-      void queryClient.invalidateQueries({ queryKey: ["temp-quick-quotation", "list"] });
+      void queryClient.invalidateQueries({
+        queryKey: tempQuickQuotationQueryKeys.listPrefix(),
+      });
     },
     onError: (error) => {
       showError(

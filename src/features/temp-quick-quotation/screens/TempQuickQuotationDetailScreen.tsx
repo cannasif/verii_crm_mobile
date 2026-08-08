@@ -28,7 +28,8 @@ import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useToast } from "../../../hooks/useToast";
 import { tempQuickQuotationRepository } from "../repositories/tempQuotattion.repository";
-import { generateTempQuickQuotationReportPdf } from "../utils/generateTempQuickQuotationReportPdf";
+import { generateTempQuickQuotationReportPdf } from "../utils/generate-temp-quick-quotation-report-pdf";
+import { tempQuickQuotationQueryKeys } from "../utils/query-keys";
 import { useReportTemplateList } from "../../quotation/hooks/useReportTemplateList";
 import { DocumentRuleType } from "../../quotation/types/quotation-types";
 import { PickerModal } from "../../quotation/components";
@@ -114,19 +115,19 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | undefined>(undefined);
 
   const detailQuery = useQuery({
-    queryKey: ["temp-quick-quotation", "detail", quickQuotationId],
+    queryKey: tempQuickQuotationQueryKeys.detail(quickQuotationId),
     queryFn: () => tempQuickQuotationRepository.getById(quickQuotationId as number),
     enabled: quickQuotationId != null,
   });
 
   const linesQuery = useQuery({
-    queryKey: ["temp-quick-quotation", "lines", quickQuotationId],
+    queryKey: tempQuickQuotationQueryKeys.lines(quickQuotationId),
     queryFn: () => tempQuickQuotationRepository.getLinesByHeaderId(quickQuotationId as number),
     enabled: quickQuotationId != null,
   });
 
   const exchangeLinesQuery = useQuery({
-    queryKey: ["temp-quick-quotation", "exchange-lines", quickQuotationId],
+    queryKey: tempQuickQuotationQueryKeys.exchangeLines(quickQuotationId),
     queryFn: () => tempQuickQuotationRepository.getExchangeLinesByHeaderId(quickQuotationId as number),
     enabled: quickQuotationId != null,
   });
@@ -135,9 +136,11 @@ export function TempQuickQuotationDetailScreen(): React.ReactElement {
     mutationFn: (id: number) => tempQuickQuotationRepository.approveAndConvertToQuotation(id),
     onSuccess: () => {
       showSuccess("Teklife dönüştürme akışına alındı");
-      queryClient.invalidateQueries({ queryKey: ["temp-quick-quotation", "list"] });
       queryClient.invalidateQueries({
-        queryKey: ["temp-quick-quotation", "detail", quickQuotationId],
+        queryKey: tempQuickQuotationQueryKeys.listPrefix(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: tempQuickQuotationQueryKeys.detail(quickQuotationId),
       });
     },
     onError: (error) => {

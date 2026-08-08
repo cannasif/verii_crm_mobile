@@ -51,7 +51,8 @@ import {
 import { getApiBaseUrl } from "../../../constants/config";
 import { openPdfExternallyAsync } from "../../../lib/pdf";
 import { calculateLineTotals } from "../../quotation/utils/calculations";
-import { generateTempQuickQuotationReportPdf } from "../utils/generateTempQuickQuotationReportPdf";
+import { generateTempQuickQuotationReportPdf } from "../utils/generate-temp-quick-quotation-report-pdf";
+import { tempQuickQuotationQueryKeys } from "../utils/query-keys";
 import { useReportTemplateList } from "../../quotation/hooks/useReportTemplateList";
 import { DocumentRuleType } from "../../quotation/types/quotation-types";
 import { getCurrencyDisplayLabel as getCurrencyDisplayName } from "../../../lib/currencyDisplay";
@@ -240,19 +241,19 @@ export function TempQuickQuotationCreateScreen(): React.ReactElement {
   const { data: currencyOptions = [] } = useCurrencyOptions(exchangeRateParams);
 
   const detailQuery = useQuery({
-    queryKey: ["temp-quick-quotation", "detail", editId],
+    queryKey: tempQuickQuotationQueryKeys.detail(editId),
     queryFn: () => tempQuickQuotationRepository.getById(editId as number),
     enabled: isEdit,
   });
 
   const linesQuery = useQuery({
-    queryKey: ["temp-quick-quotation", "lines", editId],
+    queryKey: tempQuickQuotationQueryKeys.lines(editId),
     queryFn: () => tempQuickQuotationRepository.getLinesByHeaderId(editId as number),
     enabled: isEdit,
   });
 
   const exchangeLinesQuery = useQuery({
-    queryKey: ["temp-quick-quotation", "exchange-lines", editId],
+    queryKey: tempQuickQuotationQueryKeys.exchangeLines(editId),
     queryFn: () => tempQuickQuotationRepository.getExchangeLinesByHeaderId(editId as number),
     enabled: isEdit,
   });

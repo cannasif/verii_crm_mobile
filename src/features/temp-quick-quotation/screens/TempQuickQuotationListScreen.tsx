@@ -31,9 +31,9 @@ import { TEMP_QUICK_QUOTATION_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearc
 import { useUIStore } from "../../../store/ui";
 import {
   useTempQuickQuotationList,
-  useTempQuickQuotationConvert,
   useTempQuickQuotationListFilters,
-} from "../hooks";
+} from "../hooks/useTempQuickQuotationList";
+import { useTempQuickQuotationConvert } from "../hooks/useTempQuickQuotationConvert";
 import {
   TempQuickQuotationRow,
   TempQuickQuotationCompactListRow,
