@@ -61,7 +61,7 @@ import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useSystemSettingsStore } from "../../../store/system-settings";
 import { PermissionDeniedState } from "../../access-control/components/PermissionDeniedState";
-import { isForbiddenError } from "../../access-control/utils/isForbiddenError";
+import { isForbiddenError } from "../../access-control/utils/is-forbidden-error";
 import { useAuthStore } from "../../../store/auth";
 import { useToastStore } from "../../../store/toast";
 import { FormField } from "../../activity/components";

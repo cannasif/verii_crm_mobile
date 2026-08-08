@@ -27,7 +27,7 @@ import { Text } from "../../components/ui/text";
 import { ScreenHeader } from "../../components/navigation";
 import { useUIStore } from "../../store/ui";
 import { useAuthStore } from "../../store/auth";
-import { visibilitySimulatorApi } from "../../features/access-control/api/visibilitySimulatorApi";
+import { visibilitySimulatorApi } from "../../features/access-control/api/visibility-simulator-api";
 
 const ENTITY_OPTIONS = [
   { value: "Quotation", labelKey: "accessControlSimulator.entityQuotation" },

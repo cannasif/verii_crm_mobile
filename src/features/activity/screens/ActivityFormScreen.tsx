@@ -27,7 +27,7 @@ import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useAuthStore } from "../../../store/auth";
 import { PermissionDeniedState } from "../../access-control/components/PermissionDeniedState";
-import { hasPermission } from "../../access-control/utils/hasPermission";
+import { hasPermission } from "../../access-control/utils/has-permission";
 import { useActivity, useActivityLookups, useActivityTypes, useCreateActivity, useUpdateActivity } from "../hooks";
 import { FormField, CustomerPicker, ContactPicker } from "../components";
 import { useCustomerScopeAccess } from "../../customer/hooks/useCustomerScopeAccess";

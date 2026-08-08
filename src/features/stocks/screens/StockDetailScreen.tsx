@@ -14,7 +14,7 @@ import { ScreenHeader } from "../../../components/navigation";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useAuthStore } from "../../../store/auth";
-import { hasPermission } from "../../access-control/utils/hasPermission";
+import { hasPermission } from "../../access-control/utils/has-permission";
 import { useStock, useStockImageController, useStockImagesByStock, useStockRelations } from "../hooks";
 import { StockDetailContent } from "../components";
 import { sortStockImagesForDisplay } from "../utils/stockImageSort";

@@ -1,5 +1,5 @@
 import * as signalR from "@microsoft/signalr";
-import { authAccessApi } from "../features/access-control/api/authAccessApi";
+import { authAccessApi } from "../features/access-control/api/auth-access-api";
 import { getSystemSettings } from "../features/system-settings/api/systemSettingsApi";
 import { getApiBaseUrl } from "../constants/config";
 import { queryClient } from "./queryClient";

@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import { Text } from "../ui/text";
 import { useUIStore } from "../../store/ui";
 import { useAuthStore } from "../../store/auth";
-import { hasAnyPermission } from "../../features/access-control/utils/hasPermission";
+import { hasAnyPermission } from "../../features/access-control/utils/has-permission";
 import Svg, { Path } from "react-native-svg";
 import {
   PackageIcon,

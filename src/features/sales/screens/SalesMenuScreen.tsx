@@ -9,7 +9,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { ScreenHeader } from "../../../components/navigation";
 import { useUIStore } from "../../../store/ui";
 import { useAuthStore } from "../../../store/auth";
-import { hasPermission } from "../../access-control/utils/hasPermission";
+import { hasPermission } from "../../access-control/utils/has-permission";
 import { MenuCard } from "../../customer/components";
 import { Text } from "../../../components/ui/text";
 

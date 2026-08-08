@@ -38,7 +38,7 @@ import {
   resolveSalesDocumentRowCurrencyLabel,
 } from "../../../lib/salesDocumentRowDisplay";
 import { PermissionDeniedState } from "../../access-control/components/PermissionDeniedState";
-import { isForbiddenError } from "../../access-control/utils/isForbiddenError";
+import { isForbiddenError } from "../../access-control/utils/is-forbidden-error";
 import { resolveSalesDocumentPaymentTypeLabel } from "../../../lib/resolveSalesDocumentPaymentTypeLabel";
 import { useOrderList } from "../hooks/useOrderList";
 import { useCreateRevisionOfOrder } from "../hooks/useCreateRevisionOfOrder";

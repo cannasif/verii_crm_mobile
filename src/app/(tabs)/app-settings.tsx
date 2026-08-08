@@ -32,7 +32,7 @@ import {
   SUPPORTED_LANGUAGES as LANGUAGE_OPTIONS,
   type AppLanguage,
 } from "../../locales";
-import { hasPermission } from "../../features/access-control/utils/hasPermission";
+import { hasPermission } from "../../features/access-control/utils/has-permission";
 
 function MenuGroup({
   children,

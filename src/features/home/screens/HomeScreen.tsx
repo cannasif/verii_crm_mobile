@@ -9,7 +9,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useAuthStore } from "../../../store/auth";
-import { hasAnyPermission } from "../../access-control/utils/hasPermission";
+import { hasAnyPermission } from "../../access-control/utils/has-permission";
 import { CRM_MODULES } from "../constants/modules";
 import type { Module } from "../types";
 

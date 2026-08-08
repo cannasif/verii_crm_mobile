@@ -5,8 +5,8 @@ import { BottomNavBar } from "../../components/navigation";
 import { useUIStore } from "../../store/ui";
 import { useAuthStore } from "../../store/auth";
 import { PermissionDeniedState } from "../../features/access-control/components/PermissionDeniedState";
-import { hasAnyPermission, hasPermission } from "../../features/access-control/utils/hasPermission";
-import { getMobileRoutePermissionRule } from "../../features/access-control/utils/mobileRoutePermissions";
+import { hasAnyPermission, hasPermission } from "../../features/access-control/utils/has-permission";
+import { getMobileRoutePermissionRule } from "../../features/access-control/utils/mobile-route-permissions";
 
 export default function TabsLayout(): React.ReactElement {
   const pathname = usePathname();

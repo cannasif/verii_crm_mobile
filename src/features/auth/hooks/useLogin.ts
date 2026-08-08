@@ -1,6 +1,6 @@
 import { useMutation, type UseMutateFunction } from "@tanstack/react-query";
 import { authApi } from "../api";
-import { authAccessApi } from "../../access-control/api/authAccessApi";
+import { authAccessApi } from "../../access-control/api/auth-access-api";
 import { useAuthStore } from "../../../store/auth";
 import type { LoginRequest, LoginResponseData, Branch } from "../types";
 

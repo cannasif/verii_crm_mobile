@@ -19,7 +19,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Text } from "../ui/text";
 import { useUIStore } from "../../store/ui";
 import { useAuthStore } from "../../store/auth";
-import { hasAnyPermission } from "../../features/access-control/utils/hasPermission";
+import { hasAnyPermission } from "../../features/access-control/utils/has-permission";
 import { SHOW_ERP_CUSTOMERS_MENU } from "@/constants/config";
 import { isAppRtl, rtlEndMargin, rtlRow, rtlStartMargin, rtlTextAlign, rtlWritingDirection } from "../../lib/rtl";
 
