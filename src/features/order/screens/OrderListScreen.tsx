@@ -40,10 +40,15 @@ import {
 import { PermissionDeniedState } from "../../access-control/components/PermissionDeniedState";
 import { isForbiddenError } from "../../access-control/utils/isForbiddenError";
 import { resolveSalesDocumentPaymentTypeLabel } from "../../../lib/resolveSalesDocumentPaymentTypeLabel";
-import { useOrderList, useCreateRevisionOfOrder, usePaymentTypeNameMap, useOrderListRowActions, useOrderListGrandTotalSync } from "../hooks";
+import { useOrderList } from "../hooks/useOrderList";
+import { useCreateRevisionOfOrder } from "../hooks/useCreateRevisionOfOrder";
+import { usePaymentTypeNameMap } from "../hooks/usePaymentTypeNameMap";
+import { useOrderListRowActions } from "../hooks/useOrderListRowActions";
+import { useOrderListGrandTotalSync } from "../hooks/useOrderListGrandTotalSync";
 import { OrderRow, OrderRowActionsSheet } from "../components";
 import { CustomerMailComposerModal } from "../../integration";
-import type { OrderGetDto } from "../types";
+import type { OrderGetDto } from "../types/order-types";
+import { orderQueryKeys } from "../utils/query-keys";
 
 const GAP = 16;
 const PADDING = 16;
@@ -223,7 +228,7 @@ export function OrderListScreen(): React.ReactElement {
   const queryClient = useQueryClient();
   const handleRefresh = useCallback(() => {
     orderIds.forEach((id) => {
-      void queryClient.invalidateQueries({ queryKey: ["order", "listGrandTotal", id] });
+      void queryClient.invalidateQueries({ queryKey: orderQueryKeys.listGrandTotal(id) });
     });
     void refetch();
   }, [orderIds, queryClient, refetch]);

@@ -1,6 +1,7 @@
+import { orderQueryKeys } from "../utils/query-keys";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { orderApi } from "../api";
-import type { ApproveActionDto } from "../types";
+import { orderApi } from "../api/order-api";
+import type { ApproveActionDto } from "../types/order-types";
 import { useToastStore } from "../../../store/toast";
 import { useTranslation } from "react-i18next";
 
@@ -12,8 +13,8 @@ export function useApproveAction() {
   return useMutation({
     mutationFn: (data: ApproveActionDto) => orderApi.approve(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["order", "waitingApprovals"] });
-      queryClient.invalidateQueries({ queryKey: ["order"] });
+      queryClient.invalidateQueries({ queryKey: orderQueryKeys.waitingApprovals() });
+      queryClient.invalidateQueries({ queryKey: orderQueryKeys.all() });
       showToast("success", t("order.approveSuccess"));
     },
     onError: (error: Error) => {

@@ -18,7 +18,7 @@ import { useUIStore } from "../../../store/ui";
 import { useToastStore } from "../../../store/toast";
 import { canPreviewPdfInApp, openPdfExternallyAsync } from "../../../lib/pdf";
 import type { SalesDocumentPreviewPdfInput } from "../../../lib/salesDocumentPreviewPdf";
-import { createV3riiOrderPreviewPdf } from "../utils/createV3riiOrderPreviewPdf";
+import { createV3riiOrderPreviewPdf } from "../utils/create-v3rii-order-preview-pdf";
 
 const REPORT_PDF_PRIMARY_GRADIENT = {
   dark: ["#ea580c", "#e11d48", "#db2777"] as const,

@@ -1,6 +1,7 @@
+import { orderQueryKeys } from "../utils/query-keys";
 import { useQuery } from "@tanstack/react-query";
-import { orderApi } from "../api";
-import type { OrderApprovalFlowReportDto } from "../types";
+import { orderApi } from "../api/order-api";
+import type { OrderApprovalFlowReportDto } from "../types/order-types";
 
 const STALE_TIME_MS = 60 * 1000;
 
@@ -20,7 +21,7 @@ export function useOrderApprovalFlowReport(
     error,
     refetch,
   } = useQuery({
-    queryKey: ["order", "approval-flow-report", orderId],
+    queryKey: orderQueryKeys.approvalFlowReport(orderId),
     queryFn: () => orderApi.getApprovalFlowReport(orderId!),
     enabled: typeof orderId === "number",
     staleTime: STALE_TIME_MS,

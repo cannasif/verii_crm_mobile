@@ -1,4 +1,4 @@
-import type { OrderLineFormState, CalculationTotals } from "../types";
+import type { OrderLineFormState, CalculationTotals } from "../types/order-types";
 import {
   computeGrandTotalAfterGeneralDiscount,
   round2,

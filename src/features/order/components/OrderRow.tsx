@@ -10,7 +10,7 @@ import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useTranslation } from "react-i18next";
 import { UserIcon, Calendar03Icon, Coins01Icon } from "hugeicons-react-native";
-import type { OrderGetDto } from "../types";
+import type { OrderGetDto } from "../types/order-types";
 import { formatSystemDate } from "../../../lib/systemSettings";
 import { resolveDocumentApprovalStatusMeta } from "../../../lib/documentApprovalStatus";
 import { DocumentApprovalStatusBadge } from "../../../components/paged/DocumentApprovalStatusBadge";

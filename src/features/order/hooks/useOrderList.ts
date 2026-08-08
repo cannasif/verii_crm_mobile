@@ -1,7 +1,8 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { fetchPagedDocumentList } from "../../../lib/documentApprovalFilter";
-import { orderApi } from "../api";
-import type { PagedFilter, PagedResponse, OrderGetDto } from "../types";
+import { orderApi } from "../api/order-api";
+import type { PagedFilter, PagedResponse, OrderGetDto } from "../types/order-types";
+import { orderQueryKeys } from "../utils/query-keys";
 
 const DEFAULT_PAGE_SIZE = 20;
 const STALE_TIME_MS = 2 * 60 * 1000;
@@ -30,11 +31,16 @@ export function useOrderList(params: UseOrderListParams = {}) {
   } = params;
 
   return useInfiniteQuery<PagedResponse<OrderGetDto>, Error>({
-    queryKey: [
-      "order",
-      "orders",
-      { filters, search, searchFields, filterLogic, sortBy, sortDirection, pageSize, approvalStatusFilter },
-    ],
+    queryKey: orderQueryKeys.list({
+      filters,
+      search,
+      searchFields,
+      filterLogic,
+      sortBy,
+      sortDirection,
+      pageSize,
+      approvalStatusFilter,
+    }),
     queryFn: ({ pageParam }) =>
       fetchPagedDocumentList(
         {

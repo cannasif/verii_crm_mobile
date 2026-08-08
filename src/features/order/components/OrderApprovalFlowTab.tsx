@@ -18,7 +18,7 @@ import {
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useOrderApprovalFlowReport } from "../hooks/useOrderApprovalFlowReport";
-import type { ApprovalFlowStepReportDto, ApprovalActionDetailDto } from "../types";
+import type { ApprovalFlowStepReportDto, ApprovalActionDetailDto } from "../types/order-types";
 
 const STEP_STATUS_IN_PROGRESS = "InProgress";
 const STEP_STATUS_COMPLETED = "Completed";

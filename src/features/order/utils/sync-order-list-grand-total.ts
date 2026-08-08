@@ -1,9 +1,9 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { patchDocumentListItemGrandTotal } from "../../../lib/documentListQueryInvalidation";
 import { readGeneralDiscountOptions } from "../../../lib/salesDocumentTotals";
-import { orderApi } from "../api";
-import type { OrderDetailGetDto, OrderLineDetailGetDto } from "../types";
-import { computeOrderTotalsFromDetailLines } from "./orderDetailMappers";
+import { orderApi } from "../api/order-api";
+import type { OrderDetailGetDto, OrderLineDetailGetDto } from "../types/order-types";
+import { computeOrderTotalsFromDetailLines } from "./order-detail-mappers";
 
 export function applyOrderListGrandTotalPatch(
   queryClient: QueryClient,

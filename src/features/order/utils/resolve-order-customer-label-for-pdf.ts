@@ -1,5 +1,5 @@
-import { customerApi } from "../../customer/api/customerApi";
-import { buildOrderPreviewPdfLabels } from "./buildOrderPreviewPdfLabels";
+import { customerApi } from "../../customer/api/customer-api";
+import { buildOrderPreviewPdfLabels } from "./build-order-preview-pdf-labels";
 import type { TFunction } from "i18next";
 
 export interface ResolveOrderCustomerLabelParams {

@@ -32,8 +32,8 @@ import { addDaysToDateOnly } from "@/lib/salesDocumentDate";
 import { useMobileSalesDocumentDraft } from "../../sales-document-drafts/useMobileSalesDocumentDraft";
 import { findMatchingSalesDocumentPricingRule } from "../../../lib/salesDocumentLinePricing";
 import { resolveLineListCurrencyLabel, resolveCurrencyIsoCode } from "../../../lib/currencyDisplay";
-import { resolveOrderCustomerLabelForPdf } from "../utils/resolveOrderCustomerLabelForPdf";
-import { buildOrderPreviewPdfInput } from "../utils/buildOrderPreviewPdfInput";
+import { resolveOrderCustomerLabelForPdf } from "../utils/resolve-order-customer-label-for-pdf";
+import { buildOrderPreviewPdfInput } from "../utils/build-order-preview-pdf-input";
 import { buildSalesDocumentPreviewPdfExtras } from "../../../lib/salesDocumentPreviewPdf";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -62,7 +62,8 @@ import { useAuthStore } from "../../../store/auth";
 import { useToastStore } from "../../../store/toast";
 import { FormField } from "../../activity/components";
 import { useCustomerActivities } from "../../activity/hooks/useCustomerActivities";
-import { useCustomer, useCustomerScopeAccess } from "../../customer/hooks";
+import { useCustomer } from "../../customer/hooks/useCustomer";
+import { useCustomerScopeAccess } from "../../customer/hooks/useCustomerScopeAccess";
 import { useCustomerShippingAddresses } from "../../shipping-address/hooks";
 import { buildShippingAddressLabel } from "../../shipping-address/utils/shippingAddressLabel";
 import { useErpCustomers } from "../../erp-customer/hooks";
@@ -70,7 +71,7 @@ import { useStock } from "../../stocks/hooks";
 import { stockApi } from "../../stocks/api";
 import { resolveDocumentLineProductName } from "../../stocks/utils";
 import { getLocalizedStockNameFromStock } from "../../../lib/localizedStockName";
-import { orderApi } from "../api";
+import { orderApi } from "../api/order-api";
 import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida/hooks/useWindoDefinitionOptions";
 import { useSpecialCodes } from "../../common/hooks/useSpecialCodes";
 import {
@@ -79,13 +80,13 @@ import {
 } from "../../common/utils/specialCodeLabel";
 import {
   useCreateOrderBulk,
-  usePriceRuleOfOrder,
-  useUserDiscountLimitsBySalesperson,
-  useExchangeRate,
-  useCurrencyOptions,
-  usePaymentTypes,
-  useRelatedUsers,
-} from "../hooks";
+} from "../hooks/useCreateOrderBulk";
+import { usePriceRuleOfOrder } from "../hooks/usePriceRuleOfOrder";
+import { useUserDiscountLimitsBySalesperson } from "../hooks/useUserDiscountLimitsBySalesperson";
+import { useExchangeRate } from "../hooks/useExchangeRate";
+import { useCurrencyOptions } from "../hooks/useCurrencyOptions";
+import { usePaymentTypes } from "../hooks/usePaymentTypes";
+import { useRelatedUsers } from "../hooks/useRelatedUsers";
 import {
   OrderLineForm,
   ExchangeRateDialog,
@@ -96,20 +97,21 @@ import {
   OrderPreviewPdfDialog,
 } from "../components";
 import { CustomerSelectDialog, type CustomerSelectionResult } from "../../customer";
-import { useErpProjects, useSalesTypeList } from "../../quotation/hooks";
+import { useErpProjects } from "../../quotation/hooks/useErpProjects";
+import { useSalesTypeList } from "../../quotation/hooks/useSalesTypeList";
 import { QuotationNotesModal, validateNotesMaxLength } from "../../quotation/components";
-import { normalizeOfferType } from "../../quotation/types";
-import type { CustomerDto } from "../../customer/types";
-import { createOrderSchema, type CreateOrderSchema } from "../schemas";
+import { normalizeOfferType } from "../../quotation/types/quotation-types";
+import type { CustomerDto } from "../../customer/types/customer";
+import { createOrderSchema, type CreateOrderSchema } from "../schemas/order-schema";
 import type {
   OrderLineFormState,
   OrderExchangeRateFormState,
   StockGetDto,
-} from "../types";
+} from "../types/order-types";
 import type { StockRelationDto } from "../../stocks/types";
 import type { ProductSelectionResult } from "../../stocks/types";
-import { calculateLineTotals, calculateTotals } from "../utils";
-import type { ExchangeRateDto } from "../types";
+import { calculateLineTotals, calculateTotals } from "../utils/calculations";
+import type { ExchangeRateDto } from "../types/order-types";
 import {
   enforceExportVatOnLine,
   getDefaultDocumentVatRate,

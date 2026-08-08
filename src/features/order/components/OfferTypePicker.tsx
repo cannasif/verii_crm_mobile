@@ -6,8 +6,8 @@ import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { ArrowDown01Icon } from "hugeicons-react-native";
 import { PickerModal } from "./PickerModal";
-import type { CreateOrderSchema } from "../schemas";
-import { OfferType } from "../types";
+import type { CreateOrderSchema } from "../schemas/order-schema";
+import { OfferType } from "../types/order-types";
 
 interface OfferTypePickerProps {
   control: Control<CreateOrderSchema>;

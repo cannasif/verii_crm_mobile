@@ -66,7 +66,8 @@ import { useAuthStore } from "../../../store/auth";
 import { useToastStore } from "../../../store/toast";
 import { FormField } from "../../activity/components";
 import { useCustomerActivities } from "../../activity/hooks/useCustomerActivities";
-import { useCustomer, useCustomerScopeAccess } from "../../customer/hooks";
+import { useCustomer } from "../../customer/hooks/useCustomer";
+import { useCustomerScopeAccess } from "../../customer/hooks/useCustomerScopeAccess";
 import { useCustomerShippingAddresses } from "../../shipping-address/hooks";
 import { buildShippingAddressLabel } from "../../shipping-address/utils/shippingAddressLabel";
 import { stockApi } from "../../stocks/api";
@@ -82,27 +83,25 @@ import {
 } from "../../../lib/documentDetailReadOnly";
 import { resolveDocumentCancellationReason } from "../../../lib/resolveDocumentStatus";
 import { enforceExportVatOnLine, isExportOfferType, resolveDocumentVatRate } from "../../../utils/documentVat";
-import { orderApi } from "../api";
-import {
-  useOrderDetail,
-  useStartApprovalFlow,
-  useWaitingApprovals,
-  useApproveAction,
-  useRejectAction,
-  useExchangeRate,
-  useCurrencyOptions,
-  usePaymentTypes,
-  useRelatedUsers,
-  usePriceRuleOfOrder,
-  useUserDiscountLimitsBySalesperson,
-  useUpdateExchangeRateInOrder,
-  useDeleteOrderLine,
-  useCreateOrderLines,
-  useUpdateOrderLines,
-  useCancelOrderByCustomer,
-  useCanEditOrder,
-  useCreateRevisionOfOrder,
-} from "../hooks";
+import { orderApi } from "../api/order-api";
+import { useOrderDetail } from "../hooks/useOrderDetail";
+import { useStartApprovalFlow } from "../hooks/useStartApprovalFlow";
+import { useWaitingApprovals } from "../hooks/useWaitingApprovals";
+import { useApproveAction } from "../hooks/useApproveAction";
+import { useRejectAction } from "../hooks/useRejectAction";
+import { useExchangeRate } from "../hooks/useExchangeRate";
+import { useCurrencyOptions } from "../hooks/useCurrencyOptions";
+import { usePaymentTypes } from "../hooks/usePaymentTypes";
+import { useRelatedUsers } from "../hooks/useRelatedUsers";
+import { usePriceRuleOfOrder } from "../hooks/usePriceRuleOfOrder";
+import { useUserDiscountLimitsBySalesperson } from "../hooks/useUserDiscountLimitsBySalesperson";
+import { useUpdateExchangeRateInOrder } from "../hooks/useUpdateExchangeRateInOrder";
+import { useDeleteOrderLine } from "../hooks/useDeleteOrderLine";
+import { useCreateOrderLines } from "../hooks/useCreateOrderLines";
+import { useUpdateOrderLines } from "../hooks/useUpdateOrderLines";
+import { useCancelOrderByCustomer } from "../hooks/useCancelOrderByCustomer";
+import { useCanEditOrder } from "../hooks/useCanEditOrder";
+import { useCreateRevisionOfOrder } from "../hooks/useCreateRevisionOfOrder";
 import {
   ExchangeRateDialog,
   PickerModal,
@@ -115,19 +114,19 @@ import {
   OrderReportTab,
 } from "../components";
 import { CustomerSelectDialog, type CustomerSelectionResult } from "../../customer";
-import type { CustomerDto } from "../../customer/types";
+import type { CustomerDto } from "../../customer/types/customer";
 import { resolveCurrencyIsoCode } from "../../../lib/currencyDisplay";
-import { resolveOrderCustomerLabelForPdf } from "../utils/resolveOrderCustomerLabelForPdf";
-import { buildOrderPreviewPdfInput } from "../utils/buildOrderPreviewPdfInput";
+import { resolveOrderCustomerLabelForPdf } from "../utils/resolve-order-customer-label-for-pdf";
+import { buildOrderPreviewPdfInput } from "../utils/build-order-preview-pdf-input";
 import { buildSalesDocumentPreviewPdfExtras } from "../../../lib/salesDocumentPreviewPdf";
-import { createOrderSchema, type CreateOrderSchema } from "../schemas";
+import { createOrderSchema, type CreateOrderSchema } from "../schemas/order-schema";
 import type {
   OrderLineFormState,
   OrderExchangeRateFormState,
   ExchangeRateDto,
   StockGetDto,
   ApprovalActionGetDto,
-} from "../types";
+} from "../types/order-types";
 import {
   APPROVAL_HAVENOT_STARTED,
   APPROVAL_WAITING,
@@ -138,7 +137,7 @@ import {
   APPROVAL_SALESPERSON_CLOSED_FOR_REVISION,
   APPROVAL_SUPERSEDED_BY_APPROVED_REVISION,
   PricingRuleType,
-} from "../types";
+} from "../types/order-types";
 import type { StockRelationDto } from "../../stocks/types";
 import {
   mapDetailHeaderToForm,
@@ -149,9 +148,10 @@ import {
   mapOrderLineFormStateToCreateDto,
   mapOrderLineFormStateToUpdateDto,
   totalsFromDetailLines,
-} from "../utils";
-import { syncOrderListGrandTotal, applyOrderListGrandTotalPatch } from "../utils/syncOrderListGrandTotal";
-import { calculateLineTotals, calculateTotals } from "../utils";
+} from "../utils/order-detail-mappers";
+import { syncOrderListGrandTotal, applyOrderListGrandTotalPatch } from "../utils/sync-order-list-grand-total";
+import { calculateLineTotals, calculateTotals } from "../utils/calculations";
+import { orderQueryKeys } from "../utils/query-keys";
 import { resolveLineListCurrencyLabel } from "../../../lib/currencyDisplay";
 import { getApiBaseUrl } from "../../../constants/config";
 import { useDocumentDetailDirtyState } from "../../../hooks/useDocumentDetailDirtyState";
@@ -1166,10 +1166,10 @@ export function OrderDetailScreen(): React.ReactElement {
         );
         await invalidateDocumentDetailHeaderQuery(queryClient, "order", orderId);
         await queryClient.invalidateQueries({
-          queryKey: ["order", "detail", "lines", orderId],
+          queryKey: orderQueryKeys.lines(orderId),
         });
         await queryClient.invalidateQueries({
-          queryKey: ["order", "detail", "exchangeRates", orderId],
+          queryKey: orderQueryKeys.exchangeRates(orderId),
         });
         await syncOrderListGrandTotal(queryClient, orderId);
         markSaved();

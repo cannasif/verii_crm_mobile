@@ -1,10 +1,11 @@
+import { orderQueryKeys } from "../utils/query-keys";
 import { useQueries } from "@tanstack/react-query";
-import { orderApi } from "../api";
+import { orderApi } from "../api/order-api";
 import type {
   OrderDetailGetDto,
   OrderLineDetailGetDto,
   OrderExchangeRateDetailGetDto,
-} from "../types";
+} from "../types/order-types";
 
 const STALE_TIME_MS = 60 * 1000;
 
@@ -20,19 +21,19 @@ export function useOrderDetail(orderId: number | undefined): {
   const results = useQueries({
     queries: [
       {
-        queryKey: ["order", "detail", orderId],
+        queryKey: orderQueryKeys.detail(orderId),
         queryFn: () => orderApi.getById(orderId!),
         enabled: typeof orderId === "number",
         staleTime: STALE_TIME_MS,
       },
       {
-        queryKey: ["order", "detail", "lines", orderId],
+        queryKey: orderQueryKeys.lines(orderId),
         queryFn: () => orderApi.getLinesByOrder(orderId!),
         enabled: typeof orderId === "number",
         staleTime: STALE_TIME_MS,
       },
       {
-        queryKey: ["order", "detail", "exchangeRates", orderId],
+        queryKey: orderQueryKeys.exchangeRates(orderId),
         queryFn: () => orderApi.getExchangeRatesByOrder(orderId!),
         enabled: typeof orderId === "number",
         staleTime: STALE_TIME_MS,

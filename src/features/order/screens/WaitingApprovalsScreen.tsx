@@ -14,9 +14,11 @@ import { ScreenHeader } from "../../../components/navigation";
 import { Text } from "../../../components/ui/text";
 import { CustomRefreshControl } from "../../../components/CustomRefreshControl";
 import { useUIStore } from "../../../store/ui";
-import { useWaitingApprovals, useApproveAction, useRejectAction } from "../hooks";
+import { useWaitingApprovals } from "../hooks/useWaitingApprovals";
+import { useApproveAction } from "../hooks/useApproveAction";
+import { useRejectAction } from "../hooks/useRejectAction";
 import { ApprovalRow, RejectModal } from "../components";
-import type { ApprovalActionGetDto } from "../types";
+import type { ApprovalActionGetDto } from "../types/order-types";
 
 export function WaitingApprovalsScreen(): React.ReactElement {
   const { t } = useTranslation();

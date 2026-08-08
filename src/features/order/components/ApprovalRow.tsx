@@ -3,7 +3,7 @@ import { View, TouchableOpacity, StyleSheet, type GestureResponderEvent } from "
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useTranslation } from "react-i18next";
-import type { ApprovalActionGetDto } from "../types";
+import type { ApprovalActionGetDto } from "../types/order-types";
 
 interface ApprovalRowProps {
   approval: ApprovalActionGetDto;

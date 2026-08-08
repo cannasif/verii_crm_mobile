@@ -19,7 +19,7 @@ import {
 } from "hugeicons-react-native";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
-import type { OrderGetDto } from "../types";
+import type { OrderGetDto } from "../types/order-types";
 
 type SheetStep = "main" | "share";
 

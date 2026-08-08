@@ -1,6 +1,7 @@
+import { orderQueryKeys } from "../utils/query-keys";
 import { useMemo } from "react";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
-import { syncOrderListGrandTotal } from "../utils/syncOrderListGrandTotal";
+import { syncOrderListGrandTotal } from "../utils/sync-order-list-grand-total";
 
 const STALE_TIME_MS = 2 * 60 * 1000;
 
@@ -13,7 +14,7 @@ export function useOrderListGrandTotalSync(orderIds: readonly number[]): void {
 
   useQueries({
     queries: uniqueOrderIds.map((orderId) => ({
-      queryKey: ["order", "listGrandTotal", orderId] as const,
+      queryKey: orderQueryKeys.listGrandTotal(orderId),
       queryFn: () => syncOrderListGrandTotal(queryClient, orderId),
       staleTime: STALE_TIME_MS,
     })),

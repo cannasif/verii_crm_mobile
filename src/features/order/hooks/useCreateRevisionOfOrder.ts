@@ -1,6 +1,7 @@
+import { orderQueryKeys } from "../utils/query-keys";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { orderApi } from "../api";
+import { orderApi } from "../api/order-api";
 import { useToastStore } from "../../../store/toast";
 import { useTranslation } from "react-i18next";
 
@@ -13,7 +14,7 @@ export function useCreateRevisionOfOrder() {
   return useMutation({
     mutationFn: (orderId: number) => orderApi.createRevision(orderId),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["order", "orders"] });
+      queryClient.invalidateQueries({ queryKey: orderQueryKeys.lists() });
       showToast("success", t("order.revisionSuccess"));
       router.push(`/(tabs)/sales/orders/${data.id}`);
     },

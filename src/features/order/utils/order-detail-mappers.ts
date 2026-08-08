@@ -1,4 +1,4 @@
-import type { CreateOrderSchema } from "../schemas";
+import type { CreateOrderSchema } from "../schemas/order-schema";
 import type {
   OrderDetailGetDto,
   OrderLineDetailGetDto,
@@ -9,10 +9,10 @@ import type {
   CurrencyOptionDto,
   CreateOrderLineDto,
   OrderLineUpdateDto,
-} from "../types";
+} from "../types/order-types";
 import type { GeneralDiscountOptions } from "../../../lib/salesDocumentTotals";
 import { calculateLineTotals, calculateTotals } from "./calculations";
-import type { CalculationTotals } from "../types";
+import type { CalculationTotals } from "../types/order-types";
 
 export interface LineGroup {
   key: string;

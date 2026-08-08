@@ -1,6 +1,7 @@
+import { userQueryKeys } from "../utils/query-keys";
 import { useQuery } from "@tanstack/react-query";
-import { orderApi } from "../api";
-import type { UserDto } from "../types";
+import { orderApi } from "../api/order-api";
+import type { UserDto } from "../types/order-types";
 
 const STALE_TIME_MS = 60 * 1000;
 
@@ -12,7 +13,7 @@ export function useUserList(): {
   refetch: () => void;
 } {
   const query = useQuery<UserDto[], Error>({
-    queryKey: ["user", "list"],
+    queryKey: userQueryKeys.list(),
     queryFn: () => orderApi.getUserList(),
     staleTime: STALE_TIME_MS,
   });

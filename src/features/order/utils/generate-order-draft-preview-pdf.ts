@@ -2,14 +2,14 @@ import type { TFunction } from "i18next";
 import { resolveCurrencyIsoCode } from "../../../lib/currencyDisplay";
 import { buildSalesDocumentPreviewPdfExtras } from "../../../lib/salesDocumentPreviewPdf";
 import { fetchWindoLineDetailMapsForPdf } from "../../windo-profil-demir-vida";
-import { resolveOrderCustomerLabelForPdf } from "./resolveOrderCustomerLabelForPdf";
+import { resolveOrderCustomerLabelForPdf } from "./resolve-order-customer-label-for-pdf";
 import type { Branch } from "../../auth/types/index";
-import { orderApi } from "../api/orderApi";
-import type { OrderGetDto } from "../types";
-import { buildOrderPreviewPdfInput } from "./buildOrderPreviewPdfInput";
-import { buildOrderPreviewPdfLabels } from "./buildOrderPreviewPdfLabels";
-import { createV3riiOrderPreviewPdf } from "./createV3riiOrderPreviewPdf";
-import { mapDetailLinesToFormState } from "./orderDetailMappers";
+import { orderApi } from "../api/order-api";
+import type { OrderGetDto } from "../types/order-types";
+import { buildOrderPreviewPdfInput } from "./build-order-preview-pdf-input";
+import { buildOrderPreviewPdfLabels } from "./build-order-preview-pdf-labels";
+import { createV3riiOrderPreviewPdf } from "./create-v3rii-order-preview-pdf";
+import { mapDetailLinesToFormState } from "./order-detail-mappers";
 import { mapApiLinesToLocalizedFormState } from "../../stocks/utils";
 
 function resolveLocale(language: string): string {

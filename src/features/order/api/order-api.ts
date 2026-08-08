@@ -46,7 +46,7 @@ import type {
   UserDto,
   PagedParams,
   PagedResponse,
-} from "../types";
+} from "../types/order-types";
 import type { ApiResponse } from "../../auth/types";
 
 function normalizeKurDto(item: unknown): ExchangeRateDto {

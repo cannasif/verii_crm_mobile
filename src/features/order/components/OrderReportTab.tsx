@@ -4,12 +4,12 @@ import { useAuthStore } from "../../../store/auth";
 import { resolveCurrencyIsoCode } from "../../../lib/currencyDisplay";
 import { buildSalesDocumentPreviewPdfExtras } from "../../../lib/salesDocumentPreviewPdf";
 import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida";
-import { resolveOrderCustomerLabelForPdf } from "../utils/resolveOrderCustomerLabelForPdf";
+import { resolveOrderCustomerLabelForPdf } from "../utils/resolve-order-customer-label-for-pdf";
 import { ReportTab } from "../../quotation/components/ReportTab";
-import { DocumentRuleType } from "../../quotation/types";
-import type { OrderLineFormState } from "../types";
-import { buildOrderPreviewPdfInput } from "../utils/buildOrderPreviewPdfInput";
-import { createV3riiOrderPreviewPdf } from "../utils/createV3riiOrderPreviewPdf";
+import { DocumentRuleType } from "../../quotation/types/quotation-types";
+import type { OrderLineFormState } from "../types/order-types";
+import { buildOrderPreviewPdfInput } from "../utils/build-order-preview-pdf-input";
+import { createV3riiOrderPreviewPdf } from "../utils/create-v3rii-order-preview-pdf";
 
 export const V3RII_ORDER_BUILTIN_TEMPLATE_ID = "__builtin_v3rii_order_preview__";
 

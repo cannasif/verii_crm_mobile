@@ -12,7 +12,7 @@ import {
   useDocumentSerialAutoFill,
 } from "../../document-serial-type-management";
 import { PickerModal } from "./PickerModal";
-import type { CreateOrderSchema } from "../schemas";
+import type { CreateOrderSchema } from "../schemas/order-schema";
 
 interface DocumentSerialTypePickerProps {
   control: Control<CreateOrderSchema>;

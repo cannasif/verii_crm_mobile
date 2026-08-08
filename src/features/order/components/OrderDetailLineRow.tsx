@@ -4,7 +4,7 @@ import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useTranslation } from "react-i18next";
 import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida/hooks/useWindoDefinitionOptions";
-import type { OrderLineDetailGetDto } from "../types";
+import type { OrderLineDetailGetDto } from "../types/order-types";
 import { formatCurrencyBySettings, formatNumberBySettings } from "../../../lib/currencyDisplay";
 
 interface OrderDetailLineRowProps {

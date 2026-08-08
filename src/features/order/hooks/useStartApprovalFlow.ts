@@ -1,6 +1,7 @@
+import { orderQueryKeys } from "../utils/query-keys";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { invalidateDocumentListQueries } from "../../../lib/documentListQueryInvalidation";
-import { orderApi } from "../api";
+import { orderApi } from "../api/order-api";
 import { useToastStore } from "../../../store/toast";
 import { useTranslation } from "react-i18next";
 
@@ -19,8 +20,8 @@ export function useStartApprovalFlow() {
     mutationFn: (data) => orderApi.startApprovalFlow(data),
     onSuccess: async (_, variables) => {
       await invalidateDocumentListQueries(queryClient, "order");
-      queryClient.invalidateQueries({ queryKey: ["order", "detail", variables.entityId] });
-      queryClient.invalidateQueries({ queryKey: ["order", "waitingApprovals"] });
+      queryClient.invalidateQueries({ queryKey: orderQueryKeys.detail(variables.entityId) });
+      queryClient.invalidateQueries({ queryKey: orderQueryKeys.waitingApprovals() });
       showToast("success", t("order.sendForApprovalSuccess"));
     },
     onError: (error: Error) => {

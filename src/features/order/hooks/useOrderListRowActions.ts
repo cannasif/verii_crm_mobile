@@ -6,11 +6,11 @@ import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../../store/auth";
 import { useToastStore } from "../../../store/toast";
 import { openPdfExternallyAsync } from "../../../lib/pdf";
-import type { OrderGetDto } from "../types";
+import type { OrderGetDto } from "../types/order-types";
 import {
   buildOrderPdfFileName,
   generateOrderDraftPreviewPdf,
-} from "../utils/generateOrderDraftPreviewPdf";
+} from "../utils/generate-order-draft-preview-pdf";
 
 export function useOrderListRowActions(): {
   isPdfBusy: boolean;

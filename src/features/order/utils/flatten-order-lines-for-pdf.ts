@@ -1,4 +1,4 @@
-import type { OrderLineFormState } from "../types";
+import type { OrderLineFormState } from "../types/order-types";
 import type { SalesDocumentPreviewPdfLineInput } from "../../../lib/salesDocumentPreviewPdf";
 
 function mapLine(line: OrderLineFormState): SalesDocumentPreviewPdfLineInput {

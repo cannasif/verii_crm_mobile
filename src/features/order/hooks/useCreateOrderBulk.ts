@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { invalidateDocumentListQueries } from "../../../lib/documentListQueryInvalidation";
 import { useRouter } from "expo-router";
-import { orderApi } from "../api";
-import type { OrderBulkCreateDto, OrderGetDto } from "../types";
+import { orderApi } from "../api/order-api";
+import type { OrderBulkCreateDto, OrderGetDto } from "../types/order-types";
 import { useToastStore } from "../../../store/toast";
 import { useTranslation } from "react-i18next";
 

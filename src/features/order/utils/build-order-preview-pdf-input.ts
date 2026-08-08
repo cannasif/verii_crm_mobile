@@ -7,9 +7,9 @@ import type {
   PreviewPdfLineDetailMaps,
   SalesDocumentPreviewPdfInput,
 } from "../../../lib/salesDocumentPreviewPdf";
-import type { OrderLineFormState } from "../types";
-import { buildOrderPreviewPdfLabels } from "./buildOrderPreviewPdfLabels";
-import { flattenOrderLinesForPdf } from "./flattenOrderLinesForPdf";
+import type { OrderLineFormState } from "../types/order-types";
+import { buildOrderPreviewPdfLabels } from "./build-order-preview-pdf-labels";
+import { flattenOrderLinesForPdf } from "./flatten-order-lines-for-pdf";
 
 export interface BuildOrderPreviewPdfInputParams {
   offerDate?: string | null;
