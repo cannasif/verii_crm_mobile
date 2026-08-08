@@ -12,6 +12,7 @@ import {
   type CatalogSpecialCodeSelections,
 } from "@/features/catalog";
 import { useQuery } from "@tanstack/react-query";
+import { stockQueryKeys } from "../utils/query-keys";
 
 interface UseStockListCodeFiltersParams {
   facetPoolEnabled?: boolean;
@@ -51,7 +52,7 @@ export function useStockListCodeFilters(params: UseStockListCodeFiltersParams = 
   const [expandedSections, setExpandedSections] = useState(createDefaultExpandedSections);
 
   const facetPoolQuery = useQuery({
-    queryKey: ["stock", "list", "code-facet-pool"],
+    queryKey: stockQueryKeys.codeFacetPool(),
     queryFn: fetchCatalogSpecialCodeFacetPool,
     staleTime: 120_000,
     enabled: facetPoolEnabled,

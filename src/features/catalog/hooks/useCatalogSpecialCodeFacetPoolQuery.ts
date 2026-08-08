@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { StockGetDto } from "@/features/stocks/types";
+import type { StockGetDto } from "@/features/stocks/types/stock";
 import { fetchCatalogSpecialCodeFacetPool } from "../utils/fetch-catalog-special-code-stocks";
 import { catalogQueryKeys } from "../utils/query-keys";
 

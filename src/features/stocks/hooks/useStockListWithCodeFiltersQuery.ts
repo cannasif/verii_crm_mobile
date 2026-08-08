@@ -1,7 +1,9 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { hasSpecialCodeSelection, type CatalogSpecialCodeSelections } from "@/features/catalog";
-import { fetchStockListWithCodeFilters } from "../utils/fetchStockListWithCodeFilters";
-import type { PagedFilter, PagedResponse, StockGetDto } from "../types";
+import { fetchStockListWithCodeFilters } from "../utils/fetch-stock-list-with-code-filters";
+import type { PagedFilter, PagedResponse } from "../types/common";
+import type { StockGetDto } from "../types/stock";
+import { stockQueryKeys } from "../utils/query-keys";
 
 interface UseStockListWithCodeFiltersQueryParams {
   selections: CatalogSpecialCodeSelections;
@@ -34,21 +36,16 @@ export function useStockListWithCodeFiltersQuery(params: UseStockListWithCodeFil
   const selectionActive = hasSpecialCodeSelection(selections);
 
   return useInfiniteQuery<PagedResponse<StockGetDto>, Error>({
-    queryKey: [
-      "stock",
-      "list",
-      "codeFilters",
-      {
-        selections,
-        additionalFilters,
-        filterLogic,
-        sortBy,
-        sortDirection,
-        pageSize,
-        normalizedSearch,
-        searchFields,
-      },
-    ],
+    queryKey: stockQueryKeys.codeFilterList({
+      selections,
+      additionalFilters,
+      filterLogic,
+      sortBy,
+      sortDirection,
+      pageSize,
+      normalizedSearch,
+      searchFields,
+    }),
     queryFn: ({ pageParam = 1 }) =>
       fetchStockListWithCodeFilters(selections, {
         pageNumber: pageParam as number,

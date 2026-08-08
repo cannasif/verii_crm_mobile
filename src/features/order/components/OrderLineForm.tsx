@@ -21,14 +21,14 @@ import { useSystemSettingsQuery } from "../../system-settings/hooks/useSystemSet
 import { useDocumentFieldLabelMap } from "../../document-field-labels";
 import { ProductPicker, type ProductPickerRef } from "./ProductPicker";
 import { PickerModal } from "./PickerModal";
-import type { StockRelationDto } from "../../stocks/types";
-import { getProductSelectionKey, type ProductSelectionResult } from "../../stocks/types";
+import type { StockRelationDto } from "../../stocks/types/stock";
+import { getProductSelectionKey, type ProductSelectionResult } from "../../stocks/types/product-selection";
 import { orderApi } from "../api/order-api";
 import { quotationApi } from "../../quotation/api/quotation-api";
 import { useErpProjects } from "../../quotation/hooks/useErpProjects";
 import type { UploadReportAssetOptions } from "../../quotation/api/quotation-api";
-import { stockApi } from "../../stocks/api";
-import { useStock } from "../../stocks/hooks";
+import { stockApi } from "../../stocks/api/stock-api";
+import { useStock } from "../../stocks/hooks/useStock";
 import { parseDecimalInput, sanitizeDecimalInput } from "../../../lib/decimal-input";
 import {
   areDiscountRatesValid,
@@ -39,7 +39,7 @@ import { areProfilDefinitionsValid } from "../../../lib/profilDefinitionValidati
 import { getApiBaseUrl } from "../../../constants/config";
 import { resolveDocumentVatRate } from "../../../utils/documentVat";
 import { getCurrencyDisplayLabel } from "../../../lib/currencyDisplay";
-import { resolveDocumentLineProductName } from "../../stocks/utils";
+import { resolveDocumentLineProductName } from "../../stocks/utils/document-line-product-name";
 import {
   convertSalesDocumentLinePrice,
   findMatchingSalesDocumentDiscountLimit,

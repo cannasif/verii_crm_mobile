@@ -3,8 +3,9 @@ import { Alert } from "react-native";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useToastStore } from "../../../store/toast";
-import { stockImageApi } from "../api/stockImageApi";
+import { stockImageApi } from "../api/stock-image-api";
 import { pickStockImageFromCamera, pickStockImageFromGallery } from "../services/stockPhotoPicker";
+import { stockQueryKeys } from "../utils/query-keys";
 
 interface UseStockImageControllerParams {
   stockId: number | undefined;
@@ -18,8 +19,8 @@ async function invalidateStockImageQueries(
   sid: number
 ): Promise<void> {
   await Promise.all([
-    queryClient.invalidateQueries({ queryKey: ["stock", "detail", sid] }),
-    queryClient.invalidateQueries({ queryKey: ["stock", "images", sid] }),
+    queryClient.invalidateQueries({ queryKey: stockQueryKeys.detail(sid) }),
+    queryClient.invalidateQueries({ queryKey: stockQueryKeys.images(sid) }),
   ]);
 }
 

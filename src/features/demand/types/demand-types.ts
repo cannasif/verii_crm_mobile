@@ -587,4 +587,4 @@ export type RelatedUsersResponse = ApiResponse<ApprovalScopeUserDto[]>;
 export type UserListResponse = ApiResponse<PagedResponse<UserDto>>;
 
 export type { PagedFilter, PagedParams, PagedResponse };
-export type { StockGetDto } from "../../stocks/types";
+export type { StockGetDto } from "../../stocks/types/stock";

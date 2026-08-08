@@ -55,7 +55,7 @@ import { generateTempQuickQuotationReportPdf } from "../utils/generateTempQuickQ
 import { useReportTemplateList } from "../../quotation/hooks/useReportTemplateList";
 import { DocumentRuleType } from "../../quotation/types/quotation-types";
 import { getCurrencyDisplayLabel as getCurrencyDisplayName } from "../../../lib/currencyDisplay";
-import type { ProductSelectionResult } from "../../stocks/types";
+import type { ProductSelectionResult } from "../../stocks/types/product-selection";
 import type { UploadReportAssetOptions } from "../../quotation/api/quotation-api";
 
 function numberValue(value: string): number {

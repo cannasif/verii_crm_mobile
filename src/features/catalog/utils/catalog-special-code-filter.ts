@@ -1,4 +1,5 @@
-import type { PagedFilter, StockGetDto } from "@/features/stocks/types";
+import type { PagedFilter } from "@/features/stocks/types/common";
+import type { StockGetDto } from "@/features/stocks/types/stock";
 import { normalizeSearchText } from "@/lib/normalizeSearchText";
 
 export type CatalogFilterDimension = "grupKodu" | "kod1" | "kod2" | "kod3" | "kod4" | "kod5";

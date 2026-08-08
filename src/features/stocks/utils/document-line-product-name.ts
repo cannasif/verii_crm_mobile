@@ -4,7 +4,7 @@ import {
   localizeDocumentLineFormStatesWithStockMap,
   type LocalizableLineFormState,
 } from "../../../lib/localizedStockName";
-import { stockApi } from "../api/stockApi";
+import { stockApi } from "../api/stock-api";
 import type { StockGetDto } from "../types/stock";
 
 export interface ProductSelectionInput {

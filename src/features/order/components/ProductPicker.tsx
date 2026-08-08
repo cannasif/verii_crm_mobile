@@ -35,14 +35,12 @@ import { STOCK_PICKER_AVAILABLE_SEARCH_FIELDS, STOCK_PICKER_SEARCH_FIELD_LABELS,
 import { SearchFieldSelectorButton } from "../../../components/paged";
 import { usePersistedSearchFields } from "../../../hooks/usePersistedSearchFields";
 import { useAuthStore } from "../../../store/auth";
-import {
-  useStocks,
-} from "../../stocks/hooks";
-import type { StockGetDto, StockRelationDto } from "../../stocks/types";
+import { useStocks } from "../../stocks/hooks/useStocks";
+import type { StockGetDto, StockRelationDto } from "../../stocks/types/stock";
 import {
   getProductSelectionKey,
   type ProductSelectionResult,
-} from "../../stocks/types";
+} from "../../stocks/types/product-selection";
 
 export interface ProductPickerRef {
   close: () => void;

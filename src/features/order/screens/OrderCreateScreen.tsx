@@ -67,9 +67,9 @@ import { useCustomerScopeAccess } from "../../customer/hooks/useCustomerScopeAcc
 import { useCustomerShippingAddresses } from "../../shipping-address/hooks/useShippingAddresses";
 import { buildShippingAddressLabel } from "../../shipping-address/utils/shipping-address-label";
 import { useErpCustomers } from "../../erp-customer/hooks/useErpCustomers";
-import { useStock } from "../../stocks/hooks";
-import { stockApi } from "../../stocks/api";
-import { resolveDocumentLineProductName } from "../../stocks/utils";
+import { useStock } from "../../stocks/hooks/useStock";
+import { stockApi } from "../../stocks/api/stock-api";
+import { resolveDocumentLineProductName } from "../../stocks/utils/document-line-product-name";
 import { getLocalizedStockNameFromStock } from "../../../lib/localizedStockName";
 import { orderApi } from "../api/order-api";
 import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida/hooks/useWindoDefinitionOptions";
@@ -108,8 +108,8 @@ import type {
   OrderExchangeRateFormState,
   StockGetDto,
 } from "../types/order-types";
-import type { StockRelationDto } from "../../stocks/types";
-import type { ProductSelectionResult } from "../../stocks/types";
+import type { StockRelationDto } from "../../stocks/types/stock";
+import type { ProductSelectionResult } from "../../stocks/types/product-selection";
 import { calculateLineTotals, calculateTotals } from "../utils/calculations";
 import type { ExchangeRateDto } from "../types/order-types";
 import {

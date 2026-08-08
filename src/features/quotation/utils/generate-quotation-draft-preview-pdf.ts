@@ -7,7 +7,7 @@ import type { QuotationGetDto } from "../types/quotation-types";
 import { buildQuotationPreviewPdfInput } from "./build-quotation-preview-pdf-input";
 import { createV3riiQuotationPreviewPdf } from "./create-v3rii-quotation-preview-pdf";
 import { mapDetailLinesToFormState } from "./quotation-detail-mappers";
-import { mapApiLinesToLocalizedFormState } from "../../stocks/utils";
+import { mapApiLinesToLocalizedFormState } from "../../stocks/utils/document-line-product-name";
 import { resolveQuotationCustomerLabelForPdf } from "./resolve-quotation-customer-label-for-pdf";
 import i18n from "../../../locales";
 

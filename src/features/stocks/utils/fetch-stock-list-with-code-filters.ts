@@ -9,8 +9,9 @@ import {
   toCatalogStockApiSearch,
   type CatalogSpecialCodeSelections,
 } from "@/features/catalog";
-import { stockApi } from "../api/stockApi";
-import type { PagedFilter, PagedResponse, StockGetDto } from "../types";
+import { stockApi } from "../api/stock-api";
+import type { PagedFilter, PagedResponse } from "../types/common";
+import type { StockGetDto } from "../types/stock";
 
 export interface FetchStockListWithCodeFiltersParams {
   pageNumber: number;

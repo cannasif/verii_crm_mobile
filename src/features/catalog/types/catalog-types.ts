@@ -1,4 +1,4 @@
-import type { PagedResponse } from "@/features/stocks/types";
+import type { PagedResponse } from "@/features/stocks/types/common";
 
 export interface ProductCatalogDto {
   id: number;

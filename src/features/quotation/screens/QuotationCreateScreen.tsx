@@ -53,8 +53,8 @@ import { useCustomer } from "../../customer/hooks/useCustomer";
 import { useCustomerScopeAccess } from "../../customer/hooks/useCustomerScopeAccess";
 import { useCustomerShippingAddresses } from "../../shipping-address/hooks/useShippingAddresses";
 import { buildShippingAddressLabel } from "../../shipping-address/utils/shipping-address-label";
-import { stockApi } from "../../stocks/api";
-import { resolveDocumentLineProductName } from "../../stocks/utils";
+import { stockApi } from "../../stocks/api/stock-api";
+import { resolveDocumentLineProductName } from "../../stocks/utils/document-line-product-name";
 import { getLocalizedStockNameFromStock } from "../../../lib/localizedStockName";
 import { useSpecialCodes } from "../../common/hooks/useSpecialCodes";
 import {
@@ -102,8 +102,8 @@ import {
   type StockGetDto,
   normalizeOfferType,
 } from "../types/quotation-types";
-import type { StockRelationDto } from "../../stocks/types";
-import type { ProductSelectionResult } from "../../stocks/types";
+import type { StockRelationDto } from "../../stocks/types/stock";
+import type { ProductSelectionResult } from "../../stocks/types/product-selection";
 import { calculateLineTotals, calculateTotals } from "../utils/calculations";
 import { resolveLineListCurrencyLabel, resolveCurrencyIsoCode } from "../../../lib/currencyDisplay";
 import { buildQuotationPreviewPdfInput } from "../utils/build-quotation-preview-pdf-input";

@@ -679,4 +679,4 @@ export interface SalesTypeGetDto {
 }
 
 export type { PagedFilter, PagedParams, PagedResponse };
-export type { StockGetDto } from "../../stocks/types";
+export type { StockGetDto } from "../../stocks/types/stock";

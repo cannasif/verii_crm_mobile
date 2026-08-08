@@ -1,4 +1,4 @@
-import type { ProductSelectionResult } from "@/features/stocks/types";
+import type { ProductSelectionResult } from "@/features/stocks/types/product-selection";
 import type { CatalogCategoryNodeDto, CatalogStockItemDto, ProductCatalogDto } from "./catalog-types";
 import type {
   CatalogFilterDimension,

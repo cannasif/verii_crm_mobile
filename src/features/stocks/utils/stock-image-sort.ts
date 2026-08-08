@@ -1,4 +1,4 @@
-import type { StockImageDto } from "../types";
+import type { StockImageDto } from "../types/stock";
 
 export function sortStockImagesForDisplay(images: StockImageDto[] | undefined | null): StockImageDto[] {
   if (!Array.isArray(images) || images.length === 0) {

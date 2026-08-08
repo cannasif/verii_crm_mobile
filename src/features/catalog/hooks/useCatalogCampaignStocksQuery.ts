@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { stockApi } from "@/features/stocks/api/stockApi";
+import { stockApi } from "@/features/stocks/api/stock-api";
 import { mapStockGetToCatalogItem } from "../utils/catalog-stock-mapping";
 import { fetchPricingRuleCampaignStockData } from "../utils/fetch-pricing-rule-campaign-stock-data";
 import type { CatalogCampaignPricingDisplay, CatalogPricingRuleType } from "../types/catalog-picker";

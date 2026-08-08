@@ -30,12 +30,10 @@ import {
   type PagedAdvancedFilterTab,
 } from "../../../components/paged";
 import { useUIStore } from "../../../store/ui";
-import {
-  useStocks,
-  useStockGroups,
-  useStockListCodeFilters,
-  useStockListWithCodeFiltersQuery,
-} from "../hooks";
+import { useStocks } from "../hooks/useStocks";
+import { useStockGroups } from "../hooks/useStockGroups";
+import { useStockListCodeFilters } from "../hooks/useStockListCodeFilters";
+import { useStockListWithCodeFiltersQuery } from "../hooks/useStockListWithCodeFiltersQuery";
 import { StockListFilterCodeTabContent } from "../components/StockListFilterCodeTabContent";
 import {
   LayoutGridIcon,
@@ -51,7 +49,7 @@ import {
   useWarehouseBalanceBatchPrefetch,
   WarehouseBalanceFilterCheckbox,
 } from "@/features/warehouse-stock-balances";
-import type { StockGetDto, StockGroupDto } from "../types";
+import type { StockGetDto, StockGroupDto } from "../types/stock";
 import { quotationApi } from "../../quotation/api/quotation-api";
 import type { PriceOfProductDto } from "../../quotation/types/quotation-types";
 

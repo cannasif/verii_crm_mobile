@@ -15,9 +15,12 @@ import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useAuthStore } from "../../../store/auth";
 import { hasPermission } from "../../access-control/utils/has-permission";
-import { useStock, useStockImageController, useStockImagesByStock, useStockRelations } from "../hooks";
+import { useStock } from "../hooks/useStock";
+import { useStockImageController } from "../hooks/useStockImageController";
+import { useStockImagesByStock } from "../hooks/useStockImagesByStock";
+import { useStockRelations } from "../hooks/useStockRelations";
 import { StockDetailContent } from "../components";
-import { sortStockImagesForDisplay } from "../utils/stockImageSort";
+import { sortStockImagesForDisplay } from "../utils/stock-image-sort";
 import {
   Alert02Icon,
   RefreshIcon,

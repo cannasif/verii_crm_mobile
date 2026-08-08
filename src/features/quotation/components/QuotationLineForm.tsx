@@ -21,13 +21,13 @@ import { useSystemSettingsQuery } from "../../system-settings/hooks/useSystemSet
 import { useDocumentFieldLabelMap } from "../../document-field-labels";
 import { ProductPicker, type ProductPickerRef } from "./ProductPicker";
 import { PickerModal } from "./PickerModal";
-import type { StockRelationDto } from "../../stocks/types";
-import { getProductSelectionKey, type ProductSelectionResult } from "../../stocks/types";
+import type { StockRelationDto } from "../../stocks/types/stock";
+import { getProductSelectionKey, type ProductSelectionResult } from "../../stocks/types/product-selection";
 import { quotationApi } from "../api/quotation-api";
 import type { UploadReportAssetOptions } from "../api/quotation-api";
-import { stockApi } from "../../stocks/api";
+import { stockApi } from "../../stocks/api/stock-api";
 import { useErpProjects } from "../hooks/useErpProjects";
-import { useStock } from "../../stocks/hooks";
+import { useStock } from "../../stocks/hooks/useStock";
 import { parseDecimalInput, sanitizeDecimalInput } from "../../../lib/decimal-input";
 import {
   areDiscountRatesValid,
@@ -48,7 +48,7 @@ import type {
 } from "../types/quotation-types";
 import { calculateLineTotals } from "../utils/calculations";
 import { getCurrencyDisplayLabel } from "../../../lib/currencyDisplay";
-import { resolveDocumentLineProductName } from "../../stocks/utils";
+import { resolveDocumentLineProductName } from "../../stocks/utils/document-line-product-name";
 import {
   convertSalesDocumentLinePrice,
   findMatchingSalesDocumentDiscountLimit,

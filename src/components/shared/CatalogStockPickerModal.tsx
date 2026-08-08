@@ -41,7 +41,7 @@ import {
 } from "@/features/catalog";
 import { WarehouseBalanceBadge } from "@/features/warehouse-stock-balances";
 import type { CatalogCategoryNodeDto, CatalogStockItemDto, ProductCatalogDto } from "@/features/catalog/types/catalog-types";
-import type { ProductSelectionResult } from "@/features/stocks/types";
+import type { ProductSelectionResult } from "@/features/stocks/types/product-selection";
 
 const CARD_GAP = STOCK_BROWSE_CARD_GAP;
 const HIERARCHY_STAGES = ["root", "subcategory", "brand", "series", "products"] as const;

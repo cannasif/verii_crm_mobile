@@ -1,7 +1,7 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { catalogApi } from "../api/catalog-api";
 import type { CatalogStockItemDto } from "../types/catalog-types";
-import type { PagedResponse } from "@/features/stocks/types";
+import type { PagedResponse } from "@/features/stocks/types/common";
 import { catalogQueryKeys } from "../utils/query-keys";
 
 const PAGE_SIZE = 24;

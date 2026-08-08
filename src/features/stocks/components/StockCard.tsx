@@ -12,7 +12,7 @@ import { WarehouseBalanceBadge } from "@/features/warehouse-stock-balances";
 import { getImageUrl } from "@/lib/getImageUrl";
 import { formatSystemNumber } from "@/lib/systemSettings";
 import { useUIStore } from "@/store/ui";
-import type { StockGetDto } from "../types";
+import type { StockGetDto } from "../types/stock";
 
 export interface StockCardUnitPrice {
   listPrice: number;

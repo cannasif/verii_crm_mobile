@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "../../../components/ui/text";
-import type { StockImageDto } from "../types";
+import type { StockImageDto } from "../types/stock";
 import { Cancel01Icon, Award01Icon, Delete02Icon } from "hugeicons-react-native";
 
 /** Appends alpha byte to #RRGGBB for RN #RRGGBBAA colors. */

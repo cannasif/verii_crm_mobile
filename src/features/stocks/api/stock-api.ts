@@ -1,14 +1,12 @@
 import { apiClient } from "../../../lib/axios";
 import type { ApiResponse } from "../../auth/types/auth-types";
+import type { PagedApiResponse, PagedParams, PagedResponse } from "../types/common";
 import type {
   StockGetDto,
   StockGroupDto,
   StockRelationDto,
   StockRelationCreateDto,
-  PagedParams,
-  PagedResponse,
-  PagedApiResponse,
-} from "../types";
+} from "../types/stock";
 
 // --- YARDIMCI FONKSİYONLAR (Aynen Korundu) ---
 const toNumber = (value: unknown): number | undefined => {

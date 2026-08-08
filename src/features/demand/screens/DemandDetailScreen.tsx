@@ -69,12 +69,12 @@ import { useCustomer } from "../../customer/hooks/useCustomer";
 import { useCustomerScopeAccess } from "../../customer/hooks/useCustomerScopeAccess";
 import { useCustomerShippingAddresses } from "../../shipping-address/hooks/useShippingAddresses";
 import { buildShippingAddressLabel } from "../../shipping-address/utils/shipping-address-label";
-import { stockApi } from "../../stocks/api";
+import { stockApi } from "../../stocks/api/stock-api";
 import {
   localizeDocumentLineFormStates,
   mapApiLinesToLocalizedFormState,
   resolveDocumentLineProductName,
-} from "../../stocks/utils";
+} from "../../stocks/utils/document-line-product-name";
 import { getLocalizedStockNameFromStock, mergeCreatedLineProductName } from "../../../lib/localizedStockName";
 import {
   computeDocumentDetailReadOnly,
@@ -132,7 +132,7 @@ import {
   APPROVAL_SUPERSEDED_BY_APPROVED_REVISION,
   PricingRuleType,
 } from "../types/demand-types";
-import type { StockRelationDto } from "../../stocks/types";
+import type { StockRelationDto } from "../../stocks/types/stock";
 import {
   mapDetailHeaderToForm,
   mapDetailLinesToFormState,

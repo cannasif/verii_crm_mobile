@@ -10,7 +10,7 @@ import {
 import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { Text } from "../../../components/ui/text";
 import { getApiBaseUrl } from "../../../constants/config";
-import type { StockGetDto, StockRelationDto, StockImageDto } from "../types";
+import type { StockGetDto, StockRelationDto, StockImageDto } from "../types/stock";
 import {
   PackageIcon,
   Image02Icon,

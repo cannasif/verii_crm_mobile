@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getProductSelectionKey, type ProductSelectionResult } from "@/features/stocks/types";
-import { stockApi } from "@/features/stocks/api/stockApi";
-import type { StockRelationDto } from "@/features/stocks/types";
+import { getProductSelectionKey, type ProductSelectionResult } from "@/features/stocks/types/product-selection";
+import { stockApi } from "@/features/stocks/api/stock-api";
+import type { StockRelationDto } from "@/features/stocks/types/stock";
 import { getCurrentLanguage } from "@/locales";
 import { buildCategoryBranchPath } from "../utils/fetch-catalog-category-tree-flat";
 import { catalogStockToSelectionResult } from "../utils/catalog-stock-mapping";

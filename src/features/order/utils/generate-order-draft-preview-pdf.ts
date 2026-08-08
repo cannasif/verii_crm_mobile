@@ -10,7 +10,7 @@ import { buildOrderPreviewPdfInput } from "./build-order-preview-pdf-input";
 import { buildOrderPreviewPdfLabels } from "./build-order-preview-pdf-labels";
 import { createV3riiOrderPreviewPdf } from "./create-v3rii-order-preview-pdf";
 import { mapDetailLinesToFormState } from "./order-detail-mappers";
-import { mapApiLinesToLocalizedFormState } from "../../stocks/utils";
+import { mapApiLinesToLocalizedFormState } from "../../stocks/utils/document-line-product-name";
 
 function resolveLocale(language: string): string {
   if (language.startsWith("tr")) return "tr-TR";

@@ -10,7 +10,7 @@ import {
 import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useUIStore } from "../../../store/ui";
-import type { StockRelationDto } from "../../stocks/types";
+import type { StockRelationDto } from "../../stocks/types/stock";
 
 interface RelatedStocksSelectDialogProps {
   visible: boolean;

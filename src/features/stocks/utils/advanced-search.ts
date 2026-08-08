@@ -1,5 +1,5 @@
 import { normalizeSearchText } from "@/lib/normalizeSearchText";
-import type { StockGetDto } from "../types";
+import type { StockGetDto } from "../types/stock";
 
 function getStockSearchFields(stock: StockGetDto): string[] {
   return [

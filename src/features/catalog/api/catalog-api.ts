@@ -1,6 +1,6 @@
 import { apiClient } from "@/lib/axios";
 import type { ApiResponse } from "@/features/auth/types/auth-types";
-import type { PagedResponse } from "@/features/stocks/types";
+import type { PagedResponse } from "@/features/stocks/types/common";
 import {
   normalizeCatalogCategoryList,
   normalizeCatalogStockItemList,

@@ -1,6 +1,6 @@
 import { useQueries } from "@tanstack/react-query";
-import { stockApi } from "@/features/stocks/api/stockApi";
-import type { StockRelationDto } from "@/features/stocks/types";
+import { stockApi } from "@/features/stocks/api/stock-api";
+import type { StockRelationDto } from "@/features/stocks/types/stock";
 import type { CatalogStockItemDto } from "../types/catalog-types";
 import { catalogQueryKeys } from "../utils/query-keys";
 

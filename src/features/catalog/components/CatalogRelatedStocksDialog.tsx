@@ -3,7 +3,7 @@ import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { Text } from "@/components/ui/text";
 import { useUIStore } from "@/store/ui";
-import type { StockRelationDto } from "@/features/stocks/types";
+import type { StockRelationDto } from "@/features/stocks/types/stock";
 import { useTranslation } from "react-i18next";
 
 interface CatalogRelatedStocksDialogProps {

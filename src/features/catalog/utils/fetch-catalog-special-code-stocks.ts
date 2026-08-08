@@ -1,5 +1,5 @@
-import { stockApi } from "@/features/stocks/api/stockApi";
-import type { StockGetDto } from "@/features/stocks/types";
+import { stockApi } from "@/features/stocks/api/stock-api";
+import type { StockGetDto } from "@/features/stocks/types/stock";
 import type { CatalogStockItemDto } from "../types/catalog-types";
 import { mapStockGetToCatalogItem } from "./catalog-stock-mapping";
 import {
