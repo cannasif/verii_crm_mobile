@@ -48,8 +48,6 @@ export const quotationQueryKeys = {
     [...quotationQueryKeys.all(), "related-users", userId] as const,
   approvalFlowReport: (quotationId: number | undefined) =>
     [...quotationQueryKeys.all(), "approval-flow-report", quotationId] as const,
-  approvalFlowReportLegacy: (quotationId: number | undefined) =>
-    [...quotationQueryKeys.all(), "approvalFlowReport", quotationId] as const,
 };
 
 export const quotationCurrencyQueryKeys = {

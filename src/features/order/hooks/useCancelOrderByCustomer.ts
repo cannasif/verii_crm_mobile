@@ -15,7 +15,7 @@ export function useCancelOrderByCustomer() {
     onSuccess: async (_, variables) => {
       await invalidateDocumentListQueries(queryClient, "order");
       queryClient.invalidateQueries({ queryKey: orderQueryKeys.detail(variables.id) });
-      queryClient.invalidateQueries({ queryKey: orderQueryKeys.approvalFlowReportLegacy(variables.id) });
+      queryClient.invalidateQueries({ queryKey: orderQueryKeys.approvalFlowReport(variables.id) });
       queryClient.invalidateQueries({ queryKey: orderQueryKeys.waitingApprovals() });
       showToast("success", t("common.orderCancelledByCustomer", "Sipariş müşteri tarafından iptal edildi"));
     },

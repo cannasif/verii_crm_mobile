@@ -43,8 +43,6 @@ export const orderQueryKeys = {
     [...orderQueryKeys.all(), "listGrandTotal", orderId] as const,
   approvalFlowReport: (orderId: number | undefined) =>
     [...orderQueryKeys.all(), "approval-flow-report", orderId] as const,
-  approvalFlowReportLegacy: (orderId: number | undefined) =>
-    [...orderQueryKeys.all(), "approvalFlowReport", orderId] as const,
 };
 
 export const currencyQueryKeys = {

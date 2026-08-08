@@ -15,7 +15,7 @@ export function useCancelQuotationByCustomer() {
     onSuccess: async (_, variables) => {
       await invalidateDocumentListQueries(queryClient, "quotation");
       queryClient.invalidateQueries({ queryKey: quotationQueryKeys.detail(variables.id) });
-      queryClient.invalidateQueries({ queryKey: quotationQueryKeys.approvalFlowReportLegacy(variables.id) });
+      queryClient.invalidateQueries({ queryKey: quotationQueryKeys.approvalFlowReport(variables.id) });
       queryClient.invalidateQueries({ queryKey: quotationQueryKeys.waitingApprovals() });
       showToast("success", t("common.quotationCancelledByCustomer", "Teklif müşteri tarafından iptal edildi"));
     },

@@ -15,7 +15,7 @@ export function useCancelDemandByCustomer() {
     onSuccess: async (_, variables) => {
       await invalidateDocumentListQueries(queryClient, "demand");
       queryClient.invalidateQueries({ queryKey: demandQueryKeys.detail(variables.id) });
-      queryClient.invalidateQueries({ queryKey: demandQueryKeys.approvalFlowReportLegacy(variables.id) });
+      queryClient.invalidateQueries({ queryKey: demandQueryKeys.approvalFlowReport(variables.id) });
       queryClient.invalidateQueries({ queryKey: demandQueryKeys.waitingApprovals() });
       showToast("success", t("common.demandCancelledByCustomer", "Talep müşteri tarafından iptal edildi"));
     },

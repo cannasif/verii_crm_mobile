@@ -41,8 +41,6 @@ export const demandQueryKeys = {
     [...demandQueryKeys.all(), "related-users", userId] as const,
   approvalFlowReport: (demandId: number | undefined) =>
     [...demandQueryKeys.all(), "approval-flow-report", demandId] as const,
-  approvalFlowReportLegacy: (demandId: number | undefined) =>
-    [...demandQueryKeys.all(), "approvalFlowReport", demandId] as const,
 };
 
 export const demandCurrencyQueryKeys = {
