@@ -1,11 +1,12 @@
 import { useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../../../store/auth";
-import { EMPTY_CATALOG, windoDefinitionApi } from "../api/windoDefinitionApi";
-import type { WindoDefinitionDto, WindoDefinitionOption } from "../types";
-
-export const WINDO_DEFINITION_QUERY_ROOT = ["windo-definition"] as const;
-export const WINDO_DEFINITIONS_QUERY_KEY = [...WINDO_DEFINITION_QUERY_ROOT, "catalog"] as const;
+import { EMPTY_CATALOG, windoDefinitionApi } from "../api/windo-definition-api";
+import type {
+  WindoDefinitionDto,
+  WindoDefinitionOption,
+} from "../types/windo-definition-types";
+import { windoDefinitionQueryKeys } from "../utils/query-keys";
 
 function toOptions(items: WindoDefinitionDto[]): WindoDefinitionOption[] {
   return items.map((item) => ({
@@ -54,7 +55,7 @@ export function useWindoDefinitionOptions({
   const canFetch = Boolean(isHydrated && token);
 
   const catalogQuery = useQuery({
-    queryKey: WINDO_DEFINITIONS_QUERY_KEY,
+    queryKey: windoDefinitionQueryKeys.catalog(),
     queryFn: windoDefinitionApi.fetchCatalog,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
@@ -106,7 +107,8 @@ export function useWindoDefinitionOptions({
       koliBaskiMap: toMap(koliBaskiDefinitions),
       isLoading,
       isError,
-      refetch: () => queryClient.invalidateQueries({ queryKey: WINDO_DEFINITION_QUERY_ROOT }),
+      refetch: () =>
+        queryClient.invalidateQueries({ queryKey: windoDefinitionQueryKeys.all() }),
     }),
     [
       baskiDefinitions,

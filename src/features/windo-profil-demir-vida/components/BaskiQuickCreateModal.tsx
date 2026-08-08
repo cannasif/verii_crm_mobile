@@ -12,9 +12,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
-import { windoDefinitionApi } from "../api/windoDefinitionApi";
-import { WINDO_DEFINITION_QUERY_ROOT } from "../hooks/useWindoDefinitionOptions";
-import type { WindoDefinitionDto } from "../types";
+import { windoDefinitionApi } from "../api/windo-definition-api";
+import type { WindoDefinitionDto } from "../types/windo-definition-types";
+import { windoDefinitionQueryKeys } from "../utils/query-keys";
 
 interface BaskiQuickCreateModalProps {
   visible: boolean;
@@ -50,7 +50,7 @@ export function BaskiQuickCreateModal({
         profilDefinitionId: null,
       }),
     onSuccess: async (item) => {
-      await queryClient.invalidateQueries({ queryKey: WINDO_DEFINITION_QUERY_ROOT });
+      await queryClient.invalidateQueries({ queryKey: windoDefinitionQueryKeys.all() });
       onCreated(item);
       setName("");
       onClose();

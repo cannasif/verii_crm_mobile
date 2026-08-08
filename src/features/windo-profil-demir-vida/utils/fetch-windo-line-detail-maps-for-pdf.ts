@@ -1,6 +1,6 @@
-import { fetchWindoDefinitionCatalog } from "../api/windoDefinitionApi";
+import { fetchWindoDefinitionCatalog } from "../api/windo-definition-api";
 import type { PreviewPdfLineDetailMaps } from "../../../lib/salesDocumentPreviewPdf";
-import type { WindoDefinitionDto } from "../types";
+import type { WindoDefinitionDto } from "../types/windo-definition-types";
 
 function toMap(items: WindoDefinitionDto[]): Record<number, string> {
   const map: Record<number, string> = {};

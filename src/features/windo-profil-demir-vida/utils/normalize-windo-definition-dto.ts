@@ -1,4 +1,4 @@
-import type { WindoDefinitionDto } from "../types";
+import type { WindoDefinitionDto } from "../types/windo-definition-types";
 
 function readNumber(value: unknown): number | null {
   if (value == null || value === "") return null;
