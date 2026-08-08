@@ -1,6 +1,6 @@
 import { getLocalizedStockNameFromStock } from "@/lib/localizedStockName";
 import type { ProductSelectionResult, StockGetDto } from "@/features/stocks/types";
-import type { CatalogStockItemDto } from "../types";
+import type { CatalogStockItemDto } from "../types/catalog-types";
 
 export function mapStockGetToCatalogItem(stock: StockGetDto): CatalogStockItemDto {
   const primaryImage = stock.stockImages?.find((image) => image.isPrimary) ?? stock.stockImages?.[0];

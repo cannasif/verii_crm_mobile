@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchCatalogCategoryTreeFlat, type CatalogCategoryTreeFlatNode } from "../utils/fetchCatalogCategoryTreeFlat";
+import { fetchCatalogCategoryTreeFlat, type CatalogCategoryTreeFlatNode } from "../utils/fetch-catalog-category-tree-flat";
+import { catalogQueryKeys } from "../utils/query-keys";
 
 interface UseCatalogCategoryTreeQueryParams {
   catalogId: number | null;
@@ -10,7 +11,7 @@ export function useCatalogCategoryTreeQuery(params: UseCatalogCategoryTreeQueryP
   const { catalogId, enabled } = params;
 
   return useQuery<CatalogCategoryTreeFlatNode[], Error>({
-    queryKey: ["catalog", "category-tree", catalogId],
+    queryKey: catalogQueryKeys.categoryTree(catalogId),
     queryFn: () => {
       if (catalogId == null) {
         return Promise.resolve([]);

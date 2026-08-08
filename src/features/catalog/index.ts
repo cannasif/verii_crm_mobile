@@ -6,7 +6,7 @@ export type {
   CatalogStockBrowseMode,
   CatalogStockLayoutMode,
   CatalogStockPickerParams,
-} from "./types/catalogPicker";
+} from "./types/catalog-picker";
 export { CatalogRelatedStocksDialog } from "./components/CatalogRelatedStocksDialog";
 export { CatalogCampaignPricingRow } from "./components/CatalogCampaignPricingRow";
 export { CatalogSpecialCodeFilterPanel } from "./components/CatalogSpecialCodeFilterPanel";
@@ -32,4 +32,4 @@ export {
   toCatalogStockApiSearch,
   toggleSpecialCodeValue,
 } from "./utils/catalog-special-code-filter";
-export { fetchCatalogSpecialCodeFacetPool } from "./utils/fetchCatalogSpecialCodeStocks";
+export { fetchCatalogSpecialCodeFacetPool } from "./utils/fetch-catalog-special-code-stocks";

@@ -1,4 +1,4 @@
-import type { CatalogCategoryNodeDto, CatalogStockItemDto, ProductCatalogDto } from "../types";
+import type { CatalogCategoryNodeDto, CatalogStockItemDto, ProductCatalogDto } from "../types/catalog-types";
 
 const toNumber = (value: unknown): number | undefined => {
   if (typeof value === "number" && Number.isFinite(value)) return value;

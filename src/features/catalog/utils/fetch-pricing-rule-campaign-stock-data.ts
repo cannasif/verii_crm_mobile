@@ -1,5 +1,5 @@
-import { pricingRuleApi, type PricingRuleHeaderDto, type PricingRuleLineDto } from "../api/pricingRuleApi";
-import type { CatalogCampaignPricingDisplay, CatalogPricingRuleType } from "../types/catalogPicker";
+import { pricingRuleApi, type PricingRuleHeaderDto, type PricingRuleLineDto } from "../api/pricing-rule-api";
+import type { CatalogCampaignPricingDisplay, CatalogPricingRuleType } from "../types/catalog-picker";
 
 export interface CampaignStockDataResult {
   orderedCodes: string[];

@@ -1,5 +1,5 @@
-import { catalogApi } from "../api/catalogApi";
-import type { CatalogCategoryNodeDto } from "../types";
+import { catalogApi } from "../api/catalog-api";
+import type { CatalogCategoryNodeDto } from "../types/catalog-types";
 
 export interface CatalogCategoryTreeFlatNode extends CatalogCategoryNodeDto {
   parentCatalogCategoryId: number | null;

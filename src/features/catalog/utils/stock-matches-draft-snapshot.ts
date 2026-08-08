@@ -1,5 +1,5 @@
 import type { ProductSelectionResult } from "@/features/stocks/types";
-import type { CatalogStockItemDto } from "../types";
+import type { CatalogStockItemDto } from "../types/catalog-types";
 
 export function stockMatchesDraftSnapshot(
   stock: Pick<CatalogStockItemDto, "id" | "stockId" | "erpStockCode">,

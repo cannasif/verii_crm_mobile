@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { stockApi } from "@/features/stocks/api/stockApi";
-import { mapStockGetToCatalogItem } from "../utils/catalogStockMapping";
-import { fetchPricingRuleCampaignStockData } from "../utils/fetchPricingRuleCampaignStockData";
-import type { CatalogCampaignPricingDisplay, CatalogPricingRuleType } from "../types/catalogPicker";
-import type { CatalogStockItemDto } from "../types";
+import { mapStockGetToCatalogItem } from "../utils/catalog-stock-mapping";
+import { fetchPricingRuleCampaignStockData } from "../utils/fetch-pricing-rule-campaign-stock-data";
+import type { CatalogCampaignPricingDisplay, CatalogPricingRuleType } from "../types/catalog-picker";
+import type { CatalogStockItemDto } from "../types/catalog-types";
+import { catalogQueryKeys } from "../utils/query-keys";
 
 interface UseCatalogCampaignStocksQueryParams {
   enabled: boolean;
@@ -21,7 +22,7 @@ export function useCatalogCampaignStocksQuery(params: UseCatalogCampaignStocksQu
   const { enabled, pricingRuleType, customerId, erpCustomerCode } = params;
 
   return useQuery<CatalogCampaignStocksResult, Error>({
-    queryKey: ["catalog", "campaign", pricingRuleType, customerId, erpCustomerCode],
+    queryKey: catalogQueryKeys.campaign(pricingRuleType, customerId, erpCustomerCode),
     queryFn: async () => {
       const campaignData = await fetchPricingRuleCampaignStockData({
         pricingRuleType,

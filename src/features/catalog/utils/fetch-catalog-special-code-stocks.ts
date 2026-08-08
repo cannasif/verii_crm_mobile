@@ -1,7 +1,7 @@
 import { stockApi } from "@/features/stocks/api/stockApi";
 import type { StockGetDto } from "@/features/stocks/types";
-import type { CatalogStockItemDto } from "../types";
-import { mapStockGetToCatalogItem } from "./catalogStockMapping";
+import type { CatalogStockItemDto } from "../types/catalog-types";
+import { mapStockGetToCatalogItem } from "./catalog-stock-mapping";
 import {
   buildOrBranchFilterSets,
   buildSingleValueFilters,

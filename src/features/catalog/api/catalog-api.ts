@@ -5,7 +5,7 @@ import {
   normalizeCatalogCategoryList,
   normalizeCatalogStockItemList,
   normalizeProductCatalogList,
-} from "../utils/normalizeCatalogApi";
+} from "../utils/normalize-catalog-api";
 import type {
   CatalogCategoryFavoriteToggleDto,
   CatalogCategoryFavoriteToggleResultDto,
@@ -14,7 +14,7 @@ import type {
   CatalogCategoryNodeDto,
   CatalogStockItemDto,
   ProductCatalogDto,
-} from "../types";
+} from "../types/catalog-types";
 
 export const catalogApi = {
   getCatalogs: async (): Promise<ProductCatalogDto[]> => {

@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 import { Text } from "@/components/ui/text";
-import type { CatalogCampaignPricingDisplay } from "../types/catalogPicker";
+import type { CatalogCampaignPricingDisplay } from "../types/catalog-picker";
 
 interface CatalogCampaignPricingRowProps {
   pricing?: CatalogCampaignPricingDisplay;

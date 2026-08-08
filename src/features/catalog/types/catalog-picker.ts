@@ -1,5 +1,5 @@
 import type { ProductSelectionResult } from "@/features/stocks/types";
-import type { CatalogCategoryNodeDto, CatalogStockItemDto, ProductCatalogDto } from "./index";
+import type { CatalogCategoryNodeDto, CatalogStockItemDto, ProductCatalogDto } from "./catalog-types";
 import type {
   CatalogFilterDimension,
   CatalogSpecialCodeSelections,

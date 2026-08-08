@@ -1,7 +1,8 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { catalogApi } from "../api/catalogApi";
-import type { CatalogStockItemDto } from "../types";
+import { catalogApi } from "../api/catalog-api";
+import type { CatalogStockItemDto } from "../types/catalog-types";
 import type { PagedResponse } from "@/features/stocks/types";
+import { catalogQueryKeys } from "../utils/query-keys";
 
 const PAGE_SIZE = 24;
 
@@ -15,7 +16,7 @@ export function useCatalogFavoritesQuery(params: UseCatalogFavoritesQueryParams)
   const { catalogId, search, enabled } = params;
 
   return useInfiniteQuery<PagedResponse<CatalogStockItemDto>, Error>({
-    queryKey: ["catalog", "favorites", catalogId, search],
+    queryKey: catalogQueryKeys.favorites(catalogId, search),
     queryFn: ({ pageParam = 1 }) => {
       if (catalogId == null) {
         return Promise.resolve({

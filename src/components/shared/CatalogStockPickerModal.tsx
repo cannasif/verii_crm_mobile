@@ -40,7 +40,7 @@ import {
   type CatalogPricingRuleType,
 } from "@/features/catalog";
 import { WarehouseBalanceBadge } from "@/features/warehouse-stock-balances";
-import type { CatalogCategoryNodeDto, CatalogStockItemDto, ProductCatalogDto } from "@/features/catalog/types";
+import type { CatalogCategoryNodeDto, CatalogStockItemDto, ProductCatalogDto } from "@/features/catalog/types/catalog-types";
 import type { ProductSelectionResult } from "@/features/stocks/types";
 
 const CARD_GAP = STOCK_BROWSE_CARD_GAP;

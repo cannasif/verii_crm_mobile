@@ -1,7 +1,8 @@
 import { useQueries } from "@tanstack/react-query";
 import { stockApi } from "@/features/stocks/api/stockApi";
 import type { StockRelationDto } from "@/features/stocks/types";
-import type { CatalogStockItemDto } from "../types";
+import type { CatalogStockItemDto } from "../types/catalog-types";
+import { catalogQueryKeys } from "../utils/query-keys";
 
 interface UseCatalogStockRelationsQueryParams {
   enabled: boolean;
@@ -13,7 +14,7 @@ export function useCatalogStockRelationsQuery(params: UseCatalogStockRelationsQu
 
   return useQueries({
     queries: stocks.map((stock) => ({
-      queryKey: ["catalog", "stock-relations", stock.stockId],
+      queryKey: catalogQueryKeys.stockRelations(stock.stockId),
       queryFn: async () => {
         const response = await stockApi.getRelations(stock.stockId, { pageNumber: 1, pageSize: 100 });
         return response.items;

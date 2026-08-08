@@ -1,7 +1,8 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { catalogApi } from "../api/catalogApi";
-import type { CatalogStockItemDto } from "../types";
+import { catalogApi } from "../api/catalog-api";
+import type { CatalogStockItemDto } from "../types/catalog-types";
 import type { PagedResponse } from "@/features/stocks/types";
+import { catalogQueryKeys } from "../utils/query-keys";
 
 const PAGE_SIZE = 24;
 
@@ -17,14 +18,12 @@ export function useCatalogCategoryStocksQuery(params: UseCatalogCategoryStocksQu
   const { catalogId, leafCategoryId, includeDescendants, search, enabled } = params;
 
   return useInfiniteQuery<PagedResponse<CatalogStockItemDto>, Error>({
-    queryKey: [
-      "catalog",
-      "category-stocks",
+    queryKey: catalogQueryKeys.categoryStocks(
       catalogId,
       leafCategoryId,
       includeDescendants,
-      search,
-    ],
+      search
+    ),
     queryFn: ({ pageParam = 1 }) => {
       if (catalogId == null || leafCategoryId == null) {
         return Promise.resolve({

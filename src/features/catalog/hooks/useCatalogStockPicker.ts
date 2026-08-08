@@ -3,9 +3,9 @@ import { getProductSelectionKey, type ProductSelectionResult } from "@/features/
 import { stockApi } from "@/features/stocks/api/stockApi";
 import type { StockRelationDto } from "@/features/stocks/types";
 import { getCurrentLanguage } from "@/locales";
-import { buildCategoryBranchPath } from "../utils/fetchCatalogCategoryTreeFlat";
-import { catalogStockToSelectionResult } from "../utils/catalogStockMapping";
-import { stockMatchesDraftSnapshot } from "../utils/stockMatchesDraftSnapshot";
+import { buildCategoryBranchPath } from "../utils/fetch-catalog-category-tree-flat";
+import { catalogStockToSelectionResult } from "../utils/catalog-stock-mapping";
+import { stockMatchesDraftSnapshot } from "../utils/stock-matches-draft-snapshot";
 import { catalogStockMatchesQuery } from "@/lib/catalogStockSearch";
 import { normalizeSearchText } from "@/lib/normalizeSearchText";
 import type {
@@ -14,8 +14,8 @@ import type {
   CatalogStockBrowseMode,
   CatalogStockLayoutMode,
   CatalogStockPickerParams,
-} from "../types/catalogPicker";
-import type { CatalogCategoryNodeDto, CatalogStockItemDto, ProductCatalogDto } from "../types";
+} from "../types/catalog-picker";
+import type { CatalogCategoryNodeDto, CatalogStockItemDto, ProductCatalogDto } from "../types/catalog-types";
 import {
   CATALOG_FILTER_DIMENSIONS,
   createEmptySpecialCodeSelections,

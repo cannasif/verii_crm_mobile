@@ -65,7 +65,7 @@ const requiredContracts = [
   ["src/features/demand/components/ProductPicker.tsx", "searchFields: stockSearchFields"],
   ["src/features/quotation/components/ProductPicker.tsx", "searchFields: stockSearchFields"],
   ["src/features/order/components/ProductPicker.tsx", "searchFields: stockSearchFields"],
-  ["src/features/catalog/api/catalogApi.ts", "query.append(\"searchFields\", field)"],
+  ["src/features/catalog/api/catalog-api.ts", "query.append(\"searchFields\", field)"],
 ];
 
 for (const [file, expected] of requiredContracts) {

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { catalogApi } from "../api/catalogApi";
-import type { CatalogCategoryNodeDto } from "../types";
+import { catalogApi } from "../api/catalog-api";
+import type { CatalogCategoryNodeDto } from "../types/catalog-types";
+import { catalogQueryKeys } from "../utils/query-keys";
 
 interface UseCatalogCategoriesQueryParams {
   catalogId: number | null;
@@ -12,7 +13,7 @@ export function useCatalogCategoriesQuery(params: UseCatalogCategoriesQueryParam
   const { catalogId, parentCatalogCategoryId, enabled } = params;
 
   return useQuery<CatalogCategoryNodeDto[], Error>({
-    queryKey: ["catalog", "categories", catalogId, parentCatalogCategoryId],
+    queryKey: catalogQueryKeys.categories(catalogId, parentCatalogCategoryId),
     queryFn: () => {
       if (catalogId == null) {
         return Promise.resolve([]);
