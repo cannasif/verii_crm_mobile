@@ -2,7 +2,7 @@ import React, { useMemo, useCallback } from "react";
 import { View, StyleSheet, FlatList, Image } from "react-native";
 import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { Text } from "../../../components/ui/text";
-import type { StockGetDto, StockRelationDto, StockImageDto } from "../types";
+import type { StockGetDto, StockRelationDto, StockImageDto } from "../types/stock";
 
 function DetailRow({
   label,

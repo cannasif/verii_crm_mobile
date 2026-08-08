@@ -1,6 +1,7 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { stockApi } from "../api/stockApi";
-import type { StockRelationDto, PagedParams, PagedFilter } from "../types";
+import { stockApi } from "../api/stock-api";
+import type { PagedFilter, PagedParams } from "../types/common";
+import { inventoryQueryKeys } from "../utils/query-keys";
 
 interface UseStockRelationsParams {
   stockId: number | undefined;
@@ -9,7 +10,7 @@ interface UseStockRelationsParams {
 
 export function useStockRelations({ stockId, filters }: UseStockRelationsParams) {
   return useInfiniteQuery({
-    queryKey: ["stock", "relations", stockId, filters],
+    queryKey: inventoryQueryKeys.relations(stockId, filters),
     queryFn: ({ pageParam = 1 }) => {
       if (!stockId) {
         throw new Error("Stock ID is required");

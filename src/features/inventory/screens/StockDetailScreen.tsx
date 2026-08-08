@@ -12,9 +12,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenHeader } from "../../../components/navigation";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
-import { useStock, useStockRelations } from "../hooks";
+import { useStock } from "../hooks/useStock";
+import { useStockRelations } from "../hooks/useStockRelations";
 import { StockDetailContent } from "../components";
-import type { PagedResponse, StockRelationDto } from "../types";
+import type { PagedResponse } from "../types/common";
+import type { StockRelationDto } from "../types/stock";
 
 export function StockDetailScreen(): React.ReactElement {
   const { t } = useTranslation();

@@ -2,7 +2,7 @@ import React, { memo } from "react";
 import { View, TouchableOpacity, StyleSheet } from "react-native";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
-import type { StockGetDto } from "../types";
+import type { StockGetDto } from "../types/stock";
 
 interface StockCardProps {
   stock: StockGetDto;

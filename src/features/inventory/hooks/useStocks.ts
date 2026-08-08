@@ -1,6 +1,7 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { stockApi } from "../api/stockApi";
-import type { StockGetDto, PagedParams, PagedFilter } from "../types";
+import { stockApi } from "../api/stock-api";
+import type { PagedFilter } from "../types/common";
+import { inventoryQueryKeys } from "../utils/query-keys";
 
 interface UseStocksParams {
   filters?: PagedFilter[];
@@ -24,7 +25,15 @@ export function useStocks(params: UseStocksParams = {}) {
   } = params;
 
   return useInfiniteQuery({
-    queryKey: ["stock", "list", { filters, search, searchFields, filterLogic, sortBy, sortDirection, pageSize }],
+    queryKey: inventoryQueryKeys.list({
+      filters,
+      search,
+      searchFields,
+      filterLogic,
+      sortBy,
+      sortDirection,
+      pageSize,
+    }),
     queryFn: ({ pageParam = 1 }) =>
       stockApi.getList({
         pageNumber: pageParam as number,

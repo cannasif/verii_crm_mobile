@@ -1,13 +1,7 @@
 import { apiClient } from "../../../lib/axios";
 import type { ApiResponse } from "../../auth/types/auth-types";
-import type {
-  StockGetDto,
-  StockRelationDto,
-  StockRelationCreateDto,
-  PagedParams,
-  PagedResponse,
-  PagedApiResponse,
-} from "../types";
+import type { PagedApiResponse, PagedParams, PagedResponse } from "../types/common";
+import type { StockGetDto, StockRelationCreateDto, StockRelationDto } from "../types/stock";
 
 const buildQueryParams = (params: PagedParams): Record<string, string | number> => {
   const queryParams: Record<string, string | number> = {};

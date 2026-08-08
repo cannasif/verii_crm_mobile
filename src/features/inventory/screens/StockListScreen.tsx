@@ -17,9 +17,10 @@ import {
 import { useUIStore } from "../../../store/ui";
 import { STOCK_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
 import { usePagedListSearchFields } from "../../../hooks/usePagedListSearchFields";
-import { useStocks } from "../hooks";
+import { useStocks } from "../hooks/useStocks";
 import { StockCard } from "../components";
-import type { StockGetDto, PagedResponse } from "../types";
+import type { PagedResponse } from "../types/common";
+import type { StockGetDto } from "../types/stock";
 import { ArrowDown01Icon, ArrowUp01Icon } from "hugeicons-react-native";
 
 export function StockListScreen(): React.ReactElement {
