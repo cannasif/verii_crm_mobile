@@ -12,7 +12,7 @@ import {
   useDocumentSerialAutoFill,
 } from "../../document-serial-type-management";
 import { PickerModal } from "./PickerModal";
-import type { CreateDemandSchema } from "../schemas";
+import type { CreateDemandSchema } from "../schemas/demand-schema";
 
 interface DocumentSerialTypePickerProps {
   control: Control<CreateDemandSchema>;

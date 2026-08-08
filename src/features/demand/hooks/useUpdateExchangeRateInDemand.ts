@@ -1,6 +1,7 @@
+import { demandQueryKeys } from "../utils/query-keys";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { demandApi } from "../api";
-import type { DemandExchangeRateUpdateDto } from "../types";
+import { demandApi } from "../api/demand-api";
+import type { DemandExchangeRateUpdateDto } from "../types/demand-types";
 import { useToastStore } from "../../../store/toast";
 import { useTranslation } from "react-i18next";
 
@@ -12,9 +13,9 @@ export function useUpdateExchangeRateInDemand() {
   return useMutation<boolean, Error, { demandId: number; body: DemandExchangeRateUpdateDto[] }>({
     mutationFn: ({ body }) => demandApi.updateExchangeRateInDemand(body),
     onSuccess: (_, { demandId }) => {
-      queryClient.invalidateQueries({ queryKey: ["demand", "detail", demandId] });
-      queryClient.invalidateQueries({ queryKey: ["demand", "detail", "lines", demandId] });
-      queryClient.invalidateQueries({ queryKey: ["demand", "detail", "exchangeRates", demandId] });
+      queryClient.invalidateQueries({ queryKey: demandQueryKeys.detail(demandId) });
+      queryClient.invalidateQueries({ queryKey: demandQueryKeys.lines(demandId) });
+      queryClient.invalidateQueries({ queryKey: demandQueryKeys.exchangeRates(demandId) });
       showToast("success", t("common.exchangeRatesUpdated"));
     },
     onError: (error) => {

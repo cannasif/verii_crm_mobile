@@ -1,6 +1,7 @@
+import { demandQueryKeys } from "../utils/query-keys";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { demandApi } from "../api";
-import type { RejectActionDto } from "../types";
+import { demandApi } from "../api/demand-api";
+import type { RejectActionDto } from "../types/demand-types";
 import { useToastStore } from "../../../store/toast";
 import { useTranslation } from "react-i18next";
 
@@ -12,8 +13,8 @@ export function useRejectAction() {
   return useMutation({
     mutationFn: (data: RejectActionDto) => demandApi.reject(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["demand", "waitingApprovals"] });
-      queryClient.invalidateQueries({ queryKey: ["demand"] });
+      queryClient.invalidateQueries({ queryKey: demandQueryKeys.waitingApprovals() });
+      queryClient.invalidateQueries({ queryKey: demandQueryKeys.all() });
       showToast("success", t("demand.rejectSuccess"));
     },
     onError: (error: Error) => {

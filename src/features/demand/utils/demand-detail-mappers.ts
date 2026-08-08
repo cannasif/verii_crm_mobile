@@ -1,4 +1,4 @@
-import type { CreateDemandSchema } from "../schemas";
+import type { CreateDemandSchema } from "../schemas/demand-schema";
 import type {
   DemandDetailGetDto,
   DemandLineDetailGetDto,
@@ -9,7 +9,7 @@ import type {
   CurrencyOptionDto,
   CreateDemandLineDto,
   DemandLineUpdateDto,
-} from "../types";
+} from "../types/demand-types";
 import { calculateLineTotals } from "./calculations";
 
 export interface LineGroup {

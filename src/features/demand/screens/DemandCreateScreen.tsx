@@ -58,7 +58,8 @@ import { useAuthStore } from "../../../store/auth";
 import { useToastStore } from "../../../store/toast";
 import { FormField } from "../../activity/components";
 import { useCustomerActivities } from "../../activity/hooks/useCustomerActivities";
-import { useCustomer, useCustomerScopeAccess } from "../../customer/hooks";
+import { useCustomer } from "../../customer/hooks/useCustomer";
+import { useCustomerScopeAccess } from "../../customer/hooks/useCustomerScopeAccess";
 import { useCustomerShippingAddresses } from "../../shipping-address/hooks";
 import { buildShippingAddressLabel } from "../../shipping-address/utils/shippingAddressLabel";
 import { useErpCustomers } from "../../erp-customer/hooks";
@@ -66,22 +67,20 @@ import { useStock } from "../../stocks/hooks";
 import { stockApi } from "../../stocks/api";
 import { resolveDocumentLineProductName } from "../../stocks/utils";
 import { getLocalizedStockNameFromStock } from "../../../lib/localizedStockName";
-import { demandApi } from "../api";
+import { demandApi } from "../api/demand-api";
 import { useSpecialCodes } from "../../common/hooks/useSpecialCodes";
 import {
   formatSpecialCodeOptionName,
   resolveSpecialCodeLabel,
 } from "../../common/utils/specialCodeLabel";
 import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida/hooks/useWindoDefinitionOptions";
-import {
-  useCreateDemandBulk,
-  usePriceRuleOfDemand,
-  useUserDiscountLimitsBySalesperson,
-  useExchangeRate,
-  useCurrencyOptions,
-  usePaymentTypes,
-  useRelatedUsers,
-} from "../hooks";
+import { useCreateDemandBulk } from "../hooks/useCreateDemandBulk";
+import { usePriceRuleOfDemand } from "../hooks/usePriceRuleOfDemand";
+import { useUserDiscountLimitsBySalesperson } from "../hooks/useUserDiscountLimitsBySalesperson";
+import { useExchangeRate } from "../hooks/useExchangeRate";
+import { useCurrencyOptions } from "../hooks/useCurrencyOptions";
+import { usePaymentTypes } from "../hooks/usePaymentTypes";
+import { useRelatedUsers } from "../hooks/useRelatedUsers";
 import {
   DemandLineForm,
   ExchangeRateDialog,
@@ -91,20 +90,21 @@ import {
   ProductPicker,
 } from "../components";
 import { CustomerSelectDialog, type CustomerSelectionResult } from "../../customer";
-import { useErpProjects, useSalesTypeList } from "../../quotation/hooks";
+import { useErpProjects } from "../../quotation/hooks/useErpProjects";
+import { useSalesTypeList } from "../../quotation/hooks/useSalesTypeList";
 import { QuotationNotesModal, validateNotesMaxLength } from "../../quotation/components";
-import { normalizeOfferType } from "../../quotation/types";
-import type { CustomerDto } from "../../customer/types";
-import { createDemandSchema, type CreateDemandSchema } from "../schemas";
+import { normalizeOfferType } from "../../quotation/types/quotation-types";
+import type { CustomerDto } from "../../customer/types/customer";
+import { createDemandSchema, type CreateDemandSchema } from "../schemas/demand-schema";
 import type {
   DemandLineFormState,
   DemandExchangeRateFormState,
   StockGetDto,
-} from "../types";
+} from "../types/demand-types";
 import type { StockRelationDto } from "../../stocks/types";
 import type { ProductSelectionResult } from "../../stocks/types";
-import { calculateLineTotals, calculateTotals } from "../utils";
-import type { ExchangeRateDto } from "../types";
+import { calculateLineTotals, calculateTotals } from "../utils/calculations";
+import type { ExchangeRateDto } from "../types/demand-types";
 import {
   enforceExportVatOnLine,
   getDefaultDocumentVatRate,

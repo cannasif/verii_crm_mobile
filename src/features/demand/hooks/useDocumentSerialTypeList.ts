@@ -1,6 +1,7 @@
+import { demandDocumentSerialTypeQueryKeys } from "../utils/query-keys";
 import { useQuery } from "@tanstack/react-query";
-import { demandApi } from "../api/demandApi";
-import type { DocumentSerialTypeDto } from "../types";
+import { demandApi } from "../api/demand-api";
+import type { DocumentSerialTypeDto } from "../types/demand-types";
 
 const STALE_TIME_MS = 60 * 1000;
 
@@ -12,7 +13,7 @@ export function useDocumentSerialTypeList(): {
   refetch: () => void;
 } {
   const query = useQuery<DocumentSerialTypeDto[], Error>({
-    queryKey: ["documentSerialType", "list"],
+    queryKey: demandDocumentSerialTypeQueryKeys.list(),
     queryFn: () => demandApi.getDocumentSerialTypeList(),
     staleTime: STALE_TIME_MS,
   });

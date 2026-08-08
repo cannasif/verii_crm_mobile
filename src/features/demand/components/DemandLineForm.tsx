@@ -23,10 +23,10 @@ import { ProductPicker, type ProductPickerRef } from "./ProductPicker";
 import { PickerModal } from "./PickerModal";
 import type { StockRelationDto } from "../../stocks/types";
 import { getProductSelectionKey, type ProductSelectionResult } from "../../stocks/types";
-import { demandApi } from "../api";
-import { quotationApi } from "../../quotation/api";
-import { useErpProjects } from "../../quotation/hooks";
-import type { UploadReportAssetOptions } from "../../quotation/api/quotationApi";
+import { demandApi } from "../api/demand-api";
+import { quotationApi } from "../../quotation/api/quotation-api";
+import { useErpProjects } from "../../quotation/hooks/useErpProjects";
+import type { UploadReportAssetOptions } from "../../quotation/api/quotation-api";
 import { stockApi } from "../../stocks/api";
 import { useStock } from "../../stocks/hooks";
 import { parseDecimalInput, sanitizeDecimalInput } from "../../../lib/decimal-input";
@@ -56,8 +56,8 @@ import type {
   UserDiscountLimitDto,
   PriceOfProductDto,
   StockGetDto,
-} from "../types";
-import { calculateLineTotals } from "../utils";
+} from "../types/demand-types";
+import { calculateLineTotals } from "../utils/calculations";
 
 interface DemandLineFormProps {
   visible: boolean;

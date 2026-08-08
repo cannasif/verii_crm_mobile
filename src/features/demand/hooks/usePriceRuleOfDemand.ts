@@ -1,6 +1,7 @@
+import { demandQueryKeys } from "../utils/query-keys";
 import { useQuery } from "@tanstack/react-query";
-import { demandApi } from "../api";
-import type { PricingRuleLineGetDto } from "../types";
+import { demandApi } from "../api/demand-api";
+import type { PricingRuleLineGetDto } from "../types/demand-types";
 
 interface UsePriceRuleOfDemandParams {
   customerCode?: string;
@@ -12,7 +13,7 @@ export function usePriceRuleOfDemand(params: UsePriceRuleOfDemandParams) {
   const { customerCode, salesmenId, demandDate } = params;
 
   return useQuery<PricingRuleLineGetDto[], Error>({
-    queryKey: ["demand", "priceRule", params],
+    queryKey: demandQueryKeys.priceRule(params),
     queryFn: () =>
       demandApi.getPriceRuleOfDemand({
         customerCode: customerCode!,

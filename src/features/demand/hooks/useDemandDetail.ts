@@ -1,10 +1,11 @@
+import { demandQueryKeys } from "../utils/query-keys";
 import { useQueries } from "@tanstack/react-query";
-import { demandApi } from "../api/demandApi";
+import { demandApi } from "../api/demand-api";
 import type {
   DemandDetailGetDto,
   DemandLineDetailGetDto,
   DemandExchangeRateDetailGetDto,
-} from "../types";
+} from "../types/demand-types";
 
 const STALE_TIME_MS = 60 * 1000;
 
@@ -20,19 +21,19 @@ export function useDemandDetail(demandId: number | undefined): {
   const results = useQueries({
     queries: [
       {
-        queryKey: ["demand", "detail", demandId],
+        queryKey: demandQueryKeys.detail(demandId),
         queryFn: () => demandApi.getById(demandId!),
         enabled: typeof demandId === "number",
         staleTime: STALE_TIME_MS,
       },
       {
-        queryKey: ["demand", "detail", "lines", demandId],
+        queryKey: demandQueryKeys.lines(demandId),
         queryFn: () => demandApi.getLinesByDemand(demandId!),
         enabled: typeof demandId === "number",
         staleTime: STALE_TIME_MS,
       },
       {
-        queryKey: ["demand", "detail", "exchangeRates", demandId],
+        queryKey: demandQueryKeys.exchangeRates(demandId),
         queryFn: () => demandApi.getExchangeRatesByDemand(demandId!),
         enabled: typeof demandId === "number",
         staleTime: STALE_TIME_MS,

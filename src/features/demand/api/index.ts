@@ -1,1 +1,0 @@
-export { demandApi } from "./demandApi";

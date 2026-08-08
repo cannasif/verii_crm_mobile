@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
-import type { ApprovalActionGetDto } from "../types";
+import type { ApprovalActionGetDto } from "../types/demand-types";
 
 interface RejectModalProps {
   visible: boolean;

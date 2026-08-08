@@ -1,7 +1,8 @@
+import { demandExchangeRateQueryKeys } from "../utils/query-keys";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { demandApi } from "../api";
-import type { ExchangeRateDto } from "../types";
+import { demandApi } from "../api/demand-api";
+import type { ExchangeRateDto } from "../types/demand-types";
 
 interface UseExchangeRateParams {
   tarih?: string;
@@ -19,7 +20,7 @@ export function useExchangeRate(params?: UseExchangeRateParams) {
   }, [params?.tarih, params?.fiyatTipi]);
 
   return useQuery<ExchangeRateDto[], Error>({
-    queryKey: ["exchangeRate", stableParams],
+    queryKey: demandExchangeRateQueryKeys.byParams(stableParams),
     queryFn: () => demandApi.getExchangeRate(stableParams),
     staleTime: 5 * 60 * 1000,
     enabled: !!stableParams,

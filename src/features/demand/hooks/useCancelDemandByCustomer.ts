@@ -1,7 +1,8 @@
+import { demandQueryKeys } from "../utils/query-keys";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { invalidateDocumentListQueries } from "../../../lib/documentListQueryInvalidation";
 import { useTranslation } from "react-i18next";
-import { demandApi } from "../api";
+import { demandApi } from "../api/demand-api";
 import { useToastStore } from "../../../store/toast";
 
 export function useCancelDemandByCustomer() {
@@ -13,9 +14,9 @@ export function useCancelDemandByCustomer() {
     mutationFn: ({ id, reason }) => demandApi.cancelByCustomer(id, reason),
     onSuccess: async (_, variables) => {
       await invalidateDocumentListQueries(queryClient, "demand");
-      queryClient.invalidateQueries({ queryKey: ["demand", "detail", variables.id] });
-      queryClient.invalidateQueries({ queryKey: ["demand", "approvalFlowReport", variables.id] });
-      queryClient.invalidateQueries({ queryKey: ["demand", "waitingApprovals"] });
+      queryClient.invalidateQueries({ queryKey: demandQueryKeys.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: demandQueryKeys.approvalFlowReportLegacy(variables.id) });
+      queryClient.invalidateQueries({ queryKey: demandQueryKeys.waitingApprovals() });
       showToast("success", t("common.demandCancelledByCustomer", "Talep müşteri tarafından iptal edildi"));
     },
     onError: (error) => {

@@ -65,7 +65,8 @@ import { useAuthStore } from "../../../store/auth";
 import { useToastStore } from "../../../store/toast";
 import { FormField } from "../../activity/components";
 import { useCustomerActivities } from "../../activity/hooks/useCustomerActivities";
-import { useCustomer, useCustomerScopeAccess } from "../../customer/hooks";
+import { useCustomer } from "../../customer/hooks/useCustomer";
+import { useCustomerScopeAccess } from "../../customer/hooks/useCustomerScopeAccess";
 import { useCustomerShippingAddresses } from "../../shipping-address/hooks";
 import { buildShippingAddressLabel } from "../../shipping-address/utils/shippingAddressLabel";
 import { stockApi } from "../../stocks/api";
@@ -81,27 +82,25 @@ import {
 } from "../../../lib/documentDetailReadOnly";
 import { resolveDocumentCancellationReason } from "../../../lib/resolveDocumentStatus";
 import { enforceExportVatOnLine, isExportOfferType, resolveDocumentVatRate } from "../../../utils/documentVat";
-import { demandApi } from "../api";
-import {
-  useDemandDetail,
-  useStartApprovalFlow,
-  useWaitingApprovals,
-  useApproveAction,
-  useRejectAction,
-  useExchangeRate,
-  useCurrencyOptions,
-  usePaymentTypes,
-  useRelatedUsers,
-  usePriceRuleOfDemand,
-  useUserDiscountLimitsBySalesperson,
-  useUpdateExchangeRateInDemand,
-  useDeleteDemandLine,
-  useCreateDemandLines,
-  useUpdateDemandLines,
-  useCancelDemandByCustomer,
-  useCanEditDemand,
-  useCreateRevisionOfDemand,
-} from "../hooks";
+import { demandApi } from "../api/demand-api";
+import { useDemandDetail } from "../hooks/useDemandDetail";
+import { useStartApprovalFlow } from "../hooks/useStartApprovalFlow";
+import { useWaitingApprovals } from "../hooks/useWaitingApprovals";
+import { useApproveAction } from "../hooks/useApproveAction";
+import { useRejectAction } from "../hooks/useRejectAction";
+import { useExchangeRate } from "../hooks/useExchangeRate";
+import { useCurrencyOptions } from "../hooks/useCurrencyOptions";
+import { usePaymentTypes } from "../hooks/usePaymentTypes";
+import { useRelatedUsers } from "../hooks/useRelatedUsers";
+import { usePriceRuleOfDemand } from "../hooks/usePriceRuleOfDemand";
+import { useUserDiscountLimitsBySalesperson } from "../hooks/useUserDiscountLimitsBySalesperson";
+import { useUpdateExchangeRateInDemand } from "../hooks/useUpdateExchangeRateInDemand";
+import { useDeleteDemandLine } from "../hooks/useDeleteDemandLine";
+import { useCreateDemandLines } from "../hooks/useCreateDemandLines";
+import { useUpdateDemandLines } from "../hooks/useUpdateDemandLines";
+import { useCancelDemandByCustomer } from "../hooks/useCancelDemandByCustomer";
+import { useCanEditDemand } from "../hooks/useCanEditDemand";
+import { useCreateRevisionOfDemand } from "../hooks/useCreateRevisionOfDemand";
 import {
   ExchangeRateDialog,
   PickerModal,
@@ -112,16 +111,16 @@ import {
   RejectModal,
 } from "../components";
 import { CustomerSelectDialog, type CustomerSelectionResult } from "../../customer";
-import type { CustomerDto } from "../../customer/types";
+import type { CustomerDto } from "../../customer/types/customer";
 import { ReportTab, DocumentRuleType } from "../../quotation";
-import { createDemandSchema, type CreateDemandSchema } from "../schemas";
+import { createDemandSchema, type CreateDemandSchema } from "../schemas/demand-schema";
 import type {
   DemandLineFormState,
   DemandExchangeRateFormState,
   ExchangeRateDto,
   StockGetDto,
   ApprovalActionGetDto,
-} from "../types";
+} from "../types/demand-types";
 import {
   APPROVAL_HAVENOT_STARTED,
   APPROVAL_WAITING,
@@ -132,7 +131,7 @@ import {
   APPROVAL_SALESPERSON_CLOSED_FOR_REVISION,
   APPROVAL_SUPERSEDED_BY_APPROVED_REVISION,
   PricingRuleType,
-} from "../types";
+} from "../types/demand-types";
 import type { StockRelationDto } from "../../stocks/types";
 import {
   mapDetailHeaderToForm,
@@ -143,8 +142,9 @@ import {
   mapDemandLineFormStateToCreateDto,
   mapDemandLineFormStateToUpdateDto,
   totalsFromDetailLines,
-} from "../utils";
-import { calculateLineTotals, calculateTotals } from "../utils";
+} from "../utils/demand-detail-mappers";
+import { calculateLineTotals, calculateTotals } from "../utils/calculations";
+import { demandQueryKeys } from "../utils/query-keys";
 import { resolveLineListCurrencyLabel } from "../../../lib/currencyDisplay";
 import { getApiBaseUrl } from "../../../constants/config";
 import { useDocumentDetailDirtyState } from "../../../hooks/useDocumentDetailDirtyState";
@@ -1142,10 +1142,10 @@ export function DemandDetailScreen(): React.ReactElement {
         );
         await invalidateDocumentListAndDetailHeader(queryClient, "demand", demandId);
         await queryClient.invalidateQueries({
-          queryKey: ["demand", "detail", "lines", demandId],
+          queryKey: demandQueryKeys.lines(demandId),
         });
         await queryClient.invalidateQueries({
-          queryKey: ["demand", "detail", "exchangeRates", demandId],
+          queryKey: demandQueryKeys.exchangeRates(demandId),
         });
         markSaved();
         showToast("success", t("common.demandUpdated"));

@@ -1,7 +1,8 @@
+import { demandCurrencyQueryKeys } from "../utils/query-keys";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { demandApi } from "../api";
-import type { CurrencyOptionDto } from "../types";
+import { demandApi } from "../api/demand-api";
+import type { CurrencyOptionDto } from "../types/demand-types";
 
 interface UseCurrencyOptionsParams {
   tarih?: string;
@@ -18,7 +19,7 @@ export function useCurrencyOptions(params?: UseCurrencyOptionsParams) {
   }, [params?.tarih, params?.fiyatTipi]);
 
   return useQuery<CurrencyOptionDto[], Error>({
-    queryKey: ["currency", "options", stableParams],
+    queryKey: demandCurrencyQueryKeys.options(stableParams),
     queryFn: () => demandApi.getCurrencyOptions(stableParams),
     staleTime: 10 * 60 * 1000,
   });

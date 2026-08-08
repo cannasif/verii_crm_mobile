@@ -1,7 +1,8 @@
+import { demandQueryKeys } from "../utils/query-keys";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { invalidateDocumentListQueries } from "../../../lib/documentListQueryInvalidation";
-import { demandApi } from "../api";
-import type { DemandBulkCreateDto, DemandGetDto } from "../types";
+import { demandApi } from "../api/demand-api";
+import type { DemandBulkCreateDto, DemandGetDto } from "../types/demand-types";
 import { useToastStore } from "../../../store/toast";
 import { useTranslation } from "react-i18next";
 
@@ -18,9 +19,9 @@ export function useUpdateDemandBulk() {
     mutationFn: ({ id, data }) => demandApi.updateBulk(id, data),
     onSuccess: async (_, { id }) => {
       await invalidateDocumentListQueries(queryClient, "demand");
-      queryClient.invalidateQueries({ queryKey: ["demand", "detail", id] });
-      queryClient.invalidateQueries({ queryKey: ["demand", "detail", "lines", id] });
-      queryClient.invalidateQueries({ queryKey: ["demand", "detail", "exchangeRates", id] });
+      queryClient.invalidateQueries({ queryKey: demandQueryKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: demandQueryKeys.lines(id) });
+      queryClient.invalidateQueries({ queryKey: demandQueryKeys.exchangeRates(id) });
       showToast("success", t("common.demandUpdated"));
     },
     onError: (error) => {

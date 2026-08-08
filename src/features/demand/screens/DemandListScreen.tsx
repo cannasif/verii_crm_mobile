@@ -40,9 +40,11 @@ import {
 import { PermissionDeniedState } from "../../access-control/components/PermissionDeniedState";
 import { isForbiddenError } from "../../access-control/utils/isForbiddenError";
 import { resolveSalesDocumentPaymentTypeLabel } from "../../../lib/resolveSalesDocumentPaymentTypeLabel";
-import { useDemandList, useCreateRevisionOfDemand, usePaymentTypeNameMap } from "../hooks";
+import { useDemandList } from "../hooks/useDemandList";
+import { useCreateRevisionOfDemand } from "../hooks/useCreateRevisionOfDemand";
+import { usePaymentTypeNameMap } from "../hooks/usePaymentTypeNameMap";
 import { DemandRow } from "../components/DemandRow";
-import type { DemandGetDto } from "../types";
+import type { DemandGetDto } from "../types/demand-types";
 import { CustomerMailComposerModal } from "../../integration";
 
 const GAP = 16;

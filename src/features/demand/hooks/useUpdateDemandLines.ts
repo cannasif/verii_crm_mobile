@@ -1,7 +1,8 @@
+import { demandQueryKeys } from "../utils/query-keys";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { invalidateDocumentListAndDetailHeader } from "../../../lib/documentListQueryInvalidation";
-import { demandApi } from "../api";
-import type { DemandLineUpdateDto, DemandLineDetailGetDto } from "../types";
+import { demandApi } from "../api/demand-api";
+import type { DemandLineUpdateDto, DemandLineDetailGetDto } from "../types/demand-types";
 import { useToastStore } from "../../../store/toast";
 import { useTranslation } from "react-i18next";
 
@@ -18,7 +19,7 @@ export function useUpdateDemandLines() {
     mutationFn: ({ body }) => demandApi.updateDemandLines(body),
     onSuccess: async (_, { demandId }) => {
       await invalidateDocumentListAndDetailHeader(queryClient, "demand", demandId);
-      queryClient.invalidateQueries({ queryKey: ["demand", "detail", "lines", demandId] });
+      queryClient.invalidateQueries({ queryKey: demandQueryKeys.lines(demandId) });
       showToast("success", t("common.rowsUpdated"));
     },
     onError: (error) => {
