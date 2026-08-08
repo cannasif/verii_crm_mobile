@@ -11,8 +11,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
-import { useCustomerContacts } from "../../contact/hooks";
-import type { ContactDto } from "../../contact/types";
+import { useCustomerContacts } from "../../contact/hooks/useContacts";
+import type { ContactDto } from "../../contact/types/contact";
 
 interface ContactPickerProps {
   value?: number;

@@ -9,7 +9,8 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import { ScreenHeader } from "../../../components/navigation";
 import { useUIStore } from "../../../store/ui";
-import { useContact, useDeleteContact } from "../hooks";
+import { useContact } from "../hooks/useContact";
+import { useDeleteContact } from "../hooks/useContactMutation";
 import { ContactDetailContent } from "../components/ContactDetailContent";
 
 import { Edit02Icon, AlertCircleIcon, RefreshIcon } from "hugeicons-react-native";

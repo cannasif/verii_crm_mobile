@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { LinearGradient } from "expo-linear-gradient";
-import type { ContactDto } from "../types";
+import type { ContactDto } from "../types/contact";
 
 import {
   Call02Icon,

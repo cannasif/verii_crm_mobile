@@ -24,9 +24,10 @@ import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useToastStore } from "../../../store/toast";
 import { FormField, CustomerPicker, useTitles, useCustomer } from "../../customer";
-import { useContact, useCreateContact, useUpdateContact } from "../hooks";
-import { createContactSchema, type ContactFormData } from "../schemas";
-import { SALUTATION_TYPE } from "../types";
+import { useContact } from "../hooks/useContact";
+import { useCreateContact, useUpdateContact } from "../hooks/useContactMutation";
+import { createContactSchema, type ContactFormData } from "../schemas/contact-schema";
+import { SALUTATION_TYPE } from "../types/contact";
 import type { CustomerDto, TitleDto } from "../../customer";
 
 import { 

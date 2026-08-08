@@ -1,6 +1,8 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { contactApi } from "../api/contactApi";
-import type { PagedFilter, PagedResponse, ContactDto } from "../types";
+import { contactApi } from "../api/contact-api";
+import type { PagedFilter, PagedResponse } from "../types/common";
+import type { ContactDto } from "../types/contact";
+import { contactQueryKeys } from "../utils/query-keys";
 
 const DEFAULT_PAGE_SIZE = 20;
 
@@ -34,7 +36,15 @@ export function useContacts(params: UseContactsParams = {}) {
   }
 
   return useInfiniteQuery<PagedResponse<ContactDto>, Error>({
-    queryKey: ["contact", "list", { filters, search, searchFields, sortBy, sortDirection, filterLogic, pageSize }],
+    queryKey: contactQueryKeys.list({
+      filters,
+      search,
+      searchFields,
+      sortBy,
+      sortDirection,
+      filterLogic,
+      pageSize,
+    }),
     queryFn: ({ pageParam }) => {
       const apiParams = {
         pageNumber: pageParam as number,
@@ -56,7 +66,7 @@ export function useContacts(params: UseContactsParams = {}) {
 
 export function useCustomerContacts(customerId: number | undefined) {
   return useQuery<ContactDto[], Error>({
-    queryKey: ["contact", "byCustomer", customerId],
+    queryKey: contactQueryKeys.byCustomer(customerId),
     queryFn: () => contactApi.getByCustomerId(customerId!),
     enabled: !!customerId,
     staleTime: 30 * 1000,

@@ -24,10 +24,11 @@ import { useUIStore } from "../../../store/ui";
 import { CONTACT_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
 import { usePagedListSearchFields } from "../../../hooks/usePagedListSearchFields";
 
-import { useContacts } from "../hooks";
+import { useContacts } from "../hooks/useContacts";
 import { useCustomers } from "../../customer/hooks/useCustomers";
 import { ContactListCard } from "../components/ContactListCard"; 
-import type { ContactDto, PagedFilter } from "../types";
+import type { ContactDto } from "../types/contact";
+import type { PagedFilter } from "../types/common";
 
 import { 
   ContactBookIcon, 

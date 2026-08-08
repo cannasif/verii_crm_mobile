@@ -49,7 +49,7 @@ import {
 } from "../types/activity-types";
 import type { CustomerDto } from "../../customer/types/customer";
 import { resolveErpCustomerCodeForSelection } from "../../../lib/customerIntegration";
-import type { ContactDto } from "../../contact/types";
+import type { ContactDto } from "../../contact/types/contact";
 import { activityImageApi } from "../api/activity-api";
 import { activityQueryKeys } from "../utils/query-keys";
 import { getApiBaseUrl } from "../../../constants/config";

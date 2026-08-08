@@ -8,7 +8,7 @@ import {
   Note01Icon,
   Delete02Icon
 } from "hugeicons-react-native";
-import type { ContactDto } from "../types";
+import type { ContactDto } from "../types/contact";
 
 // --- Alt Bileşen ---
 interface DetailRowProps {

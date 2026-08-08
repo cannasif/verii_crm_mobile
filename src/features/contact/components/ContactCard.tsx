@@ -3,7 +3,7 @@ import { View, TouchableOpacity, StyleSheet, Linking } from "react-native";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { LinearGradient } from "expo-linear-gradient";
-import type { ContactDto } from "../types";
+import type { ContactDto } from "../types/contact";
 // HugeIcons - Fütüristik Set
 import { 
   Call02Icon, 

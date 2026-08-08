@@ -4,10 +4,12 @@ import type {
   ContactDto,
   CreateContactDto,
   UpdateContactDto,
+} from "../types/contact";
+import type {
   PagedParams,
   PagedResponse,
   PagedApiResponse,
-} from "../types";
+} from "../types/common";
 
 const toNumber = (value: unknown): number | undefined => {
   if (typeof value === "number" && Number.isFinite(value)) return value;
