@@ -1,6 +1,8 @@
-export function warehouseBalanceQueryKey(stockId: number): readonly ["warehouse-stock-balances", "by-stock", number] {
-  return ["warehouse-stock-balances", "by-stock", stockId];
-}
+export const warehouseStockBalanceQueryKeys = {
+  all: () => ["warehouse-stock-balances"] as const,
+  byStock: (stockId: number) =>
+    [...warehouseStockBalanceQueryKeys.all(), "by-stock", stockId] as const,
+};
 
 export function uniquePositiveStockIds(stockIds: readonly number[]): number[] {
   const seen = new Set<number>();

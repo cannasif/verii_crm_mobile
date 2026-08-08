@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { Text } from "@/components/ui/text";
-import { useWarehouseBalanceViewModel } from "../hooks";
+import { useWarehouseBalanceViewModel } from "../hooks/useWarehouseBalanceViewModel";
 import { WarehouseBalanceBreakdownSheet } from "./WarehouseBalanceBreakdownSheet";
 import {
   getWarehouseBalanceToneColors,

@@ -4,9 +4,12 @@ import {
   warehouseStockBalanceApi,
   WAREHOUSE_STOCK_BALANCE_GC_MS,
   WAREHOUSE_STOCK_BALANCE_STALE_MS,
-} from "../api";
-import type { WarehouseStockBalanceDto } from "../types";
-import { uniquePositiveStockIds, warehouseBalanceQueryKey } from "../utils/warehouseBalanceQueryKey";
+} from "../api/warehouse-stock-balance-api";
+import type { WarehouseStockBalanceDto } from "../types/warehouse-stock-balance";
+import {
+  uniquePositiveStockIds,
+  warehouseStockBalanceQueryKeys,
+} from "../utils/query-keys";
 
 const DEFAULT_BATCH_SIZE = 20;
 
@@ -17,7 +20,9 @@ function collectResolvedIds(
   const resolved = new Set<number>();
 
   for (const stockId of stockIds) {
-    const state = queryClient.getQueryState<WarehouseStockBalanceDto[]>(warehouseBalanceQueryKey(stockId));
+    const state = queryClient.getQueryState<WarehouseStockBalanceDto[]>(
+      warehouseStockBalanceQueryKeys.byStock(stockId)
+    );
     if (state?.status === "success") {
       resolved.add(stockId);
     }
@@ -33,7 +38,9 @@ function collectStockIdsWithBalance(
   const withBalance = new Set<number>();
 
   for (const stockId of stockIds) {
-    const rows = queryClient.getQueryData<WarehouseStockBalanceDto[]>(warehouseBalanceQueryKey(stockId));
+    const rows = queryClient.getQueryData<WarehouseStockBalanceDto[]>(
+      warehouseStockBalanceQueryKeys.byStock(stockId)
+    );
     if (Array.isArray(rows) && rows.length > 0) {
       withBalance.add(stockId);
     }
@@ -60,7 +67,7 @@ export function useWarehouseBalanceBatchPrefetch(
 
     const pendingIds = uniqueIds.filter((stockId) => {
       const state = queryClient.getQueryState<WarehouseStockBalanceDto[]>(
-        warehouseBalanceQueryKey(stockId)
+        warehouseStockBalanceQueryKeys.byStock(stockId)
       );
       return state?.status !== "success" && state?.fetchStatus !== "fetching";
     });
@@ -82,7 +89,7 @@ export function useWarehouseBalanceBatchPrefetch(
         await Promise.all(
           batch.map((stockId) =>
             queryClient.prefetchQuery({
-              queryKey: warehouseBalanceQueryKey(stockId),
+              queryKey: warehouseStockBalanceQueryKeys.byStock(stockId),
               queryFn: () => warehouseStockBalanceApi.getByStockId(stockId),
               staleTime: WAREHOUSE_STOCK_BALANCE_STALE_MS,
               gcTime: WAREHOUSE_STOCK_BALANCE_GC_MS,

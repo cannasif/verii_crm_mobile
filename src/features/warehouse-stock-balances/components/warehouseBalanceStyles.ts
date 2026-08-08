@@ -1,5 +1,5 @@
 import { StyleSheet } from "react-native";
-import type { WarehouseBalanceTone } from "../types";
+import type { WarehouseBalanceTone } from "../types/warehouse-stock-balance";
 
 export function getWarehouseBalanceToneColors(
   tone: WarehouseBalanceTone,

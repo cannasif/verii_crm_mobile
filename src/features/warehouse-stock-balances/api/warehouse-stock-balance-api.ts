@@ -1,6 +1,6 @@
 import { apiClient } from "@/lib/axios";
 import type { ApiResponse } from "@/features/auth/types/auth-types";
-import type { WarehouseStockBalanceDto } from "../types";
+import type { WarehouseStockBalanceDto } from "../types/warehouse-stock-balance";
 
 export const WAREHOUSE_STOCK_BALANCE_STALE_MS = 60 * 1000;
 export const WAREHOUSE_STOCK_BALANCE_GC_MS = 5 * 60 * 1000;

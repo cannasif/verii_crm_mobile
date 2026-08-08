@@ -1,4 +1,7 @@
-import type { WarehouseBalanceTone, WarehouseStockBalanceDto } from "../types";
+import type {
+  WarehouseBalanceTone,
+  WarehouseStockBalanceDto,
+} from "../types/warehouse-stock-balance";
 
 export function computeTotalBalance(rows: WarehouseStockBalanceDto[]): number {
   return rows.reduce((sum, row) => sum + (Number(row.balance) || 0), 0);

@@ -3,7 +3,7 @@ import {
   computeTotalBalance,
   formatWarehouseBalanceWithUnit,
   resolveWarehouseBalanceTone,
-} from "../utils/warehouseBalanceCompute";
+} from "../utils/warehouse-balance-compute";
 import { useWarehouseStockBalancesByStockQuery } from "./useWarehouseStockBalancesByStockQuery";
 
 export function useWarehouseBalanceViewModel(

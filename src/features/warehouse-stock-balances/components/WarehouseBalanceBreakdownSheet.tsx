@@ -10,12 +10,15 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { Text } from "@/components/ui/text";
-import type { WarehouseBalanceTone, WarehouseStockBalanceDto } from "../types";
+import type {
+  WarehouseBalanceTone,
+  WarehouseStockBalanceDto,
+} from "../types/warehouse-stock-balance";
 import {
   formatWarehouseBalanceWithUnit,
   resolveWarehouseBalanceTone,
   resolveWarehouseDisplayName,
-} from "../utils/warehouseBalanceCompute";
+} from "../utils/warehouse-balance-compute";
 import {
   getWarehouseBalanceToneColors,
   warehouseBalanceSheetStyles as styles,
