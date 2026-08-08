@@ -62,9 +62,7 @@ const requiredContracts = [
   ["src/features/temp-quick-quotation/screens/TempQuickQuotationListScreen.tsx", "TEMP_QUICK_QUOTATION_LIST_SEARCH_FIELDS"],
   ["src/features/erp-order/screens/ErpOrderListScreen.tsx", "ERP_ORDER_LIST_SEARCH_FIELDS"],
   ["src/features/customer/components/CustomerSelectDialog.tsx", "searchFields: customerSearchFields"],
-  ["src/features/demand/components/ProductPicker.tsx", "searchFields: stockSearchFields"],
-  ["src/features/quotation/components/ProductPicker.tsx", "searchFields: stockSearchFields"],
-  ["src/features/order/components/ProductPicker.tsx", "searchFields: stockSearchFields"],
+  ["src/components/shared/product-picker/ProductPicker.tsx", "searchFields: stockSearchFields"],
   ["src/features/catalog/api/catalog-api.ts", "query.append(\"searchFields\", field)"],
 ];
 
