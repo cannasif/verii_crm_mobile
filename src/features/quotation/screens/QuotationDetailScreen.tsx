@@ -65,8 +65,8 @@ import { FormField } from "../../activity/components";
 import { useCustomerActivities } from "../../activity/hooks/useCustomerActivities";
 import { useCustomer } from "../../customer/hooks/useCustomer";
 import { useCustomerScopeAccess } from "../../customer/hooks/useCustomerScopeAccess";
-import { useCustomerShippingAddresses } from "../../shipping-address/hooks";
-import { buildShippingAddressLabel } from "../../shipping-address/utils/shippingAddressLabel";
+import { useCustomerShippingAddresses } from "../../shipping-address/hooks/useShippingAddresses";
+import { buildShippingAddressLabel } from "../../shipping-address/utils/shipping-address-label";
 import { stockApi } from "../../stocks/api";
 import {
   localizeDocumentLineFormStates,

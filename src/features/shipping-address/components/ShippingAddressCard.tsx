@@ -2,7 +2,7 @@ import React, { memo } from "react";
 import { View, TouchableOpacity, StyleSheet } from "react-native";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
-import type { ShippingAddressDto } from "../types";
+import type { ShippingAddressDto } from "../types/shipping-address";
 import {
   MapsSquare02Icon,
   UserCircleIcon,

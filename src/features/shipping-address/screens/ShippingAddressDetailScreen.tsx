@@ -17,7 +17,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { ScreenHeader } from "../../../components/navigation";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
-import { useShippingAddress, useDeleteShippingAddress } from "../hooks";
+import { useShippingAddress } from "../hooks/useShippingAddress";
+import { useDeleteShippingAddress } from "../hooks/useShippingAddressMutation";
 
 import {
   MapsSquare02Icon,

@@ -1,13 +1,11 @@
 import { apiClient } from "../../../lib/axios";
 import type { ApiResponse } from "../../auth/types/auth-types";
+import type { PagedApiResponse, PagedParams, PagedResponse } from "../types/common";
 import type {
   ShippingAddressDto,
   CreateShippingAddressDto,
   UpdateShippingAddressDto,
-  PagedParams,
-  PagedResponse,
-  PagedApiResponse,
-} from "../types";
+} from "../types/shipping-address";
 
 export const shippingAddressApi = {
   getList: async (params: PagedParams = {}): Promise<PagedResponse<ShippingAddressDto>> => {

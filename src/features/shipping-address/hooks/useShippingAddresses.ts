@@ -1,6 +1,8 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { shippingAddressApi } from "../api/shippingAddressApi";
-import type { PagedFilter, PagedResponse, ShippingAddressDto } from "../types";
+import { shippingAddressApi } from "../api/shipping-address-api";
+import type { PagedFilter, PagedResponse } from "../types/common";
+import type { ShippingAddressDto } from "../types/shipping-address";
+import { shippingAddressQueryKeys } from "../utils/query-keys";
 
 const DEFAULT_PAGE_SIZE = 20;
 
@@ -34,7 +36,15 @@ export function useShippingAddresses(params: UseShippingAddressesParams = {}) {
   }
 
   return useInfiniteQuery<PagedResponse<ShippingAddressDto>, Error>({
-    queryKey: ["shippingAddress", "list", { filters, search, searchFields, filterLogic, sortBy, sortDirection, pageSize }],
+    queryKey: shippingAddressQueryKeys.list({
+      filters,
+      search,
+      searchFields,
+      filterLogic,
+      sortBy,
+      sortDirection,
+      pageSize,
+    }),
     queryFn: ({ pageParam }) =>
       shippingAddressApi.getList({
         pageNumber: pageParam as number,
@@ -54,7 +64,7 @@ export function useShippingAddresses(params: UseShippingAddressesParams = {}) {
 
 export function useCustomerShippingAddresses(customerId: number | undefined) {
   return useQuery<ShippingAddressDto[], Error>({
-    queryKey: ["shippingAddress", "byCustomer", customerId],
+    queryKey: shippingAddressQueryKeys.byCustomer(customerId),
     queryFn: () => shippingAddressApi.getByCustomerId(customerId!),
     enabled: !!customerId,
     staleTime: 1 * 60 * 1000,

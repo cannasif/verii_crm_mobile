@@ -1,4 +1,4 @@
-import type { ShippingAddressDto } from "../types";
+import type { ShippingAddressDto } from "../types/shipping-address";
 
 type ShippingAddressLabelSource = Pick<
   ShippingAddressDto,

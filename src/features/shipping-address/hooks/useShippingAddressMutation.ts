@@ -1,8 +1,10 @@
 import { useMutation, useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { shippingAddressApi } from "../api/shippingAddressApi";
+import { shippingAddressApi } from "../api/shipping-address-api";
 import { useToastStore } from "../../../store/toast";
-import type { CreateShippingAddressDto, UpdateShippingAddressDto, ShippingAddressDto, PagedResponse } from "../types";
+import type { PagedResponse } from "../types/common";
+import type { CreateShippingAddressDto, UpdateShippingAddressDto, ShippingAddressDto } from "../types/shipping-address";
+import { shippingAddressQueryKeys } from "../utils/query-keys";
 
 export function useCreateShippingAddress() {
   const queryClient = useQueryClient();
@@ -12,8 +14,8 @@ export function useCreateShippingAddress() {
   return useMutation<ShippingAddressDto, Error, CreateShippingAddressDto>({
     mutationFn: shippingAddressApi.create,
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["shippingAddress", "list"] });
-      queryClient.invalidateQueries({ queryKey: ["shippingAddress", "byCustomer", data.customerId] });
+      queryClient.invalidateQueries({ queryKey: shippingAddressQueryKeys.listPrefix() });
+      queryClient.invalidateQueries({ queryKey: shippingAddressQueryKeys.byCustomer(data.customerId) });
       showToast("success", t("shippingAddress.createSuccess"));
     },
     onError: (error) => {
@@ -35,10 +37,12 @@ export function useUpdateShippingAddress() {
   >({
     mutationFn: ({ id, data }) => shippingAddressApi.update(id, data),
     onMutate: async ({ id, data }) => {
-      await queryClient.cancelQueries({ queryKey: ["shippingAddress", "detail", id] });
-      const previousData = queryClient.getQueryData<ShippingAddressDto>(["shippingAddress", "detail", id]);
+      await queryClient.cancelQueries({ queryKey: shippingAddressQueryKeys.detail(id) });
+      const previousData = queryClient.getQueryData<ShippingAddressDto>(
+        shippingAddressQueryKeys.detail(id),
+      );
       if (previousData) {
-        queryClient.setQueryData<ShippingAddressDto>(["shippingAddress", "detail", id], {
+        queryClient.setQueryData<ShippingAddressDto>(shippingAddressQueryKeys.detail(id), {
           ...previousData,
           ...data,
         });
@@ -46,14 +50,17 @@ export function useUpdateShippingAddress() {
       return { previousData };
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["shippingAddress", "list"] });
-      queryClient.invalidateQueries({ queryKey: ["shippingAddress", "detail", variables.id] });
-      queryClient.invalidateQueries({ queryKey: ["shippingAddress", "byCustomer", data.customerId] });
+      queryClient.invalidateQueries({ queryKey: shippingAddressQueryKeys.listPrefix() });
+      queryClient.invalidateQueries({ queryKey: shippingAddressQueryKeys.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: shippingAddressQueryKeys.byCustomer(data.customerId) });
       showToast("success", t("shippingAddress.updateSuccess"));
     },
     onError: (error, variables, context) => {
       if (context?.previousData) {
-        queryClient.setQueryData(["shippingAddress", "detail", variables.id], context.previousData);
+        queryClient.setQueryData(
+          shippingAddressQueryKeys.detail(variables.id),
+          context.previousData,
+        );
       }
       showToast("error", error.message || t("common.unknownError"));
     },
@@ -73,11 +80,13 @@ export function useDeleteShippingAddress() {
   >({
     mutationFn: shippingAddressApi.delete,
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ["shippingAddress", "list"] });
-      const previousData = queryClient.getQueryData<InfiniteData<PagedResponse<ShippingAddressDto>>>(["shippingAddress", "list"]);
+      await queryClient.cancelQueries({ queryKey: shippingAddressQueryKeys.listPrefix() });
+      const previousData = queryClient.getQueryData<InfiniteData<PagedResponse<ShippingAddressDto>>>(
+        shippingAddressQueryKeys.listPrefix(),
+      );
       if (previousData) {
         queryClient.setQueryData<InfiniteData<PagedResponse<ShippingAddressDto>>>(
-          ["shippingAddress", "list"],
+          shippingAddressQueryKeys.listPrefix(),
           {
             ...previousData,
             pages: previousData.pages.map((page) => ({
@@ -91,13 +100,13 @@ export function useDeleteShippingAddress() {
       return { previousData };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["shippingAddress", "list"] });
-      queryClient.invalidateQueries({ queryKey: ["shippingAddress", "byCustomer"] });
+      queryClient.invalidateQueries({ queryKey: shippingAddressQueryKeys.listPrefix() });
+      queryClient.invalidateQueries({ queryKey: shippingAddressQueryKeys.byCustomerPrefix() });
       showToast("success", t("shippingAddress.deleteSuccess"));
     },
     onError: (error, _, context) => {
       if (context?.previousData) {
-        queryClient.setQueryData(["shippingAddress", "list"], context.previousData);
+        queryClient.setQueryData(shippingAddressQueryKeys.listPrefix(), context.previousData);
       }
       showToast("error", error.message || t("common.unknownError"));
     },

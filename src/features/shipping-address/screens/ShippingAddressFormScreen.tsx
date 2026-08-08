@@ -22,8 +22,9 @@ import { useUIStore } from "../../../store/ui";
 import { useToastStore } from "../../../store/toast";
 import { FormField, LocationPicker } from "../../customer";
 import { useCountries, useCities, useDistricts } from "../../customer/hooks/useLookups";
-import { useShippingAddress, useCreateShippingAddress, useUpdateShippingAddress } from "../hooks";
-import { createShippingAddressSchema, type ShippingAddressFormData } from "../schemas";
+import { useShippingAddress } from "../hooks/useShippingAddress";
+import { useCreateShippingAddress, useUpdateShippingAddress } from "../hooks/useShippingAddressMutation";
+import { createShippingAddressSchema, type ShippingAddressFormData } from "../schemas/shipping-address-schema";
 import type { CountryDto, CityDto, DistrictDto } from "../../customer";
 
 import { 

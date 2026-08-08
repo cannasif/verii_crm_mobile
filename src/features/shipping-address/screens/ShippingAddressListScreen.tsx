@@ -24,9 +24,9 @@ import {
 import { useUIStore } from "../../../store/ui";
 import { SHIPPING_ADDRESS_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
 import { usePagedListSearchFields } from "../../../hooks/usePagedListSearchFields";
-import { useShippingAddresses } from "../hooks";
+import { useShippingAddresses } from "../hooks/useShippingAddresses";
 import { ShippingAddressCard } from "../components";
-import type { ShippingAddressDto } from "../types";
+import type { ShippingAddressDto } from "../types/shipping-address";
 import {
   ShipmentTrackingIcon,
   ArrowDown01Icon,
