@@ -1,4 +1,4 @@
-import type { NearbyPlace, PlaceCategoryId } from "../types";
+import type { NearbyPlace, PlaceCategoryId } from "../types/rota-types";
 
 const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
 const RADIUS_DEG = 0.018;

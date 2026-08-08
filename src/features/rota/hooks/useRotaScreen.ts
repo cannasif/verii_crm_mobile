@@ -1,13 +1,12 @@
 import { useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import * as Location from "expo-location";
-import { fetchNearbyPlaces } from "../api/nearbyPlaces";
-import { fetchNearbyCustomers } from "../api/nearbyCustomers";
-import type { CustomerLocationDto, NearbyPlace, PlaceCategoryId, Region } from "../types";
+import { fetchNearbyPlaces } from "../api/nearby-places";
+import { fetchNearbyCustomers } from "../api/nearby-customers";
+import type { CustomerLocationDto, NearbyPlace, PlaceCategoryId, Region } from "../types/rota-types";
+import { rotaQueryKeys } from "../utils/query-keys";
 
 const STALE_TIME_MS = 60 * 1000;
-const QUERY_KEY = ["rota", "nearby"] as const;
-const CUSTOMER_QUERY_KEY = ["rota", "nearbyCustomers"] as const;
 const DEFAULT_DELTA = 0.012;
 const DEFAULT_RADIUS_KM = 15;
 
@@ -89,7 +88,7 @@ export function useRotaScreen() {
     isFetching: isFetchingPlaces,
     refetch: refetchPlaces,
   } = useQuery({
-    queryKey: [...QUERY_KEY, coords?.lat, coords?.lng, selectedCategory],
+    queryKey: rotaQueryKeys.nearbyPlaces(coords?.lat, coords?.lng, selectedCategory),
     queryFn: async () => {
       if (!coords) return [];
       return fetchNearbyPlaces(coords.lat, coords.lng, selectedCategory);
@@ -104,7 +103,7 @@ export function useRotaScreen() {
     isFetching: isFetchingCustomers,
     refetch: refetchCustomers,
   } = useQuery({
-    queryKey: [...CUSTOMER_QUERY_KEY, coords?.lat, coords?.lng],
+    queryKey: rotaQueryKeys.nearbyCustomers(coords?.lat, coords?.lng),
     queryFn: async (): Promise<CustomerLocationDto[]> => {
       if (!coords) return [];
       return fetchNearbyCustomers({

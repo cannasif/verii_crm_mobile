@@ -9,7 +9,7 @@ import { useUIStore } from "../../../store/ui";
 import { useRotaScreen } from "../hooks/useRotaScreen";
 import { CategoryFilter } from "../components/CategoryFilter";
 import { Location01Icon, RefreshIcon } from "hugeicons-react-native";
-import type { CustomerLocationDto, NearbyPlace } from "../types";
+import type { CustomerLocationDto, NearbyPlace } from "../types/rota-types";
 
 export function RotaScreen(): React.ReactElement {
   const { t } = useTranslation();

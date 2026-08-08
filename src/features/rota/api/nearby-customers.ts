@@ -1,7 +1,7 @@
 import { apiClient } from "../../../lib/axios";
 import type { AxiosError } from "axios";
 import type { ApiResponse } from "../../auth/types/auth-types";
-import type { CustomerLocationDto } from "../types";
+import type { CustomerLocationDto } from "../types/rota-types";
 
 interface NearbyCustomersParams {
   latitude: number;

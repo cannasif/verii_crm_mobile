@@ -2,7 +2,7 @@ import React, { useCallback } from "react";
 import { View, ScrollView, TouchableOpacity, StyleSheet } from "react-native";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
-import type { PlaceCategoryId } from "../types";
+import type { PlaceCategoryId } from "../types/rota-types";
 
 const CATEGORIES: { id: PlaceCategoryId; labelKey: string }[] = [
   { id: "all", labelKey: "rota.categoryAll" },
