@@ -34,8 +34,8 @@ import {
 
 import { useLogin } from "../hooks/useLogin";
 import { useBranches } from "../hooks/useBranches";
-import { createLoginSchema, type LoginFormData } from "../schemas";
-import type { Branch } from "../types";
+import { createLoginSchema, type LoginFormData } from "../schemas/auth-schema";
+import type { Branch } from "../types/auth-types";
 
 const COLORS = {
   inputBg: "#15111D",

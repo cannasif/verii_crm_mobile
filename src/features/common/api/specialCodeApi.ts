@@ -1,5 +1,5 @@
 import { apiClient } from "../../../lib/axios";
-import type { ApiResponse } from "../../auth/types";
+import type { ApiResponse } from "../../auth/types/auth-types";
 import type { SpecialCodeDto } from "../types/specialCode";
 
 type SpecialCodeListResponse = ApiResponse<SpecialCodeDto[]>;

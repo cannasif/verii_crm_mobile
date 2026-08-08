@@ -1,7 +1,7 @@
 import { apiClient } from "../../../lib/axios";
 import { normalizePagedResponse } from "../../../lib/paged";
 import type { PagedResponse } from "../../../lib/paged";
-import type { ApiResponse } from "../../auth/types";
+import type { ApiResponse } from "../../auth/types/auth-types";
 import type { WindoDefinitionDto } from "../types";
 import { normalizeWindoDefinitionDto, normalizeWindoDefinitionList } from "../utils/normalizeWindoDefinitionDto";
 

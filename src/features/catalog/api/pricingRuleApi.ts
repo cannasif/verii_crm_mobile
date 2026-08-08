@@ -1,5 +1,5 @@
 import { apiClient } from "@/lib/axios";
-import type { ApiResponse } from "@/features/auth/types";
+import type { ApiResponse } from "@/features/auth/types/auth-types";
 import type { PagedFilter, PagedResponse } from "@/features/stocks/types";
 import type { CatalogPricingRuleType } from "../types/catalogPicker";
 

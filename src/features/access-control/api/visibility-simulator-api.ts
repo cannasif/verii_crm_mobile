@@ -3,7 +3,7 @@ import type {
   ApiResponse,
   VisibilityActionSimulationResult,
   VisibilityPreviewResult,
-} from "../../auth/types";
+} from "../../auth/types/auth-types";
 
 export const visibilitySimulatorApi = {
   preview: async (userId: number, entityType: string): Promise<VisibilityPreviewResult> => {

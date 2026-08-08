@@ -5,7 +5,7 @@ import { getApiBaseUrl } from "../constants/config";
 import { useAuthStore } from "../store/auth";
 import { useUIStore } from "../store/ui";
 import { getCurrentLanguage } from "../locales";
-import type { ApiResponse, Branch } from "../features/auth/types";
+import type { ApiResponse, Branch } from "../features/auth/types/auth-types";
 import { normalizeLocalMediaUri } from "./mediaUri";
 
 const cachedUploadUris = new Map<string, string>();

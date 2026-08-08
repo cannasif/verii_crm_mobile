@@ -1,4 +1,4 @@
-import type { ApiResponse } from "../../auth/types";
+import type { ApiResponse } from "../../auth/types/auth-types";
 import type { PagedApiResponse, PagedFilter, PagedParams, PagedResponse } from "../../customer/types/common";
 
 export interface TempQuickQuotationBaseDto {

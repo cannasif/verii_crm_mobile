@@ -1,4 +1,4 @@
-import type { ApiResponse } from "../../auth/types";
+import type { ApiResponse } from "../../auth/types/auth-types";
 
 export const Gender = {
   NotSpecified: 0,

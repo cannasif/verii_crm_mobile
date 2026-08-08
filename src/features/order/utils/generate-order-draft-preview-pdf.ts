@@ -3,7 +3,7 @@ import { resolveCurrencyIsoCode } from "../../../lib/currencyDisplay";
 import { buildSalesDocumentPreviewPdfExtras } from "../../../lib/salesDocumentPreviewPdf";
 import { fetchWindoLineDetailMapsForPdf } from "../../windo-profil-demir-vida";
 import { resolveOrderCustomerLabelForPdf } from "./resolve-order-customer-label-for-pdf";
-import type { Branch } from "../../auth/types/index";
+import type { Branch } from "../../auth/types/auth-types";
 import { orderApi } from "../api/order-api";
 import type { OrderGetDto } from "../types/order-types";
 import { buildOrderPreviewPdfInput } from "./build-order-preview-pdf-input";

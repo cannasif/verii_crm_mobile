@@ -1,6 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { API_TIMEOUT, getApiBaseUrl, initializeApiBaseUrl } from "../constants/config";
-import type { ApiResponse, Branch } from "../features/auth/types";
+import type { ApiResponse, Branch } from "../features/auth/types/auth-types";
 import { useAuthStore } from "../store/auth";
 import { useUIStore } from "../store/ui";
 import { router } from "expo-router";

@@ -47,7 +47,7 @@ import type {
   PagedParams,
   PagedResponse,
 } from "../types/order-types";
-import type { ApiResponse } from "../../auth/types";
+import type { ApiResponse } from "../../auth/types/auth-types";
 
 function normalizeKurDto(item: unknown): ExchangeRateDto {
   const o = item && typeof item === "object" ? item as Record<string, unknown> : {};

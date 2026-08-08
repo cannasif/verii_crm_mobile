@@ -1,4 +1,4 @@
-import type { ApiResponse } from "../../auth/types";
+import type { ApiResponse } from "../../auth/types/auth-types";
 import type { PagedFilter, PagedParams, PagedResponse, PagedApiResponse } from "../../customer/types/common";
 
 export interface ApprovalActionGetDto {

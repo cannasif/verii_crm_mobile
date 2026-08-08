@@ -1,4 +1,4 @@
-import type { Branch } from "../../auth/types";
+import type { Branch } from "../../auth/types/auth-types";
 import { resolveCurrencyIsoCode } from "../../../lib/currencyDisplay";
 import type {
   PreviewPdfFooterDetailBlock,

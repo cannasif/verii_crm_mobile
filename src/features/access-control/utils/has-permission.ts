@@ -1,4 +1,4 @@
-import type { MyPermissionsDto } from "../../auth/types";
+import type { MyPermissionsDto } from "../../auth/types/auth-types";
 
 export function hasPermission(
   permissions: MyPermissionsDto | null | undefined,

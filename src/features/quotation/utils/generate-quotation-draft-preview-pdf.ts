@@ -1,7 +1,7 @@
 import { resolveCurrencyIsoCode } from "../../../lib/currencyDisplay";
 import { buildSalesDocumentPreviewPdfExtras } from "../../../lib/salesDocumentPreviewPdf";
 import { fetchWindoLineDetailMapsForPdf } from "../../windo-profil-demir-vida";
-import type { Branch } from "../../auth/types/index";
+import type { Branch } from "../../auth/types/auth-types";
 import { quotationApi } from "../api/quotation-api";
 import type { QuotationGetDto } from "../types/quotation-types";
 import { buildQuotationPreviewPdfInput } from "./build-quotation-preview-pdf-input";

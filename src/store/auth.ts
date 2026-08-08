@@ -1,8 +1,8 @@
 import { create } from "zustand";
 import { storage } from "../lib/storage";
-import type { User, Branch, MyPermissionsDto } from "../features/auth/types";
+import type { User, Branch, MyPermissionsDto } from "../features/auth/types/auth-types";
 import { ACCESS_TOKEN_KEY, USER_STORAGE_KEY, BRANCH_STORAGE_KEY, PERMISSIONS_STORAGE_KEY } from "../constants/storage";
-import { isTokenValid, getUserFromToken } from "../features/auth/utils";
+import { isTokenValid, getUserFromToken } from "../features/auth/utils/token";
 import { perfMark, perfMeasure } from "../lib/perf-metrics";
 
 interface AuthState {

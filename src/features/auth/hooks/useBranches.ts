@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { authApi } from "../api";
-import type { Branch } from "../types";
+import { authApi } from "../api/auth-api";
+import type { Branch } from "../types/auth-types";
+import { authQueryKeys } from "../utils/query-keys";
 
 interface UseBranchesResult {
   branches: Branch[];
@@ -12,7 +13,7 @@ interface UseBranchesResult {
 
 export function useBranches(): UseBranchesResult {
   const query = useQuery({
-    queryKey: ["auth", "branches"],
+    queryKey: authQueryKeys.branches(),
     queryFn: authApi.getBranches,
     staleTime: 1000 * 60 * 5,
   });

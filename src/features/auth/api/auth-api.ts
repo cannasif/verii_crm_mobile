@@ -14,7 +14,7 @@ import type {
   ResetPasswordResponse,
   ChangePasswordRequest,
   ChangePasswordResponse,
-} from "../types";
+} from "../types/auth-types";
 
 const mapBranch = (branch: BranchErp): Branch => ({
   id: String(branch.subeKodu),

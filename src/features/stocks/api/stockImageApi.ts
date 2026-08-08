@@ -1,7 +1,7 @@
 import { apiClient } from "../../../lib/axios";
 import { appendMobileUploadFile, postMobileMultipart, prepareMobileImageUpload } from "../../../lib/uploadMedia";
 import i18n from "../../../locales";
-import type { ApiResponse } from "../../auth/types";
+import type { ApiResponse } from "../../auth/types/auth-types";
 import type { StockImageDto } from "../types";
 
 function isRecord(value: unknown): value is Record<string, unknown> {

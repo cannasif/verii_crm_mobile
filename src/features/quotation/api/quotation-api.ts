@@ -50,7 +50,7 @@ import type {
   ReportTemplateGetDto,
   GenerateReportPdfRequest,
 } from "../types/quotation-types";
-import type { ApiResponse } from "../../auth/types";
+import type { ApiResponse } from "../../auth/types/auth-types";
 import type {
   ProjeDto,
   SalesTypeGetDto,

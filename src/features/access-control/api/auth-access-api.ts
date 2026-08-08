@@ -1,5 +1,5 @@
 import { apiClient } from "../../../lib/axios";
-import type { ApiResponse, AppBootstrapDto, MyPermissionsDto } from "../../auth/types";
+import type { ApiResponse, AppBootstrapDto, MyPermissionsDto } from "../../auth/types/auth-types";
 
 export const authAccessApi = {
   getMyPermissions: async (): Promise<MyPermissionsDto> => {

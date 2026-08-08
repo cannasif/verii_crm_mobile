@@ -2,7 +2,7 @@ import { apiClient } from "../../../lib/axios";
 import i18n from "../../../locales";
 import { normalizeApiRequestError } from "../../../lib/api-error";
 import { appendMobileUploadFile, postMobileMultipart, prepareMobileImageUpload } from "../../../lib/uploadMedia";
-import type { ApiResponse } from "../../auth/types";
+import type { ApiResponse } from "../../auth/types/auth-types";
 import type {
   ActivityDto,
   ActivityImageDto,

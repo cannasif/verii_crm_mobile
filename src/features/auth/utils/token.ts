@@ -1,4 +1,4 @@
-import type { JWTPayload, User } from "../types";
+import type { JWTPayload, User } from "../types/auth-types";
 
 const base64Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 

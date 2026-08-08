@@ -1,5 +1,5 @@
 import { apiClient } from "../../../lib/axios";
-import type { ApiResponse } from "../../auth/types";
+import type { ApiResponse } from "../../auth/types/auth-types";
 import type {
   CustomerDocumentSerialDocumentKindValue,
   CustomerDocumentSerialSuggestionDto,
