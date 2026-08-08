@@ -4,8 +4,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Text } from "@/components/ui/text";
 import { stockBrowseStyles as styles } from "@/components/shared/stock-browse/stockBrowseStyles";
 import { useUIStore } from "../../../store/ui";
-import { formatErpOrderAmount, formatErpOrderText } from "../utils/erpOrderFormatters";
-import type { NetsisOrderHeader } from "../types";
+import { formatErpOrderAmount, formatErpOrderText } from "../utils/erp-order-formatters";
+import type { NetsisOrderHeader } from "../types/erp-order-types";
 
 interface ErpOrderListRowProps {
   item: NetsisOrderHeader;

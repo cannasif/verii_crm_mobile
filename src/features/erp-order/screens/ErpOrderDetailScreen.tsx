@@ -19,10 +19,12 @@ import { stockBrowseStyles } from "../../../components/shared/stock-browse";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { ErpOrderLineRow, ErpOrderScopeBadge } from "../components";
-import { useErpOrderLines, useErpOrders } from "../hooks";
-import { buildErpOrderLineKey } from "../utils/erpOrderListProcessing";
-import { formatErpOrderAmount, formatErpOrderText } from "../utils/erpOrderFormatters";
-import type { NetsisOrderLine } from "../types";
+import { useErpOrderLines } from "../hooks/useErpOrderLines";
+import { useErpOrders } from "../hooks/useErpOrders";
+import { buildErpOrderLineKey } from "../utils/erp-order-list-processing";
+import { formatErpOrderAmount, formatErpOrderText } from "../utils/erp-order-formatters";
+import { erpOrderQueryKeys } from "../utils/query-keys";
+import type { NetsisOrderLine } from "../types/erp-order-types";
 
 export function ErpOrderDetailScreen(): React.ReactElement {
   const { t, i18n } = useTranslation();
@@ -83,7 +85,7 @@ export function ErpOrderDetailScreen(): React.ReactElement {
 
   const handleRefresh = useCallback(async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["erp-orders", "headers"] }),
+      queryClient.invalidateQueries({ queryKey: erpOrderQueryKeys.headers() }),
       refetchLines(),
     ]);
   }, [queryClient, refetchLines]);

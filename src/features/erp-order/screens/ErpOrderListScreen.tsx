@@ -25,8 +25,8 @@ import { useUIStore } from "../../../store/ui";
 import { usePagedListSearchFields } from "../../../hooks/usePagedListSearchFields";
 import { ERP_ORDER_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
 import { ErpOrderListRow, ErpOrderScopeBadge } from "../components";
-import { useErpOrderListController } from "../hooks";
-import type { NetsisOrderHeader } from "../types";
+import { useErpOrderListController } from "../hooks/useErpOrderListController";
+import type { NetsisOrderHeader } from "../types/erp-order-types";
 
 export function ErpOrderListScreen(): React.ReactElement {
   const { t, i18n } = useTranslation();

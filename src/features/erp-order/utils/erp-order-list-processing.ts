@@ -1,5 +1,5 @@
-import type { ErpOrderSortField, NetsisOrderHeader } from "../types";
-import { ERP_ORDER_NUMERIC_SORT_FIELDS } from "../types";
+import type { ErpOrderSortField, NetsisOrderHeader } from "../types/erp-order-types";
+import { ERP_ORDER_NUMERIC_SORT_FIELDS } from "../types/erp-order-types";
 
 export function filterErpOrdersBySearch(
   items: NetsisOrderHeader[],

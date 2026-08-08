@@ -4,14 +4,14 @@ import {
   filterErpOrdersByCustomerCode,
   filterErpOrdersBySearch,
   sortErpOrders,
-} from "../utils/erpOrderListProcessing";
-import type { ErpOrderSortField } from "../types";
-import { ERP_ORDER_PAGE_SIZE } from "../types";
+} from "../utils/erp-order-list-processing";
+import type { ErpOrderSortField, NetsisOrderHeader } from "../types/erp-order-types";
+import { ERP_ORDER_PAGE_SIZE } from "../types/erp-order-types";
 
 interface UseErpOrderListControllerOptions {
   customerErpCode?: string | null;
   pageSize?: number;
-  searchFields?: readonly (keyof import("../types").NetsisOrderHeader)[];
+  searchFields?: readonly (keyof NetsisOrderHeader)[];
 }
 
 export function useErpOrderListController(options: UseErpOrderListControllerOptions = {}) {

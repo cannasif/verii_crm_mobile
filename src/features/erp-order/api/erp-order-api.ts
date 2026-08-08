@@ -1,6 +1,6 @@
 import { apiClient } from "../../../lib/axios";
 import type { ApiResponse } from "../../auth/types/auth-types";
-import type { NetsisOrderHeader, NetsisOrderLine } from "../types";
+import type { NetsisOrderHeader, NetsisOrderLine } from "../types/erp-order-types";
 
 function readString(record: Record<string, unknown>, ...keys: string[]): string {
   for (const key of keys) {

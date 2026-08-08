@@ -2,8 +2,8 @@ import React, { memo } from "react";
 import { View, StyleSheet } from "react-native";
 import { Text } from "@/components/ui/text";
 import { useUIStore } from "../../../store/ui";
-import { formatErpOrderAmount, formatErpOrderText } from "../utils/erpOrderFormatters";
-import type { NetsisOrderLine } from "../types";
+import { formatErpOrderAmount, formatErpOrderText } from "../utils/erp-order-formatters";
+import type { NetsisOrderLine } from "../types/erp-order-types";
 
 interface ErpOrderLineRowProps {
   item: NetsisOrderLine;
