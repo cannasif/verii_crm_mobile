@@ -1,7 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { profileApi } from "../api/profileApi";
-import type { ParsedUserDetailFormData } from "../schemas/userDetailSchema";
-import type { UserDetailProfile } from "../types";
+import { profileApi } from "../api/profile-api";
+import type { ParsedUserDetailFormData } from "../schemas/user-detail-schema";
+import type { UserDetailProfile } from "../types/profile-types";
+import { profileQueryKeys } from "../utils/query-keys";
 
 interface SaveUserDetailInput {
   userId: number;
@@ -25,7 +26,7 @@ export function useSaveUserDetail() {
       return profileApi.createUserDetail(createPayload);
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["profile", "detail", variables.userId] });
+      queryClient.invalidateQueries({ queryKey: profileQueryKeys.detail(variables.userId) });
     },
   });
 }

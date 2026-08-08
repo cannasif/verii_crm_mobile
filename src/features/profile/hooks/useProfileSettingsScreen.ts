@@ -9,11 +9,12 @@ import * as ImagePicker from "expo-image-picker";
 
 import { useAuthStore } from "../../../store/auth";
 import { useToast } from "../../../hooks/useToast";
-import { profileApi } from "../api/profileApi";
-import { createUserDetailSchema, parseUserDetailForm, type UserDetailFormData } from "../schemas/userDetailSchema";
+import { profileApi } from "../api/profile-api";
+import { createUserDetailSchema, parseUserDetailForm, type UserDetailFormData } from "../schemas/user-detail-schema";
 import { useSaveUserDetail } from "./useSaveUserDetail";
 import { useUserDetailByUserId } from "./useUserDetailByUserId";
-import type { UserDetailProfile } from "../types";
+import type { UserDetailProfile } from "../types/profile-types";
+import { profileQueryKeys } from "../utils/query-keys";
 
 function mapDetailToForm(detail: UserDetailProfile | null | undefined): UserDetailFormData {
   return {
@@ -36,7 +37,7 @@ export function useProfileSettingsScreen() {
   const branch = useAuthStore((state) => state.branch);
 
   const myProfileQuery = useQuery({
-    queryKey: ["profile", "me"],
+    queryKey: profileQueryKeys.me(),
     queryFn: () => profileApi.getMyProfile(),
     staleTime: 5 * 60 * 1000,
   });

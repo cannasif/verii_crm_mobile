@@ -14,7 +14,7 @@ import { ArrowDown01Icon, CheckmarkCircle02Icon } from "hugeicons-react-native";
 
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
-import { Gender } from "../types";
+import { Gender } from "../types/profile-types";
 
 interface GenderOption {
   value: string;

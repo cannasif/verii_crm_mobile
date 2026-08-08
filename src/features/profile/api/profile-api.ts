@@ -10,7 +10,7 @@ import type {
   UpdateUserDetailPayload,
   UserDetailProfile,
   UserDetailProfileResponse,
-} from "../types";
+} from "../types/profile-types";
 
 function toAbsoluteImageUrl(path: string | null | undefined): string | undefined {
   if (!path) return undefined;

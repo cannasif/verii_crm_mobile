@@ -9,7 +9,7 @@ import { Menu01Icon, UserIcon } from "hugeicons-react-native";
 import { useUIStore } from "../../store/ui";
 import { useAuthStore } from "../../store/auth";
 import ProfilePanel from "./ProfilePanel";
-import { profileApi } from "../../features/profile";
+import { profileApi, profileQueryKeys } from "../../features/profile";
 import { isAppRtl, rtlRow } from "../../lib/rtl";
 
 export function AppHeader(): React.ReactElement {
@@ -36,7 +36,7 @@ export function AppHeader(): React.ReactElement {
 
   const userId = user?.id;
   const userDetailQuery = useQuery({
-    queryKey: ["profile", "detail", userId],
+    queryKey: profileQueryKeys.detail(userId),
     queryFn: () => profileApi.getUserDetailByUserId(userId as number),
     enabled: typeof userId === "number" && userId > 0,
   });

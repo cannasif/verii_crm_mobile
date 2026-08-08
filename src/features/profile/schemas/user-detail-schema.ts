@@ -1,6 +1,6 @@
 import { z } from "zod";
 import i18n from "../../../locales";
-import { Gender } from "../types";
+import { Gender } from "../types/profile-types";
 
 export interface UserDetailFormData {
   height: string;
