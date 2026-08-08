@@ -9,7 +9,7 @@ import {
 import { Text } from "../../../components/ui/text"; 
 import { useUIStore } from "../../../store/ui";
 import { LinearGradient } from "expo-linear-gradient";
-import type { CariDto } from "../types";
+import type { CariDto } from "../types/erp-customer-types";
 import { 
   Building03Icon, 
   Call02Icon, 

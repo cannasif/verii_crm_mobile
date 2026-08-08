@@ -21,7 +21,7 @@ import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useErpCustomers } from "../hooks/useErpCustomers";
 import { SearchInput, ErpCustomerCard } from "../components";
-import type { CariDto } from "../types";
+import type { CariDto } from "../types/erp-customer-types";
 
 const { width } = Dimensions.get('window');
 const GAP = 12;

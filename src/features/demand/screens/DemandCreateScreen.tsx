@@ -62,7 +62,7 @@ import { useCustomer } from "../../customer/hooks/useCustomer";
 import { useCustomerScopeAccess } from "../../customer/hooks/useCustomerScopeAccess";
 import { useCustomerShippingAddresses } from "../../shipping-address/hooks";
 import { buildShippingAddressLabel } from "../../shipping-address/utils/shippingAddressLabel";
-import { useErpCustomers } from "../../erp-customer/hooks";
+import { useErpCustomers } from "../../erp-customer/hooks/useErpCustomers";
 import { useStock } from "../../stocks/hooks";
 import { stockApi } from "../../stocks/api";
 import { resolveDocumentLineProductName } from "../../stocks/utils";

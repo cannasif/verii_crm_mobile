@@ -1,6 +1,6 @@
 import { apiClient } from "../../../lib/axios";
 import type { ApiResponse } from "../../auth/types/auth-types";
-import type { CariDto } from "../types";
+import type { CariDto } from "../types/erp-customer-types";
 
 const normalizeCari = (raw: unknown): CariDto | null => {
   if (!raw || typeof raw !== "object") return null;
