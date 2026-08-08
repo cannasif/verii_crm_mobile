@@ -72,7 +72,7 @@ import { useSpecialCodes } from "../../common/hooks/useSpecialCodes";
 import {
   formatSpecialCodeOptionName,
   resolveSpecialCodeLabel,
-} from "../../common/utils/specialCodeLabel";
+} from "../../common/utils/special-code-label";
 import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida/hooks/useWindoDefinitionOptions";
 import { useCreateDemandBulk } from "../hooks/useCreateDemandBulk";
 import { usePriceRuleOfDemand } from "../hooks/usePriceRuleOfDemand";

@@ -86,7 +86,7 @@ import { useSpecialCodes } from "../../common/hooks/useSpecialCodes";
 import {
   formatSpecialCodeOptionName,
   resolveSpecialCodeLabel,
-} from "../../common/utils/specialCodeLabel";
+} from "../../common/utils/special-code-label";
 import { useQuotationDetail } from "../hooks/useQuotationDetail";
 import { useStartApprovalFlow } from "../hooks/useStartApprovalFlow";
 import { useWaitingApprovals } from "../hooks/useWaitingApprovals";

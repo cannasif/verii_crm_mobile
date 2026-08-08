@@ -60,7 +60,7 @@ import { useSpecialCodes } from "../../common/hooks/useSpecialCodes";
 import {
   formatSpecialCodeOptionName,
   resolveSpecialCodeLabel,
-} from "../../common/utils/specialCodeLabel";
+} from "../../common/utils/special-code-label";
 import { quotationApi } from "../api/quotation-api";
 import { useWindoDefinitionOptions } from "../../windo-profil-demir-vida/hooks/useWindoDefinitionOptions";
 import { useCreateQuotationBulk } from "../hooks/useCreateQuotationBulk";

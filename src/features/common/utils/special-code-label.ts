@@ -1,4 +1,4 @@
-import type { SpecialCodeDto } from "../types/specialCode";
+import type { SpecialCodeDto } from "../types/special-code";
 
 export function formatSpecialCodeOptionName(item: SpecialCodeDto): string {
   const displayName = item.displayName?.trim();

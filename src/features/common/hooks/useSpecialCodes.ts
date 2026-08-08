@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useToastStore } from "../../../store/toast";
-import { specialCodeApi } from "../api/specialCodeApi";
-import type { SpecialCodeDto } from "../types/specialCode";
+import { specialCodeApi } from "../api/special-code-api";
+import type { SpecialCodeDto } from "../types/special-code";
 
 type SalesDocumentModuleKey = "quotation" | "demand" | "order";
 
