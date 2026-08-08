@@ -2,7 +2,7 @@ import React, { memo } from "react";
 import { View, TouchableOpacity, StyleSheet } from "react-native";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
-import type { TitleDto } from "../types";
+import type { TitleDto } from "../types/title-types";
 import { LinearGradient } from "expo-linear-gradient";
 import { 
   Edit02Icon, 

@@ -29,7 +29,7 @@ import { stockBrowseStyles } from "../../../components/shared/stock-browse";
 import { useDeleteTitle } from "../hooks/useTitleMutations";
 import { useTitles } from "../hooks/useTitles";
 import { TitleListRow, TitleFormModal } from "../components";
-import type { TitleDto } from "../types";
+import type { TitleDto } from "../types/title-types";
 import {
   Add01Icon,
   AlertCircleIcon,

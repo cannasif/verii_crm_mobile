@@ -1,6 +1,6 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { titleApi } from "../api/title-api";
-import type { PagedFilter, PagedResponse, TitleDto } from "../types";
+import type { PagedFilter, PagedResponse, TitleDto } from "../types/title-types";
 import { titleQueryKeys } from "../utils/query-keys";
 
 const DEFAULT_PAGE_SIZE = 20;

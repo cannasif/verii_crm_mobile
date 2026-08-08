@@ -4,7 +4,7 @@ import { Briefcase01Icon, Delete02Icon, Edit02Icon } from "hugeicons-react-nativ
 import { Text } from "@/components/ui/text";
 import { stockBrowseStyles as styles } from "@/components/shared/stock-browse/stockBrowseStyles";
 import { useUIStore } from "../../../store/ui";
-import type { TitleDto } from "../types";
+import type { TitleDto } from "../types/title-types";
 
 interface TitleListRowProps {
   title: TitleDto;

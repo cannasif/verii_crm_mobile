@@ -7,7 +7,7 @@ import type {
   PagedParams,
   PagedResponse,
   PagedApiResponse,
-} from "../types";
+} from "../types/title-types";
 
 export const titleApi = {
   getList: async (params: PagedParams = {}): Promise<PagedResponse<TitleDto>> => {

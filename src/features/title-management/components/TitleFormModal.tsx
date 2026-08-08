@@ -20,7 +20,7 @@ import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useCreateTitle, useUpdateTitle } from "../hooks/useTitleMutations";
 import { createTitleSchema, type TitleFormData } from "../schemas/title-schema";
-import type { TitleDto } from "../types";
+import type { TitleDto } from "../types/title-types";
 import { 
   Cancel01Icon, 
   Award01Icon 

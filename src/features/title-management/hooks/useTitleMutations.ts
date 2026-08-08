@@ -2,7 +2,12 @@ import { useMutation, useQueryClient, type InfiniteData } from "@tanstack/react-
 import { useTranslation } from "react-i18next";
 import { titleApi } from "../api/title-api";
 import { useToastStore } from "../../../store/toast";
-import type { CreateTitleDto, UpdateTitleDto, TitleDto, PagedResponse } from "../types";
+import type {
+  CreateTitleDto,
+  UpdateTitleDto,
+  TitleDto,
+  PagedResponse,
+} from "../types/title-types";
 import { titleQueryKeys } from "../utils/query-keys";
 
 export function useCreateTitle() {

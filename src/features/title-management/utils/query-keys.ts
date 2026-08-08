@@ -1,4 +1,4 @@
-import type { PagedFilter } from "../types";
+import type { PagedFilter } from "../types/title-types";
 
 interface TitleListQueryParams {
   filters?: PagedFilter[];
