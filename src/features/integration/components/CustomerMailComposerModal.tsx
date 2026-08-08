@@ -14,7 +14,8 @@ import { useTranslation } from "react-i18next";
 import { useUIStore } from "../../../store/ui";
 import { Text } from "../../../components/ui/text";
 import { useToast } from "../../../hooks/useToast";
-import { integrationApi } from "../api/integrationApi";
+import { integrationApi } from "../api/integration-api";
+import { integrationQueryKeys } from "../utils/query-keys";
 
 type MailProvider = "google" | "outlook";
 type MailModuleKey = "demand" | "quotation" | "order" | "activity";
@@ -109,7 +110,7 @@ export function CustomerMailComposerModal({
   const selectedTemplate = templates.find((x) => x.key === templateKey) ?? templates[0];
 
   const statusQuery = useQuery({
-    queryKey: ["integrations", provider, "status"],
+    queryKey: integrationQueryKeys.status(provider),
     queryFn: provider === "google" ? integrationApi.getGoogleStatus : integrationApi.getOutlookStatus,
     enabled: visible,
   });

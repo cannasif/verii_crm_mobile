@@ -1,4 +1,5 @@
-export { integrationApi } from "./api/integrationApi";
+export { integrationApi } from "./api/integration-api";
+export { integrationQueryKeys } from "./utils/query-keys";
 export { CustomerMailComposerModal } from "./components";
 export type {
   GoogleIntegrationStatusDto,
@@ -8,4 +9,4 @@ export type {
   GoogleCustomerMailSendResultDto,
   OutlookCustomerMailSendResultDto,
   CustomerMailLogDto,
-} from "./types";
+} from "./types/integration-types";

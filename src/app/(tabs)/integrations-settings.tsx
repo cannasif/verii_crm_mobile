@@ -23,7 +23,7 @@ import { FlatListScrollView } from "@/components/FlatListScrollView";
 import { Text } from "../../components/ui/text";
 import { useUIStore } from "../../store/ui";
 import { useToast } from "../../hooks/useToast";
-import { integrationApi } from "../../features/integration";
+import { integrationApi, integrationQueryKeys } from "../../features/integration";
 
 export default function IntegrationsSettingsScreen(): React.ReactElement {
   const { t } = useTranslation();
@@ -44,19 +44,19 @@ export default function IntegrationsSettingsScreen(): React.ReactElement {
   const mutedColor = isDark ? "#94A3B8" : "#64748B";
 
   const googleStatusQuery = useQuery({
-    queryKey: ["integrations", "google", "status"],
+    queryKey: integrationQueryKeys.status("google"),
     queryFn: integrationApi.getGoogleStatus,
   });
 
   const outlookStatusQuery = useQuery({
-    queryKey: ["integrations", "outlook", "status"],
+    queryKey: integrationQueryKeys.status("outlook"),
     queryFn: integrationApi.getOutlookStatus,
   });
 
   const refreshStatuses = useCallback(async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["integrations", "google", "status"] }),
-      queryClient.invalidateQueries({ queryKey: ["integrations", "outlook", "status"] }),
+      queryClient.invalidateQueries({ queryKey: integrationQueryKeys.status("google") }),
+      queryClient.invalidateQueries({ queryKey: integrationQueryKeys.status("outlook") }),
     ]);
   }, [queryClient]);
 

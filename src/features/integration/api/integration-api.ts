@@ -15,7 +15,7 @@ import type {
   OutlookCustomerMailSendResultDto,
   OutlookIntegrationStatusResponse,
   SendCustomerMailDto,
-} from "../types";
+} from "../types/integration-types";
 import type { PagedResponse } from "../../customer/types/common";
 
 function getErrorMessage(response: { message?: string; exceptionMessage?: string }, fallback: string): string {
