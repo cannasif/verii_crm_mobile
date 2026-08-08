@@ -1,4 +1,4 @@
-import type { ActivityDto } from "../../activity/types";
+import type { ActivityDto } from "../../activity/types/activity-types";
 
 export function getTodayRange(): { startDate: string; endDate: string } {
   const now = new Date();

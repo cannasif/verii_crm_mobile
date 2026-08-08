@@ -5,7 +5,7 @@ import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useDailyTasks } from "../hooks";
 import { TaskCard } from "../components";
-import type { ActivityDto } from "../../activity/types";
+import type { ActivityDto } from "../../activity/types/activity-types";
 import type { DailyViewProps } from "../types";
 
 function getTodayRange(): { startDate: string; endDate: string } {

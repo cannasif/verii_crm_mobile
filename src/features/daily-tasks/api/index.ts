@@ -1,7 +1,7 @@
 import { apiClient } from "../../../lib/axios";
 import { buildPagedQueryPayload } from "../../../lib/paged";
 import type { ApiResponse } from "../../auth/types";
-import type { ActivityDto } from "../../activity/types";
+import type { ActivityDto } from "../../activity/types/activity-types";
 import type { DailyTaskFilter } from "../types";
 
 interface PagedFilter {

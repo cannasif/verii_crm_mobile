@@ -28,11 +28,14 @@ import { useUIStore } from "../../../store/ui";
 import { useAuthStore } from "../../../store/auth";
 import { PermissionDeniedState } from "../../access-control/components/PermissionDeniedState";
 import { hasPermission } from "../../access-control/utils/has-permission";
-import { useActivity, useActivityLookups, useActivityTypes, useCreateActivity, useUpdateActivity } from "../hooks";
+import { useActivity } from "../hooks/useActivity";
+import { useActivityLookups } from "../hooks/useActivityLookups";
+import { useActivityTypes } from "../hooks/useActivityTypes";
+import { useCreateActivity, useUpdateActivity } from "../hooks/useActivityMutation";
 import { FormField, CustomerPicker, ContactPicker } from "../components";
 import { useCustomerScopeAccess } from "../../customer/hooks/useCustomerScopeAccess";
-import { createActivitySchema, type ActivityFormData } from "../schemas";
-import { buildCreateActivityPayload, buildUpdateActivityPayload } from "../utils/buildCreateActivityPayload";
+import { createActivitySchema, type ActivityFormData } from "../schemas/activity-schema";
+import { buildCreateActivityPayload, buildUpdateActivityPayload } from "../utils/build-create-activity-payload";
 import {
   ACTIVITY_STATUSES,
   ACTIVITY_PRIORITIES,
@@ -43,11 +46,12 @@ import {
   type ActivityLookupDto,
   type ActivityDto,
   type ActivityImageDto,
-} from "../types";
+} from "../types/activity-types";
 import type { CustomerDto } from "../../customer/types/customer";
 import { resolveErpCustomerCodeForSelection } from "../../../lib/customerIntegration";
 import type { ContactDto } from "../../contact/types";
-import { activityImageApi } from "../api";
+import { activityImageApi } from "../api/activity-api";
+import { activityQueryKeys } from "../utils/query-keys";
 import { getApiBaseUrl } from "../../../constants/config";
 import { formatSystemDate, formatSystemDateTime, getSystemDatePickerLocale } from "../../../lib/systemSettings";
 import {
@@ -910,7 +914,7 @@ export function ActivityFormScreen(): React.ReactElement {
               setPendingImageAssets([]);
               const fresh = await activityImageApi.getByActivityId(activityId);
               setActivityImages(fresh);
-              void queryClient.invalidateQueries({ queryKey: ["activity", "images", activityId] });
+              void queryClient.invalidateQueries({ queryKey: activityQueryKeys.images(activityId) });
             } catch (imgErr) {
               const message =
                 imgErr instanceof Error && imgErr.message ? imgErr.message : t("activity.imageUploadError");
@@ -989,7 +993,7 @@ export function ActivityFormScreen(): React.ReactElement {
         if (activityId) {
           const fresh = await activityImageApi.getByActivityId(activityId);
           setActivityImages(fresh);
-          void queryClient.invalidateQueries({ queryKey: ["activity", "images", activityId] });
+          void queryClient.invalidateQueries({ queryKey: activityQueryKeys.images(activityId) });
         } else {
           setActivityImages((prev) => prev.filter((item) => item.id !== imageId));
         }

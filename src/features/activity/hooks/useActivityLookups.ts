@@ -1,27 +1,28 @@
 import { useQueries } from "@tanstack/react-query";
-import { activityLookupApi } from "../api";
-import type { ActivityLookupDto } from "../types";
+import { activityLookupApi } from "../api/activity-api";
+import type { ActivityLookupDto } from "../types/activity-types";
+import { activityQueryKeys } from "../utils/query-keys";
 
 export function useActivityLookups() {
   const [paymentTypes, meetingTypes, topicPurposes, shippings] = useQueries({
     queries: [
       {
-        queryKey: ["activity", "payment-types"],
+        queryKey: activityQueryKeys.paymentTypes(),
         queryFn: () => activityLookupApi.getPaymentTypes(),
         staleTime: 10 * 60 * 1000,
       },
       {
-        queryKey: ["activity", "meeting-types"],
+        queryKey: activityQueryKeys.meetingTypes(),
         queryFn: () => activityLookupApi.getMeetingTypes(),
         staleTime: 10 * 60 * 1000,
       },
       {
-        queryKey: ["activity", "topic-purposes"],
+        queryKey: activityQueryKeys.topicPurposes(),
         queryFn: () => activityLookupApi.getTopicPurposes(),
         staleTime: 10 * 60 * 1000,
       },
       {
-        queryKey: ["activity", "shippings"],
+        queryKey: activityQueryKeys.shippings(),
         queryFn: () => activityLookupApi.getShippings(),
         staleTime: 10 * 60 * 1000,
       },

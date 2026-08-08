@@ -13,7 +13,7 @@ import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useDailyTasks } from "../hooks";
 import { TaskCard } from "../components";
-import type { ActivityDto } from "../../activity/types";
+import type { ActivityDto } from "../../activity/types/activity-types";
 import type { CalendarViewProps } from "../types";
 
 LocaleConfig.locales["tr"] = {

@@ -18,7 +18,7 @@ import { HomeHero } from "../components/HomeHero";
 import { StatsStrip } from "../components/StatsStrip";
 import { RecentActivities } from "../components/RecentActivities";
 
-import { useActivities } from "../../activity/hooks";
+import { useActivities } from "../../activity/hooks/useActivities";
 import { useCustomers } from "../../customer/hooks/useCustomers";
 import { useDailyTasks } from "../../daily-tasks/hooks";
 import { countPendingTasksForToday, getTodayRange } from "../utils/homeStats";

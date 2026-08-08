@@ -25,9 +25,9 @@ import { usePagedListSearchFields } from "../../../hooks/usePagedListSearchField
 import { PermissionDeniedState } from "../../access-control/components/PermissionDeniedState";
 import { isForbiddenError } from "../../access-control/utils/is-forbidden-error";
 import { hasPermission } from "../../access-control/utils/has-permission";
-import { useActivities } from "../hooks";
+import { useActivities } from "../hooks/useActivities";
 import { ActivityCard } from "../components";
-import type { ActivityDto } from "../types";
+import type { ActivityDto } from "../types/activity-types";
 import { useAuthStore } from "../../../store/auth";
 import {
   CalendarAdd01Icon,

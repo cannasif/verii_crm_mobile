@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { dailyTasksApi } from "../api";
 import { useToastStore } from "../../../store/toast";
-import type { ActivityDto } from "../../activity/types";
+import type { ActivityDto } from "../../activity/types/activity-types";
 
 interface UpdateStatusParams {
   id: number;

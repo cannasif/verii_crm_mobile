@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { dailyTasksApi } from "../api";
-import type { ActivityDto } from "../../activity/types";
+import type { ActivityDto } from "../../activity/types/activity-types";
 import type { DailyTaskFilter } from "../types";
 
 interface UseDailyTasksOptions {

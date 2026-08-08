@@ -3,7 +3,7 @@ import { View, TouchableOpacity, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
-import type { ActivityDto } from "../types";
+import type { ActivityDto } from "../types/activity-types";
 import { formatSystemDate, formatSystemTime } from "../../../lib/systemSettings";
 
 import {

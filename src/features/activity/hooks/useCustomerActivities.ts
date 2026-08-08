@@ -1,12 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
-import { activityApi } from "../api";
-import type { ActivityDto } from "../types";
+import { activityApi } from "../api/activity-api";
+import type { ActivityDto } from "../types/activity-types";
+import { activityQueryKeys } from "../utils/query-keys";
 
 export function useCustomerActivities(customerId?: number | null) {
   const normalizedCustomerId = customerId && customerId > 0 ? customerId : undefined;
 
   return useQuery<ActivityDto[], Error>({
-    queryKey: ["activity", "customer-activities", normalizedCustomerId],
+    queryKey: activityQueryKeys.customerActivities(normalizedCustomerId),
     enabled: Boolean(normalizedCustomerId),
     queryFn: async () => {
       const response = await activityApi.getList({

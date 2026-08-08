@@ -4,7 +4,7 @@ import type {
   ActivityTypeDto,
   ActivityTypeRef,
   CreateActivityReminderDto,
-} from "../types";
+} from "../types/activity-types";
 import i18n from "../../../locales";
 
 export interface ActivityFormLike {

@@ -17,8 +17,9 @@ import { useUIStore } from "../../../store/ui";
 import { useToastStore } from "../../../store/toast";
 import { useAuthStore } from "../../../store/auth";
 import { WeeklyView, DailyView, CalendarView } from "../views";
-import { useCreateActivity, useActivityTypes } from "../../activity/hooks";
-import { buildCreateActivityPayload } from "../../activity/utils/buildCreateActivityPayload";
+import { useCreateActivity } from "../../activity/hooks/useActivityMutation";
+import { useActivityTypes } from "../../activity/hooks/useActivityTypes";
+import { buildCreateActivityPayload } from "../../activity/utils/build-create-activity-payload";
 import type { ViewMode } from "../types";
 
 const TAB_ITEMS: { key: ViewMode; labelKey: string }[] = [

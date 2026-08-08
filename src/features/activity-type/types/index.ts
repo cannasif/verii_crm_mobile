@@ -1,6 +1,6 @@
-import type { ActivityTypeDto, PagedParams, PagedResponse } from "../../activity/types";
+import type { ActivityTypeDto, PagedParams, PagedResponse } from "../../activity/types/activity-types";
 
-export type { ActivityTypeDto, PagedParams, PagedResponse } from "../../activity/types";
+export type { ActivityTypeDto, PagedParams, PagedResponse } from "../../activity/types/activity-types";
 
 export interface CreateActivityTypeDto {
   name: string;

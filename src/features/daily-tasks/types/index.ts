@@ -1,4 +1,4 @@
-import type { ActivityDto } from "../../activity/types";
+import type { ActivityDto } from "../../activity/types/activity-types";
 
 export type { ActivityDto };
 

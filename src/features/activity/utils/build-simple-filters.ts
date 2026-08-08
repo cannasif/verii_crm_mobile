@@ -1,4 +1,4 @@
-import type { PagedFilter } from "../types";
+import type { PagedFilter } from "../types/activity-types";
 
 export type ActivityListActiveFilter = "all" | "active" | "completed";
 

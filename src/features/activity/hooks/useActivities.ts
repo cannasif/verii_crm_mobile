@@ -1,6 +1,7 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { activityApi } from "../api";
-import type { PagedFilter, PagedResponse, ActivityDto } from "../types";
+import { activityApi } from "../api/activity-api";
+import type { PagedFilter, PagedResponse, ActivityDto } from "../types/activity-types";
+import { activityQueryKeys } from "../utils/query-keys";
 
 const DEFAULT_PAGE_SIZE = 20;
 
@@ -28,7 +29,15 @@ export function useActivities(params: UseActivitiesParams = {}) {
   } = params;
 
   return useInfiniteQuery<PagedResponse<ActivityDto>, Error>({
-    queryKey: ["activity", "list", { filters, search, searchFields, filterLogic, sortBy, sortDirection, pageSize }],
+    queryKey: activityQueryKeys.list({
+      filters,
+      search,
+      searchFields,
+      filterLogic,
+      sortBy,
+      sortDirection,
+      pageSize,
+    }),
     queryFn: ({ pageParam }) =>
       activityApi.getList({
         pageNumber: pageParam as number,

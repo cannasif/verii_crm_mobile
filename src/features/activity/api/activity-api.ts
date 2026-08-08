@@ -13,7 +13,7 @@ import type {
   PagedParams,
   PagedResponse,
   PagedApiResponse,
-} from "../types";
+} from "../types/activity-types";
 
 interface RawPagedPayload<T> {
   items?: T[];

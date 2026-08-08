@@ -31,11 +31,13 @@ import { PermissionDeniedState } from "../../access-control/components/Permissio
 import { isForbiddenError } from "../../access-control/utils/is-forbidden-error";
 import { hasPermission } from "../../access-control/utils/has-permission";
 import { formatSystemDateTime } from "../../../lib/systemSettings";
-import { useActivity, useDeleteActivity, useUpdateActivity } from "../hooks";
-import { activityImageApi } from "../api";
-import type { ActivityDto, ActivityImageDto } from "../types";
+import { useActivity } from "../hooks/useActivity";
+import { useDeleteActivity, useUpdateActivity } from "../hooks/useActivityMutation";
+import { activityImageApi } from "../api/activity-api";
+import type { ActivityDto, ActivityImageDto } from "../types/activity-types";
 import { getApiBaseUrl } from "../../../constants/config";
-import { ACTIVITY_STATUS_NUMERIC, ACTIVITY_PRIORITY_NUMERIC } from "../types";
+import { ACTIVITY_STATUS_NUMERIC, ACTIVITY_PRIORITY_NUMERIC } from "../types/activity-types";
+import { activityQueryKeys } from "../utils/query-keys";
 import { ReportTab, DocumentRuleType } from "../../quotation";
 import {
   Calendar03Icon,
@@ -311,7 +313,7 @@ export function ActivityDetailScreen(): React.ReactElement {
   const activityPreviewFrameH = previewWinH * 0.72;
 
   const { data: activityImages = [], isLoading: imagesLoading, refetch: refetchActivityImages } = useQuery({
-    queryKey: ["activity", "images", activityId],
+    queryKey: activityQueryKeys.images(activityId),
     queryFn: () => activityImageApi.getByActivityId(activityId!),
     enabled: typeof activityId === "number" && activityId > 0,
   });
@@ -447,7 +449,7 @@ export function ActivityDetailScreen(): React.ReactElement {
         },
       ]);
       setPickActivityImagePreviewAsset(null);
-      void queryClient.invalidateQueries({ queryKey: ["activity", "images", activityId] });
+      void queryClient.invalidateQueries({ queryKey: activityQueryKeys.images(activityId) });
       await refetchActivityImages();
     } catch (err) {
       const message =
