@@ -11,10 +11,10 @@ import { useTranslation } from "react-i18next";
 import { Add01Icon } from "hugeicons-react-native";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
-import { useDailyTasks } from "../hooks";
+import { useDailyTasks } from "../hooks/useDailyTasks";
 import { TaskCard } from "../components";
 import type { ActivityDto } from "../../activity/types/activity-types";
-import type { CalendarViewProps } from "../types";
+import type { CalendarViewProps } from "../types/daily-task-types";
 
 LocaleConfig.locales["tr"] = {
   monthNames: [

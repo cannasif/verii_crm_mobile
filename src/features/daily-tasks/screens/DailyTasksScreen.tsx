@@ -20,7 +20,7 @@ import { WeeklyView, DailyView, CalendarView } from "../views";
 import { useCreateActivity } from "../../activity/hooks/useActivityMutation";
 import { useActivityTypes } from "../../activity/hooks/useActivityTypes";
 import { buildCreateActivityPayload } from "../../activity/utils/build-create-activity-payload";
-import type { ViewMode } from "../types";
+import type { ViewMode } from "../types/daily-task-types";
 
 const TAB_ITEMS: { key: ViewMode; labelKey: string }[] = [
   { key: "weekly", labelKey: "dailyTasks.weekly" },

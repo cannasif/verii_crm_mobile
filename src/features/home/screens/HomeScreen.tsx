@@ -20,7 +20,7 @@ import { RecentActivities } from "../components/RecentActivities";
 
 import { useActivities } from "../../activity/hooks/useActivities";
 import { useCustomers } from "../../customer/hooks/useCustomers";
-import { useDailyTasks } from "../../daily-tasks/hooks";
+import { useDailyTasks } from "../../daily-tasks/hooks/useDailyTasks";
 import { countPendingTasksForToday, getTodayRange } from "../utils/homeStats";
 import { clearPerfMarks, perfMark, perfMeasureOnNextPaint } from "../../../lib/perf-metrics";
 

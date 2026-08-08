@@ -22,9 +22,9 @@ import {
 import { useRouter } from "expo-router";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
-import { useDailyTasks } from "../hooks";
+import { useDailyTasks } from "../hooks/useDailyTasks";
 import type { ActivityDto } from "../../activity/types/activity-types";
-import type { WeeklyViewProps } from "../types";
+import type { WeeklyViewProps } from "../types/daily-task-types";
 
 function getWeekRange(): { startDate: string; endDate: string; monday: Date } {
   const now = new Date();

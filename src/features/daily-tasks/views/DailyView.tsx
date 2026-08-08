@@ -3,10 +3,10 @@ import { View, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity } from 
 import { useTranslation } from "react-i18next";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
-import { useDailyTasks } from "../hooks";
+import { useDailyTasks } from "../hooks/useDailyTasks";
 import { TaskCard } from "../components";
 import type { ActivityDto } from "../../activity/types/activity-types";
-import type { DailyViewProps } from "../types";
+import type { DailyViewProps } from "../types/daily-task-types";
 
 function getTodayRange(): { startDate: string; endDate: string } {
   const now = new Date();

@@ -20,7 +20,7 @@ import {
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { StatusBadge } from "./StatusBadge";
-import { useCompleteTask, useStartTask, useHoldTask } from "../hooks";
+import { useCompleteTask, useStartTask, useHoldTask } from "../hooks/useTaskStatusUpdate";
 import type { ActivityDto } from "../../activity/types/activity-types";
 
 interface TaskCardProps {

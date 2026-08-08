@@ -1,8 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { dailyTasksApi } from "../api";
+import { dailyTasksApi } from "../api/daily-tasks-api";
 import { useToastStore } from "../../../store/toast";
 import type { ActivityDto } from "../../activity/types/activity-types";
+import { dailyTaskQueryKeys, dailyTaskRelatedQueryKeys } from "../utils/query-keys";
 
 interface UpdateStatusParams {
   id: number;
@@ -19,15 +20,15 @@ export function useTaskStatusUpdate() {
     mutationFn: ({ id, status, isCompleted }) =>
       dailyTasksApi.updateStatus(id, status, isCompleted),
     onMutate: async ({ id, status, isCompleted }) => {
-      await queryClient.cancelQueries({ queryKey: ["dailyTasks"] });
-      await queryClient.cancelQueries({ queryKey: ["activity", "list"] });
+      await queryClient.cancelQueries({ queryKey: dailyTaskQueryKeys.all() });
+      await queryClient.cancelQueries({ queryKey: dailyTaskRelatedQueryKeys.activityLists() });
 
       return { id, status, isCompleted };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["dailyTasks"] });
-      queryClient.invalidateQueries({ queryKey: ["activity", "list"] });
-      queryClient.invalidateQueries({ queryKey: ["activity", "detail"] });
+      queryClient.invalidateQueries({ queryKey: dailyTaskQueryKeys.all() });
+      queryClient.invalidateQueries({ queryKey: dailyTaskRelatedQueryKeys.activityLists() });
+      queryClient.invalidateQueries({ queryKey: dailyTaskRelatedQueryKeys.activityDetails() });
       showToast("success", t("dailyTasks.statusUpdated"));
     },
     onError: (error) => {
