@@ -52,8 +52,8 @@ import {
   WarehouseBalanceFilterCheckbox,
 } from "@/features/warehouse-stock-balances";
 import type { StockGetDto, StockGroupDto } from "../types";
-import { quotationApi } from "../../quotation/api/quotationApi";
-import type { PriceOfProductDto } from "../../quotation/types";
+import { quotationApi } from "../../quotation/api/quotation-api";
+import type { PriceOfProductDto } from "../../quotation/types/quotation-types";
 
 const { width } = Dimensions.get("window");
 const GAP = STOCK_BROWSE_CARD_GAP;

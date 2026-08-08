@@ -30,7 +30,7 @@ import { PermissionDeniedState } from "../../access-control/components/Permissio
 import { hasPermission } from "../../access-control/utils/hasPermission";
 import { useActivity, useActivityLookups, useActivityTypes, useCreateActivity, useUpdateActivity } from "../hooks";
 import { FormField, CustomerPicker, ContactPicker } from "../components";
-import { useCustomerScopeAccess } from "../../customer/hooks";
+import { useCustomerScopeAccess } from "../../customer/hooks/useCustomerScopeAccess";
 import { createActivitySchema, type ActivityFormData } from "../schemas";
 import { buildCreateActivityPayload, buildUpdateActivityPayload } from "../utils/buildCreateActivityPayload";
 import {
@@ -44,7 +44,7 @@ import {
   type ActivityDto,
   type ActivityImageDto,
 } from "../types";
-import type { CustomerDto } from "../../customer/types";
+import type { CustomerDto } from "../../customer/types/customer";
 import { resolveErpCustomerCodeForSelection } from "../../../lib/customerIntegration";
 import type { ContactDto } from "../../contact/types";
 import { activityImageApi } from "../api";

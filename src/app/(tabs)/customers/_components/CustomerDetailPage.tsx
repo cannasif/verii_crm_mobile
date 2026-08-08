@@ -43,8 +43,8 @@ import {
   Add01Icon,
 } from "hugeicons-react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useQuotationList } from "../../../../features/quotation/hooks";
-import type { PagedFilter, QuotationGetDto } from "../../../../features/quotation/types";
+import { useQuotationList } from "../../../../features/quotation/hooks/useQuotationList";
+import type { PagedFilter, QuotationGetDto } from "../../../../features/quotation/types/quotation-types";
 
 type TabType = "detail" | "contacts" | "customer360";
 

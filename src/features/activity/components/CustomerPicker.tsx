@@ -12,9 +12,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
-import { useCustomers } from "../../customer/hooks";
+import { useCustomers } from "../../customer/hooks/useCustomers";
 import { asSearchFields, CUSTOMER_PICKER_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
-import type { CustomerDto } from "../../customer/types";
+import type { CustomerDto } from "../../customer/types/customer";
 
 interface CustomerPickerProps {
   value?: number;

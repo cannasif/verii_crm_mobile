@@ -19,7 +19,7 @@ import { StatsStrip } from "../components/StatsStrip";
 import { RecentActivities } from "../components/RecentActivities";
 
 import { useActivities } from "../../activity/hooks";
-import { useCustomers } from "../../customer/hooks";
+import { useCustomers } from "../../customer/hooks/useCustomers";
 import { useDailyTasks } from "../../daily-tasks/hooks";
 import { countPendingTasksForToday, getTodayRange } from "../utils/homeStats";
 import { clearPerfMarks, perfMark, perfMeasureOnNextPaint } from "../../../lib/perf-metrics";

@@ -1,7 +1,7 @@
 import { Buffer } from "buffer";
 import * as FileSystem from "expo-file-system/legacy";
-import { quotationApi } from "../../quotation/api";
-import { DocumentRuleType } from "../../quotation/types";
+import { quotationApi } from "../../quotation/api/quotation-api";
+import { DocumentRuleType } from "../../quotation/types/quotation-types";
 
 interface GenerateTempQuickQuotationReportPdfParams {
   tempQuotationId?: number;

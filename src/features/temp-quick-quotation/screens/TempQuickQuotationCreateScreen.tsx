@@ -35,13 +35,14 @@ import { QuotationLineForm, PickerModal } from "../../quotation/components";
 import type {
   QuotationLineFormState,
   QuotationExchangeRateFormState,
-} from "../../quotation/types";
-import { useExchangeRate, useCurrencyOptions } from "../../quotation/hooks";
+} from "../../quotation/types/quotation-types";
+import { useExchangeRate } from "../../quotation/hooks/useExchangeRate";
+import { useCurrencyOptions } from "../../quotation/hooks/useCurrencyOptions";
 import {
   CustomerSelectDialog,
   type CustomerSelectionResult,
 } from "../../customer/components";
-import type { CustomerDto } from "../../customer/types";
+import type { CustomerDto } from "../../customer/types/customer";
 import {
   buildEffectiveExchangeRates,
   findCurrencyOptionByValue,
@@ -49,13 +50,13 @@ import {
 } from "../../../lib/resolve-exchange-rate";
 import { getApiBaseUrl } from "../../../constants/config";
 import { openPdfExternallyAsync } from "../../../lib/pdf";
-import { calculateLineTotals } from "../../quotation/utils";
+import { calculateLineTotals } from "../../quotation/utils/calculations";
 import { generateTempQuickQuotationReportPdf } from "../utils/generateTempQuickQuotationReportPdf";
 import { useReportTemplateList } from "../../quotation/hooks/useReportTemplateList";
-import { DocumentRuleType } from "../../quotation/types";
+import { DocumentRuleType } from "../../quotation/types/quotation-types";
 import { getCurrencyDisplayLabel as getCurrencyDisplayName } from "../../../lib/currencyDisplay";
 import type { ProductSelectionResult } from "../../stocks/types";
-import type { UploadReportAssetOptions } from "../../quotation/api/quotationApi";
+import type { UploadReportAssetOptions } from "../../quotation/api/quotation-api";
 
 function numberValue(value: string): number {
   const parsed = Number(value.replace(",", "."));

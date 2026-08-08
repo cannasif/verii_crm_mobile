@@ -30,7 +30,7 @@ import { useToast } from "../../../hooks/useToast";
 import { tempQuickQuotationRepository } from "../repositories/tempQuotattion.repository";
 import { generateTempQuickQuotationReportPdf } from "../utils/generateTempQuickQuotationReportPdf";
 import { useReportTemplateList } from "../../quotation/hooks/useReportTemplateList";
-import { DocumentRuleType } from "../../quotation/types";
+import { DocumentRuleType } from "../../quotation/types/quotation-types";
 import { PickerModal } from "../../quotation/components";
 import { openPdfExternallyAsync } from "../../../lib/pdf";
 import { getApiBaseUrl } from "../../../constants/config";

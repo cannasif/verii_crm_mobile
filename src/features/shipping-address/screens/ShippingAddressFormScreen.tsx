@@ -21,7 +21,7 @@ import { Text } from "../../../components/ui/text";
 import { useUIStore } from "../../../store/ui";
 import { useToastStore } from "../../../store/toast";
 import { FormField, LocationPicker } from "../../customer";
-import { useCountries, useCities, useDistricts } from "../../customer/hooks";
+import { useCountries, useCities, useDistricts } from "../../customer/hooks/useLookups";
 import { useShippingAddress, useCreateShippingAddress, useUpdateShippingAddress } from "../hooks";
 import { createShippingAddressSchema, type ShippingAddressFormData } from "../schemas";
 import type { CountryDto, CityDto, DistrictDto } from "../../customer";

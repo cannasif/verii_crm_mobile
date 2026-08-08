@@ -25,7 +25,7 @@ import { CONTACT_LIST_SEARCH_FIELDS } from "../../../lib/pagedSearchFields";
 import { usePagedListSearchFields } from "../../../hooks/usePagedListSearchFields";
 
 import { useContacts } from "../hooks";
-import { useCustomers } from "../../customer/hooks";
+import { useCustomers } from "../../customer/hooks/useCustomers";
 import { ContactListCard } from "../components/ContactListCard"; 
 import type { ContactDto, PagedFilter } from "../types";
 
