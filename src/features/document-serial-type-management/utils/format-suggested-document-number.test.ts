@@ -1,4 +1,4 @@
-import { formatSuggestedDocumentNumber } from "./formatSuggestedDocumentNumber";
+import { formatSuggestedDocumentNumber } from "./format-suggested-document-number";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) {

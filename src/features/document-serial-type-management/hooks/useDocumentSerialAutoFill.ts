@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getCustomerDocumentSerialSuggestion } from "../api/documentSerialTypeApi";
+import { getCustomerDocumentSerialSuggestion } from "../api/document-serial-type-api";
 import type {
   CustomerDocumentSerialDocumentKindValue,
   DocumentSerialTypeDto,
-} from "../types";
+} from "../types/document-serial-type-types";
 import {
   getLastDocumentSerialTypeId,
   saveLastDocumentSerialTypeId,
-} from "../utils/documentSerialPreferenceStore";
-import { formatSuggestedDocumentNumber } from "../utils/formatSuggestedDocumentNumber";
+} from "../utils/document-serial-preference-store";
+import { formatSuggestedDocumentNumber } from "../utils/format-suggested-document-number";
+import { documentSerialTypeQueryKeys } from "../utils/query-keys";
 
 export interface UseDocumentSerialAutoFillParams {
   documentId?: number | null;
@@ -39,12 +40,11 @@ export function useDocumentSerialAutoFill(params: UseDocumentSerialAutoFillParam
     [params.availableSerialTypes]
   );
   const customerSuggestionQuery = useQuery({
-    queryKey: [
-      "document-serial-type-customer-suggestion",
-      params.customerId ?? 0,
-      params.documentKind ?? 0,
-      params.branchCode ?? "",
-    ],
+    queryKey: documentSerialTypeQueryKeys.customerSuggestion(
+      params.customerId,
+      params.documentKind,
+      params.branchCode
+    ),
     queryFn: () =>
       getCustomerDocumentSerialSuggestion({
         customerId: params.customerId!,

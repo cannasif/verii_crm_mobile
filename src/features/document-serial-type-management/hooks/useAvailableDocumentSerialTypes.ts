@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { getAvailableDocumentSerialTypes } from "../api/documentSerialTypeApi";
-import type { DocumentSerialTypeDto } from "../types";
+import { getAvailableDocumentSerialTypes } from "../api/document-serial-type-api";
+import type { DocumentSerialTypeDto } from "../types/document-serial-type-types";
+import { documentSerialTypeQueryKeys } from "../utils/query-keys";
 
 export function useAvailableDocumentSerialTypes(
   customerTypeId: number | undefined | null,
@@ -8,7 +9,7 @@ export function useAvailableDocumentSerialTypes(
   ruleType: number
 ) {
   return useQuery<DocumentSerialTypeDto[], Error>({
-    queryKey: ["documentSerialType", "available", customerTypeId, salesRepId, ruleType],
+    queryKey: documentSerialTypeQueryKeys.available(customerTypeId, salesRepId, ruleType),
     queryFn: () =>
       getAvailableDocumentSerialTypes({
         customerTypeId: customerTypeId ?? 0,

@@ -1,4 +1,4 @@
-export { getAvailableDocumentSerialTypes } from "./api/documentSerialTypeApi";
+export { getAvailableDocumentSerialTypes } from "./api/document-serial-type-api";
 export { useAvailableDocumentSerialTypes } from "./hooks/useAvailableDocumentSerialTypes";
 export { useDocumentSerialAutoFill } from "./hooks/useDocumentSerialAutoFill";
 export type { UseDocumentSerialAutoFillParams } from "./hooks/useDocumentSerialAutoFill";
@@ -9,9 +9,9 @@ export {
   type CustomerDocumentSerialSuggestionDto,
   type DocumentSerialRuleTypeValue,
   type DocumentSerialTypeDto,
-} from "./types";
+} from "./types/document-serial-type-types";
 export {
   getLastDocumentSerialTypeId,
   saveLastDocumentSerialTypeId,
-} from "./utils/documentSerialPreferenceStore";
-export { formatSuggestedDocumentNumber } from "./utils/formatSuggestedDocumentNumber";
+} from "./utils/document-serial-preference-store";
+export { formatSuggestedDocumentNumber } from "./utils/format-suggested-document-number";

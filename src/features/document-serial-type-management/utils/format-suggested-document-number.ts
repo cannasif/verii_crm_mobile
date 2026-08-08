@@ -1,4 +1,4 @@
-import type { DocumentSerialTypeDto } from "../types";
+import type { DocumentSerialTypeDto } from "../types/document-serial-type-types";
 
 export function formatSuggestedDocumentNumber(serialType: DocumentSerialTypeDto): string {
   const prefix = serialType.serialPrefix?.trim() ?? "";

@@ -4,7 +4,7 @@ import type {
   CustomerDocumentSerialDocumentKindValue,
   CustomerDocumentSerialSuggestionDto,
   DocumentSerialTypeDto,
-} from "../types";
+} from "../types/document-serial-type-types";
 
 interface DocumentSerialTypesResponse {
   success?: boolean;
