@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { activityTypeApi } from "../../activity";
-import type { ActivityTypeStats } from "../types";
+import { activityTypeApi } from "../../activity/api/activity-api";
+import type { ActivityTypeStats } from "../types/activity-type-types";
+import { activityTypeQueryKeys } from "../utils/query-keys";
 
 function computeStats(items: { createdDate?: string }[]): ActivityTypeStats {
   const now = new Date();
@@ -22,7 +23,7 @@ function computeStats(items: { createdDate?: string }[]): ActivityTypeStats {
 
 export function useActivityTypeStats() {
   return useQuery<ActivityTypeStats, Error>({
-    queryKey: ["activityType", "stats"],
+    queryKey: activityTypeQueryKeys.stats(),
     queryFn: async () => {
       const paged = await activityTypeApi.getList({
         pageNumber: 1,
